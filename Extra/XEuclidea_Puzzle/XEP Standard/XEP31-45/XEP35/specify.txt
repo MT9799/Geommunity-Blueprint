@@ -1,3 +1,0 @@
-Given three given circles, construct a circle that intersects the given circle at angles of 30 °, 60 °, and 90 °.
-
-已知3个给定圆，构造一个与给定圆交于30°,60°,90°角的圆。

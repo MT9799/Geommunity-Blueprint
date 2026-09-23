@@ -1,3 +1,0 @@
-Given a circle and point CDE, make an inscribed quadrilateral of the circle such that points C and D are on opposite sides, and point E is the diagonal intersection point.
-
-给定圆和点CDE，作圆内接四边形，使得点C和D在对边上，点E为对角线交点。

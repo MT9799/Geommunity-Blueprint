@@ -1,3 +1,0 @@
-Construct the angle bisector and the altitude in 5-moves
-
-Official explanation: The dotted line can be utilized

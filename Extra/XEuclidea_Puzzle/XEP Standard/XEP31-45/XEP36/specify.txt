@@ -1,3 +1,0 @@
-Given a circle and a straight line, construct a circle circumscribed quadrilateral with diagonals of 120 ° and 60 °, and the intersection points of the opposite sides (2 in total) on the straight line.
-
-已知圆和直线，构造圆外切四边形，四边形的对角分别为120°和60°，对边交点（共2个）都在直线上。

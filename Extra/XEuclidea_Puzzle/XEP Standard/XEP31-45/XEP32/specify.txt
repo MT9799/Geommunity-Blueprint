@@ -1,3 +1,0 @@
-Given that there are 4 points ABCD on the centerless circle and 2 points EF on the straight line CD (given by the straight line CD), only use a ruler to construct a point X on the circle, so that the lines AX and BX intersect the chord CD at points R and S, and point RS is the inversion point for the circle with EF as the diameter.
-
-已知无心圆上4点ABCD，直线CD上有2点EF（直线CD给出），仅用直尺作出圆上一点X，使得连线AX和BX截弦CD于点R和S，点RS对于以EF为直径的圆互为反演点。

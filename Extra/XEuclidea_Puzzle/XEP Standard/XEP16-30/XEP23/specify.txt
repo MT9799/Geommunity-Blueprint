@@ -1,3 +1,0 @@
-Given two points A and B, construct points C and D such that AC=CD=DB, AD=AB=BC.
-
-已知两点A和B，求作点C和D，使得AC=CD=DB，AD=AB=BC。

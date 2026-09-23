@@ -1,3 +1,0 @@
-Given 3 points on a circle and a chord, construct a point on the circle where the line connecting the 3 points intersects at 3 points, so that the distance between these 3 points is equal.
-
-已知圆上3点和弦，求作圆上一点，与3点的连线截弦于3个交点，使得这3个交点相邻距离等长。

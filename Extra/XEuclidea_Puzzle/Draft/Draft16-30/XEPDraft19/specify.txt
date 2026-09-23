@@ -1,3 +1,0 @@
-Given the square ABCD, construct 4 points of EFGH such that the midpoint of AH is E, the midpoint of BE is F, the midpoint of CF is G, and the midpoint of DG is H.
-
-已知正方形ABCD，求作4点EFGH，使得AH中点为E，BE中点为F，CF中点为G，DG中点为H。

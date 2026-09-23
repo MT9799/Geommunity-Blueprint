@@ -1,3 +1,0 @@
-Given 9 points ABCDEFGHI, construct a parallel line gh passing through point AB, a parallel line jk passing through point CD, a parallel line nm passing through point EF, a line connecting the intersection of gj and hk passing through point G, a line connecting the intersection of gn and hm passing through point H, and a line connecting the intersection of jn and km passing through point I.
-
-已知9点ABCDEFGHI，构造平行线gh过点AB，平行线jk过点CD，平行线nm过点EF，gj交点与hk交点连线过点G，gn交点与hm交点连线过点H，jn交点与km交点连线过点I。

@@ -1,3 +1,0 @@
-Given a triangle and any point, construct an inscribed equilateral triangle so that one side passes through a given point.
-
-已知三角形及任意一点，求作内接正三角形，使得其一边过给定点。

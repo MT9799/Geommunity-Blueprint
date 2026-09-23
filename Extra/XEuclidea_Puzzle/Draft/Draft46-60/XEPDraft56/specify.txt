@@ -1,3 +1,0 @@
-Given two pairs of concentric circles, construct a straight line so that the line segments intersecting the concentric circles are equal.
-
-已知两对同心圆，构造直线使得截同心圆的线段相等。

@@ -1,3 +1,0 @@
-Given three given circles, construct a circle that is tangent to the circle, orthogonal to the circle, and opposite in diameter to the truncated circle.
-
-已知3个给定圆，构造一个与圆相切，与圆正交，截圆对径的圆。

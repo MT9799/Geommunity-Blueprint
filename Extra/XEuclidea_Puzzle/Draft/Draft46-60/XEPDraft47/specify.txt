@@ -1,3 +1,0 @@
-Given triangle ABC and a point, find a straight line passing through the point, intersecting with the two sides of the triangle at EF, where E is on AB and F is on AC, such that EF=BE+CF
-
-已知三角形ABC及一点，求作过点的直线，与三角形两边交点EF，E在AB上，F在AC上，使得EF=BE+CF

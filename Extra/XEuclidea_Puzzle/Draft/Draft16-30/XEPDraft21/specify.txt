@@ -1,3 +1,0 @@
-Given a triangle and a point, construct a circle such that the chords of each corner of the truncated triangle are of equal length and pass through a given point.
-
-已知三角形及一点，求作一圆，使得截三角形各角所对弦等长，且过给定点。

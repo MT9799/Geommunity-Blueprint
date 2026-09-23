@@ -1,3 +1,0 @@
-Construct three mutually orthogonal circles, and each constructed circle is orthogonal to the given two circles.
-
-构造3个互相正交的圆，且构造的每个圆与给定的两个圆正交。

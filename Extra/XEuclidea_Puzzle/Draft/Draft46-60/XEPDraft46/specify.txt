@@ -1,3 +1,0 @@
-Given triangle ABC and a point D, draw three perpendicular lines to each side at point D, where one of the lines has a point E. Find a triangle with its vertices on each line, and one of the vertices is point E. The perpendicular lines of each side pass through point ABC.
-
-已知三角形ABC及一点D，点D处引3条对各边的垂线，其中一条线上有一点E，求作三角形，各顶点在各直线上，且其中一个顶点为点E，各边的垂足线各过点ABC。

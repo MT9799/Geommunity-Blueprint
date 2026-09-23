@@ -1,3 +1,0 @@
-Given 4 points. Construct four circles with four given points as their centers, so that the four circles have exactly four intersection points.
-
-给定4点。构造4个以给定4点为圆心的圆，使满足4个圆恰好仅有4个交点。

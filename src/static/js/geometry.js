@@ -1,0 +1,1633 @@
+/**
+ * 几何对象模块
+ * @module geometry
+ */
+
+/**
+ * 几何对象
+ * @class
+ */
+class GeometryElement {
+    /**
+     * @param {string} id
+     * this.superstructure = {id: Object}
+     */
+    constructor(id) {
+        this.id = id;
+        this.name = id;
+        this.type;
+        this.superstructure = new Object();
+        this.visible = true;
+        this.valid = true;
+        this.color = "#191919";
+        this.showName = false;
+        this.width = 1;
+    }
+    
+    /**
+     * 添加上层构造
+     * @param {Object} geometryElement
+     */
+    addSuperstructure(geometryElement) {
+        const id = geometryElement.getId();
+        this.superstructure[id] = geometryElement;
+    }
+    
+    /**
+     * 删去上层构造
+     * @param {string} id
+     */
+    deleteSuperstructure(id) {
+        delete this.superstructure[id];
+    }
+    
+    /**
+     * 清空上层构造
+     */
+    clearSuperstructure() {
+        this.superstructure = new Object();
+    }
+    
+    /**
+     * 返回上层构造
+     * 返回Array()形式
+     */
+    getSuperstructure() {
+        return Object.values(this.superstructure);
+    }
+    
+    /**
+     * 修改名称
+     * @param {string} name
+     */
+    modifyName(name) {
+        this.name = name;
+    }
+    
+    /**
+     * 修改ID
+     * @param {string} id
+     */
+    modifyId(id) {
+        this.id = id;
+    }
+    
+    /**
+     * 修改可视
+     * @param {boolean} bool
+     */
+    modifyVisible(bool) {
+        this.visible = bool;
+    }
+    
+    /**
+     * 修改有效性
+     * @param {boolean} bool
+     */
+    modifyValid(bool) {
+        this.valid = bool;
+    }
+
+    /**
+     * 修改颜色
+     * @param {string} color
+     */
+    modifyColor(color) {
+        this.color = color;
+    }
+
+    /**
+     * 修改显示标签
+     * @param {boolean} bool
+     */
+    modifyShowName(bool) {
+        this.showName = bool;
+    }
+
+    /**
+     * 修改粗细（点的大小、线圆的粗细），默认 1
+     * @param {number} width
+     */
+    modifyWidth(width) {
+        this.width = width;
+    }
+
+    /**
+     * 访问ID
+     * @returns {string} ID
+     */
+    getId() {
+        return this.id;
+    }
+        
+    /**
+     * 访问名称
+     * @returns {string} 名称
+     */
+    getName() {
+        return this.name;
+    }
+    
+    /**
+     * 访问类型
+     * @returns {string} 类型
+     */
+    getType() {
+        return this.type;
+    }
+    
+    /**
+     * 访问可视
+     * @returns {boolean}
+     */
+    getVisible() {
+        return this.visible;
+    }
+    
+    /**
+     * 访问有效性
+     * @returns {boolean}
+     */
+    getValid() {
+        return this.valid;
+    }
+    
+    /**
+     * 访问颜色
+     * @returns {string}
+     */
+    getColor() {
+        return this.color;
+    }
+    
+    /**
+     * 访问显示名称
+     * @returns {boolean}
+     */
+    getShowName() {
+        return this.showName;
+    }
+
+    /**
+     * 访问粗细
+     * @returns {number}
+     */
+    getWidth() {
+        return this.width;
+    }
+}
+
+/**
+ * 点类
+ * @class
+ */
+class Point extends GeometryElement {
+    /**
+     * @param {string} objectId
+     * @param {number} x
+     * @param {number} y
+     * this.base {type = string, bases = Object[], value = number}
+     */
+    constructor(id, x, y) {
+        super(id);
+        this.x = x;
+        this.y = y;
+        this.type = "point";
+        this.base = {type: 'none'};
+    }
+    
+    /**
+     * 修改坐标
+     * @param {number} x
+     * @param {number} y
+     */
+    modifyCoordinate(x, y) {
+        this.x = x;
+        this.y = y;
+    }
+    
+    /**
+     * 修改基底
+     * @param {string} type 
+     * @param {Object[]} geometryElements
+     * @param {number} [value=0] 
+     */
+    modifyBase(type, geometryElements, value = 0, exclude = null) {
+        this.base.type = type;
+        this.base.bases = geometryElements;
+        this.base.value = value;
+        // 交点编号时要排除的已知点（gmt 里 Intersect[a,b,x,已知点] 的第四个参数）
+        this.base.exclude = exclude || null;
+        
+        // 更新坐标
+        this.updateCoordinate();
+    }
+    
+    /**
+     * 访问坐标
+     * @returns {[x, y]} 坐标
+     */
+    getCoordinate() {
+        return [this.x, this.y];
+    }
+    
+    /**
+     * 返回基底
+     */
+    getBase() {
+        return this.base;
+    }
+    
+    /**
+     * 获取字典形式
+     * @returns {key: value}
+     */
+    getDict() {
+        const dict = {};
+        dict.id = this.id;
+        dict.name = this.name;
+        dict.type = this.type;
+        dict.showName = this.showName;
+        dict.superstructureId = Object.keys(this.superstructure);
+        dict.visible = this.visible;
+        dict.valid = this.valid;
+        dict.color = this.color;
+        dict.width = this.width;
+        dict.x = this.x;
+        dict.y = this.y;
+        dict.base = {type: this.base.type};
+        if (this.base.type !== "none") {
+            const basesId = [];
+            this.base.bases.forEach((item) => basesId.push(item.getId()));
+            dict.base.basesId = basesId;
+            dict.base.value = this.base.value;
+            // 交点编号时排除的已知点也要记下来，撤销/存读档后编号才不会错位
+            if (this.base.exclude) dict.base.excludeId = this.base.exclude.getId();
+        }
+        return dict;
+    }
+    
+    /**
+     * 清空基底
+     */
+    clearBase() {
+        this.base = {type: 'none'};
+    }
+    
+    /**
+     * 更新坐标
+     */
+    updateCoordinate() {
+        const typeCoordinate = ToolsFunction.updatePointCoordinate(this.base);
+        const type = typeCoordinate?.type;
+        
+        if (type === "keep") {
+            return;
+        }else if (type === "update") {
+            [this.x, this.y] = typeCoordinate.coordinate;
+        }else if (type === "invalid") {
+            this.valid = false;
+        }
+    }
+}
+
+/**
+ * 直线类
+ * @class
+ */
+class Line extends GeometryElement {
+    /**
+     * @param {string} objectId
+     * this.coordinate = [[x1, y1], [x2, y2]]
+     * this.base = {type: string, figure: Object[], value: number = 0}
+     * 
+     * type: twoPoints, figure: [Point, Point]
+     * type: parallel, figure: [Point, Line]
+     * type: perpendicularBisector, figure: [Point, Point]
+     */
+    constructor(id) {
+        super(id);
+        this.coordinate;
+        this.type = "line";
+        this.base = {type: 'none'};
+        this.drawType = 'line';
+    }
+    
+    /**
+     * 访问定义图形
+     * @returns {Object[]}
+     */
+    getDefine() {
+        return this.base.figure;
+    }
+    
+    /**
+     * 返回基底
+     */
+    getBase() {
+        return this.base;
+    }
+    
+    /**
+     * 访问坐标
+     * @returns {[[x1, y1], [x2, y2]]}
+     */
+    getCoordinate() {
+        return this.coordinate;
+    }
+
+    /**
+     * 访问绘制类型
+     * @returns {'line' | 'ray' | 'lineSegment'} 
+     */
+    getDrawType() {
+        return this.drawType;
+    }
+    
+    /**
+     * 获取字典形式
+     * @returns {key: value}
+     */
+    getDict() {
+        const dict = {};
+        dict.id = this.id;
+        dict.name = this.name;
+        dict.type = this.type;
+        dict.showName = this.showName;
+        dict.superstructureId = Object.keys(this.superstructure);
+        dict.visible = this.visible;
+        dict.valid = this.valid;
+        dict.color = this.color;
+        dict.width = this.width;
+        dict.coordinate = this.coordinate;
+        dict.base = {type: this.base.type};
+        if (this.base.type !== "none") {
+            const basesId = [];
+            this.base.figure.forEach((item) => basesId.push(item.getId()));
+            dict.base.basesId = basesId;
+            dict.base.value = this.base.value;
+        }
+        dict.drawType = this.drawType;
+        return dict;
+    }
+    
+    /**
+     * 修改定义图形
+     * @param {string} type
+     * @param {Object[]} figures
+     * @param {number} [value=0] 
+     */
+    modifyDefine(type, figures, value = 0) {
+        this.base.type = type;
+        this.base.value = value;
+        
+        // 删除原基底的上层引用，添加新基底的上层引用
+        if (this.base.figure) for (const item of this.base.figure) item.deleteSuperstructure(this.id);
+        this.base.figure = figures;
+        for (const item of figures) item.addSuperstructure(this);
+        
+        // 更新坐标
+        this.updateCoordinate();
+    }
+
+    /**
+     * 修改绘制类型
+     * @param {'line' | 'ray' | 'lineSegment'} drawType
+     */
+    modifyDrawType(drawType) {
+        this.drawType = drawType;
+    }
+
+    /**
+     * 更新直线两点坐标
+     */
+    updateCoordinate() {
+        this.coordinate = ToolsFunction.updateLineCoordinate(this.base);
+    }
+}
+
+/**
+ * 圆类
+ * @class
+ */
+class Circle extends GeometryElement {
+    /**
+     * @param {string} objectId
+     * this.coordinate = [[x1, y1], [x2, y2]] = [center, point]
+     * this.base = {type: string, figure: Object[], value: number = 0}
+     * 
+     * type: twoPoints, figure: [Point, Point]
+     * type: threePoints, figure: [Point, Point, Point]
+     */
+    constructor(id) {
+        super(id);
+        this.coordinate;
+        this.type = "circle";
+        this.base = {type: 'none'};
+    }
+    
+    /**
+     * 访问定义图形
+     * @returns {Object[]}
+     */
+    getDefine() {
+        return this.base.figure;
+    }
+    
+    /**
+     * 返回基底
+     */
+    getBase() {
+        return this.base;
+    }
+    
+    /**
+     * 访问坐标
+     * @returns {[[x1, y1], [x2, y2]]}
+     */
+    getCoordinate() {
+        return this.coordinate;
+    }
+    
+    /**
+     * 获取字典形式
+     * @returns {key: value}
+     */
+    getDict() {
+        const dict = {};
+        dict.id = this.id;
+        dict.name = this.name;
+        dict.type = this.type;
+        dict.showName = this.showName;
+        dict.superstructureId = Object.keys(this.superstructure);
+        dict.visible = this.visible;
+        dict.valid = this.valid;
+        dict.color = this.color;
+        dict.width = this.width;
+        dict.coordinate = this.coordinate;
+        dict.base = {type: this.base.type};
+        if (this.base.type !== "none") {
+            const basesId = [];
+            this.base.figure.forEach((item) => basesId.push(item.getId()));
+            dict.base.basesId = basesId;
+            dict.base.value = this.base.value;
+        }
+        return dict;
+    }
+    
+    /**
+     * 修改定义图形
+     * @param {string} type
+     * @param {Object[]} figures
+     * @param {number} [value=0] 
+     */
+    modifyDefine(type, figures, value = 0) {
+        this.base.type = type;
+        this.base.value = value;
+        
+        // 删除原基底的上层引用，添加新基底的上层引用
+        if (this.base.figure) for (const item of this.base.figure) item.deleteSuperstructure(this.id);
+        this.base.figure = figures;
+        for (const item of figures) item.addSuperstructure(this);
+        
+        // 更新坐标
+        this.updateCoordinate();
+    }
+    
+    /**
+     * 更新圆两点坐标
+     */
+    updateCoordinate() {
+        this.coordinate = ToolsFunction.updateCircleCoordinate(this.base);
+    }
+}
+
+/**
+ * 几何对象管理器类
+ * @class
+ */
+class GeometryElementManager {
+    /**
+     * 数据格式
+     * this.repository = {id: Object}
+     * this.counter = {type: number}
+     * this.choice = {tool: {key: {type: string, quote: string, create: Object}}}
+     * this.transfrom = {x: number, y: number, scale: number}
+     */
+    constructor() {
+        this.repository = new Object();
+        this.counter = {"total": 0};
+        this.choice = new Object();
+        this.transform = {x: 0, y: 0, scale: 1};
+        this.geometryStyle = {point: {colorChoice: "auto", color: "#191919"}, 
+            line: {colorChoice: "auto", color: "#191919"}, 
+            circle: {colorChoice: "auto", color: "#191919"}
+        };
+        this.geometryElementLists = {
+            hidden: new Set(),
+            initial: new Set(),
+            named: new Set(),
+            name: new Set(),
+            movepoints: new Set(),
+            result: new Set(),
+            resultShown: new Set(),
+            explore: new Set(),
+        };
+    }
+    
+    /**
+     * 访问总计
+     * @returns {number} 几何对象数量总计
+     */
+    getObjectTotal() {
+        return this.counter["total"];
+    }
+    
+    /**
+     * 访问类型总计
+     * @param {string} objectType 指定类型
+     * @returns {number} 指定类型几何对象数量总计
+     */
+    getTypeCount(objectType) {
+        return this.counter[objectType];
+    }
+    
+    /**
+     * 类型计数增加 私有方法
+     * @param {string} objectType 指定类型
+     */
+    #counterAdd(objectType) {
+        this.counter["total"]++;
+        if (!this.counter.hasOwnProperty(objectType)) {
+            this.counter[objectType] = 1;
+        }else{
+            this.counter[objectType]++;
+        }
+    }
+    
+    /**
+     * 类型计数减少 私有方法
+     * @param {string} objectType 指定类型
+     */
+    #counterDelete(objectType) {
+        if (!this.counter.hasOwnProperty(objectType)) return;
+        
+        this.counter["total"] -= 1;
+        const typeNum = this.counter[objectType];
+        if (typeNum === 1) {
+            Reflect.deleteProperty(this.counter, objectType);
+        }else{
+            this.counter[objectType] -= 1;
+        }
+    }
+    
+    /**
+     * 从ID获取对象
+     * @param {string} id
+     * @returns {Object} 指定对象
+     */
+    get(id) {
+        let object;
+        object = this.repository[id];
+        return object;
+    }
+    
+    /**
+     * 以类型返回所有对象
+     * Object()
+     * @param {string} currentTool 当前工具
+     * @returns {{exceptPoints: Object[], exceptPointsCache: Object[], points: Object[], pointsCache: [], choice: Object[]}}
+     */
+    getAllByType(currentTool = "none") {
+        const dict = new Object();
+        const points = new Array();
+        const exceptPoints = new Array();
+        const resultPoints = new Array();
+        const pointsCache = new Array();
+        const exceptPointsCache = new Array();
+        const resultexceptPoints = new Array();
+        const choice = new Array();
+        
+        // 实有对象
+        let list = Object.values(this.repository);
+        list.forEach((element) => {
+            const type = element.getType();
+            if (type === "point") {
+                const id = element.getId();
+                if (geometryElementLists.result.has(id) || geometryElementLists.explore.has(id)) {
+                    resultPoints.push(element);
+                }else{
+                    points.push(element);
+                }
+            }else{
+                const id = element.getId();
+                if (geometryElementLists.result.has(id) || geometryElementLists.explore.has(id)) {
+                    resultexceptPoints.push(element);
+                }else{
+                    exceptPoints.push(element);
+                }
+            }
+        });
+        
+        if (Object.keys(this.choice).includes(currentTool)) {
+            const list = Object.values(this.choice[currentTool]);
+            list.forEach((item) => {
+                if (item.type === "create") {
+                    const type = item.create.getType();
+                    if (type === "point") {
+                        pointsCache.push(item.create);
+                    }else{
+                        exceptPointsCache.push(item.create);
+                    }
+                }else{
+                    const element = this.get(item.quote);
+                    choice.push(element);
+                }
+            });
+        }
+        
+        dict['exceptPoints'] = exceptPoints;
+        dict['exceptPointsCache'] = exceptPointsCache;
+        dict['points'] = points;
+        dict['pointsCache'] = pointsCache;
+        dict['resultPoints'] = resultPoints;
+        dict['resultexceptPoints'] = resultexceptPoints;
+        dict["choice"] = choice;
+        
+        return dict;
+    }
+    
+    /**
+     * 以顺序返回所有实在对象
+     * Array()
+     * @returns {Object[]}
+     */
+    getAllByOrder() {
+        return Object.values(this.repository);
+    }
+    
+    /**
+     * 按当前配色方案给对象上样式色 过程函数
+     * auto：线上点红、构造点灰；autoPlayMode：自由点（坐标点 / 线上点）红，构造点与线圆灰
+     * 注意它依赖 base.type，所以反序列化时要等基础图元接好再调一次，否则点会被当成自由点全涂红
+     * @param {Object} object
+     */
+    applyAutoStyle(object) {
+        const type = object.getType();
+        if (type === "point") {
+            const choice = this.geometryStyle.point.colorChoice;
+            const baseType = object.getBase?.().type;
+            if (choice === "auto") {
+                if (baseType === "online") {
+                    object.modifyColor("#ff0000");
+                }else if (baseType === "intersection" || baseType === "middlePoint" || baseType === "center") {
+                    object.modifyColor("#808080");
+                }
+                // 默认显示标签，可在「配置点样式」中关闭
+                object.modifyShowName(this.geometryStyle.point.showName !== false);
+            }else if (choice === "autoPlayMode") {
+                if (baseType === "none" || baseType === "online") {
+                    object.modifyColor("#ff0000");
+                }else if (baseType === "intersection" || baseType === "middlePoint" || baseType === "center") {
+                    object.modifyColor("#808080");
+                }
+            }
+        }else if (type === "line") {
+            if (this.geometryStyle.line.colorChoice === "autoPlayMode") object.modifyColor("#808080");
+        }else if (type === "circle") {
+            if (this.geometryStyle.circle.colorChoice === "autoPlayMode") object.modifyColor("#808080");
+        }
+    }
+
+    /**
+     * 添加对象
+     * @param {Object} object
+     */
+    addObject(object) {
+        // 对象信息
+        let id = object.getId();
+        const type = object.getType();
+        
+        // id查重
+        if (Object.keys(this.repository).includes(id)) {
+            // 存在重复id，需要变更
+            type === "point" ? id = this.getId("point") : id = this.getId("other");
+            object.modifyId(id);
+            object.modifyName(id);
+        }
+        
+        // 改变样式
+        this.applyAutoStyle(object);
+        
+        // 添加对象
+        this.repository[id] = object;
+        // 增加计数器
+        this.#counterAdd(type);
+    }
+    
+    /**
+     * 删除对象
+     * @param {string} objectId 指定ID
+     */
+    deleteObject(objectId) {
+        let deleteList = new Array();
+        let visitedList = new Array();
+        deleteList.unshift(objectId);
+        visitedList.push(objectId);
+
+        while (deleteList.length) {
+            // 取
+            const currentElementId = deleteList.pop();
+            const currentElement = this.get(currentElementId);
+            if (!currentElement) continue;
+            const objectType = currentElement.getType();
+
+            // 生成
+            const superstructures = currentElement.getSuperstructure();
+            for (const element of superstructures) {
+                const id = element.getId();
+                if (!visitedList.includes(id)) {
+                    visitedList.push(id);
+                    deleteList.unshift(id);
+                }
+            }
+
+            // 删除
+            delete this.repository[currentElementId];
+            // 删除缓存
+            for (const tool of Object.keys(this.choice)) {
+                this.deleteToolQuote(tool, currentElementId);
+            }
+            // 删除其基底的上层引用
+            if (objectType === "point") {
+                const baseType = currentElement.getBase().type;
+                if (baseType === "online") {
+                    const [base] = currentElement.getBase().bases;
+                    base.deleteSuperstructure(currentElementId);
+                }else if (baseType === "intersection") {
+                    const [base1, base2] = currentElement.getBase().bases;
+                    base1.deleteSuperstructure(currentElementId);
+                    base2.deleteSuperstructure(currentElementId);
+                }
+            }else if (objectType === "line" || objectType === "circle") {
+                const defines = currentElement.getDefine();
+                defines.forEach((item) => item.deleteSuperstructure(currentElementId));
+            }
+            // 减少计数器
+            this.#counterDelete(objectType);
+        }
+    }
+    
+    /**
+     * 查询存在性
+     * @param {string} id 指定ID
+     * @return {boolean}
+     */
+    ifIdIn(id) {
+        return Object.keys(this.repository).includes(id);
+    }
+    
+    /**
+     * 查询缓存存在性
+     * @param {string} tool
+     * @param {string} id
+     * @return {boolean}
+     */
+    ifIdInCache(tool, id) {
+        // 检查存在性
+        if (!Object.keys(this.choice).includes(tool)) return false;
+        
+        for (const item of Object.values(this.choice[tool])) {
+            if (item.type === "quote") {
+                if (item.quote === id) return true;
+            }else{
+                const itemId = item.create.getId();
+                if (itemId === id) return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * 删除所有对象
+     */
+    deleteAll() {
+        this.repository = new Object();
+        this.counter = {"total": 0};
+        this.choice = new Object();
+    }
+    
+    /**
+     * 清空指定工具的所有缓存对象
+     * @param {string} tool
+     */
+    deleteTool(tool) {
+        // 检查存在性
+        if (!Object.keys(this.choice).includes(tool)) return;
+        delete this.choice[tool];
+    }
+
+    /**
+     * 查询工具缓存存在性
+     * @param {string} tool
+     * @returns {boolean}
+     */
+    ifToolInCache(tool) {
+        return Object.keys(this.choice).includes(tool);
+    }
+    
+    /**
+     * 查询工具键缓存存在性
+     * @param {string} tool
+     * @param {string} key
+     * @returns {boolean}
+     */
+    ifToolKeyInCache(tool, key) {
+        if (Object.keys(this.choice).includes(tool)) {
+            return Object.keys(this.choice[tool]).includes(key);
+        }else{
+            return false;
+        }
+        
+    }
+    
+    /**
+     * 添加缓存对象
+     * 可以存已有对象的ID，用于工具选择已有点，避免对象不一致
+     * @param {string} tool
+     * @param {string} key
+     * @param {string} type
+     * @param {any} value 
+     */
+    addToolObject(tool, key, type, value) {
+        // 如果没有创建缓存空间，就创一个
+        if (!Object.keys(this.choice).includes(tool)) {
+            this.choice[tool] = new Object;
+        }
+
+        // 添加缓存
+        if (type === 'quote') {
+            const tmp = {type: 'quote', quote: value, create: null};
+            this.choice[tool][key] = tmp;
+        }else if (type === 'create'){
+            const point = this.createPoint(value[0], value[1]);
+            if (this.ifIdInCache(tool, point.getId())) {
+                const id = this.getId("point", tool);
+                point.modifyId(id);
+                point.modifyName(id);
+            }
+            const tmp = {type: 'create', quote: null, create: point};
+            this.choice[tool][key] = tmp;
+        }else if (type === 'append'){
+            if (this.ifIdInCache(tool, value.getId())) {
+                let id;
+                value.getType() === "point" ? id = this.getId("point", tool) : id = this.getId("other", tool);
+                value.modifyId(id);
+                value.modifyName(id);
+            }
+            const tmp = {type: 'create', quote: null, create: value};
+            this.choice[tool][key] = tmp;
+        }
+    }
+
+    /**
+     * 修改可变缓存对象
+     * @param {string} tool
+     * @param {string} key
+     * @param {string} type
+     * @param {any} value 
+     */
+    modifyToolObject(tool, key, type, value) {
+        // 如果没有创建缓存空间，就创一个
+        if (!Object.keys(this.choice).includes(tool)) {
+            this.choice[tool] = new Object;
+        }
+
+        // 修改
+        if (type === 'quote') {
+            this.choice[tool][key]["type"] = "quote";
+            this.choice[tool][key]["quote"] = value;
+        }else if (type === 'create'){
+            if (this.choice[tool][key].create) {
+                const point = this.choice[tool][key]['create'];
+                point.modifyCoordinate(value[0], value[1]);
+            }else{
+                // 没有就创建
+                const point = this.createPoint(value[0], value[1]);
+                if (this.ifIdInCache(tool, point.getId())) {
+                    const id = this.getId("point", tool);
+                    point.modifyId(id);
+                    point.modifyName(id);
+                }
+                this.choice[tool][key].create = point;
+            }
+            this.choice[tool][key].type = "create";
+        }
+    }
+    
+    /**
+     * 返回指定工具的指定对象
+     * @param {string} tool
+     * @param {string} key
+     * @return {Object | null}
+     */
+    getToolKey(tool, key) {
+        // 检查存在性
+        if (!Object.keys(this.choice).includes(tool)) return null;
+        if (!Object.keys(this.choice[tool]).includes(key)) return null;
+        
+        // 转换实体对象
+        let object;
+        if (this.choice[tool][key]["type"] === "quote") {
+            object = this.get(this.choice[tool][key]["quote"]);
+        }else if (this.choice[tool][key]["type"] === "create") {
+            object = this.choice[tool][key]["create"];
+        }else{
+            return null;
+        }
+        return object;
+    }
+    
+    /**
+     * 删除对象引用
+     * @param {string} tool
+     * @param {string} id
+     */
+    deleteToolQuote(tool, id) {
+        // 检查存在性
+        if (!Object.keys(this.choice).includes(tool)) return;
+
+        // 删除
+        let key;
+        for (const [index, item] of Object.entries(this.choice[tool])) {
+            if (item.type === "quote") {
+                if (item.quote === id) {
+                    key = index;
+                    break;
+                }
+            }
+        }
+        if (key) delete this.choice[tool][key];
+    }
+    
+    /**
+     * 删除对象指定键
+     * @param {string} tool
+     * @param {string} key
+     */
+    deleteToolKey(tool, key) {
+        // 检查存在性
+        if (!Object.keys(this.choice).includes(tool)) return;
+        if (!Object.keys(this.choice[tool]).includes(key)) return;
+        // 删除
+        delete this.choice[tool][key];
+    }
+    
+    /**
+     * 保存指定工具的所有缓存对象
+     * @param {string} tool
+     */
+    loadTool(tool) {
+        // 检查存在性
+        if (!Object.keys(this.choice).includes(tool)) return;
+        
+        // 保存
+        const elements = Object.values(this.choice[tool]);
+        for (const element of elements) {
+            // 缓存对象为ID形式，说明是引用已存在的对象，跳过
+            if (element.type === 'create') {
+                if (element.create.getType() === "point") {
+                    if (element.create.getBase().type === "online") {
+                        const bases = element.create.getBase().bases;
+                        bases[0].addSuperstructure(element.create);
+                    }else if (element.create.getBase().type === "intersection") {
+                        const bases = element.create.getBase().bases;
+                        bases[0].addSuperstructure(element.create);
+                        bases[1].addSuperstructure(element.create);
+                    }else if (element.create.getBase().type === "center") {
+                        const bases = element.create.getBase().bases;
+                        bases[0].addSuperstructure(element.create);
+                    }else if (element.create.getBase().type === "middlePoint") {
+                        const bases = element.create.getBase().bases;
+                        bases[0].addSuperstructure(element.create);
+                        bases[1].addSuperstructure(element.create);
+                    }
+                }
+                this.addObject(element.create);
+            }
+        }
+        
+        // 删除
+        this.deleteTool(tool);
+    }
+    
+    /**
+     * 删除所有缓存对象
+     */
+    deleteAllCache() {
+        this.choice = new Object();
+    }
+    
+    /**
+     * 光标附近最近的交点
+     * 做法与「取最近的 2 个图形再求交」不同：先把光标附近的线与圆全部取出来两两求交，
+     * 再挑离光标最近的那个候选。后者会因为「最近的 2 个图形」不一定是光标下相交的那一对，
+     * 而取到它们在很远处的交点（光标下明明有交点却标不出来），前者不会。
+     * @param {number} x
+     * @param {number} y
+     * @param {number} [tolerance] 允许的距离（画布坐标，默认与 near 的吸附范围一致）
+     * @returns {{x: number, y: number, element1: Object, element2: Object, index: number, distance: number}|null}
+     */
+    nearestIntersection(x, y, tolerance) {
+        const limit = tolerance || 15 / this.transform.scale;
+        // 附近的线与圆（near 只在吸附范围内返回，最多取 12 个，够覆盖实际叠图）
+        const ids = this.near([x, y], ["line", "circle"], 12);
+        let best = null;
+        for (let i = 0; i < ids.length; i++) {
+            for (let j = i + 1; j < ids.length; j++) {
+                const element1 = this.get(ids[i]);
+                const element2 = this.get(ids[j]);
+                if (!element1 || !element2) continue;
+                ToolsFunction.intersectionCandidates(element1, element2).forEach(candidate => {
+                    // 线段 / 射线之外的交点不算
+                    if (!ToolsFunction.pointInElementRange(candidate.x, candidate.y, element1)) return;
+                    if (!ToolsFunction.pointInElementRange(candidate.x, candidate.y, element2)) return;
+                    const distance = Math.hypot(candidate.x - x, candidate.y - y);
+                    if (distance > limit) return;
+                    if (!best || distance < best.distance) {
+                        best = {
+                            x: candidate.x,
+                            y: candidate.y,
+                            element1: element1,
+                            element2: element2,
+                            index: candidate.index,
+                            distance: distance,
+                        };
+                    }
+                });
+            }
+        }
+        return best;
+    }
+
+    /**
+     * 根据坐标返回附近对象
+     * @param {[number, number]} coord xy坐标
+     * @param {string[]} types 类型表单
+     * @param {number} maxQuote 最大取数
+     * @param {string[]} ignore 以id忽略表单
+     * @return {string[]} id表单
+     */
+    near(coord, types, maxQuote = 1, ignore = []) {
+        const minDistance = 15 / this.transform.scale;
+        const container = new Array();
+        const [x, y] = coord;
+        const all = Object.values(this.repository);
+    
+        const scan = elementList => {
+            for (const element of elementList) {
+                if (container.length >= maxQuote) return;
+                if (!element.getValid()) continue;
+                if (!element.getVisible()) continue;
+                
+                const type = element.getType();
+                if (!types.includes(type)) continue;
+                
+                const id = type === "point" ? nearPoint(x, y, element, minDistance)
+                    : type === "line" ? nearLine(x, y, element, minDistance)
+                    : type === "circle" ? nearCircle(x, y, element, minDistance)
+                    : undefined;
+                if (ignore.includes(id)) continue;
+                if (id) container.push(id);
+            }
+        };
+        // 优先级（叠在一起时优先选范围更小的那个）：
+        // 先点（交点这类点常常正压在直线 / 圆上），再线段、射线、直线，最后圆；
+        // 高亮范围之外的请求（比如只要圆）也照这个顺序扫
+        if (types.includes("point")) {
+            const order = new Map(all.map((element, index) => [element, index]));
+            const points = all.filter(element => element.getType() === "point");
+            // 同一个位置压着好几个点时：先选自由点（能拖得动的那种，base.type === 'none'），
+            // 其余按作图倒序（后画的先被选到）。绘制顺序不在这里管，照旧按作图顺序画
+            const isFree = element => element.getBase()?.type === 'none' ? 1 : 0;
+            points.sort((a, b) => {
+                const freeA = isFree(a);
+                const freeB = isFree(b);
+                if (freeA !== freeB) return freeB - freeA;
+                return order.get(b) - order.get(a);
+            });
+            scan(points);
+        }
+        if (types.includes("line")) {
+            scan(all.filter(element => element.getType() === "line" && element.getDrawType() === "lineSegment"));
+            scan(all.filter(element => element.getType() === "line" && element.getDrawType() === "ray"));
+            scan(all.filter(element => element.getType() === "line" && element.getDrawType() !== "lineSegment" && element.getDrawType() !== "ray"));
+        }
+        if (types.includes("circle")) scan(all.filter(element => element.getType() === "circle"));
+        return container;
+        
+        
+        function nearPoint(x, y, element, minDistance) {
+            const [pointX, pointY] = element.getCoordinate();
+            const dx = x - pointX;
+            const dy = y - pointY;
+            const distance = Math.sqrt(dx*dx + dy*dy);
+    
+            if (distance < minDistance) {
+                const id = element.getId();
+                return id;
+            }
+        }
+        function nearLine(x, y, element, minDistance) {
+            const coordList = element.getCoordinate();
+            const [pointX1, pointY1] = coordList[0];
+            const [pointX2, pointY2] = coordList[1];
+
+            const p1 = {x: pointX1, y: pointY1};
+            const p2 = {x: pointX2, y: pointY2};
+            const p3 = {x, y};
+            const result = ToolsFunction.pointToLineDistance(p1, p2, p3);
+            if (!result.flag) return null;
+            const distance = result.value;
+            if (distance >= minDistance) return null;
+
+            // 线段 / 射线只在自己那一段上算命中：点在延长线上时留给同一条直线去命中，
+            // 否则点直线（线段之外的部分）会被线段 / 射线抢走
+            const drawType = element.getDrawType();
+            if (drawType === 'lineSegment' || drawType === 'ray') {
+                const dx = p2.x - p1.x;
+                const dy = p2.y - p1.y;
+                const lengthSquared = dx * dx + dy * dy;
+                if (lengthSquared > 1e-10) {
+                    // 命中点在 p1→p2 方向上的投影比例，端点多留一点容差，贴着端点也能选中
+                    const t = ((x - p1.x) * dx + (y - p1.y) * dy) / lengthSquared;
+                    const slack = minDistance / Math.sqrt(lengthSquared);
+                    const outside = drawType === 'lineSegment' ? (t < -slack || t > 1 + slack) : t < -slack;
+                    if (outside) return null;
+                }
+            }
+            const id = element.getId();
+            return id;
+        }
+        function nearCircle(x, y, element, minDistance) {
+            const coordList = element.getCoordinate();
+            const [centerX, centerY] = coordList[0];
+            const [pointX, pointY] = coordList[1];
+            
+            const radius = Math.hypot((centerX - pointX), (centerY - pointY));
+            const distance = Math.hypot((centerX - x), (centerY - y));
+            
+            if (radius - minDistance < distance && distance < radius + minDistance) {
+                const id = element.getId();
+                return id;
+            }
+        }
+    }
+    
+    /**
+     * ID生成器
+     * @param {"point" | "other"} type
+     * @param {string} tool 
+     * @return {string} ID
+     */
+    getId(type, tool = "none") {
+        let front = 0;
+        let behind = 0;
+        const pointsList = new Array();
+        const exceptPointsList = new Array();
+        Object.values(this.repository).forEach((element) => {
+            if (element.getType() === "point") {
+                pointsList.push(element);
+            }else{
+                exceptPointsList.push(element);
+            }
+        });
+        if (Object.keys(this.choice).includes(tool)) {
+            for (const item of Object.values(this.choice[tool])) {
+                if (item.type === "create") {
+                    const type = item.create.getType();
+                    if (type === "point") {
+                        pointsList.push(item.create);
+                    }else{
+                        exceptPointsList.push(item.create);
+                    }
+                }
+            }
+        }
+        
+        if (type === "point") {
+            if (pointsList === 0) return "A";
+            
+            let list = ToolsFunction.idOrder(pointsList);
+            for (const point of list) {
+                if (point.getType() !== "point") continue;
+                behind = ToolsFunction.idToInt(point.getId());
+                if (front + 1 < behind) {
+                    break;
+                }
+                front = behind;
+            }
+        }else{
+            if (exceptPointsList.length === 0) return "a";
+            
+            let list = ToolsFunction.idOrder(exceptPointsList);
+            for (const element of list) {
+                if (element.getType() === "point") continue;
+                behind = ToolsFunction.idToInt(element.getId());
+                if (front + 1 < behind) {
+                    break;
+                }
+                front = behind;
+            }
+        }
+        
+        const number = front + 1;
+        let flag = false;
+        if (type !== "point") flag = true;
+        return ToolsFunction.intToId(number, flag);
+    }
+    
+    /**
+     * 点对象工厂
+     * @param {number} x
+     * @param {number} y
+     * @return {Object} 返回点对象
+     */
+    createPoint(x, y) {
+        const id = this.getId("point");
+        const pointObject = new Point(id, x, y);
+        const style = this.geometryStyle.point;
+        if (style.colorChoice === "color") {
+            pointObject.modifyColor(style.color);
+        }else if (style.colorChoice === "autoPlayMode") {
+            pointObject.modifyColor("#808080");
+        }
+        pointObject.modifyWidth(style.width || 1);
+        if (style.showName) pointObject.modifyShowName(true);
+        return pointObject;
+    }
+    
+    /**
+     * 直线对象工厂
+     * @param {string} type
+     * @param {Object[]} define
+     * @param {number} [value=0] 
+     * @return {Object} 返回直线对象
+     */
+    createLine(type, define, value = 0) {
+        const id = this.getId("other");
+        const lineObject = new Line(id);
+        lineObject.modifyDefine(type, define, value);
+        const lineStyle = this.geometryStyle.line;
+        if (lineStyle.colorChoice === "color") {
+            lineObject.modifyColor(lineStyle.color);
+        }else if (lineStyle.colorChoice === "autoPlayMode") {
+            lineObject.modifyColor("#808080");
+        }
+        return lineObject;
+    }
+    
+    /**
+     * 圆对象工厂
+     * @param {string} type
+     * @param {Object[]} define
+     * @param {number} [value=0] 
+     * @return {Object} 返回圆对象
+     */
+    createCircle(type, define, value = 0) {
+        const id = this.getId("other");
+        const circleObject = new Circle(id);
+        circleObject.modifyDefine(type, define, value);
+        const circleStyle = this.geometryStyle.circle;
+        if (circleStyle.colorChoice === "color") {
+            circleObject.modifyColor(circleStyle.color);
+        }else if (circleStyle.colorChoice === "autoPlayMode") {
+            circleObject.modifyColor("#808080");
+        }
+        return circleObject;
+    }
+
+    /**
+     * 创建几何元素对接工具
+     * @param {string} type 几何元素类型，有'point', 'line', 'circle'
+     * @param {string} tool
+     * @param {string} key
+     */
+    createGeometryElementInputTool(type, tool, key) {
+        if (type === "point") {
+            const id = this.getId("point");
+            const pointObject = new Point(id, 0, 0);
+            const style = this.geometryStyle.point;
+            if (style.colorChoice === "color") {
+                pointObject.modifyColor(style.color);
+            }else if (style.colorChoice === "autoPlayMode") {
+                pointObject.modifyColor("#808080");
+            }
+            pointObject.modifyWidth(style.width || 1);
+            if (style.showName) pointObject.modifyShowName(true);
+            this.addToolObject(tool, key, "append", pointObject);
+        }else if (type === "line") {
+            const id = this.getId("other");
+            const lineObject = new Line(id);
+            const style = this.geometryStyle.line;
+            if (style.colorChoice === "color") {
+                lineObject.modifyColor(style.color);
+            }else if (style.colorChoice === "autoPlayMode") {
+                lineObject.modifyColor("#808080");
+            }
+            lineObject.modifyWidth(style.width || 1);
+            if (style.showName) lineObject.modifyShowName(true);
+            this.addToolObject(tool, key, "append", lineObject);
+        }else if (type === "circle") {
+            const id = this.getId("other");
+            const circleObject = new Circle(id);
+            const style = this.geometryStyle.circle;
+            if (style.colorChoice === "color") {
+                circleObject.modifyColor(style.color);
+            }else if (style.colorChoice === "autoPlayMode") {
+                circleObject.modifyColor("#808080");
+            }
+            circleObject.modifyWidth(style.width || 1);
+            if (style.showName) circleObject.modifyShowName(true);
+            this.addToolObject(tool, key, "append", circleObject);
+        }
+    }
+    
+    /**
+     * 遍历更新上层建筑
+     * @param {Object} element 几何对象 - 可以是点、线、圆
+     */
+    #updateSuperstructureChain(element) {
+        const queue = new Array();
+        const visitedId = new Set(); // 添加对象时验证
+        const rangeId = new Set();
+        const processedId = new Set();
+        
+        // 确定遍历范围，性能优化
+        queue.unshift(element);
+        while (queue.length) {
+            // 取
+            const currentElement = queue.pop();
+            // 生成
+            const superstructures = currentElement.getSuperstructure();
+            superstructures.forEach((item) => {
+                const id = item.getId();
+                if (!rangeId.has(id)) {
+                    queue.unshift(item);
+                    rangeId.add(id);
+                }
+            });
+        }
+        
+        // 跳过当前对象的修改
+        const superstructures = element.getSuperstructure();
+        superstructures.forEach((item) => {
+            queue.unshift(item);
+            visitedId.add(item.getId());
+        });
+        while (queue.length) {
+            // 取
+            const currentElement = queue.pop();
+            const currentElementId = currentElement.getId();
+            // 修改当前对象
+            const type = currentElement.getType();
+            if (type === "point") {
+                // 更新点坐标和有效性
+                if (currentElement.getBase().type === 'intersection') {
+                    const [base1, base2] = currentElement.getBase().bases;
+                    // 延迟更新
+                    let delay = false, delay1 = false, delay2 = false;
+                    if (rangeId.has(base1.getId())) {
+                        processedId.has(base1.getId()) ? delay1 = false : delay1 = true;
+                    }
+                    if (rangeId.has(base2.getId())) {
+                        processedId.has(base2.getId()) ? delay2 = false : delay2 = true;
+                    }
+                    if (delay1 || delay2) delay = true;
+                    if (delay) {
+                        queue.unshift(currentElement);
+                        continue;
+                    }
+                    
+                    // 更新
+                    let valid1 = false, valid2 = false;
+                    
+                    const validCoord = ToolsFunction.updateIntersectionCoordinate(currentElement.getBase());
+                    valid1 = validCoord.valid;
+                    if (valid1) {
+                        const [x, y] = validCoord.coordinate;
+                        currentElement.modifyCoordinate(x, y)
+                    }
+                    if (base1.getValid() && base2.getValid()) valid2 = true;
+                    
+                    if (valid1 && valid2) {
+                        currentElement.modifyValid(true);
+                    }else{
+                        currentElement.modifyValid(false);
+                    }
+                }else if (currentElement.getBase().type === 'online') {
+                    const [base] = currentElement.getBase().bases;
+                    const coord = ToolsFunction.updateOnlineCoordinate(currentElement.getBase());
+                    // 基底算不出来时该点失效（对象保留，基底恢复后自动回来）
+                    if (coord) {
+                        currentElement.modifyCoordinate(coord[0], coord[1]);
+                        currentElement.modifyValid(base.getValid());
+                    }else{
+                        currentElement.modifyValid(false);
+                    }
+                }else if (currentElement.getBase().type === 'middlePoint' || currentElement.getBase().type === 'center') {
+                    const [base] = currentElement.getBase().bases;
+                    const typeCoordinate = ToolsFunction.updatePointCoordinate(currentElement.getBase());
+                    if (typeCoordinate && typeCoordinate.coordinate) {
+                        currentElement.modifyCoordinate(typeCoordinate.coordinate[0], typeCoordinate.coordinate[1]);
+                        currentElement.modifyValid(base.getValid());
+                    }else{
+                        currentElement.modifyValid(false);
+                    }
+                }
+            }else if (type === "line" || type === "circle") {
+                const defines = currentElement.getDefine();
+                // 延迟更新
+                let delay = false;
+                for (const item of defines) {
+                    if (!rangeId.has(item.getId())) continue;
+                    if (!processedId.has(item.getId())) {
+                        delay = true;
+                        break;
+                    }
+                }
+                if (delay) {
+                    queue.unshift(currentElement);
+                    continue;
+                }
+                
+                // 更新
+                let valid = true;
+                for (const item of defines) {
+                    if (!item.getValid()) {
+                        valid = false;
+                        break;
+                    }
+                }
+                if (valid) {
+                    currentElement.updateCoordinate();
+                    currentElement.modifyValid(true);
+                }else{
+                    currentElement.modifyValid(false);
+                }
+            }
+            // 生成
+            const superstructures = currentElement.getSuperstructure();
+            superstructures.forEach((item) => {
+                const id = item.getId();
+                if (!visitedId.has(id)) {
+                    queue.unshift(item);
+                    visitedId.add(id);
+                }
+            });
+            processedId.add(currentElementId);
+        }
+    }
+    
+    /**
+     * 修改点坐标
+     * @param {string} id
+     * @param {number} x
+     * @param {number} y
+     */
+    modifyPointCoordinate(id, x, y) {
+        const point = this.get(id);
+        if (point.getType() !== "point") return;
+        
+        if (point.getBase().type === 'none') {
+            point.modifyCoordinate(x, y);
+            this.#updateSuperstructureChain(point);
+        }else if (point.getBase().type === 'online') {
+            const [element] = point.getBase().bases;
+            let modifyX = x,
+                modifyY = y;
+            if (element.getType() === "line") {
+                const [point1Coord, point2Coord] = element.getCoordinate();
+                const p1 = {x: point1Coord[0], y: point1Coord[1]};
+                const p2 = {x: point2Coord[0], y: point2Coord[1]};
+                const p3 = {x, y};
+                
+                // 坐标用「不夹紧的比例」（scalePoint 就是按比例取点的；nearPointOnLine 会把比例夹到
+                // [0,1]，角平分线上的点常在这一小段之外，夹紧后就拖不动了），
+                // 存进基底的参数用 onlineValueOf 换算成 gmt 约定（角平分线每 100 单位一个参数）。
+                // 两者不能混用：拿换算后的参数去 scalePoint，点会直接落到错误位置
+                const stepX = p2.x - p1.x;
+                const stepY = p2.y - p1.y;
+                const stepLengthSquared = stepX * stepX + stepY * stepY;
+                if (stepLengthSquared < 1e-20) return;
+                const proportion = ((p3.x - p1.x) * stepX + (p3.y - p1.y) * stepY) / stepLengthSquared;
+                const coord = ToolsFunction.scalePoint(p1, p2, proportion);
+                modifyX = coord.x;
+                modifyY = coord.y;
+                point.modifyBase("online", [element], ToolsFunction.onlineValueOf(element, p1, p2, p3));
+            }else if (element.getType() === "circle") {
+                const [point1Coord, point2Coord] = element.getCoordinate();
+                const p1 = {x: point1Coord[0], y: point1Coord[1]};
+                const p2 = {x: point2Coord[0], y: point2Coord[1]};
+                const p3 = {x, y};
+                
+                const value = ToolsFunction.nearPointOnCircle(p1, p3);
+                const coord = ToolsFunction.radianToCoordinate(p1, p2, value);
+                modifyX = coord.x;
+                modifyY = coord.y;
+                point.modifyBase("online", [element], value);
+            }
+            point.modifyCoordinate(modifyX, modifyY);
+            this.#updateSuperstructureChain(point);
+        }
+    }
+    
+    /**
+     * 存储
+     * @returns {dict[]}
+     */
+    toStorage() {
+        this.deleteAllCache();
+        const copy = [];
+        for (const value of Object.values(this.repository)) {
+            copy.push(value.getDict());
+        }
+        return copy;
+    }
+    
+    /**
+     * 加载存储
+     * @param {dict[]} elements
+     */
+    loadStorage(elements) {
+        this.deleteAll();
+
+        // 1.反序列化为元素
+        for (const item of elements) {
+            const element = deserialization(item);
+            this.addObject(element);
+        }
+
+        // 2.添加元素间连接
+        for (const item of elements) {
+            const bases = item.base;
+            const basesType = bases.type;
+
+            if (basesType === 'none') continue;
+            const id = item.id;
+            const currentElement = this.get(id);
+            const currentElementType = item.type;
+            const objectList = [];
+            bases.basesId.forEach((id) => {
+                objectList.push(this.get(id));
+            });
+            if (currentElementType === 'point') {
+                // 第四个参数指定的「已知交点」也一并还原，编号时用它排掉重合的那个
+                currentElement.modifyBase(basesType, objectList, bases.value, bases.excludeId ? this.get(bases.excludeId) : null);
+                objectList.forEach((item) => {
+                    item.addSuperstructure(currentElement);
+                });
+            }else if (currentElementType === 'line' || currentElementType === 'circle') {
+                currentElement.modifyDefine(basesType, objectList, bases.value);
+            }
+        }
+
+        // 3.基础图元接好之后再上一次样式色：addObject 时 base 还没接上，
+        // 点会被当成自由点统统涂红（交点 / 中点 / 圆心本来该是灰的）
+        for (const id of Object.keys(this.repository)) {
+            this.applyAutoStyle(this.repository[id]);
+        }
+
+        function deserialization(elementDict) {
+            const type = elementDict.type;
+            const id = elementDict.id;
+            const name = elementDict.name;
+            const visible = elementDict.visible;
+            const valid = elementDict.valid;
+            const color = elementDict.color;
+            const showName = elementDict.showName;
+            const width = elementDict.width;
+            
+            let element;
+            if (type === 'point') {
+                const x = elementDict.x;
+                const y = elementDict.y;
+                element = new Point(id, x, y);
+            }else if (type === 'line') {
+                element = new Line(id);
+                element.modifyDrawType(elementDict.drawType);
+            }else if (type === 'circle') {
+                element = new Circle(id);
+            }
+
+            element.modifyName(name);
+            element.modifyVisible(visible);
+            element.modifyValid(valid);
+            element.modifyShowName(showName);
+            element.modifyColor(color);
+            element.modifyWidth(width || 1);
+            return element;
+        }
+    }
+}

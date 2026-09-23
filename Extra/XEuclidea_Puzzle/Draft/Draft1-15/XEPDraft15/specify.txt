@@ -1,3 +1,0 @@
-Given 4 parallel lines and their respective points, construct a circle such that the intercepts of each line are equal in length. (Intercept: The distance from the intersection of a circle and a line to a point on that line)
-
-已知4条平行线及各上一点，求作一个圆，使得圆截各线的截距等长。（截距：圆与直线的交点到该直线上一点的距离）

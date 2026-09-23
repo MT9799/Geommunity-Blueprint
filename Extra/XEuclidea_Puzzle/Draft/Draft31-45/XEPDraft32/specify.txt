@@ -1,3 +1,0 @@
-Given 3 points, 3 straight lines, and 3 line segments, construct a circle such that the point projection circle intercepts the corresponding straight lines to obtain the given lengths.
-
-给定3点和3条直线和3条线段，构造一个圆使得点投圆影截对应直线分别得给定长。

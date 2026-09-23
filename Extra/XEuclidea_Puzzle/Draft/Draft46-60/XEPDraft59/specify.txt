@@ -1,3 +1,0 @@
-Given an arbitrary triangle. There is an inversion that transforms the three vertices of a triangle into three vertices of a triangle with angles of 30 ° and 60 °, and constructs such an inversion center.
-
-给定一个任意的三角形。存在一个反演把三角形的3个顶点变成角度分别为30°60°的三角形的3个顶点，构造这样的反演中心。

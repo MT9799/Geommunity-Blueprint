@@ -1,3 +1,0 @@
-Construct a circle that passes through a given point along the line where the chord of each circle is intersected.
-
-构造一个圆，与各个圆截得的弦所在直线过各给定点。

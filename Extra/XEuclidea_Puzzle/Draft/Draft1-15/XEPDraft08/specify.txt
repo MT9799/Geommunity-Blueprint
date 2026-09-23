@@ -1,3 +1,0 @@
-Given a triangle and a point, construct a straight line passing through a given point, and intersect three lines on the three sides of the triangle, so that one of these three intersections is the midpoint of the other two.
-
-已知三角形及一点，求作过给定点的直线，截三角形三边所在直线出3个交点，使得这3个交点其中一个为另外两个的中点。

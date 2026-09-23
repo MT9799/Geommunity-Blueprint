@@ -1,3 +1,0 @@
-Given the triangle and the three lines connecting each vertex of the triangle to any point. Construct an inscribed triangle so that the midpoints of each side are on the corresponding connecting line.
-
-已知三角形及三角形各顶点到任一点的3条连线。构造内接三角形，使得各边中点各在对应的连线上。

@@ -1,3 +1,0 @@
-Given the angle and 2 points AB, construct the quadrilateral ACBD such that point CD is on both sides of the angle, with an angle of 90 ° at point A and 120 ° at point B.
-
-已知角和2点AB，求作四边形ACBD，使得点CD分别在角的两边上，点A处的夹角为90°，点B处的夹角为120°。

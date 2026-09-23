@@ -1,3 +1,0 @@
-Given the angle A and a point B, construct a straight line passing through point B, with points C and D on both sides of the intersection, such that 2CD=AC+AD.
-
-已知角A及一点B，求作过点B的直线，交角的两边分别为点C和D，使得2CD=AC+AD。

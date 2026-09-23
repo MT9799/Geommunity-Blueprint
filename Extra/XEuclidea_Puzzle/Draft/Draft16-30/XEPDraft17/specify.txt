@@ -1,3 +1,0 @@
-Given the 4 points ABCD outside the line, construct a point P on the line such that the midpoint of the intersection of the two points of the line passing through point A parallel to PB and the line passing through point D parallel to PC is point P.
-
-已知直线外4点ABCD，求作直线上一点P，使得过点A平行于PB的直线与过点D平行于PC的直线截给定直线的两个交点的中点为点P。

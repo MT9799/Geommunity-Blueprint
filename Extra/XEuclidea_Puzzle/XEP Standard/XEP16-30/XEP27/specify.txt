@@ -1,3 +1,0 @@
-Given a circle and a chord, and any point, construct the secant passing through a given point, intersect the circle at two points, so that the midpoint of these two points is on the given chord.
-
-已知圆和弦，任意一点，求作过给定点的圆的割线，交圆于两点，使得这两点的中点在给定弦上。

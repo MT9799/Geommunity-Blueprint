@@ -1,3 +1,0 @@
-Given 6 straight lines, construct a triangle so that the three equal points of each side lie on the straight line.
-
-已知6条直线，构造一个三角形，使各边的三等分点各在直线上。

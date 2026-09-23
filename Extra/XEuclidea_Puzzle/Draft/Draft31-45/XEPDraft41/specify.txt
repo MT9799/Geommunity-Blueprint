@@ -1,3 +1,0 @@
-Given 3 circles, construct 3 circles that are tangent to each other, with each circle being tangent to the two given circles.
-
-给定3个圆，构造3个两两相切的圆，所作的每个圆都与两个给定的圆相切。

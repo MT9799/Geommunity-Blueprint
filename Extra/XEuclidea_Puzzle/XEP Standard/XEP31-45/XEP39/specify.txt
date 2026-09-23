@@ -1,3 +1,0 @@
-Given a total of 3 rays, where there is a triangle between two rays, construct a triangle between adjacent rays with an area and perimeter equal to the given triangle.
-
-已知共点3射线，其中两条射线间有一个三角形，构造一个三角形，在旁边的射线间，且面积和周长都与给定的三角形相等。

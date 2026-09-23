@@ -1,3 +1,0 @@
-Given a circle and a bundle of 3 wires, use only a straightedge to construct an outward tangent triangle so that each vertex is on the same line.
-
-已知圆和一束3线束，仅用直尺作出外切三角形，使得各顶点各在线上。

@@ -1,3 +1,0 @@
-Given two points A and B parallel to the given line, construct the trilinear ACDB so that points C and D are both on the given line.
-
-已知平行于给定直线的两点A和B，求作等长三折线ACDB，使得点C和D都在给定直线上。

@@ -1,3 +1,0 @@
-Given a point B on the bisector of angle A, construct the equal length trilinear CDEF, vertex located on both sides of the angle, so that the intersection of the segments is point B.
-
-已知角A的平分线上一点B，求作等长三折线CDEF，分别位于角的两边，使得折线交叉处为给定点B。

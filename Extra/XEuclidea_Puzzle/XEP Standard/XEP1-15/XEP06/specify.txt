@@ -1,3 +1,0 @@
-Given that parallel lines l1 and l2 are intercept circle the chords of equal length, take two points A and B on the diameter at these four points, point A on l1, and construct the equal length trilinear ACDB. Points C and D are on l1 and l2, respectively.
-
-已知平行线l1和l2截圆弦等长，在这4点中取直径上两点A和B，点A在l1上，求作等长三折线ACDB，点C和D分别在l1和l2上。

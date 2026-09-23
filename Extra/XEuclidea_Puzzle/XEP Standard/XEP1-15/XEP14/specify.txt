@@ -1,3 +1,0 @@
-Given four parallel lines, from top to bottom, there are points A and B on each of l1, l2, l3, l4, l1, and l4, with line AB perpendicular to the given parallel line. Construct an equal length trilinear ACDB, with points C and D on l2 and l3, respectively.
-
-已知4平行线，从上到下依次为l1,l2,l3,l4，l1和l4上各有一点A和B，直线AB垂直于给定的平行线。求作等长三折线ACDB，点C和D分别在l2和l3上。

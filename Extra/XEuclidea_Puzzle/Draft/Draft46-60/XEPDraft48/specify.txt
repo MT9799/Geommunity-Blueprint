@@ -1,3 +1,0 @@
-Given 3 ratio and 3 points, construct a triangle so that the proportional points of each side are given points.
-
-已知3比与3点，构造三角形，使各边的比例点为给定点。

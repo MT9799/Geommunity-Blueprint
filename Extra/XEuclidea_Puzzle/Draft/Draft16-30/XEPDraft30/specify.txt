@@ -1,3 +1,0 @@
-Given the semicircle AB and a point C on the diameter, construct a point P on the circle so that the angular bisector of angle APB passes through point C.
-
-已知半圆AB及直径上一点C，求作圆上一点P，使得角APB的角平分线过点C。

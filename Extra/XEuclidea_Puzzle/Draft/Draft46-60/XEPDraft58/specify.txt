@@ -1,3 +1,0 @@
-Given that the centers of two circles are collinear with two other points, construct a trapezoid such that the given two points are waist points and the other two points are respectively on the two circles.
-
-已知2圆的圆心与另外2点共线，构造一个梯形，使给定两点为腰，另外两点分别在两个圆上。

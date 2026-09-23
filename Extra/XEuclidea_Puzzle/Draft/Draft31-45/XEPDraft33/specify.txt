@@ -1,3 +1,0 @@
-Given three circles and one line, construct a circle so that the lengths of the projections of each circle on the line are equal.
-
-已知3个圆和一条线，求作一个圆，使得两两圆投影在直线上的长度都相等。

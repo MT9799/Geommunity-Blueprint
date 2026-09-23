@@ -1,3 +1,0 @@
-Construct two perpendicular lines, with parallel lines connecting the two sides of the intercept.
-
-构造两条互相垂直的直线，截角的两边对应连线平行。

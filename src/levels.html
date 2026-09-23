@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>关卡包总览 | Geommunity Blueprint</title>
+    <link rel="stylesheet" href="./app.css">
+</head>
+<body>
+    <main class="home-shell">
+        <header class="subpage-header"><a class="subpage-brand" href="../index.html"><img src="./static/images/logo.png" alt="">Geommunity Blueprint</a><a
+                class="back-link" href="../index.html" data-i18n="levels.back">返回首页</a></header>
+        <p class="eyebrow" data-i18n="levels.index">02 / 关卡游玩</p>
+        <h1 data-i18n="levels.heading">关卡游玩</h1>
+        <p class="lede" data-i18n="levels.lede">选择一个关卡包，进入后再浏览其中的题目。</p>
+        <input id="search-box" class="search-box" type="search" readonly data-i18n-placeholder="levels.searchPlaceholder"
+            placeholder="搜索关卡…（标题 / 说明 / 关键词 / L、E 步数）">
+        <div id="level-packs" class="feature-grid"></div>
+    </main>
+    <script src="./static/js/i18n.js"></script>
+    <script src="./levels-data.js"></script>
+    <script src="./levels.js"></script>
+</body>
+</html>

@@ -1,3 +1,0 @@
-Given a quadrilateral, construct a square so that each vertex is on the straight line where the quadrilateral is located.
-
-已知四边形，求作正方形，使得各顶点分别在四边形所在直线上。

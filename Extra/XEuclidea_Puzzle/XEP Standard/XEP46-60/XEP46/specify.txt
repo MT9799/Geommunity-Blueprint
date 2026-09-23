@@ -1,3 +1,0 @@
-Given the upper chord AB and point C of a circle, construct point D (only point) on the circle, and connect the line CD to intersect the chord at point E, such that DA=DB+DE
-
-已知圆上弦AB和点C，构造圆上点D（仅构造点），CD连线交弦于点E，使得DA=DB+DE

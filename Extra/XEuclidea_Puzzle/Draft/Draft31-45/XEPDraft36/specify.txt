@@ -1,3 +1,0 @@
-Given the circle and 3 points, use only a straightedge to construct an inscribed triangle so that each side passes through a point.
-
-已知圆和3点，仅用直尺作出内接三角形，使得各边各过一点。

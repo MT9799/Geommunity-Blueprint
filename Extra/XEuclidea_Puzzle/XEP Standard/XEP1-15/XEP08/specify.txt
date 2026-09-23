@@ -1,3 +1,0 @@
-Given a point on a circle, find a regular pentagram such that one vertex is a given point.
-
-已知圆上一点，求作正五角星，使得其中一顶点为给定点。

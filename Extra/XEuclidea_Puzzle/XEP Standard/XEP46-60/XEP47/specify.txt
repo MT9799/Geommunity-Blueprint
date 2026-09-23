@@ -1,3 +1,0 @@
-Given one point on each side of a triangle, one point on each median line, and a triangle.
-
-给定三角形各边上一点，各中位线上一点，还有三角形。

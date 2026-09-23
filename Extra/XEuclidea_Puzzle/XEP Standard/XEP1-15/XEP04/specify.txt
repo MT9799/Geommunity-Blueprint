@@ -1,3 +1,0 @@
-Given that rays l1, l2, and l3 share vertices and point A, construct a straight line passing through point A. Cut l1, l2, and l3 to points B, C, and D respectively, so that the midpoint of BD is point C.
-
-已知射线l1,l2,l3共顶点，点A，求作过点A的直线，截l1,l2,l3分别为点B,C,D，使得BD中点为点C。

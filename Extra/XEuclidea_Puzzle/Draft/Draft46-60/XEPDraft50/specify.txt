@@ -1,3 +1,0 @@
-Given two pairs of parallel lines and two points, construct parallel lines passing through the points. Three pairs of parallel lines form three parallelograms, with diagonal lines parallel to each other.
-
-已知两对平行线和2点，构造过点的平行线，3对平行线形成3个平行四边形，使这3个平行四边形存在互相平行的对角线。

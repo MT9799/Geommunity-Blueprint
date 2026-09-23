@@ -1,3 +1,0 @@
-Given a point within a circle, construct a trilinear of equal length with all vertices on the circle, so that the intersection passes through a given point.
-
-已知圆内一点，求作等长三折线，顶点都在圆上，使得交叉处过给定点。

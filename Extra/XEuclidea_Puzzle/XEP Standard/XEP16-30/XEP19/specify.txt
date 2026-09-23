@@ -1,3 +1,0 @@
-Given two equally large circles, construct the straight line where four points are equidistant and collinear, all of which are on the circle.
-
-已知两个等大的圆，求作等距共线4点所在直线，这4点都在圆上。

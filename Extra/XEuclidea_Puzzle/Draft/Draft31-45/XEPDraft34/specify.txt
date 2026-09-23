@@ -1,3 +1,0 @@
-Given a triangle and its circumcircle, inscribed circle, and nine point circle, construct a line so that the midpoint of the circumcircle is located on the nine point circle and tangent to the inscribed circle.
-
-已知三角形和外接圆、内切圆、九点圆，求作一条线，使得其截外接圆的中点位于九点圆上，且切于内切圆。

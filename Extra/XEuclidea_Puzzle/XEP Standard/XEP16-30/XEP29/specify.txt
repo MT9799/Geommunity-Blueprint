@@ -1,3 +1,0 @@
-Given 4 lines, construct a line such that the adjacent distances of the 4 intersection points are equal.
-
-已知4条线，求作一条线，使得4个交点相邻距离都相等。

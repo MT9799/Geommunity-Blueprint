@@ -1,3 +1,0 @@
-Given a circle and a 1°angle, construct a circle inscribed with a regular nonagon such that one side is parallel to the given angle.
-
-已知圆和1°角，求作圆内接正九边形，使得其中一边平行于给定角的一边。

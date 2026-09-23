@@ -1,3 +1,0 @@
-Given parallel lines, two points, and line segments, construct a point on the parallel line such that the given line segment length intersects another parallel line with the given two points.
-
-已知平行线及两点和线段，求作平行线上一点，使得与给定两点的直线截另一条平行线出给定线段长。

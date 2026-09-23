@@ -1,3 +1,0 @@
-Given 2 points AB on a circle, construct 2 chords AC with intersection points E, BD， Make AE=EC and 2BE=ED.
-
-已知圆上2点AB，构造2条交点为E的弦AC,BD，使得AE=EC,2BE=ED。

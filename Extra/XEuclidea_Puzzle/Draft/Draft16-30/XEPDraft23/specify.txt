@@ -1,3 +1,0 @@
-Given the vertices of a triangle, the midpoint of the opposite side, orthocenter, restore the triangle.
-
-已知三角形的顶点，对边中点，垂心，还原三角形。

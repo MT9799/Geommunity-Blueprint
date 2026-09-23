@@ -1,3 +1,0 @@
-Given three points, create a circle such that the tangent angles to each point are at 60 degrees.
-
-已知三点，求作圆，使得与各个点的切线视角都成60°。

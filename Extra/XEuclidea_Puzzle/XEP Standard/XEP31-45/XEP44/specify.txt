@@ -1,3 +1,0 @@
-Given 3 points on a straight line, construct another external common tangent line for 3 adjacent tangent circles.
-
-已知直线上3点，构造3个相邻相切的圆的另外一条外公切线。

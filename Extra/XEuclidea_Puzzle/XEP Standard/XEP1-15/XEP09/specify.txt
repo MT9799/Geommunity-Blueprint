@@ -1,3 +1,0 @@
-Given a line segment, construct a regular pentagon such that one side is the given segment.
-
-已知一条线段，求作正五边形，使得其中一边为给定线段。

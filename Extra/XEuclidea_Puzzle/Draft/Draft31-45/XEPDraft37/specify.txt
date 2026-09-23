@@ -1,3 +1,0 @@
-Given that there are one point inside and one point outside the restrictive rectangle, and two lines extend from the inner point, construct the line connecting the two points inside and outside. Points within the restricted rectangle cannot be used!
-
-已知限制矩形内外各一点，内点延伸出两条线，求作内外两点的连线。限制矩形内的点不能用！

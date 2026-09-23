@@ -1,3 +1,0 @@
-Given 3 points, construct the largest equilateral triangle with each side's line passing through a point.
-
-已知3点，求作各边所在直线各过一点的最大的正三角形。

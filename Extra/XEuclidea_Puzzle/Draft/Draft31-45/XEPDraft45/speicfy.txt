@@ -1,3 +1,0 @@
-Given triangle ABC, find a square DFGH such that edges DF and FG each pass through a vertex, diagonal DG passes through the remaining vertices of the triangle, and point H is on edge AB.
-
-已知三角形ABC，求作一个正方形DFGH，使得边DF和FG各过一顶点，对角线DG过三角形剩下的顶点，且点H在边AB上。

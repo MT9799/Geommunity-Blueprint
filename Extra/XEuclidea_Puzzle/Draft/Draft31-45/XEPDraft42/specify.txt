@@ -1,3 +1,0 @@
-Given a circle and a point, and a line segment, find the chord of the circle that is equal to the given line segment and passes through the given point.
-
-已知圆和一点，和一线段，求作圆的弦，与给定线段等长，且过给定点。

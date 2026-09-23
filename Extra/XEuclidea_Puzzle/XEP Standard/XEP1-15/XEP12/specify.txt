@@ -1,3 +1,0 @@
-Given the square ABCD, construct the equilateral pentagon AEFGH such that point E is on AB, point F is on BC, point G is on CD, and point H is on AD.
-
-已知正方形ABCD，求作等边五边形AEFGH，使得点E在AB上，点F在BC上，点G在CD上，点H在AD上。

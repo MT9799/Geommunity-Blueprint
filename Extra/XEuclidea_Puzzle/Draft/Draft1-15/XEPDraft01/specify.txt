@@ -1,3 +1,0 @@
-Given a point on a circle, construct a regular pentagon with the center at the center of the circle, where one vertex is on the line connecting the center and a given point. The side length of the regular pentagon is equal to the radius.
-
-已知圆上一点，求作正五边形，中心为圆心，其中一顶点在圆心与给定点的连线上，边长等长于半径。

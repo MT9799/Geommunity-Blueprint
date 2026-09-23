@@ -1,0 +1,1051 @@
+/* canvas.js */
+/**
+ * 绘制函数 过程函数
+ */
+ // 画布
+const canvas = document.getElementById("canvas_id1");
+const rect = canvas.getBoundingClientRect();
+let canvasTop = rect.top;
+let canvasLeft = rect.left;
+let canvasWidth = rect.width;
+let canvasHeight = rect.height;
+let viewportInitialized = false;
+const ct = canvas.getContext("2d");
+let minMoveX = -500 - canvasWidth,
+    minMoveY = -500 - canvasWidth;
+const maxMoveX = 500, // max是负的
+    maxMoveY = 500,
+    // 缩放范围给足：0.1 ~ 10 太小，滚几下一会儿就顶到头（表现为「卡住不能继续放大/缩小」）
+    minScale = 1e-4,
+    maxScale = 1e4,
+    // 初始 / 「还原视角」的缩放倍数：可视范围边长约为 1 时的两倍。
+    // 放在这里而不是各页脚本里：画板（index.js）与关卡游玩（playPage.js）共用一个值
+    initialScale = 0.5;
+const hex = '0123456789abcdef';
+
+// 当窗口大小改变时调整画布
+window.addEventListener('resize', resizeCanvas);
+
+/**
+ * 设备像素比 过程函数
+ * 高分屏（手机 / Retina）按 dpr 放大画布的物理像素，绘制时再缩回 CSS 像素坐标，
+ * 这样线条不会因为 1 逻辑像素 = 1 物理像素而发糊
+ * @returns {number}
+ */
+function canvasPixelRatio() {
+    return window.devicePixelRatio || 1;
+}
+
+/**
+ * 调整画布 过程函数
+ */
+function resizeCanvas() {
+    const previousWidth = canvasWidth;
+    const previousHeight = canvasHeight;
+    const ratio = canvasPixelRatio();
+    // 画布内部尺寸（物理像素）按设备像素比放大
+    canvas.width = Math.round(window.innerWidth * ratio);
+    canvas.height = Math.round(window.innerHeight * ratio);
+    // CSS 尺寸保持逻辑像素，避免画布被放大显示
+    canvas.style.width = `${window.innerWidth}px`;
+    canvas.style.height = `${window.innerHeight}px`;
+    const currentRect = canvas.getBoundingClientRect();
+    canvasTop = currentRect.top;
+    canvasLeft = currentRect.left;
+    // 这里的宽高一律按 CSS 像素（逻辑坐标），绘制时由 drawContent 统一放大到物理像素
+    canvasWidth = currentRect.width || window.innerWidth;
+    canvasHeight = currentRect.height || window.innerHeight;
+    minMoveX = -500 - canvasWidth;
+    minMoveY = -500 - canvasWidth;
+    if (!viewportInitialized) {
+        transform.x = canvasWidth / 2;
+        transform.y = canvasHeight / 2;
+        viewportInitialized = true;
+    }else if (previousWidth && previousHeight) {
+        transform.x += (canvasWidth - previousWidth) / 2;
+        transform.y += (canvasHeight - previousHeight) / 2;
+    }
+    drawContent()
+}
+
+/**
+ * 求解器解法覆盖层 状态
+ * 由求解器面板写入（{points: [{x,y}], lines: [{x1,y1,x2,y2}], circles: [{x,y,r}]}，世界坐标），
+ * 这里只负责把它画出来 —— 解法是「看」的，不是画布上的真对象，所以不参与选取与导出
+ */
+let solverSolutionOverlay = null;
+/** 解法覆盖层的颜色（品红），与求解器面板用的一致 */
+const SOLVER_SOLUTION_COLOR = '#ff00ff';
+/**
+ * 求解器的「可动构造计划」 状态
+ * 面板选中某个解时写入 {solution, result, dag, step, pointIds, elementIds}；
+ * 与快照的区别：它存的是「怎么作出来的」，每次重绘都按**当前**画布重算一遍，
+ * 于是拖动手柄点时品红解法跟着变形。为空时才用上面的快照。
+ */
+let solverSolutionPlan = null;
+
+/** 由两个点造直线方程 过程函数（不求规范化，够求交用） */
+function solverPlanLine(first, second) {
+    return {
+        a: second.y - first.y,
+        b: first.x - second.x,
+        c: first.x * second.y - first.y * second.x,
+        type: 1,
+    };
+}
+
+/** 由圆心与圆周点造圆方程 过程函数（c 存半径平方） */
+function solverPlanCircle(center, through) {
+    return {
+        a: center.x,
+        b: center.y,
+        c: (center.x - through.x) * (center.x - through.x) + (center.y - through.y) * (center.y - through.y),
+        type: 0,
+    };
+}
+
+/** 方程 → 直线上两点 过程函数（覆盖层画无限直线用） */
+function solverLineFromEquation(element) {
+    if (Math.abs(element.b) > 1e-12) {
+        return {x1: 0, y1: element.c / element.b, x2: 1, y2: (element.c - element.a) / element.b};
+    }
+    return {x1: element.c / element.a, y1: 0, x2: element.c / element.a, y2: 1};
+}
+
+/** 两个元素的所有交点 过程函数（最多两个；两圆先求根轴） */
+function solverPlanIntersections(first, second) {
+    const out = [];
+    if (!first || !second) return out;
+    const push = p => {
+        if (isFinite(p.x) && isFinite(p.y)) out.push(p);
+    };
+    const lineCircle = (line, circle) => {
+        const denom = line.a * line.a + line.b * line.b;
+        if (Math.abs(denom) < 1e-12) return;
+        const dist = line.a * circle.a + line.b * circle.b - line.c;
+        const delta = denom * circle.c - dist * dist;
+        if (delta < -1e-9) return;
+        if (delta <= 1e-9) {
+            push({x: circle.a - line.a * dist / denom, y: circle.b - line.b * dist / denom});
+            return;
+        }
+        const root = Math.sqrt(delta);
+        push({x: circle.a - (line.a * dist + line.b * root) / denom,
+              y: circle.b - (line.b * dist - line.a * root) / denom});
+        push({x: circle.a - (line.a * dist - line.b * root) / denom,
+              y: circle.b - (line.b * dist + line.a * root) / denom});
+    };
+    if (first.type === 0 && second.type === 0) {
+        const a = 2 * (first.a - second.a);
+        const b = 2 * (first.b - second.b);
+        if (Math.abs(a) < 1e-12 && Math.abs(b) < 1e-12) return out;
+        const c = first.a * first.a - second.a * second.a + first.b * first.b - second.b * second.b
+            - first.c + second.c;
+        lineCircle({a: a, b: b, c: c, type: 1}, first);
+        return out;
+    }
+    if (first.type === 0) lineCircle(second, first);
+    else if (second.type === 0) lineCircle(first, second);
+    else {
+        const det = first.a * second.b - first.b * second.a;
+        if (Math.abs(det) < 1e-12) return out;
+        push({x: (first.c * second.b - first.b * second.c) / det,
+              y: (first.a * second.c - first.c * second.a) / det});
+    }
+    return out;
+}
+
+/** 画布对象当前的方程 过程函数（点返回 null） */
+function solverPlanEquationOf(item) {
+    const coordinate = item && item.getCoordinate ? item.getCoordinate() : null;
+    if (!coordinate) return null;
+    if (item.getType() === 'line') {
+        return solverPlanLine({x: coordinate[0][0], y: coordinate[0][1]},
+                              {x: coordinate[1][0], y: coordinate[1][1]});
+    }
+    if (item.getType() === 'circle') {
+        return solverPlanCircle({x: coordinate[0][0], y: coordinate[0][1]},
+                                {x: coordinate[1][0], y: coordinate[1][1]});
+    }
+    return null;
+}
+
+/**
+ * 按计划算出「当前画布上的解法」 过程函数
+ * 给定点 / 给定元素读画布对象的实时位置，新元素与新交点按计划重算；
+ * 计划里没记到的（或对象已被删）就沿用记录值 —— 于是解法永远贴着图形
+ * @param {Object} job {solution, result, dag, step, pointIds, elementIds}
+ * @returns {{points: Array, lines: Array, circles: Array}}
+ */
+function evaluateSolverSolutionPlan(job) {
+    const {solution, result, dag, step, pointIds, elementIds} = job;
+    const shown = Math.max(0, Math.min(solution.newElementCount, step));
+    const initialPointCount = result.initialPointCount;
+    const initialElementCount = result.initialElementCount;
+    const pointCount = solution.points.length;
+    const elementCount = solution.elements.length;
+
+    const points = new Array(pointCount);
+    const pointValid = new Array(pointCount).fill(true);
+    for (let i = 0; i < pointCount; i++) points[i] = {x: solution.points[i].x, y: solution.points[i].y};
+    const elements = new Array(elementCount);
+    const elementValid = new Array(elementCount).fill(true);
+    for (let i = 0; i < elementCount; i++) {
+        const element = solution.elements[i];
+        elements[i] = {a: element.a, b: element.b, c: element.c, type: element.type};
+    }
+
+    // 给定点跟着画布对象走（拖动手柄点时位置会变）；对象被删就标无效
+    for (let i = 0; i < initialPointCount && i < pointIds.length; i++) {
+        const item = geometryManager.get(pointIds[i]);
+        if (!item || item.getType() !== 'point') {
+            pointValid[i] = false;
+            continue;
+        }
+        points[i] = {x: item.x, y: item.y};
+    }
+    // 给定元素用对象当前的方程（于是给定直线会跟着它的端点转）
+    for (let i = 0; i < initialElementCount && i < elementIds.length; i++) {
+        const equation = solverPlanEquationOf(geometryManager.get(elementIds[i]));
+        if (!equation) {
+            elementValid[i] = false;
+            continue;
+        }
+        elements[i] = equation;
+    }
+
+    const overlay = {points: [], lines: [], circles: []};
+    for (let s = 1; s <= shown; s++) {
+        const elementIndex = initialElementCount + s - 1;
+        if (elementIndex >= elementCount) break;
+        const definition = dag && dag.definitions ? dag.definitions[elementIndex] : null;
+        // 反推不出定义（或定义点已失效）就无法跟着图形重算 —— 标为无效，宁可不画，
+        // 也不能拿旧坐标硬画：那样图形一变形，它就会停在原地「悬空卡住」
+        if (!definition) {
+            elementValid[elementIndex] = false;
+        } else if (pointValid[definition[0]] && pointValid[definition[1]] &&
+                   points[definition[0]] && points[definition[1]]) {
+            elements[elementIndex] = solution.elements[elementIndex].type === 0
+                ? solverPlanCircle(points[definition[0]], points[definition[1]])
+                : solverPlanLine(points[definition[0]], points[definition[1]]);
+        } else {
+            elementValid[elementIndex] = false;
+        }
+
+        // 这一步新出现的交点：来源无效、或两个元素已经不相交时，这个点同样无效
+        for (let pi = initialPointCount; pi < pointCount; pi++) {
+            if (solution.pointBirth[pi] !== s) continue;
+            const origin = dag && dag.origins ? dag.origins[pi] : null;
+            if (!origin || !elementValid[origin[0]] || !elementValid[origin[1]] ||
+                !elements[origin[0]] || !elements[origin[1]]) {
+                pointValid[pi] = false;
+                continue;
+            }
+            const candidates = solverPlanIntersections(elements[origin[0]], elements[origin[1]]);
+            if (!candidates.length) {
+                pointValid[pi] = false;
+                continue;
+            }
+            // 两个分支时取离记录位置最近的那个
+            const recorded = solution.points[pi];
+            let best = candidates[0];
+            let bestDistance = Infinity;
+            candidates.forEach(candidate => {
+                const distance = (candidate.x - recorded.x) * (candidate.x - recorded.x)
+                    + (candidate.y - recorded.y) * (candidate.y - recorded.y);
+                if (distance < bestDistance) {
+                    bestDistance = distance;
+                    best = candidate;
+                }
+            });
+            points[pi] = best;
+        }
+
+        if (!elementValid[elementIndex]) continue;
+        const element = elements[elementIndex];
+        if (element.type === 0) {
+            overlay.circles.push({x: element.a, y: element.b, r: Math.sqrt(Math.max(0, element.c))});
+        } else if (definition) {
+            overlay.lines.push({x1: points[definition[0]].x, y1: points[definition[0]].y,
+                                x2: points[definition[1]].x, y2: points[definition[1]].y});
+        } else {
+            overlay.lines.push(solverLineFromEquation(element));
+        }
+        for (let pi = initialPointCount; pi < pointCount; pi++) {
+            if (solution.pointBirth[pi] === s && pointValid[pi]) overlay.points.push(points[pi]);
+        }
+    }
+    return overlay;
+}
+
+/**
+ * 绘制求解器给出的解法 过程函数
+ * 有可动计划就按计划现算（拖动图形时跟着变形），否则画面板给的快照；
+ * 圆 → 弧，直线 → 裁到可视范围，点 → 实心圆
+ */
+function drawSolverSolutionOverlay() {
+    const overlay = solverSolutionPlan ? evaluateSolverSolutionPlan(solverSolutionPlan) : solverSolutionOverlay;
+    if (!overlay) return;
+    ct.save();
+    ct.strokeStyle = SOLVER_SOLUTION_COLOR;
+    ct.fillStyle = SOLVER_SOLUTION_COLOR;
+    ct.lineWidth = 3 / transform.scale;
+    ct.lineCap = 'round';
+    overlay.circles.forEach(circle => {
+        ct.beginPath();
+        ct.arc(circle.x, circle.y, circle.r, 0, Math.PI * 2);
+        ct.stroke();
+    });
+    overlay.lines.forEach(line => {
+        const bounds = ToolsFunction.getLineBounds(
+            [line.x1, line.y1, line.x2, line.y2, canvasWidth, canvasHeight], transform);
+        ct.beginPath();
+        ct.moveTo(bounds.p1.x, bounds.p1.y);
+        ct.lineTo(bounds.p2.x, bounds.p2.y);
+        ct.stroke();
+    });
+    overlay.points.forEach(point => {
+        ct.beginPath();
+        ct.arc(point.x, point.y, 4 / transform.scale, 0, Math.PI * 2);
+        ct.fill();
+    });
+    ct.restore();
+}
+
+function drawContent() {
+    // 重置变换，按物理像素清屏
+    ct.setTransform(1, 0, 0, 1, 0, 0);
+    ct.clearRect(0, 0, canvas.width, canvas.height);
+
+    // 保存当前状态
+    ct.save();
+
+    // 绘制背景颜色
+    drawColor();
+
+    // 物理像素 → CSS 像素：之后都是逻辑坐标绘制
+    const ratio = canvasPixelRatio();
+    ct.scale(ratio, ratio);
+
+    // 应用变换
+    ct.translate(transform.x, transform.y);
+    ct.scale(transform.scale, transform.scale);
+
+    // 绘制图形
+    drawShapes();
+
+    // 绘制求解器解法（品红覆盖层，画在图形之上）
+    drawSolverSolutionOverlay();
+
+    // 绘制绘制中的半透明预览
+    drawToolPreview();
+
+    // 绘制光标
+    drawPointer();
+
+    // 恢复状态
+    ct.restore();
+}
+
+/**
+ * 绘制背景颜色 过程函数
+ */
+function drawColor() {
+    ct.fillStyle = "rgb(255, 255, 255)";
+    ct.fillRect(0, 0, canvas.width, canvas.height);
+}
+
+/**
+ * 预览形状对应表 常量
+ * 键是工具名，值是预览时要画的图形；一次点击就能完成的工具不需要预览
+ */
+const previewShapes = {
+    line: 'line',
+    ray: 'ray',
+    lineSegment: 'lineSegment',
+    circle: 'circle',
+    threePointCircle: 'circle3',
+    perpendicularBisector: 'perpendicularBisector',
+    middlePoint: 'middlePoint',
+    // 切换项里的工具：键名用 subTool
+    threePointCompass: 'compassCircle',
+    threePointAngleBisector: 'bisector',
+    // 点 + 线混合的工具：先点了线之后，光标处的点补上，预览过它的平行线 / 垂线
+    parallelLine: 'parallelLine',
+    perpendicularLine: 'perpendicularLine',
+};
+
+/**
+ * 绘制预览配置 过程函数
+ * 至少要点两次的工具才做预览；切换项里的工具按 subTool 找形状
+ * @returns {{keys: string[], need: number, shape: string}|null}
+ */
+function toolPreviewConfig() {
+    if (typeof tool !== 'string' || typeof subTool !== 'string') return null;
+    const shape = previewShapes[subTool] || previewShapes[tool];
+    if (!shape) return null;
+    if (typeof toolItems === 'undefined') return null;
+    const choiceDict = toolItems[tool]?.choice;
+    if (!choiceDict) return null;
+    // 与 loadChoice 一致：有 general 就用 general，否则用当前切换项
+    const subChoiceDict = Object.keys(choiceDict).includes('general') ? choiceDict.general : choiceDict[subTool];
+    if (!subChoiceDict) return null;
+    const types = Object.values(subChoiceDict);
+    if (types.length < 2) return null;
+    return {keys: Object.keys(subChoiceDict), need: types.length, shape: shape};
+}
+
+/**
+ * 预览用的光标位置 过程函数
+ * 靠近已有点时吸到点上；否则吸到最近的线 / 圆上（点工具落在对象上也是这个行为）；都没有就用原始位置
+ * @returns {number[]}
+ */
+function previewCursor() {
+    const cursor = [
+        (pointerPosition.x - transform.x) / transform.scale,
+        (pointerPosition.y - transform.y) / transform.scale,
+    ];
+    const [nearId] = geometryManager.near(cursor, ['point']);
+    if (nearId) return geometryManager.get(nearId).getCoordinate();
+    const [elementId] = geometryManager.near(cursor, ['line', 'circle']);
+    const element = elementId ? geometryManager.get(elementId) : null;
+    const coord = element?.getCoordinate?.();
+    if (!coord) return cursor;
+    const p1 = {x: coord[0][0], y: coord[0][1]};
+    const p2 = {x: coord[1][0], y: coord[1][1]};
+    const p3 = {x: cursor[0], y: cursor[1]};
+    if (element.getType() === 'line') {
+        const value = ToolsFunction.nearPointOnLine(p1, p2, p3);
+        if (!value && value !== 0) return cursor;
+        const point = ToolsFunction.scalePoint(p1, p2, value);
+        return [point.x, point.y];
+    }
+    const value = ToolsFunction.nearPointOnCircle(p1, p3);
+    const point = ToolsFunction.radianToCoordinate(p1, p2, value);
+    return [point.x, point.y];
+}
+
+/**
+ * 预览状态 过程函数
+ * 已经点过「需要的点数 - 1」个点时（还差最后一次点击），用鼠标位置补齐最后一点
+ * @returns {{shape: string, coords: number[][]}|null}
+ */
+function toolPreviewState() {
+    if (typeof isDragging === 'undefined' || isDragging) return null;
+    const config = toolPreviewConfig();
+    if (!config) return null;
+    const selected = config.keys.map(key => geometryManager.getToolKey(tool, key)).filter(item => item);
+    if (selected.length !== config.need - 1) return null;
+    const cursor = previewCursor();
+    // 平行线 / 垂线：先点了线，光标处补一个点
+    if (tool === 'parallelLine' || tool === 'perpendicularLine') {
+        const line = selected.find(item => item.getType() === 'line');
+        if (!line) return null;
+        const lineCoord = line.getCoordinate();
+        if (!lineCoord) return null;
+        return {shape: config.shape, coords: [cursor, lineCoord[0], lineCoord[1]]};
+    }
+    // 三点圆规：前两点定半径，光标处是圆心
+    if (subTool === 'threePointCompass') {
+        return {shape: config.shape, coords: [cursor, selected[0].getCoordinate(), selected[1].getCoordinate()]};
+    }
+    return {shape: config.shape, coords: selected.map(item => item.getCoordinate()).concat([cursor])};
+}
+
+/**
+ * 是否需要重绘预览 过程函数
+ * 鼠标移动时用它判断要不要重绘
+ * @returns {boolean}
+ */
+function hasToolPreview() {
+    return !!toolPreviewState();
+}
+
+/**
+ * 外围圆心 工具函数
+ * @param {number[]} a 点 A
+ * @param {number[]} b 点 B
+ * @param {number[]} c 点 C
+ * @returns {number[]|null} 三点共线时返回 null
+ */
+function previewCircumcenter(a, b, c) {
+    const d = 2 * (a[0] * (b[1] - c[1]) + b[0] * (c[1] - a[1]) + c[0] * (a[1] - b[1]));
+    if (!d) return null;
+    const a2 = a[0] * a[0] + a[1] * a[1];
+    const b2 = b[0] * b[0] + b[1] * b[1];
+    const c2 = c[0] * c[0] + c[1] * c[1];
+    return [
+        (a2 * (b[1] - c[1]) + b2 * (c[1] - a[1]) + c2 * (a[1] - b[1])) / d,
+        (a2 * (c[0] - b[0]) + b2 * (a[0] - c[0]) + c2 * (b[0] - a[0])) / d,
+    ];
+}
+
+/**
+ * 绘制工具预览 过程函数
+ * 半透明地画出「再点一次就会作出的图形」
+ */
+function drawToolPreview() {
+    const state = toolPreviewState();
+    if (!state) return;
+    const [first, second, third] = state.coords;
+    ct.save();
+    ct.globalAlpha = 0.35;
+    ct.strokeStyle = 'rgb(25, 25, 25)';
+    ct.fillStyle = 'rgb(25, 25, 25)';
+    ct.lineWidth = 4 / transform.scale;
+
+    if (state.shape === 'lineSegment') {
+        ct.beginPath();
+        ct.moveTo(first[0], first[1]);
+        ct.lineTo(second[0], second[1]);
+        ct.stroke();
+    }else if (state.shape === 'line' || state.shape === 'ray') {
+        const bounds = ToolsFunction.getLineBounds([first[0], first[1], second[0], second[1], canvasWidth, canvasHeight], transform);
+        ct.beginPath();
+        if (state.shape === 'line') {
+            ct.moveTo(bounds.p1.x, bounds.p1.y);
+            ct.lineTo(bounds.p2.x, bounds.p2.y);
+        }else{
+            ct.moveTo(first[0], first[1]);
+            if (first[0] < second[0]) ct.lineTo(bounds.p2.x, bounds.p2.y);
+            else ct.lineTo(bounds.p1.x, bounds.p1.y);
+        }
+        ct.stroke();
+    }else if (state.shape === 'circle') {
+        const distance = Math.hypot(second[0] - first[0], second[1] - first[1]);
+        ct.beginPath();
+        ct.arc(first[0], first[1], distance, 0, 2 * Math.PI);
+        ct.stroke();
+    }else if (state.shape === 'circle3') {
+        const center = previewCircumcenter(first, second, third);
+        if (center) {
+            ct.beginPath();
+            ct.arc(center[0], center[1], Math.hypot(first[0] - center[0], first[1] - center[1]), 0, 2 * Math.PI);
+            ct.stroke();
+        }
+    }else if (state.shape === 'perpendicularBisector') {
+        // 垂直平分线：过两点的中点，方向与两点连线垂直
+        const middle = [(first[0] + second[0]) / 2, (first[1] + second[1]) / 2];
+        const dx = -(second[1] - first[1]);
+        const dy = second[0] - first[0];
+        const norm = Math.hypot(dx, dy);
+        if (norm) {
+            const far = 10000;
+            const bounds = ToolsFunction.getLineBounds([middle[0], middle[1], middle[0] + dx / norm * far, middle[1] + dy / norm * far, canvasWidth, canvasHeight], transform);
+            ct.beginPath();
+            ct.moveTo(bounds.p1.x, bounds.p1.y);
+            ct.lineTo(bounds.p2.x, bounds.p2.y);
+            ct.stroke();
+        }
+    }else if (state.shape === 'middlePoint') {
+        const middle = [(first[0] + second[0]) / 2, (first[1] + second[1]) / 2];
+        ct.beginPath();
+        ct.arc(middle[0], middle[1], 6 / transform.scale, 0, 2 * Math.PI);
+        ct.fill();
+    }else if (state.shape === 'parallelLine' || state.shape === 'perpendicularLine') {
+        // coords: [光标补的点, 线的两个定义点]
+        const base = state.coords[0];
+        const lineP1 = state.coords[1];
+        const lineP2 = state.coords[2];
+        let dx = lineP2[0] - lineP1[0];
+        let dy = lineP2[1] - lineP1[1];
+        if (state.shape === 'perpendicularLine') {
+            const swap = dx;
+            dx = -dy;
+            dy = swap;
+        }
+        const norm = Math.hypot(dx, dy);
+        if (norm) {
+            const far = 10000;
+            const bounds = ToolsFunction.getLineBounds([base[0], base[1], base[0] + dx / norm * far, base[1] + dy / norm * far, canvasWidth, canvasHeight], transform);
+            ct.beginPath();
+            ct.moveTo(bounds.p1.x, bounds.p1.y);
+            ct.lineTo(bounds.p2.x, bounds.p2.y);
+            ct.stroke();
+        }
+    }else if (state.shape === 'compassCircle') {
+        // coords: [圆心（光标）, 半径端点 1, 半径端点 2]
+        const center = state.coords[0];
+        const radius = Math.hypot(state.coords[2][0] - state.coords[1][0], state.coords[2][1] - state.coords[1][1]);
+        ct.beginPath();
+        ct.arc(center[0], center[1], radius, 0, 2 * Math.PI);
+        ct.stroke();
+    }else if (state.shape === 'bisector') {
+        // coords: [边上的点, 顶点, 光标（另一条边上的点）]
+        const vertex = state.coords[1];
+        const flagValue = ToolsFunction.angleBisector(
+            {x: state.coords[0][0], y: state.coords[0][1]},
+            {x: vertex[0], y: vertex[1]},
+            {x: state.coords[2][0], y: state.coords[2][1]});
+        if (flagValue.flag) {
+            const through = flagValue.value;
+            const dx = through.x - vertex[0];
+            const dy = through.y - vertex[1];
+            const norm = Math.hypot(dx, dy);
+            if (norm) {
+                const far = 10000;
+                const bounds = ToolsFunction.getLineBounds([vertex[0], vertex[1], vertex[0] + dx / norm * far, vertex[1] + dy / norm * far, canvasWidth, canvasHeight], transform);
+                ct.beginPath();
+                ct.moveTo(bounds.p1.x, bounds.p1.y);
+                ct.lineTo(bounds.p2.x, bounds.p2.y);
+                ct.stroke();
+            }
+        }
+    }
+    ct.restore();
+}
+
+/**
+ * 绘制光标 过程函数
+ */
+function drawPointer() {
+    if (tool === "eraser") {
+        const width = 16 / transform.scale;
+        const x = (pointerPosition.x - transform.x) / transform.scale - width / 2;
+        const y = (pointerPosition.y - transform.y) / transform.scale - width / 2;
+
+        ct.fillStyle = 'rgb(255, 255, 255)';
+        ct.fillRect(x, y, width, width);
+
+        ct.strokeStyle = 'rgb(25, 25, 25)';
+        ct.lineWidth = 3 / transform.scale;
+        ct.strokeRect(x, y, width, width);
+    }else if ((tool === 'line' || tool === 'ray' || tool === 'lineSegment') && subTool === 'style') {
+        const x = (pointerPosition.x - transform.x) / transform.scale;
+        const y = (pointerPosition.y - transform.y) / transform.scale;
+        
+        ct.fillStyle = 'rgb(25, 25, 25)';
+        ct.beginPath();
+        ct.arc(x, y, 15 / transform.scale, 0, Math.PI * 2);
+        ct.fill();
+
+        ct.fillStyle = 'rgb(255, 255, 255)';
+        ct.beginPath();
+        ct.arc(x, y, 10 / transform.scale, 0, Math.PI * 2);
+        ct.fill();
+    }
+}
+
+/**
+ * 文本描边
+ * @param {Object} ctx
+ * @param {string} text
+ * @param {number} x
+ * @param {number} y
+ * @param {string} fillColor
+ * @param {string} strokeColor
+ * @param {number} lineWidth
+ */
+function drawStrokedText(ctx, text, x, y, fillColor, strokeColor, lineWidth) {
+    // 保存初始状态
+    ctx.save();
+    
+    // 设置描边样式
+    ctx.strokeStyle = strokeColor;
+    ctx.lineWidth = lineWidth;
+    
+    // 多次绘制描边以增强效果（模拟粗描边）
+    for (let i = 0; i < 4; i++) {
+        const angle = (i * Math.PI) / 2;
+        ctx.strokeText(text, x + Math.cos(angle) * 0.5, y + Math.sin(angle) * 0.5);
+    }
+    
+    // 绘制填充文本
+    ctx.fillStyle = fillColor;
+    ctx.fillText(text, x, y);
+    
+    // 恢复状态
+    ctx.restore();
+}
+
+/**
+ * 绘制几何图形 过程函数
+ */
+/**
+ * 线类对象的显示层序 过程函数
+ * 线段显示在射线上层、射线显示在直线上层，与作图先后无关；
+ * 只在这些「线」之间换位置，圆与其它对象的位置保持不变
+ * @param {Array} elements 对象列表
+ * @returns {Array} 调整过层序的列表
+ */
+function sortLineLayers(elements) {
+    const rankOf = element => {
+        if (!element || element.getType() !== 'line') return null;
+        const drawType = element.getDrawType();
+        if (drawType === 'line') return 0;
+        if (drawType === 'ray') return 1;
+        if (drawType === 'lineSegment') return 2;
+        return null;
+    };
+    // 线类对象占用的槽位：把排好序的线类对象写回这些槽位，
+    // 中间的圆等对象位置不动，于是「线段在上」只影响线之间
+    const slots = [];
+    elements.forEach((element, index) => { if (rankOf(element) !== null) slots.push(index); });
+    const sorted = elements.slice();
+    const lineElements = slots.map(index => sorted[index]).sort((a, b) => rankOf(a) - rankOf(b));
+    slots.forEach((index, order) => { sorted[index] = lineElements[order]; });
+    return sorted;
+}
+
+function drawShapes() {
+    const geometryElements = geometryManager.getAllByType(tool);
+    const exceptPoints = geometryElements['exceptPoints'];
+    const exceptPointsCache = geometryElements['exceptPointsCache'];
+    const resultexceptPoints = geometryElements['resultexceptPoints'];
+    const points = geometryElements['points'];
+    const pointsCache = geometryElements['pointsCache'];
+    const resultPoints = geometryElements['resultPoints'];
+    const choice = geometryElements['choice'];
+    
+    // 除了点的几何对象（线段在射线之上、射线在直线之上）
+    for (const element of sortLineLayers(exceptPoints)) {
+        if (!element.getValid()) continue;
+        if (!element.getVisible()) continue;
+        
+        if (element.getType() === 'line') drawInfiniteLine(element);
+        if (element.getType() === 'circle') drawCircle(element);
+        drawLabel(element);
+    }
+    // 除了点的目标几何对象
+    for (const element of sortLineLayers(resultexceptPoints)) {
+        if (!element.getValid()) continue;
+        if (!element.getVisible()) continue;
+        
+        if (element.getType() === 'line') drawInfiniteLine(element);
+        if (element.getType() === 'circle') drawCircle(element);
+        drawLabel(element);
+    }
+    // 除了点的缓存几何对象
+    for (const element of exceptPointsCache) {
+        if (!element.getValid()) continue;
+        if (!element.getVisible()) continue;
+        
+        if (element.getType() === 'line') {
+            drawInfiniteLine(element);
+            drawChoiceInfiniteLine(element);
+        }
+        if (element.getType() === 'circle') {
+            drawCircle(element);
+            drawChoiceCircle(element);
+        }
+    }
+    // 点
+    for (const point of points) {
+        if (!point.getValid()) continue;
+        if (!point.getVisible()) continue;
+        drawPoint(point);
+        drawLabel(point);
+    }
+    // 目标点
+    for (const point of resultPoints) {
+        if (!point.getValid()) continue;
+        if (!point.getVisible()) continue;
+        drawPoint(point);
+        drawLabel(point);
+    }
+    // 缓存点
+    for (const point of pointsCache) {
+        if (!point.getValid()) continue;
+        if (!point.getVisible()) continue;
+        drawPoint(point);
+        drawChoicePoint(point);
+    }
+    // 选中对象
+    for (const element of choice) {
+        if (!element.getValid()) continue;
+        if (!element.getVisible()) continue;
+
+        if (element.getType() === "point") drawChoicePoint(element);
+        if (element.getType() === 'line') drawChoiceInfiniteLine(element);
+        if (element.getType() === 'circle') drawChoiceCircle(element);
+    }
+}
+
+/**
+ * 绘制标签 过程函数
+ * @param {Object} element 点、直线或圆对象
+ */
+function drawLabel(element) {
+    if (!element.getShowName()) return;
+    const coordinate = element.getCoordinate();
+    if (!coordinate) return;
+    // 点为 [x, y]，直线与圆为 [[x1, y1], [x2, y2]]，取第一个定义点作为标签位置
+    const isPoint = typeof coordinate[0] === 'number';
+    const [x, y] = isPoint ? coordinate : coordinate[0];
+    ct.font = `${20 / transform.scale}px serif`;
+    const color = element.getColor();
+    const backgroundColor = autoBackgroundColor(color);
+    const offsetX = (isPoint ? -20 : 14) / transform.scale;
+    const offsetY = (isPoint ? -15 : 6) / transform.scale;
+    drawStrokedText(
+        ct, 
+        element.getName(), 
+        x + offsetX, 
+        y + offsetY, 
+        color, 
+        backgroundColor, 
+        3 / transform.scale
+    );
+}
+
+/**
+ * 绘制点 过程函数
+ * @param {Object} element 点对象
+ */
+function drawPoint(element) {
+    const [x, y] = element.getCoordinate();
+    const color = element.getColor();
+    const backgroundColor = autoBackgroundColor(color);
+    // 点的大小：默认 1，可在样式面板中调整
+    const width = element.getWidth() || 1;
+    const outRadius = 8 * width,
+        inRadius = 4 * width;
+
+    ct.fillStyle = color;
+    ct.beginPath();
+    ct.arc(x, y, outRadius / transform.scale, 0, Math.PI * 2);
+    ct.fill();
+
+    ct.fillStyle = backgroundColor;
+    ct.beginPath();
+    ct.arc(x, y, inRadius / transform.scale, 0, Math.PI * 2);
+    ct.fill();
+}
+
+/**
+ * 绘制选中点 过程函数
+ * @param {Object} point
+ */
+function drawChoicePoint(point) {
+    const bigRadius = 12;
+    const [x, y] = point.getCoordinate();
+    const color = point.getColor();
+
+    ct.strokeStyle = color;
+    ct.beginPath();
+    ct.arc(x, y, bigRadius / transform.scale, 0, Math.PI * 2);
+    ct.lineWidth = 2 / transform.scale;
+    ct.stroke();
+}
+
+/**
+ * 绘制直线 过程函数
+ * @param {Object} element 直线对象
+ */
+function drawInfiniteLine(element) {
+    const coordList = element.getCoordinate();
+    if (!coordList) return;
+    const color = element.getColor();
+    const width = element.getWidth() || 1;
+
+    const [startX, startY] = coordList[0];
+    const [endX, endY] = coordList[1];
+    // 坐标不是有限值或长得离谱的线不画：无穷远点（EdgePoint）派生出来的图形可能落到很远处，
+    // 交给裁剪算法会算出乱七八糟的结果（画布上糊一大片灰的）
+    if (![startX, startY, endX, endY].every(Number.isFinite)) return;
+    if (Math.hypot(endX - startX, endY - startY) > 1e7) return;
+    const bag = [startX, startY, endX, endY, canvasWidth, canvasHeight];
+    const {
+        p1,
+        p2
+    } = ToolsFunction.getLineBounds(bag, transform);
+
+    const drawType = element.getDrawType();
+    if (drawType === 'line') {
+        ct.beginPath();
+        ct.moveTo(p1.x, p1.y);
+        ct.lineTo(p2.x, p2.y);
+        ct.strokeStyle = color;
+        ct.lineWidth = (4 * width) / transform.scale;
+        ct.stroke();
+    }else if (drawType === 'ray') {
+        ct.beginPath();
+        ct.moveTo(startX, startY);
+        if (startX < endX) {
+            ct.lineTo(p2.x, p2.y);
+        }else{
+            ct.lineTo(p1.x, p1.y);
+        }
+        ct.strokeStyle = color;
+        ct.lineWidth = (4 * width) / transform.scale;
+        ct.stroke();
+    }else if (drawType === 'lineSegment') {
+        ct.beginPath();
+        ct.moveTo(startX, startY);
+        ct.lineTo(endX, endY);
+        ct.strokeStyle = color;
+        ct.lineWidth = (4 * width) / transform.scale;
+        ct.stroke();
+    }
+}
+
+/**
+ * 绘制选中直线 过程函数
+ * @param {Object} element 直线对象
+ */
+function drawChoiceInfiniteLine(element) {
+    const coordList = element.getCoordinate();
+    if (!coordList) return;
+    const color = element.getColor();
+
+    const [startX, startY] = coordList[0];
+    const [endX, endY] = coordList[1];
+    const bag = [startX, startY, endX, endY, canvasWidth, canvasHeight];
+    const {
+        p1,
+        p2,
+        p3,
+        p4,
+        p5,
+        p6,
+        p7,
+        p8,
+    } = ToolsFunction.getChoiceLineBounds(bag, transform);
+
+    const drawType = element.getDrawType();
+    if (drawType === 'line') {
+        ct.beginPath();
+        ct.moveTo(p1.x, p1.y);
+        ct.lineTo(p2.x, p2.y);
+        ct.strokeStyle = color;
+        ct.lineWidth = 2 / transform.scale;
+        ct.stroke();
+        
+        ct.beginPath();
+        ct.moveTo(p3.x, p3.y);
+        ct.lineTo(p4.x, p4.y);
+        ct.strokeStyle = color;
+        ct.lineWidth = 2 / transform.scale;
+        ct.stroke();
+    }else if (drawType === 'ray') {
+        ct.beginPath();
+        if (startX < endX) {
+            ct.moveTo(p5.x, p5.y);
+        }else{
+            ct.moveTo(p6.x, p6.y);
+        }
+        if (startX < endX) {
+            ct.lineTo(p2.x, p2.y);
+        }else{
+            ct.lineTo(p1.x, p1.y);
+        }
+        ct.strokeStyle = color;
+        ct.lineWidth = 2 / transform.scale;
+        ct.stroke();
+        
+        ct.beginPath();
+        if (startX < endX) {
+            ct.moveTo(p6.x, p6.y);
+        }else{
+            ct.moveTo(p5.x, p5.y);
+        }
+        if (startX < endX) {
+            ct.lineTo(p4.x, p4.y);
+        }else{
+            ct.lineTo(p3.x, p3.y);
+        }
+        ct.strokeStyle = color;
+        ct.lineWidth = 2 / transform.scale;
+        ct.stroke();
+    }else if (drawType === 'lineSegment') {
+        ct.beginPath();
+        ct.moveTo(p5.x, p5.y);
+        ct.lineTo(p7.x, p7.y);
+        ct.strokeStyle = color;
+        ct.lineWidth = 2 / transform.scale;
+        ct.stroke();
+        
+        ct.beginPath();
+        ct.moveTo(p6.x, p6.y);
+        ct.lineTo(p8.x, p8.y);
+        ct.strokeStyle = color;
+        ct.lineWidth = 2 / transform.scale;
+        ct.stroke();
+    }
+}
+
+/**
+ * 绘制圆 过程函数
+ * @param {Object} element 圆对象
+ */
+function drawCircle(element) {
+    const coordList = element.getCoordinate();
+    if (!coordList) return;
+    const color = element.getColor();
+    const width = element.getWidth() || 1;
+
+    const [x1, y1] = coordList[0];
+    const [x2, y2] = coordList[1];
+    const dx = x1 - x2;
+    const dy = y1 - y2;
+    const distance = Math.hypot(dx, dy);
+
+    ct.beginPath();
+    ct.strokeStyle = color;
+    ct.arc(x1, y1, distance, 0, 2 * Math.PI)
+    ct.lineWidth = (4 * width) / transform.scale;
+    ct.stroke();
+}
+
+/**
+ * 绘制选中圆 过程函数
+ * @param {Object} element 圆对象
+ */
+function drawChoiceCircle(element) {
+    const coordList = element.getCoordinate();
+    if (!coordList) return;
+    const color = element.getColor();
+
+    const [x1, y1] = coordList[0];
+    const [x2, y2] = coordList[1];
+    const dx = x1 - x2;
+    const dy = y1 - y2;
+    const distance = Math.hypot(dx, dy);
+    const offset = 6;
+
+    ct.beginPath();
+    ct.strokeStyle = color;
+    ct.arc(x1, y1, distance + offset / transform.scale, 0, 2 * Math.PI)
+    ct.lineWidth = 2 / transform.scale;
+    ct.stroke();
+    
+    if (distance - offset / transform.scale < 0) return;
+    ct.beginPath();
+    ct.strokeStyle = color;
+    ct.arc(x1, y1, distance - offset / transform.scale, 0, 2 * Math.PI)
+    ct.lineWidth = 2 / transform.scale;
+    ct.stroke();
+}
+
+/**
+ * 清空画布 过程函数
+ * 清空几何对象管理器的内容
+ */
+function clearCanvas() {
+    geometryManager.deleteAll();
+    drawContent();
+    lineToolStatus = 0;
+    circleToolStatus = 0;
+    intersectionToolStatus = 0;
+    refreshToolFloating();
+}
+
+/**
+ * 自调节对比颜色
+ * @param {string} color 颜色字符串，格式为#123456
+ * @returns {string} 对比色
+ */
+function autoBackgroundColor(color) {
+    let count = 0;
+    const opColor = color.slice(1);
+    for (let i = 0; i < 6; i++) {
+        if (i % 2 !== 0) continue;
+        const index = hex.indexOf(opColor[i]);
+        if (index > 12) count++;
+    }
+    if (count === 3) {
+        return '#000000';
+    }else{
+        return '#ffffff';
+    }
+}

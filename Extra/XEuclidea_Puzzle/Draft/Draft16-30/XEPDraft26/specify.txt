@@ -1,3 +1,0 @@
-Given 4 points,construct Steiner tree of 4 points.
-
-已知4点，求作存在2个生成点的施泰纳网格。

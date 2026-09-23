@@ -1,3 +1,0 @@
-Given the midpoint, perpendicular foot (on the same side), Lemoine point, restore the triangle.
-
-已知三角形的中点，垂足（在同一边上），Lemoine点，还原三角形。

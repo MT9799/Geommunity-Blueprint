@@ -1,3 +1,0 @@
-Given the non right angled trisection (ray) in a right triangle, construct the trisection of the other angle.
-
-已知直角三角形及一角的三等分线（射线），求作另一角的三等分线。

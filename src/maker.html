@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>自制关卡 | Geommunity Blueprint</title>
+    <link rel="stylesheet" href="./app.css">
+</head>
+<body>
+    <main class="home-shell">
+        <header class="subpage-header"><a class="subpage-brand" href="../index.html"><img src="./static/images/logo.png" alt="">Geommunity Blueprint</a><a
+                class="back-link" href="../index.html" data-i18n="maker.back">返回首页</a></header>
+        <p class="eyebrow" data-i18n="maker.eyebrow">03 / 自制关卡</p>
+        <h1 data-i18n="maker.heading">自制关卡</h1>
+        <p class="lede" data-i18n="maker.lede">在画板中完成图形后，使用工具栏上的标记按钮标出初始条件与所求对象，再导出 gmt。</p>
+        <div class="feature-grid"><a class="feature-card maker" href="./board.html?mode=maker">
+                <h2 data-i18n="maker.start">开始编辑</h2>
+                <p data-i18n="maker.startNote">进入画板，支持本地记录与导入导出。</p><span class="card-action" data-i18n="maker.open">打开编辑器 →</span>
+            </a>
+            <div class="feature-card">
+                <h2 data-i18n="maker.flowTitle">工作流</h2>
+                <p data-i18n="maker.flow">画板 → 标记给定 / 所求 → 试玩 → 导出 gmt → 提交到 Issue。</p>
+            </div>
+        </div>
+    </main>
+    <script src="./static/js/i18n.js"></script>
+    <script>
+        document.title = t('maker.title');
+        applyI18n();
+    </script>
+</body>
+</html>

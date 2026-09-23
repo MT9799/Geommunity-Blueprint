@@ -1,3 +1,0 @@
-Given two restrictive circles, construct the connecting lines of the two circle centers. Points within the restricted area cannot be used!
-
-已知两限制圆，求作两圆的连心线。限制区内的点不能用！

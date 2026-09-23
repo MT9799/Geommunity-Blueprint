@@ -1,3 +1,0 @@
-Given a triangle, construct a point where three connecting segments parallel to the other side are of equal length. (The connecting line segment is the line segment that connects the point and one side)
-
-已知三角形，求作一点，使3段平行于另一边的连接线段等长。（连接线段：连接所作点和一边）

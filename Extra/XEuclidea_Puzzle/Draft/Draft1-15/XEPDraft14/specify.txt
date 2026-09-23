@@ -1,3 +1,0 @@
-Given a triangle, construct the minimum inscribed similar triangle.
-
-已知三角形，求作最小内接相似三角形。

@@ -1,3 +1,0 @@
-Given three adjacent tangent circles, a common tangent, construct the tangent of the smallest circle, and cut the chord of the other two circles to be of equal length.
-
-已知3个前后相邻相切的圆，共公切线，构造最小圆的切线，截另外两个圆的弦等长。

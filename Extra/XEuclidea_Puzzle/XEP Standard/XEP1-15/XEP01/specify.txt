@@ -1,3 +1,0 @@
-Given that there are points A and B on both sides of the angle, construct the trilinear ACDB such that point C is collinear with point A, and point D is collinear with point B.
-
-已知角的两边分别有一点A和B，求作等长三折线ACDB，使得点C与点A共线，点D与点B共线。

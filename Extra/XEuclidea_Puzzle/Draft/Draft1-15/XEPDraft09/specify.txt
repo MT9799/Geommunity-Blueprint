@@ -1,3 +1,0 @@
-Given 3 points ABC, construct a 3-point DEF such that the midpoint of AE is D, the midpoint of BF is E, and the midpoint of CD is F.
-
-已知3点ABC，求作3点DEF，使得AE中点为D，BF中点为E，CD中点为F。

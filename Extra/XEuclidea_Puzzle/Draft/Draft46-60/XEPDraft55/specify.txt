@@ -1,3 +1,0 @@
-Given two points CD on a circle, construct two chords DG and CH, DF=GF,HF=2CF
-
-已知圆上两点CD，构造2弦DG和CH，DF=GF,HF=2CF

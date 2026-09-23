@@ -1,3 +1,0 @@
-Construct a star octagon inscribed in a circle so that the give n point is one of its vertices in 11-moves.
-
-Official explanation: The center of the circle has been given

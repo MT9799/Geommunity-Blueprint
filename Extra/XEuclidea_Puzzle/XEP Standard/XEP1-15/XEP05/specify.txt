@@ -1,3 +1,0 @@
-Given the parallel lines l1 and l2, point A, construct the equal length trilinear BCDE, with points B and E on l1 and points C and D on l2, so that BC passes through point A and DE passes through point A.
-
-已知平行线l1和l2，点A，求作等长三折线BCDE，点B和E在l1上，点C和D在l2上，使得BC过点A，DE过点A。

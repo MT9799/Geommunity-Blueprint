@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>求解器 | Geommunity Blueprint</title>
+    <link rel="stylesheet" href="./app.css">
+</head>
+<body>
+    <main class="home-shell">
+        <header class="subpage-header"><a class="subpage-brand" href="../index.html"><img src="./static/images/logo.png" alt="">Geommunity Blueprint</a><a
+                class="back-link" href="../index.html" data-i18n="solver.back">返回首页</a></header>
+        <p class="eyebrow" data-i18n="solver.eyebrow">04 / 求解器</p>
+        <h1 data-i18n="solver.heading">求解器</h1>
+        <p class="lede" data-i18n="solver.lede">纯 JavaScript 搜索器在 Worker 中运行，不阻塞页面，可以从画板带入图形。</p>
+        <div class="feature-grid"><a class="feature-card solver" href="./board.html?mode=solver">
+                <h2 data-i18n="solver.fromBoard">从画板求解</h2>
+                <p data-i18n="solver.fromBoardNote">打开画板，当前图形会通过本地存储交给求解器。</p><span class="card-action" data-i18n="solver.enterBoard">进入画板 →</span>
+            </a></div>
+    </main>
+    <script src="./static/js/i18n.js"></script>
+    <script>
+        document.title = t('solver.title');
+        applyI18n();
+    </script>
+</body>
+</html>

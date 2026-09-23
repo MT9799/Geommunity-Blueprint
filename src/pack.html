@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>关卡列表 | Geommunity Blueprint</title>
+    <link rel="stylesheet" href="./app.css">
+</head>
+<body>
+    <main class="home-shell">
+        <header class="subpage-header"><a class="subpage-brand" href="../index.html"><img src="./static/images/logo.png" alt="">Geommunity Blueprint</a><a
+                class="back-link" href="./levels.html" data-i18n="pack.back">返回</a></header>
+        <p class="eyebrow" data-i18n="pack.eyebrow">关卡列表</p>
+        <h1 id="pack-title"></h1>
+        <script>
+            // 包名要等 levels.json 到位才知道；总览页已经把「包 id → 名称」记在会话里，
+            // 这里先填上，标题就不会先闪一下占位文字再变成包名（缓存没有就留空，等 pack.js 填）
+            (function () {
+                const id = new URLSearchParams(location.search).get('pack');
+                if (!id) return;
+                try {
+                    const names = JSON.parse(sessionStorage.getItem('packNames') || '{}');
+                    if (names[id]) document.getElementById('pack-title').textContent = names[id];
+                } catch (error) {
+                    // 读不到缓存就算了
+                }
+            })();
+        </script>
+        <p id="pack-description" class="lede"></p>
+        <input id="search-box" class="search-box" type="search" readonly data-i18n-placeholder="pack.searchPlaceholder" placeholder="搜索关卡…">
+        <div id="pack-levels" class="level-list"></div>
+        <div id="pack-pager"></div>
+    </main>
+    <script src="./static/js/i18n.js"></script>
+    <script src="./levels-data.js"></script>
+    <script src="./pack.js"></script>
+</body>
+</html>

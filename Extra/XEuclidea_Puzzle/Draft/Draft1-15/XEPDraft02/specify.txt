@@ -1,3 +1,0 @@
-Given a square, construct a square with each vertex connected one-on-one to the nearest vertex of the given square, and the connecting line segments are equal in length to the side length of the square being constructed.
-
-已知正方形，求作一个正方形，每个顶点都与给定正方形最近的顶点一对一连接，连接线段等长于所作正方形边长。

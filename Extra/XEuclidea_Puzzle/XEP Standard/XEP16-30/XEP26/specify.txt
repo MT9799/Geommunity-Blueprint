@@ -1,3 +1,0 @@
-Given the triangle ABC, construct a line that intersects the three sides of the triangle at points D, E, and F, such that AD=BE=CF, and AD, BE, and CF are on the lines where each side of the triangle is located.
-
-已知三角形ABC，求作一条线，截三角形三边所在直线分别为点D,E,F，使得AD=BE=CF，且AD,BE,CF分别在三角形各边所在直线上。

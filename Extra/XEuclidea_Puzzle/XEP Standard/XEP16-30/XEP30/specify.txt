@@ -1,3 +1,0 @@
-Given a straight line and 4 points, construct two pairs of parallel lines such that each line passes through a given point and forms a trisection point with the 4 intersection points of the given line.
-
-已知直线及4点，求作两对平行线，使得每条直线各过一给定点，与给定直线的4个交点形成三等分点。

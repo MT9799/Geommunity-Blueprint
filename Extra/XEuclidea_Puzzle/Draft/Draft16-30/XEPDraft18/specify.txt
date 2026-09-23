@@ -1,3 +1,0 @@
-Given a circle and two points, construct a diameter such that both ends of the diameter are concentric with the given two points.
-
-已知圆和两点，求作直径，使得直径两端与给定两点共圆。

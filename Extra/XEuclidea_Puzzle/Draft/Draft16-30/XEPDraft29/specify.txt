@@ -1,3 +1,0 @@
-Given the radii of two concentric circles and a large circle, construct a diamond with two vertices on the line where the radius is located, and the other two points on the large circle, where both sides are tangent to the large circle and the other two sides are tangent to the small circle.
-
-已知两个同心圆及大圆的半径，求作菱形，其中两个顶点位于半径所在直线上，另外两点位于大圆上，其中两边切于大圆，另外两边切于小圆。

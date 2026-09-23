@@ -1,3 +1,0 @@
-Given the parallel line jk and 4 points ABCD, construct two pairs of parallel lines ghnm, where gh passes through point AB, nm passes through point CD, and gn intersect at j, and hm intersects at k.
-
-已知平行线jk及4点ABCD，构造两对平行线ghnm，gh分别过点AB，nm分别过点CD，gn交点在j上，hm交点在k上。

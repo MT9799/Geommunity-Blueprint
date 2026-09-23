@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>关卡游玩 | Geommunity Blueprint</title>
+    <link rel="stylesheet" href="./static/css/index.css">
+    <!-- 词典先就位：兜底标题按语言定，关卡数据回来后 level-loader 再换成具体关卡 -->
+    <script src="./static/js/i18n.js"></script>
+    <script>
+        (function () {
+            const testPlay = new URLSearchParams(location.search).get('mode') === 'maker-play';
+            document.title = `${t(testPlay ? 'level.testPlayTitle' : 'level.pageTitle')} | Geommunity Blueprint`;
+        })();
+    </script>
+</head>
+<body>
+    <!-- 缩略图 -->
+    <div id="thumbnail" class="thumbnail" style="display: none;">
+        <div class="hidden_inf thumbnail-title" style="display: none;">
+            <div class="thumbnail-title-container">
+                <button id="thumbnail-title-switch-hidden">
+<svg class="button-icon-toolbar svg-icon" viewBox="0 0 200 200">
+<polygon points="
+60 100, 
+120 40, 
+160 80, 
+100 140, 
+60 140" 
+fill="transparent" stroke-width="10"  stroke-linejoin="round"/>
+<line x1="60" y1="100" x2="100" y2="140" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+<line x1="100" y1="60" x2="140" y2="100" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+<line x1="40" y1="160" x2="160" y2="160" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+</svg>
+                </button>
+                <div class="switch_inf" id="title_inf">&emsp;</div>
+                <button id="thumbnail-title-button">
+<svg class="svg-icon" viewBox="0 0 200 200">
+<line x1="50" y1="50" x2="150" y2="150" stroke-width="10" fill="transparent" stroke-linecap="round"/>
+<line x1="150" y1="50" x2="50" y2="150" stroke-width="10" fill="transparent" stroke-linecap="round"/>
+</svg>
+                </button>
+            </div>
+            <div class="full-width"><hr></div>
+        </div>
+        <div class="thumbnail-middle" id="thumbnail-middle"></div>
+        <div class="hidden_inf thumbnail-body" style="display: none;">
+            <div class="thumbnail-bottom-container">
+                <div data-i18n="level.goal">目标：</div>
+                <div class="switch_inf" id="bottom_inf">&emsp;</div>
+            </div>
+            <div class="full-width"><hr></div>
+            <div class="thumbnail-body-container">
+                <div class="switch_inf" id="body_inf">&emsp;</div>
+            </div>
+        </div>
+        <!-- 目标与达成情况：目标 L / E 步数 + 完成 / L / E / V 四个勾 -->
+        <div id="level-status" class="level-status">
+            <span class="level-status-goal" id="level-status-goal"></span>
+            <span class="level-tick" data-tick="done"><span class="complete-check">&#10004;</span><span data-i18n="level.tickDone">完成</span></span>
+            <span class="level-tick" data-tick="l"><span class="complete-check">&#10004;</span>L</span>
+            <span class="level-tick" data-tick="e"><span class="complete-check">&#10004;</span>E</span>
+            <span class="level-tick" data-tick="v"><span class="complete-check">&#10004;</span>V</span>
+        </div>
+    </div>
+    <div id="masks" class="masks"></div>
+    <!-- 步数显示 -->
+    <div class="moves-layout">
+        <p id="moves"></p>
+    </div>
+    <!-- 完成显示 -->
+    <div class="complete-layout" id="complete-layout">
+        <div class="complete-title" data-i18n="level.complete">
+            任务完成
+        </div>
+        <div class="complete-body">
+            <span class="complete-item" data-complete="done">
+                <span class="complete-check">&#10004;</span>
+                <span class="complete-name">完成</span>
+            </span>
+            <span class="complete-item" data-complete="l">
+                <span class="complete-check">&#10004;</span>
+                <span class="complete-name">L</span>
+            </span>
+            <span class="complete-item" data-complete="e">
+                <span class="complete-check">&#10004;</span>
+                <span class="complete-name">E</span>
+            </span>
+            <span class="complete-item" data-complete="v">
+                <span class="complete-check">&#10004;</span>
+                <span class="complete-name">V</span>
+            </span>
+        </div>
+        <!-- 步数与目标对比：作出所求时显示是否达到 L / E 数 -->
+        <p class="complete-steps" id="complete-steps"></p>
+    </div>
+    <!-- 菜单 -->
+    <!-- 导入SVG宏 -->
+    <div id="container_more">
+        <button id="restore-button" class="more-button-item" data-action="restore">
+<svg class="svg-icon" viewBox="0 0 200 200">
+<polyline points="30 50, 120 50, 120 130" fill="transparent" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="30" y1="50" x2="60" y2="30" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+<line x1="30" y1="50" x2="60" y2="70" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+<polyline points="70 100, 70 170, 170 170, 170 100" fill="transparent" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="70" y1="150" x2="170" y2="150" fill="transparent" stroke-width="10"/>
+</svg>
+        </button>
+        <button id="redo-button" class="more-button-item" data-action="redo">
+<svg class="svg-icon" viewBox="0 0 200 200">
+<polyline points="30 50, 120 50, 120 130" fill="transparent" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="120" y1="130" x2="100" y2="100" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+<line x1="120" y1="130" x2="140" y2="100" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+<polyline points="70 100, 70 170, 170 170, 170 100" fill="transparent" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="70" y1="150" x2="170" y2="150" fill="transparent" stroke-width="10"/>
+</svg>
+        </button>
+    </div>
+    <!-- 画布 -->
+    <div id="container_canvas">
+        <canvas id="canvas_id1" width="1500" height="1500"></canvas>
+    </div>
+    <!-- 工具面板 -->
+    <div id="toolbarPanel" class="panel">
+        <div id="container_toolbar" class="panel-container row-direction"></div>
+        <div class="floating-bar">
+            <div id="floating-bar-buttons" class="row-direction">
+            </div>
+            <div id="floating-bar-elements" class="row-direction">
+            </div>
+        </div>
+        <div id="mobile-information"></div>
+    </div>
+    <!-- 浏览面板 -->
+    <div id="overviewPanel" class="panel">
+        <div class="panel-container" id="geometry-item-list">
+            <p>几何元素一览</p>
+            <select id="overview-select">
+                <option value="all" data-i18n="level.all">全部</option>
+                <option value="hidden" data-i18n="level.hidden">隐藏</option>
+            </select>
+            <hr>
+            <div id="container_overview"></div>
+        </div>
+        <div class="item-container" id="geometry-item"></div>
+    </div>
+    <!-- 记录面板 -->
+    <div id="recordPanel" class="panel">
+        <div class="panel-container" id="storage-item-list">
+            <div class="head-item">
+                <button class="storage-panel-button" id="storage-panel-button-add" data-action="add-record">
+<svg class="svg-icon" viewBox="0 0 200 200">
+<line x1="30" y1="100" x2="170" y2="100" stroke-width="10" fill="transparent" stroke-linecap="round"/>
+<line x1="100" y1="30" x2="100" y2="170" stroke-width="10" fill="transparent" stroke-linecap="round"/>
+</svg>
+                </button>
+                <button class="storage-panel-button" id="storage-panel-button-delete" data-action="delete-record">
+<svg class="svg-icon" viewBox="0 0 200 200">
+<line x1="30" y1="60" x2="170" y2="60" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+<line x1="60" y1="40" x2="140" y2="40" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+<line x1="75" y1="80" x2="80" y2="150" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+<line x1="125" y1="80" x2="120" y2="150" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+<polyline points="50 60, 60 170, 140 170, 150 60" fill="transparent" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+                </button>
+                <button class="storage-panel-button" id="storage-panel-button-cover" data-action="cover-record">
+<svg class="svg-icon" viewBox="0 0 200 200">
+<polyline points="30 50, 120 50, 120 130" fill="transparent" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="120" y1="130" x2="100" y2="100" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+<line x1="120" y1="130" x2="140" y2="100" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+<polyline points="70 100, 70 170, 170 170, 170 100" fill="transparent" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="70" y1="150" x2="170" y2="150" fill="transparent" stroke-width="10"/>
+</svg>
+                </button>
+            </div>
+        </div>
+    </div>
+    <!-- 预定义所有SVG -->
+    <div id="svg-templates" style="display: none;">
+        <template id="svg-move">
+            <!-- 工具 -->
+<svg class="button-icon-toolbar svg-icon" viewBox="0 0 200 200">
+<polygon points="
+50 30, 
+160 130, 
+110 130, 
+130 180, 
+110 180, 
+90 130, 
+50 160" 
+fill="transparent" stroke-width="10"  stroke-linejoin="round"/>
+</svg>
+            <!-- 工具按钮 -->
+            <!-- 工具功能切换 -->
+            <!-- 其它 -->
+        </template>
+        <template id="svg-point">
+            <!-- 工具 -->
+<svg class="button-icon-toolbar svg-icon" viewBox="0 0 200 200">
+<circle cx="100" cy="100" r="15" fill="transparent" stroke-width="10"/>
+</svg>
+            <!-- 工具按钮 -->
+            <!-- 工具功能切换 -->
+            <!-- 其它 -->
+        </template>
+        <template id="svg-eraser">
+            <!-- 工具 -->
+<svg class="button-icon-toolbar svg-icon" viewBox="0 0 200 200">
+<polygon points="
+50 110, 
+120 40, 
+160 80, 
+100 140, 
+80 140" 
+fill="transparent" stroke-width="10"  stroke-linejoin="round"/>
+<line x1="40" y1="160" x2="160" y2="160" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+</svg>
+            <!-- 工具按钮 -->
+            <!-- 工具功能切换 -->
+            <!-- 其它 -->
+        </template>
+        <template id="svg-line">
+            <!-- 工具 -->
+<svg class="button-icon-toolbar svg-icon" viewBox="0 0 200 200">
+<circle cx="60" cy="140" r="15" fill="transparent" stroke-width="10"/>
+<circle cx="140" cy="60" r="15" fill="transparent" stroke-width="10"/>
+<line x1="70" y1="130" x2="130" y2="70" stroke-width="10"/>
+<line x1="155" y1="45" x2="180" y2="20" stroke-width="10" stroke-linecap="round"/>
+<line x1="20" y1="180" x2="45" y2="155" stroke-width="10" stroke-linecap="round"/>
+</svg>
+            <!-- 工具按钮 -->
+            <!-- 工具功能切换 -->
+            <!-- 其它 -->
+        </template>
+        <template id="svg-circle">
+            <!-- 工具 -->
+<svg class="button-icon-toolbar svg-icon" viewBox="0 0 200 200">
+<circle cx="100" cy="100" r="15" fill="transparent" stroke-width="10"/>
+<circle cx="160" cy="50" r="15" fill="transparent" stroke-width="10"/>
+<path d="M 150 37 A 80 80 0 1 0 170 60" stroke-width="10" fill="transparent"/>
+</svg>
+            <!-- 工具按钮 -->
+            <!-- 工具功能切换 -->
+            <!-- 其它 -->
+        </template>
+        <template id="svg-intersection">
+            <!-- 工具 -->
+<svg class="button-icon-toolbar svg-icon" viewBox="0 0 200 200">
+<circle cx="100" cy="85" r="15" fill="transparent" stroke-width="10"/>
+<path d="M 115 100 A 200 200 0 0 1 160 180" stroke-width="10" fill="transparent" stroke-linecap="round"/>
+<path d="M 85 72 A 200 200 0 0 0 20 40" stroke-width="10" fill="transparent" stroke-linecap="round"/>
+<path d="M 85 100 A 200 200 0 0 0 40 180" stroke-width="10" fill="transparent" stroke-linecap="round"/>
+<path d="M 115 72 A 200 200 0 0 1 180 40" stroke-width="10" fill="transparent" stroke-linecap="round"/>
+</svg>
+            <!-- 工具按钮 -->
+            <!-- 工具功能切换 -->
+            <!-- 其它 -->
+        </template>
+        <template id="svg-restoreTransform">
+            <!-- 工具 -->
+            <!-- 工具按钮 -->
+<svg class="svg-icon" viewBox="0 0 200 200">
+<circle cx="100" cy="100" r="15" fill="transparent" stroke-width="10"/>
+<line x1="50" y1="100" x2="80" y2="100" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+<line x1="120" y1="100" x2="150" y2="100" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+<line x1="100" y1="50" x2="100" y2="80" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+<line x1="100" y1="120" x2="100" y2="150" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+<path d="M 150 50 A 70 70 0 0 1 150 150" stroke-width="10" fill="transparent" stroke-linecap="round"/>
+<path d="M 50 50 A 70 70 0 0 0 50 150" stroke-width="10" fill="transparent" stroke-linecap="round"/>
+<line x1="50" y1="50" x2="50" y2="75" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+<line x1="50" y1="50" x2="25" y2="60" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+<line x1="150" y1="150" x2="150" y2="125" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+<line x1="150" y1="150" x2="175" y2="140" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+</svg>
+            <!-- 工具功能切换 -->
+            <!-- 其它 -->
+        </template>
+        <template id="svg-clear">
+            <!-- 工具 -->
+            <!-- 工具按钮 -->
+<svg class="svg-icon" viewBox="0 0 200 200">
+<line x1="50" y1="50" x2="150" y2="150" stroke-width="10" fill="transparent" stroke-linecap="round"/>
+<line x1="150" y1="50" x2="50" y2="150" stroke-width="10" fill="transparent" stroke-linecap="round"/>
+</svg>
+            <!-- 工具功能切换 -->
+            <!-- 其它 -->
+        </template>
+        <template id="svg-deleteObject">
+            <!-- 工具 -->
+            <!-- 工具按钮 -->
+<svg class="svg-icon" viewBox="0 0 200 200">
+<line x1="45" y1="62" x2="155" y2="62" stroke-width="10" fill="transparent" stroke-linecap="round"/>
+<line x1="84" y1="40" x2="116" y2="40" stroke-width="10" fill="transparent" stroke-linecap="round"/>
+<path d="M70 62 L78 162 L122 162 L130 62" stroke-width="10" fill="transparent" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+            <!-- 工具功能切换 -->
+            <!-- 其它 -->
+        </template>
+        <template id="svg-choiceDraw">
+            <!-- 工具 -->
+            <!-- 工具按钮 -->
+            <!-- 工具功能切换 -->
+<svg class="button-icon-toolbar svg-icon" viewBox="0 0 200 200">
+<polygon points="
+50 30, 
+160 130, 
+110 130, 
+130 180, 
+110 180, 
+90 130, 
+50 160" 
+fill="transparent" stroke-width="10"  stroke-linejoin="round"/>
+</svg>
+            <!-- 其它 -->
+        </template>
+        <template id="svg-moveView">
+            <!-- 工具 -->
+            <!-- 工具按钮 -->
+            <!-- 工具功能切换 -->
+<svg class="svg-icon" viewBox="0 0 200 200">
+<line x1="100" y1="30" x2="100" y2="170" stroke-width="10" fill="transparent" stroke-linecap="round"/>
+<line x1="30" y1="100" x2="170" y2="100" stroke-width="10" fill="transparent" stroke-linecap="round"/>
+<line x1="30" y1="100" x2="50" y2="80" stroke-width="10" fill="transparent" stroke-linecap="round"/>
+<line x1="30" y1="100" x2="50" y2="120" stroke-width="10" fill="transparent" stroke-linecap="round"/>
+<line x1="170" y1="100" x2="150" y2="120" stroke-width="10" fill="transparent" stroke-linecap="round"/>
+<line x1="170" y1="100" x2="150" y2="80" stroke-width="10" fill="transparent" stroke-linecap="round"/>
+<line x1="100" y1="30" x2="80" y2="50" stroke-width="10" fill="transparent" stroke-linecap="round"/>
+<line x1="100" y1="30" x2="120" y2="50" stroke-width="10" fill="transparent" stroke-linecap="round"/>
+<line x1="100" y1="170" x2="80" y2="150" stroke-width="10" fill="transparent" stroke-linecap="round"/>
+<line x1="100" y1="170" x2="120" y2="150" stroke-width="10" fill="transparent" stroke-linecap="round"/>
+</svg>
+            <!-- 其它 -->
+        </template>
+        <template id="svg-any">
+            <!-- 工具 -->
+            <!-- 工具按钮 -->
+            <!-- 工具功能切换 -->
+<svg class="svg-icon" viewBox="0 0 200 200">
+<line x1="30" y1="170" x2="80" y2="40" stroke-width="10" fill="transparent" stroke-linecap="round"/>
+<circle cx="130" cy="110" r="40" fill="transparent" stroke-width="10"/>
+</svg>
+            <!-- 其它 -->
+        </template>
+        <template id="svg-parallelLine">
+            <!-- 工具 -->
+<svg class="button-icon-toolbar svg-icon" viewBox="0 0 200 200">
+<line x1="100" y1="170" x2="170" y2="30" stroke-width="10" stroke-linecap="round"/>
+<line x1="30" y1="170" x2="100" y2="30" stroke="rgb(128, 200, 255)" stroke-width="10" stroke-linecap="round"/>
+</svg>
+            <!-- 工具按钮 -->
+            <!-- 工具功能切换 -->
+            <!-- 其它 -->
+        </template>
+        <template id="svg-perpendicularLine">
+            <!-- 工具 -->
+<svg class="button-icon-toolbar svg-icon" viewBox="0 0 200 200">
+<line x1="100" y1="30" x2="100" y2="170" stroke="rgb(128, 200, 255)" stroke-width="10" stroke-linecap="round"/>
+<line x1="30" y1="170" x2="170" y2="170" stroke-width="10" stroke-linecap="round"/>
+</svg>
+            <!-- 工具按钮 -->
+            <!-- 工具功能切换 -->
+            <!-- 其它 -->
+        </template>
+        <template id="svg-perpendicularBisector">
+            <!-- 工具 -->
+<svg class="button-icon-toolbar svg-icon" viewBox="0 0 200 200">
+<circle cx="40" cy="100" r="15" fill="transparent" stroke-width="10"/>
+<circle cx="160" cy="100" r="15" fill="transparent" stroke-width="10"/>
+<line x1="60" y1="100" x2="140" y2="100" stroke-width="10" stroke-linecap="round"/>
+<line x1="100" y1="30" x2="100" y2="170" stroke="rgb(128, 200, 255)" stroke-width="10" stroke-linecap="round"/>
+</svg>
+            <!-- 工具按钮 -->
+            <!-- 工具功能切换 -->
+            <!-- 其它 -->
+        </template>
+        <template id="svg-angleBisector">
+            <!-- 工具 -->
+<svg class="button-icon-toolbar svg-icon" viewBox="0 0 200 200">
+<path d="M 130 100 A 70 70 0 0 0 120 50" stroke-width="10" fill="transparent" stroke-linecap="round"/>
+<path d="M 115 100 A 50 50 0 0 1 100 140" stroke-width="10" fill="transparent" stroke-linecap="round"/>
+<line x1="30" y1="100" x2="170" y2="100" stroke="rgb(128, 200, 255)" stroke-width="10" stroke-linecap="round"/>
+<line x1="30" y1="100" x2="150" y2="170" stroke-width="10" stroke-linecap="round"/>
+<line x1="30" y1="100" x2="150" y2="30" stroke-width="10" stroke-linecap="round"/>
+</svg>
+            <!-- 工具按钮 -->
+            <!-- 工具功能切换 -->
+            <!-- 其它 -->
+        </template>
+        <template id="svg-compass">
+            <!-- 工具 -->
+<svg class="button-icon-toolbar svg-icon" viewBox="0 0 200 200">
+<line x1="115" y1="88" x2="162" y2="52" stroke="rgb(128, 200, 255)" stroke-width="10" fill="transparent" stroke-linecap="round"/>
+<circle cx="100" cy="100" r="15" fill="transparent" stroke-width="10"/>
+<circle cx="100" cy="100" r="80" fill="transparent" stroke-width="10"/>
+</svg>
+            <!-- 工具按钮 -->
+            <!-- 工具功能切换 -->
+            <!-- 其它 -->
+        </template>
+        <template id="svg-middlePoint">
+            <!-- 工具 -->
+<svg class="button-icon-toolbar svg-icon" viewBox="0 0 200 200">
+<circle cx="50" cy="150" r="15" fill="transparent" stroke-width="10"/>
+<circle cx="150" cy="50" r="15" fill="transparent" stroke-width="10"/>
+<circle cx="100" cy="100" r="15" stroke="rgb(128, 200, 255)" fill="transparent" stroke-width="10"/>
+</svg>
+            <!-- 工具按钮 -->
+            <!-- 工具功能切换 -->
+            <!-- 其它 -->
+        </template>
+        <template id="svg-threePointCircle">
+            <!-- 工具 -->
+<svg class="button-icon-toolbar svg-icon" viewBox="0 0 200 200">
+<path d="M 115 20 A 80 80 0 0 0 35 145" stroke="rgb(128, 200, 255)" stroke-width="10" fill="transparent"/>
+<path d="M 55 165 A 80 80 0 0 0 150 160" stroke="rgb(128, 200, 255)" stroke-width="10" fill="transparent"/>
+<path d="M 170 140 A 80 80 0 0 0 140 30" stroke="rgb(128, 200, 255)" stroke-width="10" fill="transparent"/>
+<circle cx="125" cy="25" r="15" fill="transparent" stroke-width="10"/>
+<circle cx="45" cy="155" r="15" fill="transparent" stroke-width="10"/>
+<circle cx="160" cy="150" r="15" fill="transparent" stroke-width="10"/>
+</svg>
+            <!-- 工具按钮 -->
+            <!-- 工具功能切换 -->
+            <!-- 其它 -->
+        </template>
+        <template id="svg-ray">
+            <!-- 工具 -->
+<svg class="button-icon-toolbar svg-icon" viewBox="0 0 200 200">
+<circle cx="50" cy="150" r="15" fill="transparent" stroke-width="10"/>
+<circle cx="140" cy="60" r="15" fill="transparent" stroke-width="10"/>
+<line x1="60" y1="140" x2="130" y2="70" stroke-width="10"/>
+<line x1="155" y1="45" x2="180" y2="20" stroke-width="10" stroke-linecap="round"/>
+</svg>
+            <!-- 工具按钮 -->
+            <!-- 工具功能切换 -->
+            <!-- 其它 -->
+        </template>
+        <template id="svg-lineSegment">
+            <!-- 工具 -->
+<svg class="button-icon-toolbar svg-icon" viewBox="0 0 200 200">
+<circle cx="50" cy="150" r="15" fill="transparent" stroke-width="10"/>
+<circle cx="150" cy="50" r="15" fill="transparent" stroke-width="10"/>
+<line x1="60" y1="140" x2="140" y2="60" stroke-width="10"/>
+</svg>
+            <!-- 工具按钮 -->
+            <!-- 工具功能切换 -->
+            <!-- 其它 -->
+        </template>
+        <template id="svg-threePointAngleBisector">
+            <!-- 工具 -->
+            <!-- 工具按钮 -->
+            <!-- 工具功能切换 -->
+<svg class="button-icon-toolbar svg-icon" viewBox="0 0 200 200">
+<path d="M 130 100 A 70 70 0 0 0 120 50" stroke-width="10" fill="transparent" stroke-linecap="round"/>
+<path d="M 115 100 A 50 50 0 0 1 100 140" stroke-width="10" fill="transparent" stroke-linecap="round"/>
+<line x1="50" y1="100" x2="170" y2="100" stroke="rgb(128, 200, 255)" stroke-width="10" stroke-linecap="round"/>
+<line x1="45" y1="110" x2="140" y2="165" stroke-width="10" stroke-linecap="round" stroke-dasharray="20,20"/>
+<line x1="45" y1="90" x2="140" y2="35" stroke-width="10" stroke-linecap="round" stroke-dasharray="20,20"/>
+<circle cx="30" cy="100" r="15" fill="transparent" stroke-width="10"/>
+<circle cx="150" cy="30" r="15" fill="transparent" stroke-width="10"/>
+<circle cx="150" cy="170" r="15" fill="transparent" stroke-width="10"/>
+</svg>
+            <!-- 其它 -->
+        </template>
+        <template id="svg-twoPoints">
+            <!-- 工具 -->
+            <!-- 工具按钮 -->
+            <!-- 工具功能切换 -->
+            <!-- 其它 -->
+        </template>
+        <template id="svg-style">
+            <!-- 工具 -->
+            <!-- 工具按钮 -->
+<svg class="button-icon-toolbar svg-icon" viewBox="0 0 200 200">
+<polyline points="40 170, 40 100, 80 100, 80 30, 120 30, 120 100, 160 100, 160 170" fill="transparent" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="60" y1="130" x2="60" y2="170" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+<line x1="80" y1="130" x2="80" y2="170" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+<line x1="100" y1="130" x2="100" y2="170" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+<line x1="120" y1="130" x2="120" y2="170" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+<line x1="140" y1="130" x2="140" y2="170" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+<line x1="40" y1="130" x2="160" y2="130" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+</svg>
+            <!-- 工具功能切换 -->
+            <!-- 其它 -->
+        </template>
+        <template id="svg-twoPointsMiddlePoint">
+            <!-- 工具 -->
+            <!-- 工具按钮 -->
+            <!-- 工具功能切换 -->
+<svg class="button-icon-toolbar svg-icon" viewBox="0 0 200 200">
+<circle cx="50" cy="150" r="15" fill="transparent" stroke-width="10"/>
+<circle cx="150" cy="50" r="15" fill="transparent" stroke-width="10"/>
+<circle cx="100" cy="100" r="15" stroke="rgb(128, 200, 255)" fill="transparent" stroke-width="10"/>
+</svg>
+            <!-- 其它 -->
+        </template>
+        <template id="svg-circleCenter">
+            <!-- 工具 -->
+            <!-- 工具按钮 -->
+            <!-- 工具功能切换 -->
+<svg class="button-icon-toolbar svg-icon" viewBox="0 0 200 200">
+<circle cx="100" cy="100" r="15" fill="transparent" stroke-width="10"/>
+<circle cx="160" cy="50" r="15" fill="transparent" stroke-width="10"/>
+<path d="M 150 37 A 80 80 0 1 0 170 60" stroke-width="10" fill="transparent"/>
+</svg>
+            <!-- 其它 -->
+        </template>
+        <template id="svg-threePointCompass">
+            <!-- 工具 -->
+            <!-- 工具按钮 -->
+            <!-- 工具功能切换 -->
+<svg class="button-icon-toolbar svg-icon" viewBox="0 0 200 200">
+<line x1="40" y1="70" x2="70" y2="40" stroke-width="10" fill="transparent"/>
+<circle cx="30" cy="80" r="15" fill="transparent" stroke-width="10"/>
+<circle cx="80" cy="30" r="15" fill="transparent" stroke-width="10"/>
+<line x1="130" y1="110" x2="170" y2="70" stroke="rgb(128, 200, 255)" stroke-width="10" fill="transparent"/>
+<circle cx="120" cy="120" r="15" fill="transparent" stroke-width="10"/>
+<circle cx="120" cy="120" r="70" fill="transparent" stroke-width="10"/>
+</svg>
+            <!-- 其它 -->
+        </template>
+        <template id="svg-compassCopy">
+            <!-- 工具 -->
+            <!-- 工具按钮 -->
+            <!-- 工具功能切换 -->
+<svg class="button-icon-toolbar svg-icon" viewBox="0 0 200 200">
+<line x1="115" y1="88" x2="162" y2="52" stroke="rgb(128, 200, 255)" stroke-width="10" fill="transparent" stroke-linecap="round"/>
+<circle cx="100" cy="100" r="15" fill="transparent" stroke-width="10"/>
+<circle cx="100" cy="100" r="80" fill="transparent" stroke-width="10"/>
+</svg>
+            <!-- 其它 -->
+        </template>
+        <template id="svg-choicePoint">
+            <!-- 工具 -->
+            <!-- 工具按钮 -->
+            <!-- 工具功能切换 -->
+<svg class="button-icon-toolbar svg-icon" viewBox="0 0 200 200">
+<circle cx="100" cy="100" r="15" fill="transparent" stroke-width="10"/>
+</svg>
+            <!-- 其它 -->
+        </template>
+        <template id="svg-twoLineAngleBisector">
+            <!-- 工具 -->
+            <!-- 工具按钮 -->
+            <!-- 工具功能切换 -->
+<svg class="button-icon-toolbar svg-icon" viewBox="0 0 200 200">
+<path d="M 130 100 A 70 70 0 0 0 120 50" stroke-width="10" fill="transparent" stroke-linecap="round"/>
+<path d="M 115 100 A 50 50 0 0 1 100 140" stroke-width="10" fill="transparent" stroke-linecap="round"/>
+<line x1="30" y1="100" x2="170" y2="100" stroke="rgb(128, 200, 255)" stroke-width="10" stroke-linecap="round"/>
+<line x1="30" y1="100" x2="150" y2="170" stroke-width="10" stroke-linecap="round"/>
+<line x1="30" y1="100" x2="150" y2="30" stroke-width="10" stroke-linecap="round"/>
+</svg>
+            <!-- 其它 -->
+        </template>
+        <template id="svg-back">
+            <!-- 工具 -->
+            <!-- 工具按钮 -->
+            <!-- 工具功能切换 -->
+            <!-- 其它 -->
+<svg class="svg-icon" viewBox="0 0 200 200">
+<circle cx="100" cy="100" r="74" fill="none" stroke-width="10"/>
+<polyline points="114,65 80,100 114,135" fill="none" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+        </template>
+        <template id="svg-edit">
+            <!-- 工具 -->
+            <!-- 工具按钮 -->
+            <!-- 工具功能切换 -->
+            <!-- 其它 -->
+<svg class="button-icon-toolbar svg-icon" viewBox="0 0 200 200">
+<polygon points="
+60 100, 
+120 40, 
+160 80, 
+100 140, 
+60 140" 
+fill="transparent" stroke-width="10"  stroke-linejoin="round"/>
+<line x1="60" y1="100" x2="100" y2="140" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+<line x1="100" y1="60" x2="140" y2="100" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+<line x1="40" y1="160" x2="160" y2="160" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+</svg>
+        </template>
+        <template id="svg-openSolver">
+<svg class="svg-icon" viewBox="0 0 200 200">
+<circle cx="85" cy="85" r="50" fill="transparent" stroke-width="10"/>
+<line x1="122" y1="122" x2="165" y2="165" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+</svg>
+        </template>
+        <template id="svg-help">
+<svg class="svg-icon" viewBox="0 0 200 200">
+<circle cx="100" cy="100" r="75" fill="transparent" stroke-width="10"/>
+<path d="M72 76 C72 52, 128 52, 128 80 C128 102, 100 102, 100 124" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+<circle cx="100" cy="150" r="3" fill="transparent" stroke-width="20"/>
+</svg>
+        </template>
+        <template id="svg-answer">
+<svg class="svg-icon" viewBox="0 0 200 200">
+<path d="M20 100 C55 55, 145 55, 180 100 C145 145, 55 145, 20 100 Z" fill="transparent" stroke-width="10" stroke-linejoin="round"/>
+<circle cx="100" cy="100" r="26" fill="transparent" stroke-width="10"/>
+</svg>
+        </template>
+        <template id="svg-menu">
+<svg class="svg-icon" viewBox="0 0 200 200">
+<rect x="70" y="30" width="60" height="60" fill="transparent" stroke-width="10" stroke-linejoin="round"/>
+<rect x="30" y="110" width="60" height="60" fill="transparent" stroke-width="10" stroke-linejoin="round"/>
+<rect x="110" y="110" width="60" height="60" fill="transparent" stroke-width="10" stroke-linejoin="round"/>
+</svg>
+        </template>
+        <template id="svg-menuConstruct">
+<svg class="svg-icon" viewBox="0 0 200 200">
+<circle cx="100" cy="100" r="15" fill="transparent" stroke-width="10"/>
+<circle cx="160" cy="50" r="15" fill="transparent" stroke-width="10"/>
+<path d="M 150 37 A 80 80 0 1 0 170 60" stroke-width="10" fill="transparent"/>
+<line x1="115" y1="88" x2="145" y2="62" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+<line x1="175" y1="37" x2="200" y2="15" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+<line x1="85" y1="114" x2="0" y2="188" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+</svg>
+        </template>
+        <template id="svg-menuOverview">
+<svg class="svg-icon" viewBox="0 0 200 200">
+<line x1="50" y1="100" x2="80" y2="30" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+<circle cx="120" cy="70" r="25" fill="transparent" stroke-width="10"/>
+<polyline points="30 80, 30 170, 170 170, 170 80" fill="transparent" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="30" y1="150" x2="170" y2="150" fill="transparent" stroke-width="10"/>
+<line x1="30" y1="130" x2="170" y2="130" fill="transparent" stroke-width="10"/>
+</svg>
+        </template>
+        <template id="svg-menuRecord">
+<svg class="svg-icon" viewBox="0 0 200 200">
+<path d="M 100 150 Q 100 120, 160 130" stroke-width="10" fill="transparent" stroke-linecap="round"/>
+<path d="M 100 150 Q 100 120, 40 130" stroke-width="10" fill="transparent" stroke-linecap="round"/>
+<line x1="100" y1="170" x2="170" y2="150" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+<line x1="100" y1="170" x2="30" y2="150" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+<line x1="30" y1="50" x2="30" y2="150" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+<line x1="170" y1="50" x2="170" y2="150" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+<line x1="40" y1="130" x2="40" y2="40" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+<line x1="160" y1="130" x2="160" y2="40" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+<line x1="30" y1="50" x2="40" y2="55" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+<line x1="170" y1="50" x2="160" y2="55" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+<path d="M 100 60 Q 100 30, 160 40" stroke-width="10" fill="transparent" stroke-linecap="round"/>
+<path d="M 100 60 Q 100 30, 40 40" stroke-width="10" fill="transparent" stroke-linecap="round"/>
+<line x1="100" y1="60" x2="100" y2="150" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+</svg>
+        </template>
+        <template id="svg-menuClearCanvas">
+<svg class="svg-icon" viewBox="0 0 200 200">
+<path d="M 50 50 A 70 70 0 1 1 30 100" stroke-width="10" fill="transparent" stroke-linecap="round"/>
+<line x1="50" y1="50" x2="60" y2="20" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+<line x1="50" y1="50" x2="80" y2="50" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+</svg>
+        </template>
+        <template id="svg-menuClose">
+<svg class="svg-icon" viewBox="0 0 200 200">
+<line x1="50" y1="50" x2="150" y2="150" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+<line x1="150" y1="50" x2="50" y2="150" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+</svg>
+        </template>
+        <template id="svg-menuDesign">
+<svg class="svg-icon" viewBox="0 0 200 200">
+<polygon points="
+40 80, 
+150 80, 
+160 170, 
+20 170" 
+fill="transparent" stroke-width="10" stroke-linejoin="round"/>
+<line x1="100" y1="30" x2="60" y2="130" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+<line x1="100" y1="30" x2="140" y2="130" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+<ellipse cx="100" cy="130" rx="40" ry="20" fill="transparent" stroke-width="10"/>
+</svg>
+        </template>
+        <template id="svg-explore">
+<svg class="svg-icon" viewBox="0 0 200 200">
+<circle cx="100" cy="100" r="15" fill="transparent" stroke-width="10"/>
+<ellipse cx="100" cy="100" rx="80" ry="40" fill="transparent" stroke-width="10"/>
+<ellipse cx="100" cy="100" rx="80" ry="40" fill="transparent" stroke-width="10" transform="rotate(-60 100 100)"/>
+<ellipse cx="100" cy="100" rx="80" ry="40" fill="transparent" stroke-width="10" transform="rotate(60 100 100)"/>
+</svg>
+        </template>
+        <template id="svg-objectStyle">
+<svg class="svg-icon" viewBox="0 0 200 200">
+<line x1="30" y1="65" x2="48" y2="65" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+<circle cx="75" cy="65" r="22" fill="transparent" stroke-width="10"/>
+<line x1="102" y1="65" x2="170" y2="65" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+<line x1="30" y1="135" x2="98" y2="135" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+<circle cx="125" cy="135" r="22" fill="transparent" stroke-width="10"/>
+<line x1="152" y1="135" x2="170" y2="135" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+</svg>
+        </template>
+    </div>
+    <!-- script src="https://cdnjs.cloudflare.com/ajax/libs/fraction.js/4.0.12/fraction.min.js"></script -->
+    <!--script src="https://unpkg.com/vconsole@latest/dist/vconsole.min.js"></script>
+    <script>
+        // 初始化 vConsole
+        var vConsole = new VConsole();
+        // 之后，您就可以像在电脑上一样使用 console.log() 了
+        console.log('Hello, vConsole!');
+    </script-->
+    <!-- 模板中定义全局变量存储静态路径 -->
+    <script>
+        const STATIC_URL = "./static/";  // 生成 "./static/"
+    </script>
+    <script src="./static/js/toolsFunction.js"></script>
+    <script src="./static/js/toolTemplate.js"></script>
+    <script src="./static/js/storageLoad.js"></script>
+    <script src="./static/js/editToolBag.js"></script>
+    <script src="./static/js/geometryToolBag.js"></script>
+    <script src="./static/js/constructToolBag.js"></script>
+    <script src="./static/js/geometry.js"></script>
+    <script src="./static/js/canvas.js"></script>
+    <script src="./static/js/toolPlayPage.js"></script>
+    <script src="./static/js/stylePanel.js"></script>
+    <script src="./static/js/geometryItemPlayPage.js"></script>
+    <script src="./static/js/playPage.js"></script>
+    <script src="./levels-data.js"></script>
+    <script src="./level-loader.js"></script>
+    <script src="./board-tools.js"></script>
+</body>
+</html>

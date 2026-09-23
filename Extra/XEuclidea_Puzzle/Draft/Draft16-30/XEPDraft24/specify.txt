@@ -1,3 +1,0 @@
-Given the vertices of a triangle, the midpoint of the opposite side, and the poles of the opposite side with respect to the circumscribed circle, restore the triangle.
-
-已知三角形的顶点，对边中点，对边关于外接圆的极点，还原三角形。

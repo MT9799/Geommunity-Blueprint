@@ -1,0 +1,1445 @@
+html {
+    background-color: #ECF3F7;
+    overflow: hidden;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    display: flex;
+    justify-content: center;
+}
+
+
+
+#container_canvas {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    z-index: 0;
+    margin: 0;
+}
+
+.moves-layout {
+    position: fixed;
+    top: 12px;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    z-index: 5;
+    pointer-events: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.moves-layout p {
+    margin: 3px;
+    padding: 7px 15px;
+    border-radius: 12px;
+    background-color: rgb(220, 220, 225);
+    color: #191919;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+/* 关卡游玩：LE 计数器放在右上角返回按钮的正下方（具体位置由脚本按返回按钮算） */
+body.mode-level .moves-layout {
+    top: 80px;
+    left: auto;
+    right: 10px;
+    transform: none;
+}
+
+
+
+.thumbnail {
+    position: absolute;
+    top: 2vh;
+    left: 2vw;
+    z-index: 5;
+    width: 40vw;
+    max-width: 300px;
+    aspect-ratio: 4 / 3;
+    border-radius: 25px;
+    cursor: pointer;
+    box-shadow: 3px 3px 5px rgba(0, 0, 0, 0.2);
+    background-color: white;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+}
+
+.thumbnail-middle {
+    /* 图片显示区始终为正方形：高度跟随卡片，宽度由 1:1 比例算出 */
+    height: 100%;
+    aspect-ratio: 1 / 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 16px
+}
+
+/* 缩略图下方的目标与达成情况（目标 L/E 步数 + 完成 / L / E / V 四个勾） */
+.level-status {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 6px 10px;
+    border-radius: 0 0 25px 25px;
+    background-color: rgba(250, 250, 250, 0.94);
+    font-size: 13px;
+    color: #191919;
+    pointer-events: none;
+}
+
+.level-status-goal {
+    font-weight: bold;
+    letter-spacing: 0.5px;
+}
+
+.level-tick {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    color: rgb(150, 150, 150);
+    opacity: 0.6;
+    transition: all 0.3s ease;
+}
+
+/* 作者样式里的 display 会盖掉浏览器默认的 [hidden]，这里补回来，
+   否则未标目标的 L / E 勾、单解关卡的 V 勾都会一直显示 */
+.level-tick[hidden],
+.complete-item[hidden] {
+    display: none;
+}
+
+.level-tick.active {
+    color: #FFD200;
+    opacity: 1;
+}
+
+.thumbnail.open .thumbnail-middle {
+    max-height: 50%;
+}
+
+#thumbnail-picture {
+    /* 缩略图填满整个方框（比例不符时裁掉一点边缘，不拉伸） */
+    object-fit: cover;
+    background-color: #f7f7f7;
+    width: 100%;
+    height: 100%;
+}
+
+/* 展开后的示意图可点开全屏查看 */
+.thumbnail.open #thumbnail-picture {
+    cursor: zoom-in;
+}
+
+.thumbnail-zoom {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4vh 4vw;
+    background-color: rgba(0, 0, 0, 0.75);
+    cursor: zoom-out;
+}
+
+.thumbnail-zoom img {
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 10px;
+    background-color: #fff;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+}
+
+.thumbnail.open {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 80vw;
+    aspect-ratio: 4 / 5;
+    max-width: 500px;
+    cursor: auto;
+    justify-content: start;
+}
+
+.masks {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 4;
+    display: none;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.hidden_inf {
+    display: none;
+}
+
+.thumbnail-title {
+    width: 100%;
+    flex-direction: column;
+    align-items: center;
+}
+
+.thumbnail-body {
+    flex-grow: 1;
+    width: 100%;
+    flex-direction: column-reverse;
+    align-items: center;
+    min-height: 0; /* 关键！允许元素收缩到小于内容高度 */
+    overflow-y: auto; /* 内容溢出时显示滚动条 */
+    padding-inline: 16px;
+}
+
+.full-width {
+    width: 100%;
+}
+
+.thumbnail-title-container {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.thumbnail-body-container {
+    width: 100%;
+    display: block;
+    flex: 1; /* 占满剩余空间 */
+    overflow-y: auto;
+}
+
+textarea {
+    resize: none;
+    width: 100%;
+    height: 100%;
+}
+
+.thumbnail-bottom-container {
+    width: 100%;
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+
+#thumbnail-title-switch {
+    width: 50px;
+    height: 50px;
+    background-color: rgb(240, 240, 240);
+    border-radius: 5px;
+    cursor: pointer;
+    border: none; /* 去边框 */
+    transition: all 0.5s ease;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0; /* 默认值陷阱！ */
+}
+
+#thumbnail-title-switch-hidden {
+    width: 50px;
+    height: 50px;
+    flex-shrink: 0;
+    opacity: 0; 
+    pointer-events: none;
+}
+
+#thumbnail-title-switch.active .svg-icon {
+    stroke: #0fd869;
+}
+
+#thumbnail-title-button {
+    width: 50px;
+    height: 50px;
+    cursor: pointer;
+    border: none; /* 去边框 */
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0; /* 默认值陷阱！ */
+    background-color: transparent;
+}
+
+.thumbnail-button-container {
+    position: absolute;
+    right: 5px;
+}
+
+.thumbnail-button {
+    width: 50px;
+    height: 50px;
+    background-color: rgb(240, 240, 240);
+    border-radius: 5px;
+    cursor: pointer;
+    border: none; /* 去边框 */
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0; /* 默认值陷阱！ */
+}
+
+.switch-flex {
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.switch_input {
+    display: none;
+}
+
+#title_input,
+#title_inf {
+    font-size: 24;
+    font-weight: bold;
+}
+
+#bottom_input,
+#bottom_inf {
+    font-size: 18;
+    color: #FFD200;
+}
+
+#body_inf {
+    white-space: pre-wrap; /* 或者 pre, pre-line */
+}
+
+
+
+#container_more {
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 2;
+    display: flex;
+    justify-content: end;
+    flex-wrap: wrap;
+    margin: 0;
+    background-color: transparent;
+    gap: 5px;
+    padding: 10px;
+}
+
+/* 更多栏按钮的弹层菜单 */
+.board-popup {
+    position: fixed;
+    z-index: 6;
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+    padding: 10px;
+    background-color: rgb(220, 220, 225);
+    border-radius: 10px;
+    box-shadow: 0 12px 28px rgba(25, 25, 25, 0.18);
+}
+
+.board-popup.open {
+    display: flex;
+}
+
+.popup-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    padding: 0 12px;
+    border: none;
+    border-radius: 5px;
+    background-color: rgb(240, 240, 240);
+    color: #191919;
+    font: inherit;
+    font-size: 14px;
+    white-space: nowrap;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.5s ease;
+}
+
+.popup-item:hover {
+    background-color: #fef7e5;
+}
+
+.popup-item .svg-icon {
+    width: 26px;
+    height: 26px;
+    flex-shrink: 0;
+}
+
+/* 点击落在按钮自身，保证移动端信息栏能取到 data-action */
+.popup-item span {
+    pointer-events: none;
+}
+
+/* 样式弹层：颜色 / 粗细 / 标签 */
+.style-popup {
+    min-width: 200px;
+}
+
+.style-popup-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.style-popup-title {
+    width: 34px;
+    flex-shrink: 0;
+    color: rgb(90, 90, 95);
+    font-size: 13px;
+}
+
+.style-popup-color {
+    flex: 1;
+    height: 34px;
+    border: 2px solid rgb(240, 240, 240);
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.style-popup-option {
+    flex: 1;
+    min-height: 34px;
+    border: none;
+    border-radius: 5px;
+    background-color: rgb(240, 240, 240);
+    color: #191919;
+    font: inherit;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.5s ease;
+}
+
+.style-popup-option:hover {
+    background-color: #fef7e5;
+}
+
+.style-popup-option.active {
+    background-color: #d7e8eb;
+    outline: 2px solid #277f96;
+    outline-offset: -2px;
+}
+
+/* 标签开关：滑块式，开（右侧圆点亮）表示显示标签，关表示不显示 */
+.style-popup-switch {
+    position: relative;
+    flex: 1;
+    height: 34px;
+    border: none;
+    border-radius: 34px;
+    background-color: rgb(240, 240, 240);
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.style-popup-switch:hover {
+    background-color: #fef7e5;
+}
+
+.style-popup-switch-knob {
+    position: absolute;
+    top: 50%;
+    left: 5px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background-color: rgb(170, 170, 175);
+    transform: translateY(-50%);
+    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s ease;
+}
+
+.style-popup-switch.active {
+    background-color: #d7e8eb;
+    outline: 2px solid #277f96;
+    outline-offset: -2px;
+}
+
+.style-popup-switch.active:hover {
+    background-color: #cfe3e7;
+}
+
+.style-popup-switch.active .style-popup-switch-knob {
+    left: calc(100% - 29px);
+    background-color: #277f96;
+}
+
+/* 取色输入：藏在视口外但保留在文档中，避免取色过程中被移除导致 change 事件丢失 */
+.style-color-input {
+    position: fixed;
+    left: -9999px;
+    top: 0;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* gmt 代码窗口 */
+.board-dialog-mask {
+    position: fixed;
+    inset: 0;
+    z-index: 8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.45);
+}
+
+.board-dialog {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: min(640px, 88vw);
+    padding: 16px;
+    border-radius: 12px;
+    background-color: rgb(220, 220, 225);
+    color: #191919;
+}
+
+.board-dialog strong {
+    font-size: 16px;
+}
+
+/* 顶部提示条：用于「当前不可用」这类说明，不用点确认；样式与其他弹层保持一致 */
+.board-toast {
+    position: fixed;
+    top: 14px;
+    left: 50%;
+    z-index: 20;
+    max-width: min(560px, 88vw);
+    padding: 12px 20px;
+    border-radius: 12px;
+    background-color: rgb(220, 220, 225);
+    color: #191919;
+    font-size: 15px;
+    line-height: 1.5;
+    text-align: center;
+    box-shadow: 3px 3px 5px rgba(0, 0, 0, 0.2);
+    transform: translate(-50%, -180%);
+    opacity: 0;
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s ease;
+    pointer-events: none;
+}
+
+.board-toast.trans {
+    transform: translate(-50%, 0);
+    opacity: 1;
+}
+
+/* 弹层里的单行输入（替代浏览器自带的 prompt） */
+.board-dialog-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #b9bcc4;
+    border-radius: 8px;
+    background-color: #fff;
+    color: #191919;
+    font-size: 15px;
+    outline: none;
+    box-sizing: border-box;
+}
+
+.board-dialog-input:focus {
+    border-color: #277f96;
+    box-shadow: 0 0 0 3px rgba(39, 127, 150, 0.12);
+}
+
+/* 弹层里不可用的项 */
+.popup-item.disable {
+    opacity: 0.45;
+    cursor: default;
+}
+
+.popup-item.disable:hover {
+    background-color: transparent;
+}
+
+/* 确认框 */
+.board-dialog-confirm {
+    width: min(380px, 88vw);
+}
+
+.board-dialog-confirm .board-dialog-actions {
+    justify-content: flex-end;
+}
+
+/* 帮助窗口 */
+.help-dialog {
+    width: min(560px, 90vw);
+    max-height: 80vh;
+    overflow: auto;
+}
+
+.help-body p {
+    margin: 0 0 10px;
+    font-size: 14px;
+    line-height: 1.7;
+    color: #2b2b2b;
+}
+
+/* 答案图窗口 */
+.answer-dialog {
+    width: min(860px, 92vw);
+    max-height: 86vh;
+    overflow: auto;
+}
+
+.answer-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+}
+
+.answer-figure {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 0;
+    padding: 8px;
+    border-radius: 10px;
+    background-color: rgb(240, 240, 243);
+}
+
+.answer-figure img {
+    width: 100%;
+    max-height: 240px;
+    object-fit: contain;
+    border-radius: 6px;
+    background-color: #fff;
+    cursor: zoom-in;
+}
+
+.answer-figure figcaption {
+    font-size: 12px;
+    color: #4a4a4a;
+    text-align: center;
+}
+
+.answer-figure.zoom {
+    grid-column: 1 / -1;
+}
+
+.answer-figure.zoom img {
+    max-height: none;
+    cursor: zoom-out;
+}
+
+.board-dialog-code {
+    width: 100%;
+    height: min(50vh, 360px);
+    resize: vertical;
+    padding: 10px;
+    border: none;
+    border-radius: 8px;
+    background-color: rgb(248, 248, 248);
+    color: #191919;
+    font: 13px/1.6 Consolas, "Courier New", monospace;
+}
+
+.board-dialog-hint {
+    margin: 0;
+    min-height: 16px;
+    color: #c0392b;
+    font-size: 13px;
+}
+
+.board-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.board-dialog-actions button {
+    min-height: 32px;
+    padding: 4px 14px;
+    border: none;
+    border-radius: 5px;
+    background-color: rgb(240, 240, 240);
+    color: #191919;
+    font: inherit;
+    cursor: pointer;
+    transition: background-color 0.5s ease;
+}
+
+.board-dialog-actions button:hover {
+    background-color: #fef7e5;
+}
+
+.solver-panel {
+    position: fixed;
+    top: 100px;
+    right: 12px;
+    z-index: 4;
+    display: grid;
+    gap: 10px;
+    width: 210px;
+    /* 解多时面板会很长，限高后自己滚，免得出画面 */
+    max-height: calc(100vh - 112px);
+    overflow-y: auto;
+    padding: 10px;
+    border-radius: 10px;
+    background-color: rgb(220, 220, 225);
+    color: #191919;
+}
+.solver-panel label { display: grid; gap: 5px; }
+.solver-panel input, .solver-panel select, .solver-panel button { width: 100%; min-height: 32px; border: none; border-radius: 5px; background-color: rgb(240, 240, 240); padding: 4px 7px; font: inherit; }
+.solver-panel button { cursor: pointer; }
+.solver-panel output { color: rgb(128, 128, 255); font-size: 14px; }
+/* 开始求解：绿调；搜索进行中换成下面红调的「停止求解」，两个状态一眼可辨 */
+.solver-panel #geb-solver-run { background-color: rgb(232, 245, 233); box-shadow: inset 0 0 0 2px #2e7d32; }
+.solver-panel #geb-solver-run.running { background-color: rgb(251, 234, 230); box-shadow: inset 0 0 0 2px #d84b35; }
+/* 求解结果列表：一行一个解，左边选解、右边看文字步骤（当前画出的那个用解法色标出来） */
+.solver-solution-list { display: grid; gap: 6px; }
+.solver-solution-list:empty { display: none; }
+.solver-solution-row { display: flex; gap: 5px; }
+.solver-solution-row .solver-solution-pick { flex: 1 1 auto; text-align: left; }
+.solver-solution-row .solver-solution-text { flex: 0 0 auto; width: auto; font-size: 12px; padding: 4px 6px; }
+.solver-solution-row .solver-solution-pick.active { background-color: rgb(255, 215, 245); box-shadow: inset 0 0 0 2px #ff00ff; }
+/* 逐步查看解法：上一步 / 当前步数 / 下一步 */
+.solver-step-row { display: flex; align-items: center; gap: 5px; }
+.solver-step-row button { width: auto; flex: 0 0 auto; font-size: 12px; padding: 4px 6px; }
+.solver-step-row span { flex: 1 1 auto; text-align: center; font-size: 12px; color: #191919; }
+/* 文字步骤弹框：等宽字体、可滚动 */
+.board-dialog-report { margin: 0; max-height: 60vh; overflow: auto; padding: 10px; border-radius: 8px; background-color: rgb(240, 240, 240); font-family: ui-monospace, Consolas, monospace; font-size: 13px; line-height: 1.6; white-space: pre-wrap; }
+
+.mark-panel {
+    position: fixed;
+    top: 84px;
+    left: 12px;
+    z-index: 4;
+    display: grid;
+    gap: 8px;
+    width: 190px;
+    max-height: 42vh;
+    overflow: auto;
+    padding: 10px;
+    border-radius: 10px;
+    background-color: rgb(220, 220, 225);
+    color: #191919;
+}
+.mark-panel strong { font-size: 15px; }
+.mark-panel b { color: rgb(128, 128, 255); }
+.mark-panel ul { margin: 4px 0 0; padding-left: 20px; }
+.mark-panel li.empty { color: rgb(128, 128, 128); list-style: none; }
+/* 已标记对象：分组可折叠，所求里每个解再嵌一层（判定 / 显示） */
+.mark-panel .mark-fold { margin: 2px 0; }
+.mark-panel .mark-fold > summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: rgb(128, 128, 255);
+    outline: none;
+}
+.mark-panel .mark-fold > summary::marker { color: rgb(128, 128, 128); }
+.mark-panel .mark-fold .mark-fold { margin-left: 4px; }
+.mark-panel .mark-fold .mark-fold > summary { font-weight: 500; }
+.mark-panel .mark-fold-active { color: #0a8f4d; }
+.mark-panel .mark-item b { font-weight: 500; }
+/* 名称后面跟一条解析式：点给坐标、直线给 y=kx+b、圆给标准式 */
+.mark-panel .mark-name { margin-right: 4px; }
+.mark-panel .mark-eq {
+    display: block;
+    font-size: 11px;
+    line-height: 1.35;
+    color: rgb(110, 110, 120);
+    word-break: break-all;
+}
+
+/* 解的编号按钮（1 / 2 / + / −）：数字用 SVG 文本画，选中变绿 */
+.mark-solution .mark-solution-text {
+    fill: #4a4a4a;
+    font-size: 110px;
+    font-weight: 600;
+}
+.mark-solution.active .mark-solution-text { fill: #0fd869; }
+
+
+
+/* 工具项样式 */
+.svg-button {
+    width: 70px;
+    height: 70px;
+    background-color: rgb(240, 240, 240);
+    border-radius: 5px;
+    cursor: pointer;
+    border: none; /* 去边框 */
+    transition: background-color 0.5s ease, 
+        width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0; /* 默认值陷阱！ */
+}
+
+.svg-button:hover {
+    background-color: #fef7e5; /* 悬停效果 */
+    width: 100px;
+}
+
+.svg-icon {
+    width: 100%;
+    height: 100%;
+    transition: stroke 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+    stroke: rgb(128, 128, 255);
+}
+
+.svg-item {
+    pointer-events: none;
+}
+
+.svg-button.active .svg-icon {
+    stroke: #0fd869;
+}
+
+/* 顶部菜单里的标记按钮：给定图标黑、所求图标金；
+   选中时图标保持标记色，只加选中的高亮框（不换成绿色的 svg） */
+#menu_toolbar .svg-button.mark-initial .svg-icon {
+    stroke: #191919;
+}
+
+#menu_toolbar .svg-button.mark-result .svg-icon {
+    stroke: #ffd700;
+}
+
+/* 清除标记：红色（它是「删掉所有标记」这类破坏性操作，和给定 / 所求的标记色区分开） */
+#menu_toolbar .svg-button.mark-clear .svg-icon {
+    stroke: #d84b35;
+}
+
+#menu_toolbar .svg-button.mark-clear:hover {
+    background-color: #fbeae6;
+}
+
+#menu_toolbar .svg-button.mark-clear.disable .svg-icon {
+    stroke: rgb(128, 128, 128);
+}
+
+.svg-button.mark-initial.active,
+.svg-button.mark-result.active {
+    background-color: #d7e8eb;
+    outline: 2px solid #277f96;
+    outline-offset: -2px;
+}
+
+/* 标记工具的选项（放在 #container_toolbar 里）：图标一直是各自标记的颜色，选中时只加深绿色边框 */
+#container_toolbar .mark-choice[data-action="mark-initial"] .svg-icon,
+#container_toolbar .mark-choice[data-action="mark-named"] .svg-icon {
+    stroke: #191919;
+}
+
+#container_toolbar .mark-choice[data-action="mark-movepoints"] .svg-icon {
+    stroke: #0099ff;
+}
+
+#container_toolbar .mark-choice[data-action="mark-result"] .svg-icon {
+    stroke: #ffd700;
+}
+
+#container_toolbar .mark-choice[data-action="mark-result-shown"] .svg-icon,
+#container_toolbar .mark-choice[data-action="mark-explore"] .svg-icon {
+    stroke: #ffd700;
+}
+
+#container_toolbar .mark-choice.active {
+    background-color: #d7e8eb;
+    outline: 2px solid #277f96;
+    outline-offset: -2px;
+}
+
+.floating-svg-switch-button {
+    width: 60px;
+    height: 60px;
+    background-color: rgb(240, 240, 240);
+    border-radius: 5px;
+    cursor: pointer;
+    border: none; /* 去边框 */
+    transition: background-color 0.5s ease;
+    flex-shrink: 0;
+    box-sizing: border-box; /* 包含内边距和边框在内的宽度计算 */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0; /* 默认值陷阱！ */
+}
+
+.floating-svg-switch-button:hover {
+    background-color: #fef7e5; /* 悬停效果 */
+}
+
+.floating-svg-switch-button.active .svg-icon {
+    stroke: #0fd869;
+}
+
+/* 非激活按钮的SVG保持原色 */
+.floating-svg-switch-button:not(.active) .svg-icon {
+    stroke: rgb(128, 128, 255);
+}
+
+.floating-svg-button {
+    width: 60px;
+    height: 60px;
+    background-color: rgb(240, 240, 240);
+    border-radius: 5px;
+    cursor: pointer;
+    border: none; /* 去边框 */
+    transition: background-color 0.5s ease;
+    flex-shrink: 0;
+    box-sizing: border-box; /* 包含内边距和边框在内的宽度计算 */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0; /* 默认值陷阱！ */
+}
+
+.floating-svg-button:hover {
+    background-color: #fef7e5; /* 悬停效果 */
+}
+
+.floating-svg-button.disable {
+    background-color: rgb(100, 100, 100);
+    cursor: default;
+}
+
+.svg-icon.disable {
+    stroke: rgb(128, 128, 128);
+}
+
+.floating-svg-switch-button .svg-icon {
+    stroke: rgb(128, 128, 255);
+}
+
+.floating-svg-choice {
+    width: 60px;
+    height: 60px;
+    background-color: rgb(240, 240, 240);
+    border-radius: 5px;
+    border: none; /* 去边框 */
+    flex-shrink: 0;
+    box-sizing: border-box; /* 包含内边距和边框在内的宽度计算 */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0; /* 默认值陷阱！ */
+}
+
+.floating-svg-choice .svg-icon {
+    stroke: rgb(128, 128, 255);
+}
+
+.floating-svg-choice.disable {
+    background-color: rgb(128, 128, 128);
+}
+
+.floating-svg-choice.disable .svg-icon {
+    stroke: rgb(100, 100, 100);
+}
+
+
+.more-button-item {
+    width: 60px;
+    height: 60px;
+    background-color: rgb(240, 240, 240);
+    border-radius: 5px;
+    cursor: pointer;
+    border: none; /* 去边框 */
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0; /* 默认值陷阱！ */
+    transition: background-color 0.5s ease;
+}
+
+.board-mode-button {
+    color: #191919;
+}
+
+.board-mode-button:hover {
+    background-color: #fef7e5;
+}
+
+.board-mode-button.active {
+    background-color: #d7e8eb;
+    outline: 2px solid #277f96;
+    outline-offset: -2px;
+}
+
+/* 探索模式按钮：与工具栏保持一致，开启时图标变绿 */
+.board-mode-button.active[data-action="explore"] {
+    background-color: rgb(240, 240, 240);
+    outline: none;
+}
+
+.board-mode-button.active[data-action="explore"] .svg-icon {
+    stroke: #0fd869;
+}
+
+.more-button-item.disable {
+    background-color: rgb(100, 100, 100);
+    cursor: default;
+}
+
+.more-button-item.disable .svg-icon {
+    stroke: rgb(128, 128, 128);
+}
+
+
+.transparent {
+    background-color: transparent;
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    border-radius: 5px;
+}
+
+
+
+.overview-item {
+    width: 70px;
+    background-color: rgb(240, 240, 240);
+    border-radius: 10px;
+    cursor: pointer;
+    padding: 0; /* 默认值陷阱！ */
+}
+
+.overview-item.select {
+    border: 3px solid;
+}
+
+.overview-item-text {
+    display: flex;
+    gap: 5px;
+    pointer-events: none;
+}
+
+.panel {
+    bottom: 5vh;
+    width: 70vw;
+    position: absolute;
+    z-index: 1;
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 10px;
+    pointer-events: none;
+}
+
+.panel-container {
+    background-color: rgb(220, 220, 225);
+    padding: 5px 10px;
+    border-radius: 15px;
+    width: 105%;
+    margin-left: -2.5%;
+    pointer-events: auto;
+}
+
+.column-direction {
+    display: flex;
+    flex-direction: column;
+}
+
+.row-direction {
+    overflow-x: auto;
+    gap: 5px;
+    white-space: nowrap;
+    scroll-behavior: smooth; /* 平滑滚动 */
+    -webkit-overflow-scrolling: touch; /* 移动端惯性滚动 */
+}
+
+/* 隐藏滚动条以保持简洁 */
+.row-direction::-webkit-scrollbar {
+    display: none;
+}
+
+/* 「几何元素一览」的档位下拉：默认的浏览器样式在这个面板里太突兀，
+   改成与面板同色的小胶囊 + 自绘箭头（全/隐藏两档一眼能看清当前选的是哪个） */
+#overview-select {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 100%;
+    padding: 7px 30px 7px 12px;
+    border: 1px solid rgb(200, 200, 206);
+    border-radius: 8px;
+    background-color: rgb(232, 232, 236);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%2368757a' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 11px center;
+    background-size: 10px 6px;
+    color: #191919;
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+#overview-select:hover {
+    background-color: rgb(224, 224, 229);
+    border-color: #277f96;
+}
+
+#overview-select:focus-visible {
+    outline: 2px solid #277f96;
+    outline-offset: 1px;
+}
+
+#overview-select option {
+    color: #191919;
+    background-color: #fff;
+}
+
+#container_overview {
+    display: grid;
+    gap: 5px;
+    grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); /* 关键修改 */
+    width: 100%;
+    max-height: 30vh;
+    overflow-y: auto;       /* 垂直滚动 */
+}
+
+.vertical-divider {
+    /* 占据高度 */
+    flex: 0 0 1px;
+  
+    /* 自定义样式 */
+    background-color: #ccc;
+}
+
+.floating-bar {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    gap: 5vw;
+    pointer-events: none;
+}
+
+#floating-bar-buttons {
+    max-width: 80vw;
+    pointer-events: auto;
+}
+
+#floating-bar-elements {
+    display: flex;
+    flex-direction: row-reverse;
+    max-width: 80vw;
+    pointer-events: auto;
+}
+
+#mobile-information {
+    width: 100%;
+    background-color: rgba(225, 225, 225, 0.9);
+    border-radius: 5px;
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#mobile-information.active {
+    visibility: visible;
+    opacity: 1;
+}
+
+.inf-title {
+    font-size: 30px;
+    margin: 0;
+}
+
+.inf-context {
+    font-size: 20px;
+    margin: 0;
+}
+
+
+
+.item-container {
+    display: none; /* flex */
+    flex-direction: column;
+    width: 100%;
+    max-height: 40vh;
+    overflow-y: auto;
+    background-color: rgb(220, 220, 225);
+    pointer-events: all;
+    border-radius: 10px;
+    gap: 5px;
+}
+
+.item-container-title {
+    position: sticky;
+    top: 0;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    background-color: rgb(200, 200, 205);
+    border-radius: 10px;
+    padding: 5px;
+    gap: 5px;
+}
+
+.item-container-row {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 5px;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+.item-container-column {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background-color: rgb(210, 210, 215);
+    border-radius: 10px;
+}
+
+.item-container-button {
+    width: 50px;
+    height: 50px;
+    background-color: rgb(240, 240, 240);
+    border-radius: 5px;
+    cursor: pointer;
+    border: none; /* 去边框 */
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0; /* 默认值陷阱！ */
+}
+
+
+
+#storage-item-list {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    max-height: 40vh;
+    overflow-y: auto;
+}
+
+.head-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    position: sticky;
+    top: 0;
+    width: 100%;
+}
+
+.record-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    width: 100%;
+    background-color: rgb(230, 230, 230);
+}
+
+.storage-panel-button {
+    width: 50px;
+    height: 50px;
+    background-color: rgb(240, 240, 240);
+    border-radius: 5px;
+    cursor: pointer;
+    border: none; /* 去边框 */
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0; /* 默认值陷阱！ */
+}
+
+.storage-panel-button.active .svg-icon {
+    stroke: #0fd869;
+}
+
+.record-item-index-style {
+    background-color: rgb(200, 200, 200);
+}
+
+
+
+.complete-layout {
+    position: absolute;
+    width: 300px;
+    /* 屏幕右中弹出 */
+    top: 50%;
+    bottom: auto;
+    left: 100vw;
+    transform: translateY(-50%);
+    background-color: rgb(250, 250, 250);
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0; /* 默认值陷阱！ */
+    transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 10;
+}
+
+.complete-layout.trans {
+    transform: translate(-120%, -50%);
+}
+
+.complete-title {
+    font-size: 30px;
+    width: 100%;
+    text-align: center;
+}
+
+.complete-body {
+    font-size: 50px;
+    width: 100%;
+    text-align: center;
+    color: #FFD200;
+    background-color: #404040;
+    padding: 6px 0;
+}
+
+/* 通关界面里的步数与目标对比 */
+.complete-steps {
+    width: 100%;
+    margin: 0;
+    padding: 8px 10px;
+    background-color: #404040;
+    color: #f0f0f0;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+    text-align: center;
+}
+
+/* 通关界面上的勾：完成 / L / E / V，未点亮的勾是灰的 */
+.complete-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    margin: 0 8px;
+    font-size: 22px;
+    font-weight: bold;
+    color: rgb(140, 140, 140);
+    opacity: 0.6;
+    transition: all 0.3s ease;
+}
+
+.complete-item .complete-check {
+    font-size: 22px;
+}
+
+.complete-item.active {
+    color: #FFD200;
+    opacity: 1;
+}
+
+
+
+
+
+/* 响应式设计：手机端调整 */
+@media (max-width: 768px) {
+    .moves-layout {
+        top: 50px;
+        left: 50%;
+        right: auto;
+        transform: translateX(-50%);
+    }
+    .svg-button {
+        width: 45px;
+        height: 45px;
+    }
+    .svg-button:hover {
+        width: 70px;
+    }
+    .floating-svg-switch-button {
+        width: 40px;
+        height: 40px;
+    }
+    .floating-svg-button {
+        width: 40px;
+        height: 40px;
+    }
+    .floating-svg-choice {
+        width: 40px;
+        height: 40px;
+    }
+
+    .more-button-item {
+        width: 40px;
+        height: 40px;
+    }
+    .panel {
+        width: 90vw;
+        bottom: 2vh;
+        gap: 5px;
+    }
+    #container_overview {
+        max-height: 25vh;
+        grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+        gap: 0;
+    }
+    .overview-item {
+        width: 50px;
+    }
+    #thumbnail-title-switch {
+        width: 40px;
+        height: 40px;
+    }
+    #thumbnail-title-button {
+        width: 40px;
+        height: 40px;
+    }
+    .thumbnail-button {
+        width: 40px;
+        height: 40px;
+    }
+    .item-container-button {
+        width: 40px;
+        height: 40px;
+    }
+    .storage-panel-button {
+        width: 40px;
+        height: 40px;
+    }
+}
+
+/* 光标悬停对象时跟着走的提示：对象名称 · 类型（移动工具与标记模式） */
+.object-tip {
+    position: fixed;
+    z-index: 30;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background-color: rgba(25, 25, 25, 0.86);
+    color: #fff;
+    font-size: 12px;
+    line-height: 1.5;
+    white-space: nowrap;
+    pointer-events: none;
+}
+/* 非中文界面：文案换好之前先不显示，避免先闪一下中文（i18n.js 在 <head> 挂 i18n-pending） */
+html.i18n-pending body { visibility: hidden; }
+
+
+/* 光标下的预览点覆盖层（board-tools.js 绘制，见 drawPreview） */
+#container_canvas { position: relative; }
+#container_canvas canvas.cursor-preview { position: absolute; pointer-events: none; z-index: 3; }
+

@@ -1,3 +1,0 @@
-Given two equally large circles and two outer tangent lines (only the segment connecting the tangent points), construct the two tangent lines between the center of one circle and the other circle.
-
-已知两个等大的圆，和2条外公切线段（只有连接切点的一段），求作其中一个圆心与另一个圆的两条切线。

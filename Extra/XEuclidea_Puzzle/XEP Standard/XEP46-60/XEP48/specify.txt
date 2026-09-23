@@ -1,3 +1,0 @@
-For any triangle, there exists an inversion that transforms the three vertices of the triangle into three vertices of a regular triangle, and constructs such an inversion center.
-
-对于一个任意的三角形，存在一个反演把三角形的3个顶点变成一个正三角形的3个顶点，构造这样的反演中心。

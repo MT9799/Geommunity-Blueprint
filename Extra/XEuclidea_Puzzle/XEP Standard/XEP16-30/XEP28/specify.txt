@@ -1,3 +1,0 @@
-Given a triangle and a point, construct the circle that passes through that point, so that the chord of the straight line where the three sides of the triangle intersect is equal.
-
-已知三角形和一点，求作过该点的圆，使得圆截三角形三边所在直线的弦等长。

@@ -1,3 +1,0 @@
-Given a point within a square, find an inscribed square such that one side passes through a given point.
-
-已知正方形内一点，求作内接正方形，使得其中一边过给定点。

@@ -1,3 +1,0 @@
-Given ABCD 4 points. Construct MN two points so that MA ⊥ NB, MA = NB, MC ⊥ ND, MC = ND.
-
-求作MN两点使得MA⊥NB，MA=NB，MC⊥ND，MC=ND。

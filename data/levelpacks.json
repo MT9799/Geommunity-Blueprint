@@ -1,0 +1,66 @@
+[
+    {
+        "id": "ewp",
+        "name": "EWP",
+        "description": "EWP 题库，取自原始资料 ref/Euclidea_EWP。侵删。",
+        "cover": "packcovers/ewp.jpg",
+        "icon": "diagrams/ewp/ewp11.png",
+        "source": "ref\\Euclidea_EWP"
+    },
+    {
+        "id": "xmath",
+        "name": "XMath",
+        "description": "XMath 题库，取自原始资料 ref/Euclidea_Xmath。侵删。",
+        "cover": "packcovers/xmath.jpg",
+        "source": "ref\\Euclidea_Xmath"
+    },
+    {
+        "id": "c-s-pzls-other",
+        "name": "C-s_Pzls_Other",
+        "description": "取自原始资料 ref/Extra/C-s_Pzls_Other。",
+        "cover": "packcovers/c-s-pzls-other.png",
+        "source": "ref/Extra/C-s_Pzls_Other"
+    },
+    {
+        "id": "euc-addit",
+        "name": "Euc_Addit",
+        "description": "取自原始资料 ref/Extra/Euc_Addit。",
+        "source": "ref/Extra/Euc_Addit"
+    },
+    {
+        "id": "from-baidu-tieba",
+        "name": "From_Baidu_Tieba",
+        "description": "取自原始资料 ref/Extra/From_Baidu_Tieba。",
+        "source": "ref/Extra/From_Baidu_Tieba"
+    },
+    {
+        "id": "mingjing-forum",
+        "name": "Mingjing_Forum",
+        "description": "取自原始资料 ref/Extra/Mingjing_Forum。",
+        "source": "ref/Extra/Mingjing_Forum"
+    },
+    {
+        "id": "sprfes",
+        "name": "SprFes",
+        "description": "取自原始资料 ref/Extra/SprFes。",
+        "source": "ref/Extra/SprFes"
+    },
+    {
+        "id": "straightedge-only-pzls",
+        "name": "Straightedge-only_Pzls",
+        "description": "取自原始资料 ref/Extra/Straightedge-only_Pzls。",
+        "source": "ref/Extra/Straightedge-only_Pzls"
+    },
+    {
+        "id": "xeuclidea-puzzle",
+        "name": "XEuclidea_Puzzle",
+        "description": "取自原始资料 ref/Extra/XEuclidea_Puzzle。",
+        "source": "ref/Extra/XEuclidea_Puzzle"
+    },
+    {
+        "id": "xewpc",
+        "name": "XEWPC",
+        "description": "XEuclidea_Puzzle 里的 XEWPC 系列，取自原始资料 ref/Extra/XEuclidea_Puzzle。",
+        "source": "ref/Extra/XEuclidea_Puzzle"
+    }
+]

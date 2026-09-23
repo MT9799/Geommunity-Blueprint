@@ -1,3 +1,0 @@
-Given a triangle and three line segments, construct a circle where the chords of the three sides are equal to three given lengths.
-
-已知三角形和3条线段，求作圆，截3边分别等长于3线段长。

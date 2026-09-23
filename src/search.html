@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>搜索关卡 | Geommunity Blueprint</title>
+    <link rel="stylesheet" href="./app.css">
+</head>
+<body>
+    <main class="home-shell">
+        <header class="subpage-header"><a class="subpage-brand" href="../index.html"><img src="./static/images/logo.png" alt="">Geommunity Blueprint</a><a
+                class="back-link" href="./levels.html" data-i18n="search.back">返回关卡包</a></header>
+        <p class="eyebrow" data-i18n="search.heading">搜索关卡</p>
+        <h1 data-i18n="search.heading">搜索关卡</h1>
+        <p class="lede" data-i18n="search.lede">可以搜标题、说明、关键词和 L / E 步数；多个条件用空格隔开。</p>
+        <input id="search-input" class="search-box" type="search" autofocus data-i18n-placeholder="search.placeholder" placeholder="输入关键词，多个条件用空格隔开…">
+        <div id="search-scope" class="search-scope"></div>
+        <div class="search-recommend">
+            <span class="search-recommend-title" data-i18n="search.recommend">推荐搜索</span>
+            <div id="search-chips" class="search-chips"></div>
+        </div>
+        <p id="search-summary" class="search-summary"></p>
+        <div id="search-results" class="level-list"></div>
+        <div id="search-pager"></div>
+    </main>
+    <script src="./static/js/i18n.js"></script>
+    <script src="./levels-data.js"></script>
+    <script src="./search.js"></script>
+</body>
+</html>

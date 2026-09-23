@@ -1,3 +1,0 @@
-Given a circle and a point, construct a square with a given point as the center, where two vertices are on the circle.
-
-已知圆和一点，求作正方形，给定点为中心，其中2个顶点在圆上。

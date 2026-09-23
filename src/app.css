@@ -1,0 +1,552 @@
+ .level-row {
+     grid-template-columns: 48px 92px 1fr auto !important
+ }
+
+ @media(max-width:700px) {
+     .level-row {
+         grid-template-columns: 42px 72px 1fr !important
+     }
+
+     .level-row small {
+         grid-column: 3 !important
+     }
+ }
+
+ .subpage-header {
+     position: sticky;
+     top: 0;
+     z-index: 10;
+     display: flex;
+     align-items: center;
+     justify-content: space-between;
+     padding: 40px 32px 20px;
+     margin-inline: -32px;
+     margin-bottom: 46px;
+     border-bottom: 1px solid var(--line);
+     background: var(--paper)
+ }
+
+ .subpage-brand {
+     display: inline-flex;
+     align-items: center;
+     gap: 10px;
+     color: var(--ink);
+     font-size: 16px;
+     font-weight: 700;
+     text-decoration: none
+ }
+
+ /* 子页面的 brand 与首页一致：图标 + 站名（图标是装饰，站名由后面的文字给出） */
+ .subpage-brand img {
+     width: 30px;
+     height: 30px;
+     object-fit: contain
+ }
+
+ .back-link {
+     padding: 11px 18px;
+     border: 1px solid var(--line);
+     border-radius: 9px;
+     color: #42545a;
+     background: #fff;
+     font: 500 14px 'DM Mono', monospace;
+     text-decoration: none
+ }
+
+ .back-link:hover {
+     color: #277f96;
+     border-color: #277f96
+ }
+
+ .pack-card {
+     display: grid;
+     grid-template-columns: 132px 1fr auto;
+     align-items: stretch;
+     gap: 22px;
+     min-height: 190px;
+     padding: 16px;
+     border: 1px solid var(--line);
+     border-radius: 12px;
+     background: #fff;
+     text-decoration: none;
+     color: var(--ink);
+     transition: transform .2s, box-shadow .2s
+ }
+
+ .pack-card:hover {
+     transform: translateY(-4px);
+     box-shadow: 0 9px 20px #26323818
+ }
+
+ .pack-icon {
+     display: flex;
+     align-items: center;
+     justify-content: center;
+     overflow: hidden;
+     border-radius: 8px;
+     background: #e8eff0;
+     /* 图片显示区始终为正方形：示意图按「填满整个框」显示（比例不符时裁掉一点边缘，不拉伸） */
+     align-self: center;
+     aspect-ratio: 1 / 1
+     }
+
+     .pack-icon img {
+     width: 100%;
+     height: 100%;
+     object-fit: cover
+     }
+
+ .pack-icon span {
+     font-size: 62px;
+     color: #277f96
+ }
+
+ .pack-info {
+     /* 让 1fr 这一列能被压得比内容更窄：否则卡片在多列网格 / 窄屏里会被长标题撑破 */
+     min-width: 0;
+     padding: 10px 0
+ }
+
+ .pack-info h2 {
+     margin: 12px 0 8px;
+     font-size: 28px;
+     overflow-wrap: anywhere
+ }
+
+ .pack-info strong {
+     font: 500 13px 'DM Mono', monospace;
+     color: #277f96
+ }
+
+ .pack-info p {
+     margin: 14px 0 0;
+     color: #68757a;
+     font-size: 14px;
+     overflow-wrap: anywhere
+ }
+
+ .pack-card>.card-action {
+     align-self: center;
+     font-size: 26px
+ }
+
+ .level-thumb {
+     /* 图片显示区始终为正方形：示意图填满整个框（比例不符时裁掉一点边缘，不拉伸） */
+     width: 66px;
+     aspect-ratio: 1 / 1;
+     display: flex;
+     align-items: center;
+     justify-content: center;
+     overflow: hidden;
+     border-radius: 6px;
+     background: #e8eff0;
+     color: #277f96
+ }
+
+ .level-thumb img {
+     width: 100%;
+     height: 100%;
+     object-fit: cover
+ }
+
+ @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+ :root {
+     --ink: #172321;
+     --paper: #f4f0e8;
+     --red: #d84b35;
+     --line: #c8c1b4
+ }
+
+ * {
+     box-sizing: border-box
+ }
+
+ body {
+     margin: 0;
+     background: var(--paper);
+     color: var(--ink);
+     font-family: 'Space Grotesk', sans-serif
+ }
+
+ body:before {
+     content: "";
+     position: fixed;
+     inset: 0;
+     pointer-events: none;
+     opacity: .25;
+     background-image: linear-gradient(90deg, transparent 95%, #d8d0c4 95%), linear-gradient(0deg, transparent 95%, #d8d0c4 95%);
+     background-size: 32px 32px
+ }
+
+ .home-shell {
+     position: relative;
+     max-width: 1180px;
+     margin: auto;
+     padding: 0px 32px
+ }
+
+ .masthead {
+     max-width: 760px;
+     margin-bottom: 44px
+ }
+
+ .eyebrow,
+ footer {
+     font: 500 15px 'DM Mono', monospace
+ }
+
+ .eyebrow {
+     color: var(--red);
+     margin: 0 0 18px
+ }
+
+ .eyebrow a {
+     color: inherit
+ }
+
+ .masthead h1 {
+     font-size: clamp(42px, 7vw, 84px);
+     line-height: .98;
+     max-width: 720px;
+     margin: 0 0 22px
+ }
+
+ .home-shell>h1 {
+     font-size: clamp(40px, 6vw, 72px);
+     line-height: 1;
+     margin: 0 0 18px
+ }
+
+ .lede {
+     font-size: 18px;
+     line-height: 1.55;
+     margin: 0;
+     color: #596560
+ }
+
+ .feature-grid {
+     display: grid;
+     grid-template-columns: repeat(2, minmax(0, 1fr));
+     gap: 16px
+ }
+
+ .feature-card {
+     min-height: 275px;
+     padding: 24px;
+     text-decoration: none;
+     color: inherit;
+     border: 1px solid var(--line);
+     border-radius: 14px;
+     display: flex;
+     flex-direction: column;
+     transition: transform .2s ease, box-shadow .2s ease
+ }
+
+ .feature-card:hover {
+     transform: translateY(-5px);
+     box-shadow: 8px 8px 0 var(--ink)
+ }
+
+ .feature-card h2 {
+     font-size: 36px;
+     margin: 36px 0 10px
+ }
+
+ .feature-card p {
+     max-width: 330px;
+     line-height: 1.5;
+     color: #53615d;
+     margin: 0
+ }
+
+ .card-action {
+     margin-top: auto;
+     font: 500 13px 'DM Mono', monospace
+ }
+
+ .board {
+     background: #d8e7de
+ }
+
+ .levels {
+     background: #d7e8eb
+ }
+
+ .maker {
+     background: #f2d5b5
+ }
+
+ .solver {
+     background: #ebded0
+ }
+
+ footer {
+     margin-top: 46px;
+     color: #66716d
+ }
+
+ .level-link {
+     display: inline-block;
+     color: var(--ink);
+     padding: 7px 10px;
+     margin: 5px 5px 0 0;
+     border: 1px solid var(--line);
+     border-radius: 8px;
+     text-decoration: none;
+     font: 500 12px 'DM Mono', monospace
+ }
+
+ .level-link small {
+     color: #66716d
+ }
+
+ .level-list {
+     display: grid;
+     gap: 8px;
+     margin-top: 36px
+ }
+
+ .level-row {
+     display: grid;
+     grid-template-columns: 54px 1fr auto;
+     align-items: center;
+     gap: 18px;
+     padding: 16px 18px;
+     border: 1px solid var(--line);
+     border-radius: 12px;
+     color: var(--ink);
+     text-decoration: none;
+     background: #fffaf1;
+     transition: background .2s, transform .2s
+ }
+
+ .level-row:hover {
+     background: #d7e8eb;
+     transform: translateX(5px)
+ }
+
+ .level-row span,
+ .level-row small {
+     font: 500 15px 'DM Mono', monospace;
+     color: #65716c
+ }
+
+ .level-row strong {
+     font-size: 16px;
+     font-weight: 600
+ }
+
+ .home-shell a {
+     border-radius: 10px
+ }
+
+
+
+ /* 搜索框：关卡包页与搜索页共用 */
+ .search-box {
+     width: 100%;
+     margin-top: 26px;
+     margin-bottom: 20px;
+     padding: 15px 18px;
+     border: 1px solid var(--line);
+     border-radius: 12px;
+     background: #fff;
+     color: var(--ink);
+     font: 500 15px 'DM Mono', monospace;
+     outline: none;
+     cursor: pointer
+ }
+
+ .search-box:not([readonly]) {
+     cursor: text
+ }
+
+ .search-box:focus {
+     border-color: #277f96;
+     box-shadow: 0 0 0 3px rgba(39, 127, 150, .12)
+ }
+
+ /* 搜索范围（只在某个关卡包里搜） */
+ .search-scope {
+     margin-top: 14px
+ }
+
+ .search-scope-chip {
+     display: inline-flex;
+     align-items: center;
+     gap: 8px;
+     padding: 8px 14px;
+     border: 1px solid #277f96;
+     border-radius: 999px;
+     color: #277f96;
+     background: #eef7f9;
+     font: 500 13px 'DM Mono', monospace;
+     cursor: pointer
+ }
+
+ /* 推荐搜索 */
+ .search-recommend {
+     display: flex;
+     align-items: baseline;
+     flex-wrap: wrap;
+     gap: 10px;
+     margin-top: 18px
+ }
+
+ .search-recommend-title {
+     font: 500 13px 'DM Mono', monospace;
+     color: #66716d
+ }
+
+ .search-chips {
+     display: flex;
+     flex-wrap: wrap;
+     gap: 8px
+ }
+
+ .search-chip {
+     display: inline-flex;
+     align-items: center;
+     gap: 6px;
+     padding: 7px 13px;
+     border: 1px solid var(--line);
+     border-radius: 999px;
+     background: #fff;
+     color: var(--ink);
+     font: 500 13px 'DM Mono', monospace;
+     cursor: pointer;
+     transition: background .2s, border-color .2s
+ }
+
+ .search-chip:hover:not(:disabled) {
+     background: #d7e8eb;
+     border-color: #277f96
+ }
+
+ .search-chip:disabled {
+     opacity: .45;
+     cursor: default
+ }
+
+ .search-chip span {
+     color: #66716d;
+     font-size: 11px
+ }
+
+ .search-summary {
+     margin-top: 22px;
+     font: 500 13px 'DM Mono', monospace;
+     color: #66716d
+ }
+
+ /* 关卡所属包标记（搜索结果里） */
+ .level-pack {
+     margin-left: 8px;
+     padding: 2px 8px;
+     border-radius: 999px;
+     background: #eef7f9;
+     color: #277f96;
+     font: 500 11px 'DM Mono', monospace;
+     font-style: normal
+ }
+
+ /* 分页 */
+ .level-pager {
+     display: flex;
+     flex-wrap: wrap;
+     justify-content: center;
+     gap: 8px;
+     margin-top: 26px;
+     padding-bottom: 40px
+ }
+
+ .pager-item {
+     min-width: 40px;
+     padding: 9px 12px;
+     border: 1px solid var(--line);
+     border-radius: 9px;
+     background: #fff;
+     color: var(--ink);
+     font: 500 13px 'DM Mono', monospace;
+     text-align: center;
+     text-decoration: none
+ }
+
+ .pager-item:hover {
+     background: #d7e8eb
+ }
+
+ .pager-item.active {
+     background: #277f96;
+     border-color: #277f96;
+     color: #fff
+ }
+
+ .pager-item.disable {
+     opacity: .45
+ }
+
+ @media(max-width:700px) {
+     .feature-grid {
+         grid-template-columns: 1fr
+     }
+
+     .feature-card {
+         min-height: 220px
+     }
+
+     .feature-card h2 {
+         font-size: 31px;
+         margin-top: 28px
+     }
+
+     .level-row {
+         grid-template-columns: 42px 1fr
+     }
+
+     .level-row small {
+         grid-column: 2
+     }
+
+     /* 关卡包卡片：窄屏改成「小图标 + 文字」两列并去掉箭头。
+        原来固定 132px 图标 + 文字 + 箭头，手机上（390px 视口）会横向溢出 100 多像素 */
+     .pack-card {
+         grid-template-columns: 88px 1fr;
+         gap: 14px;
+         min-height: 0;
+         padding: 14px
+     }
+
+     .pack-card>.card-action {
+         display: none
+     }
+
+     .pack-icon {
+         width: 88px;
+         height: 88px
+     }
+
+     .pack-info {
+         padding: 4px 0
+     }
+
+     .pack-info h2 {
+         margin: 4px 0 6px;
+         font-size: 22px;
+         overflow-wrap: anywhere
+     }
+
+     .pack-info p {
+         font-size: 13px;
+         overflow-wrap: anywhere
+     }
+     }
+/* 非中文界面：文案换好之前先不显示，避免先闪一下中文（i18n.js 在 <head> 挂 i18n-pending） */
+html.i18n-pending body { visibility: hidden; }
+
+
+/* 光标下的预览点覆盖层（board-tools.js 绘制，见 drawPreview） */
+#container_canvas { position: relative; }
+#container_canvas canvas.cursor-preview { position: absolute; pointer-events: none; z-index: 3; }
+

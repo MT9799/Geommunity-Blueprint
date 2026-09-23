@@ -1,3 +1,0 @@
-Given 6 points ABCDEF, construct a parallelogram with parallel sides passing through point AB, another pair of parallel sides passing through point CD, and two diagonal lines passing through point EF respectively.
-
-已知6点ABCDEF，构造平行四边形，平行边过点AB，另外一对平行边过点CD，两条对角线分别过点EF。

@@ -1,3 +1,0 @@
-Given a point within a circle, construct the inscribed quadrilateral of the circle such that each vertex angle is 30 ° and the intersection intersects at a given point.
-
-已知圆内一点，求作圆的内接闭合四折线，使得每条线段的夹角都为30°，且折线相交于给定点。

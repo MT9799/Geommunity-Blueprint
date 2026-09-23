@@ -1,3 +1,0 @@
-Construct the inscribed circle of a triangle. Every time a circle is drawn, there is a restricted area inside the circle, and points within the restricted area cannot be used.
-
-构造三角形的内切圆。每画一个圆，圆内都为限制区，限制区内的点不能使用。

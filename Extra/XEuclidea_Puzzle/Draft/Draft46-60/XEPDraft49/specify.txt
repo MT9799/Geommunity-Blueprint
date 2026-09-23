@@ -1,3 +1,0 @@
-Given the parallel line and 3 points ABC, construct a parallel line passing through point AB, intersect with the given parallel line at point DE, and construct a straight line DE passing through point C.
-
-已知平行线和3点ABC，构造过点AB的平行线，与给定平行线交于点DE，并构造直线DE，使其过点C。

@@ -1,3 +1,0 @@
-Given an angle and a point, construct an equal angle that passes through a point, and cut the given angle so that there is a circumscribed circle at the 4 intersection points.
-
-已知角和一点，求作过点的等角，截给定角使得4交点存在外接圆。

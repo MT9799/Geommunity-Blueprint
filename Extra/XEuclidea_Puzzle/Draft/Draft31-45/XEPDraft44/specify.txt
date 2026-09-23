@@ -1,3 +1,0 @@
-Given the two lines that form an angle and two points on one side, find four equally long polylines that alternate at the angle from one point to another.
-
-已知形成角的两条线及一边上两点，求作4等长的折线，在角上交替，从一点到另一点。

@@ -1,3 +1,0 @@
-Given two circles, construct a point so that it remains in place after being sequentially inverted by the two circles.
-
-已知两个圆，求作一点，使得其经过两个圆依次反演后仍在原位。

@@ -1,3 +1,0 @@
-Given three equally large circles, construct a point so that it remains in place after being inverted sequentially through three circles.
-
-已知3个等大的圆，求作一点，使得其经过3个圆依次反演后仍在原位。

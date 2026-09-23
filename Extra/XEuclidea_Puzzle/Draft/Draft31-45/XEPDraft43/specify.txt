@@ -1,3 +1,0 @@
-Given 8 equal circumference angles and two points on one side, find a polyline of equal length 8, alternating at the angles from one point to another.
-
-已知8等分周角，及一边上两点，求作8等长的折线，在角上交替，从一点到另一点。

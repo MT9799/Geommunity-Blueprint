@@ -1,3 +1,0 @@
-Given 4 parallel lines and any 4 points, construct a quadrilateral with each vertex on a straight line and each side passing through a point.
-
-已知4条平行线及任意4点，求作四边形，使得各顶点各在一条直线上，且各边各过一点。

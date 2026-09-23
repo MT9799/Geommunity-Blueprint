@@ -1,3 +1,0 @@
-Given the equilateral triangle ABC, construct a 3-point DEF such that the AE triad is D, the BF triad is E, and the CD triad is F.
-
-已知正三角形ABC，求作3点DEF，使得AE三等分点为D，BF三等分点为E，CD三等分点为F。
