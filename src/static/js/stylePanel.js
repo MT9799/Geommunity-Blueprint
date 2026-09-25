@@ -68,6 +68,14 @@ function closeStylePopups() {
 }
 
 /**
+ * 收回「调整对象样式」弹层 过程函数
+ * 选中被清掉时用：弹层里的闭包还指着刚才那个对象（撤销重建对象之后就指向废弃对象了）
+ */
+function closeObjectStylePopup() {
+    document.querySelectorAll('.style-popup.open[data-key="object"]').forEach(item => { item.classList.remove('open'); item.remove(); });
+}
+
+/**
  * 样式弹层 过程函数
  * 颜色 / 粗细（点的大小） / 标签显示，既可用于后续绘制的图形，也可用于已选中的对象
  * @param {Object} options
@@ -149,6 +157,25 @@ function openStylePopup(options) {
         switchButton.appendChild(knob);
         switchButton.addEventListener('click', () => { apply({showName: !style.showName}); draw(); });
         labelRow.appendChild(switchButton);
+
+        // 隐藏对象（只有「调整已选中对象的样式」这个弹层有）：点一下就把当前对象藏起来
+        if (options.showHide) {
+            const hideRow = addRow('隐藏');
+            const hidden = style.visible === false;
+            const hideSwitch = document.createElement('button');
+            hideSwitch.type = 'button';
+            hideSwitch.className = 'style-popup-switch';
+            hideSwitch.setAttribute('role', 'switch');
+            hideSwitch.setAttribute('aria-checked', String(hidden));
+            hideSwitch.setAttribute('aria-label', '隐藏对象');
+            hideSwitch.title = hidden ? '已隐藏，点一下恢复显示' : '点一下隐藏这个对象';
+            if (hidden) hideSwitch.classList.add('active');
+            const knob2 = document.createElement('span');
+            knob2.className = 'style-popup-switch-knob';
+            hideSwitch.appendChild(knob2);
+            hideSwitch.addEventListener('click', () => { apply({visible: hidden ? true : false}); draw(); });
+            hideRow.appendChild(hideSwitch);
+        }
     };
     draw();
 
@@ -158,7 +185,9 @@ function openStylePopup(options) {
     const rect = anchor.getBoundingClientRect();
     const box = popup.getBoundingClientRect();
     popup.style.left = `${Math.max(8, Math.min(rect.left, Math.max(8, window.innerWidth - box.width - 8)))}px`;
-    popup.style.top = `${Math.min(rect.bottom + 8, Math.max(8, window.innerHeight - box.height - 8))}px`;
+    // 打开在按钮上方；上方放不下（按钮贴顶）才退回下方
+    const above = rect.top - box.height - 8;
+    popup.style.top = `${above >= 8 ? above : Math.min(rect.bottom + 8, Math.max(8, window.innerHeight - box.height - 8))}px`;
     popup.style.visibility = 'visible';
 }
 
@@ -195,17 +224,167 @@ function openObjectStylePopup(anchor) {
         anchor: button,
         key: 'object',
         isPoint: element.getType() === 'point',
-        get: () => ({color: element.getColor(), width: element.getWidth(), showName: element.getShowName()}),
+        // 这个弹层多一个「隐藏」开关（非游玩模式才能隐藏对象）
+        showHide: true,
+        get: () => ({color: element.getColor(), width: element.getWidth(), showName: element.getShowName(), visible: element.getVisible()}),
         apply: (patch, live) => {
             if (patch.color) element.modifyColor(patch.color);
             if (patch.width) element.modifyWidth(patch.width);
             if (patch.showName !== undefined) element.modifyShowName(patch.showName);
+            if (patch.visible !== undefined) setElementVisible(element, patch.visible);
             refreshToolFloating();
             drawContent();
             // 记入撤销/重做历史（取色拖动中的中间状态不记）
             if (!live) notifyStorageChange('style');
         },
     });
+}
+
+/**
+ * 显示 / 隐藏一个对象 过程函数
+ * 同时把「元素一览 → 隐藏」那个集合同步好：撤销、导出 gmt、存读档都认这个集合
+ * @param {Object} element
+ * @param {boolean} visible
+ */
+function setElementVisible(element, visible) {
+    if (!element) return;
+    element.modifyVisible(!!visible);
+    if (typeof geometryElementLists !== 'undefined' && geometryElementLists.hidden) {
+        if (visible) geometryElementLists.hidden.delete(element.getId());
+        else geometryElementLists.hidden.add(element.getId());
+    }
+}
+
+/**
+ * 把「调整对象样式」控件直接铺在给定容器里 过程函数
+ * 控件与 style-popup 完全同一套（颜色 / 粗细 / 标签 / 隐藏对象）
+ * @param {Object} container 容器元素
+ * @param {Object} element 目标几何对象
+ * @param {Function} [onChange] 改动完成后的回调（记历史、重绘）；拖动取色的中间状态不回调
+ * @param {boolean} [readOnly] 只读展示（游玩界面用）：只显示色块与文字，不能改
+ * @returns {Function} 重画一次
+ */
+function renderInlineStyleControls(container, element, onChange, readOnly) {
+    const done = () => { if (typeof onChange === 'function') onChange(); };
+    // 撤销 / 重做会把图形整批重建（重新解析 gmt 文本），详情面板手里那个旧对象就脱离了画板，
+    // 再调它的样式自然看不出变化 —— 所以一律按 id 现取当前对象，不缓存引用
+    const targetId = typeof element.getId === 'function' ? element.getId() : null;
+    const current = () => (targetId && typeof geometryManager !== 'undefined' && geometryManager.get(targetId)) || element;
+    // 控件只在自己这一层里重画：直接清空容器会把同一列里别的行（例如「有效性」）一起清掉
+    const holder = document.createElement('div');
+    holder.className = 'style-inline-holder';
+    container.appendChild(holder);
+    const draw = () => {
+        const target = current();
+        holder.innerHTML = '';
+        const isPoint = target.getType() === 'point';
+        const addRow = title => {
+            const row = document.createElement('div');
+            row.className = 'style-popup-row';
+            const label = document.createElement('span');
+            label.className = 'style-popup-title';
+            label.textContent = title;
+            row.appendChild(label);
+            holder.appendChild(row);
+            return row;
+        };
+
+        // 只读展示（游玩界面不允许改样式）：色块 + 文字，控件不可点
+        if (readOnly) {
+            const roColorRow = addRow('颜色');
+            const swatch = document.createElement('span');
+            swatch.className = 'style-popup-color';
+            swatch.style.backgroundColor = target.getColor();
+            roColorRow.appendChild(swatch);
+
+            const roWidthRow = addRow(isPoint ? '大小' : '粗细');
+            const widthText = document.createElement('span');
+            widthText.className = 'style-inline-value';
+            widthText.textContent = String(target.getWidth() || 1);
+            roWidthRow.appendChild(widthText);
+
+            const roLabelRow = addRow('标签');
+            const labelText = document.createElement('span');
+            labelText.className = 'style-inline-value';
+            labelText.textContent = target.getShowName() ? '显示' : '不显示';
+            roLabelRow.appendChild(labelText);
+
+            const roHideRow = addRow('隐藏');
+            const hideText = document.createElement('span');
+            hideText.className = 'style-inline-value';
+            hideText.textContent = target.getVisible() ? '否' : '是';
+            roHideRow.appendChild(hideText);
+            return;
+        }
+
+        // 颜色
+        const colorRow = addRow('颜色');
+        const colorButton = document.createElement('button');
+        colorButton.type = 'button';
+        colorButton.className = 'style-popup-color';
+        colorButton.style.backgroundColor = target.getColor();
+        colorButton.setAttribute('aria-label', '选择颜色');
+        colorButton.addEventListener('click', () => {
+            let picked = current().getColor();
+            const applyColor = live => {
+                current().modifyColor(picked);
+                // 拖动取色时也要立刻反映：预览色块跟着变，画布立即重绘（与弹层那套一致）
+                colorButton.style.backgroundColor = picked;
+                if (typeof drawContent === 'function') drawContent();
+                if (!live) done();
+            };
+            pickStyleColor(picked, color => { picked = color; applyColor(true); }, () => applyColor(false));
+        });
+        colorRow.appendChild(colorButton);
+
+        // 粗细 / 大小
+        const widthRow = addRow(isPoint ? '大小' : '粗细');
+        const width = target.getWidth() || 1;
+        styleWidths.forEach(item => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'style-popup-option';
+            button.textContent = isPoint ? item.pointName : item.name;
+            if (Math.abs(width - item.value) < 0.01) button.classList.add('active');
+            button.addEventListener('click', () => { current().modifyWidth(item.value); draw(); done(); });
+            widthRow.appendChild(button);
+        });
+
+        // 标签开关
+        const labelRow = addRow('标签');
+        const labelSwitch = document.createElement('button');
+        labelSwitch.type = 'button';
+        labelSwitch.className = 'style-popup-switch';
+        labelSwitch.setAttribute('role', 'switch');
+        labelSwitch.setAttribute('aria-checked', String(!!target.getShowName()));
+        labelSwitch.setAttribute('aria-label', '显示标签');
+        labelSwitch.title = target.getShowName() ? '显示标签' : '不显示标签';
+        if (target.getShowName()) labelSwitch.classList.add('active');
+        const knob = document.createElement('span');
+        knob.className = 'style-popup-switch-knob';
+        labelSwitch.appendChild(knob);
+        labelSwitch.addEventListener('click', () => { const item = current(); item.modifyShowName(!item.getShowName()); draw(); done(); });
+        labelRow.appendChild(labelSwitch);
+
+        // 隐藏对象
+        const hideRow = addRow('隐藏');
+        const hidden = !target.getVisible();
+        const hideSwitch = document.createElement('button');
+        hideSwitch.type = 'button';
+        hideSwitch.className = 'style-popup-switch';
+        hideSwitch.setAttribute('role', 'switch');
+        hideSwitch.setAttribute('aria-checked', String(hidden));
+        hideSwitch.setAttribute('aria-label', '隐藏对象');
+        hideSwitch.title = hidden ? '已隐藏，点一下恢复显示' : '点一下隐藏这个对象';
+        if (hidden) hideSwitch.classList.add('active');
+        const knob2 = document.createElement('span');
+        knob2.className = 'style-popup-switch-knob';
+        hideSwitch.appendChild(knob2);
+        hideSwitch.addEventListener('click', () => { const item = current(); setElementVisible(item, !item.getVisible()); draw(); done(); });
+        hideRow.appendChild(hideSwitch);
+    };
+    draw();
+    return draw;
 }
 
 /**
@@ -224,6 +403,8 @@ function setObjectStyleAble(item) {
     }else{
         buttonDE.classList.add('disable');
         svg.classList.add('disable');
+        // 选中没了，已经展开的「调整对象样式」弹层也要收起来（撤销清掉选中时就是这条路径）
+        if (typeof closeObjectStylePopup === 'function') closeObjectStylePopup();
     }
 }
 

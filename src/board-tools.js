@@ -42,6 +42,26 @@
       }
     }
   }
+  // 求解器里只有「给定」与「所求」两种标记，元素一览也就只留 全部 / 隐藏 / 给定 / 所求 四档
+  if (mode === 'solver') {
+    const overviewSelect = document.getElementById('overview-select');
+    if (overviewSelect) {
+      ['movepoints', 'explore'].forEach(value => {
+        const option = overviewSelect.querySelector(`option[value="${value}"]`);
+        if (option) option.remove();
+      });
+      // 与标记面板统一口径：这一档在求解器里叫「给定」
+      const initialOption = overviewSelect.querySelector('option[value="initial"]');
+      if (initialOption) {
+        initialOption.removeAttribute('data-i18n');
+        initialOption.textContent = t('board.markGiven');
+      }
+      if (!['all', 'hidden', 'initial', 'result'].includes(overviewSelect.value)) {
+        overviewSelect.value = 'all';
+        if (typeof overviewPanelSelectorChanged === 'function') overviewPanelSelectorChanged();
+      }
+    }
+  }
   // 页面标题随模式走（关卡游玩页的标题由 level-loader / 试玩数据决定，这里只管画板本身）
   const modeTitles = {normal: t('board.pageTitleBoard'), maker: t('board.pageTitleMaker'), solver: t('board.pageTitleSolver')};
   if (modeTitles[mode]) document.title = `${modeTitles[mode]} | Geommunity Blueprint`;
@@ -54,7 +74,6 @@
   const markSetOf = key => geometryElementLists[key] || new Set();
   /**
    * 多解 过程变量
-   * 解 1 沿用 result / resultShown（兼容旧记录与关卡游玩），解 k 用 result k / resultShown k；
    * 当前往哪一组写标记、画布上点亮哪一组，分别由 resultActive 与 highlightedResult() 决定
    */
   let resultActive = 1;
@@ -115,8 +134,14 @@
     // 同一个对象可能同时是多组的判定 / 显示，只要在点亮的那组里、且对应类型被点亮就算亮
     const lit = sets.filter(item => item.index === highlight.index && item.set.has(id));
     const inExplore = markSetOf('explore').has(id);
-    // 标记探索显示：只点亮探索对象
-    if (marking === 'explore') return inExplore ? markColors.explore : null;
+    // 标记探索显示：探索对象点亮金色，其余保持原样 —— 但给定 / 可移动点的标记色要继续显示，
+    // 不能整个返回 null（那样给定图形会掉回自动配色（灰），看起来「给定图形的黑色没了」）
+    if (marking === 'explore') {
+        if (inExplore) return markColors.explore;
+        if (markSetOf('initial').has(id) || markSetOf('named').has(id)) return markColors.initial;
+        if (markSetOf('movepoints').has(id)) return markColors.movepoints;
+        return null;
+    }
     // 所求显示 / 所求判定的金色**盖在给定（黑）之上**：既被标成给定、又在点亮的所求里时，显示金色
     if (lit.length) {
       if (highlight.shown && lit.some(item => item.kind === 'shown')) return markColors.resultShown;
@@ -201,8 +226,12 @@
   window.refreshElementListColors = () => {
     // 关卡模式：选定栏里的 ID 指向关卡自带的对象，玩家新画的图形可能与其重名，
     // 只有「属于关卡对象」的 ID 才按选定栏着色，避免被误染成黑 / 金
-    const levelIds = geometryElementLists.level;
-    // 关卡游玩：「所求」判定（多解就是每一组解）统统金，result 冒号后的图形由 success / unsuccess 控制
+    // 只认关卡模式：制题器 / 求解器里若残留了 level 集合（从游玩页带过来的记录），
+    // 会把不在这份名单里的对象全部跳过，标记色静默失效
+    const levelIds = mode === 'level' ? geometryElementLists.level : null;
+    // 关卡游玩：「所求」判定（多解就是每一组解）统统金；「所求显示」不在这里上色 ——
+    // 它们多数是隐藏的，作出解之后由 setResultGroupsVisible 点亮（这里也染的话，
+    // 像 ewp14 的 X 那种既在 result 冒号后又本身可见的对象会一开场就是金色）
     const levelJudged = mode === 'level' ? new Set() : null;
     if (levelJudged) resultMarkSets().forEach(({kind, set}) => { if (kind === 'judged') set.forEach(id => levelJudged.add(id)); });
     geometryManager.getAllByOrder().forEach(item => {
@@ -227,7 +256,6 @@
   };
   /**
    * 载入快照 过程函数
-   * 兼容早期只有元素数组的旧记录
    * @param {any} snapshot
    */
   window.loadStorageSnapshot = snapshot => {
@@ -255,20 +283,27 @@
     if (typeof tools !== 'undefined' && tools?.[tool] && typeof tools[tool].clear === 'function') tools[tool].clear();
     if (typeof refreshMarks === 'function') refreshMarks();
     if (typeof loadGeometryElements === 'function') loadGeometryElements();
+    // 元素一览详情里正看着的对象被重建了：把详情面板整块重画一次（外观、控件状态跟着刷新）
+    if (typeof refreshOpenedGeometryItem === 'function') refreshOpenedGeometryItem();
+    // 选中被清掉了（快照里不含选定栏），浮动栏的按钮要跟着重新判断可用性：
+    // 不刷新的话「调整对象样式」「删除选中对象」「清空选择」还亮着，点了没反应
+    if (typeof refreshToolFloating === 'function') refreshToolFloating();
   };
   /**
    * 重置撤销/重做历史 过程函数
    * 以当前状态作为新的历史起点，用于载入关卡/导入 gmt 等「外部基线」之后，
    * 避免撤销把初始图形一并撤掉
    */
-  window.resetStorageHistory = () => {
+  window.resetStorageHistory = (keepMoves = false) => {
     // 普通 / 所求 / 探索三套存储都以当前状态为起点
     [storageManager, typeof storageManagerResult !== 'undefined' ? storageManagerResult : null, typeof storageManagerExplore !== 'undefined' ? storageManagerExplore : null].forEach(manager => {
       if (!manager) return;
       manager.clear();
       manager.append(collectStorageSnapshot());
     });
-    if (typeof movesStorageManager !== 'undefined') {
+    // keepMoves：从制题器 / 求解器返回游玩页时用 —— 图形重建后撤销起点要归零，
+    // 但已经用掉的 L / E 是玩家挣来的，跟着清零的话勾就白点了
+    if (!keepMoves && typeof movesStorageManager !== 'undefined') {
       [movesStorageManager, typeof movesStorageManagerResult !== 'undefined' ? movesStorageManagerResult : null, typeof movesStorageManagerExplore !== 'undefined' ? movesStorageManagerExplore : null].forEach(manager => {
         if (!manager) return;
         manager.clear();
@@ -349,10 +384,11 @@
   if (restoreSolver && sessionStorage.getItem('solverElements')) {
     document.addEventListener('DOMContentLoaded', () => {
       const data = JSON.parse(sessionStorage.getItem('solverElements'));
-      // 与制题器载入走同一条路：先重建图形（都是可见的），再按当前配色上一次样式色，
-      // 于是求解器里看到的是「整份图形」而不是只剩给定
-      geometryManager.loadStorage(data.elements || []);
       Object.entries(data.lists || {}).forEach(([key, value]) => { geometryElementLists[key] = new Set(value); });
+      // 与制题器载入走同一条路：按快照重建图形 —— 直接用 loadStorage 的话，
+      // 它会按求解器的自动配色把对象重新涂成红 / 灰，游玩时已经显示出来的「所求显示」图形
+      // 就莫名变灰了；快照会按带过来的颜色还原，之后再补一次标记色（所求金）
+      loadStorageSnapshot(data.elements || []);
       refreshElementListColors();
       seedMarkedStyles();
       drawContent();
@@ -410,29 +446,127 @@
    */
   /**
    * 打开求解器 过程函数
-   * 图形照制题器那样整份带过去（含关卡里隐藏 / 预绘制的图形）并且全部显示出来；
-   * 标记只保留「给定（initial）」与「所求判定（第一组 result）」，多解的其余几组、
-   * 所求显示与探索显示都丢掉，求解器的标记面板也就只有这两栏
+   * 图形照制题器那样整份带过去（含关卡里隐藏 / 预绘制的图形），但**游玩时隐藏的仍然保持隐藏**；
+   * 标记只保留「给定（initial）」与「所求判定」——判定取玩家**已经作出的那几组解**
+   * （求解器里会把它当所求、并照关卡里那样染成金色），所求显示与探索显示都丢掉，
+   * 求解器的标记面板也就只有这两栏
    */
+  /**
+   * 画布上与某个关卡对象等价的图形 过程函数
+   * 关卡文件里的所求判定对象是预绘制（且隐藏）的，玩家作出的是与它等价的另一条线 / 圆；
+   * 求解器的所求要用玩家作出的那个，这里按几何相等把它们的 id 找出来
+   * @param {string} id 关卡里的对象 id
+   * @returns {string[]} 画布上等价的对象 id（排除关卡自带的）
+   */
+  const equivalentElementIdsOf = id => {
+    const target = geometryManager.get(id);
+    if (!target) return [];
+    const type = target.getType();
+    const equative = type === 'point' ? ToolsFunction.pointEquative
+      : type === 'line' ? ToolsFunction.lineEquative
+      : type === 'circle' ? ToolsFunction.circleEquative : null;
+    if (!equative) return [];
+    const out = [];
+    geometryManager.getAllByOrder().forEach(item => {
+      if (item === target || item.getType() !== type) return;
+      const itemId = item.getId();
+      // 关卡自带的对象不算（可能是另一组解的预绘制图形）
+      if (geometryElementLists.level?.has(itemId)) return;
+      if (equative(target, item)) out.push(itemId);
+    });
+    return out;
+  };
   const openSolver = () => {
-    // 游玩页有「结果 / 探索」两套管理器，用 allCanvasElements 把两边合起来（用户后画的不能漏）
-    const elements = typeof allCanvasElements === 'function' ? allCanvasElements()
-      : (typeof geometryManager === 'undefined' ? [] : geometryManager.toStorage());
-    elements.forEach(item => { item.visible = true; });
+    // 只带「结果」管理器里的图形：关卡本身 + 玩家在普通模式下画的。
+    const elements = typeof geometryManagerResult !== 'undefined' ? geometryManagerResult.toStorage()
+      : (typeof allCanvasElements === 'function' ? allCanvasElements()
+        : (typeof geometryManager === 'undefined' ? [] : geometryManager.toStorage()));
+    // 一打开求解器就全冒出来了（「隐藏」档也一并带过去，求解器里还能按隐藏筛选）
+    const hiddenIds = new Set();
+    elements.forEach(item => { if (item.visible === false) hiddenIds.add(item.id); });
+    (geometryElementLists.hidden || []).forEach(id => hiddenIds.add(id));
     // 给定三类（给定 / 带标签给定 / 可移动点）在求解器里合并成同一栏「给定」：
     // 对搜索来说它们都只是「题面给了的对象」，分成三栏反而让人以为条件没取全。
     // 可移动点尤其不能丢 —— 很多关的给定直线就靠它的两个端点当已知点。
     // 隐藏标记相反要丢掉：那些是关卡里预绘制 / 隐藏的图形（往往是解法的中间元素），不是题面条件。
+    // 给定＝给定 / 带标签给定；可移动点作为画布上的普通对象一并带过去
     const givenIds = new Set([
       ...(geometryElementLists.initial || []),
       ...(geometryElementLists.named || []),
-      ...(geometryElementLists.movepoints || []),
     ]);
+    // 给定图形（给定 / 带标签给定）是题面条件，在求解器里必须看得见：
+    // 关卡中它们若被藏起来，带过去也要显示出来
+    elements.forEach(item => {
+      if (!givenIds.has(item.id)) return;
+      item.visible = true;
+      hiddenIds.delete(item.id);
+    });
+    // 可移动点同样要显示出来（关卡里它平时是藏着的，拖到它时才现形），
+    // 但不算给定：按普通对象带过去，颜色交给求解器自动配色（自由点红、其余灰）
+    const movepointIds = new Set(geometryElementLists.movepoints || []);
+    elements.forEach(item => {
+      if (!movepointIds.has(item.id) || givenIds.has(item.id)) return;
+      item.visible = true;
+      hiddenIds.delete(item.id);
+      delete item.color;
+    });
+    // 所求判定：取玩家作出的**第一组**解（satisfiedResultGroups 的元素形如 {judged, shown}，
+    // 顺序跟关卡文件里的 result / result2 … 一致），塞进求解器唯一的目标槽位
+    // —— 求解器侧只认 geometryElementLists.result，它同时负责两件事：
+    // buildSolverRequest 拿它当搜索目标，markDisplayColor 把它染成金色（#ffd700）。
+    const judgedIds = new Set();
+    const firstGroup = (typeof satisfiedResultGroups !== 'undefined' ? (satisfiedResultGroups || []) : [])[0];
+    const firstIds = firstGroup ? ((firstGroup.judged && firstGroup.judged.length) ? firstGroup.judged : (firstGroup.shown || [])) : [];
+    // 所求直接用**玩家作出的那个图形**：拿关卡判定对象去画布上找等价对象，找到就换掉，
+    // 找不到（判定对象本身就是给定 / 玩家没作出）才退回原 id
+    const levelJudgedIds = new Set();
+    firstIds.forEach(id => {
+      const matched = equivalentElementIdsOf(id);
+      if (matched.length) {
+        matched.forEach(itemId => judgedIds.add(itemId));
+        levelJudgedIds.add(id);
+      }else{
+        judgedIds.add(id);
+      }
+    });
+    if (!judgedIds.size) resultSetOf(1, 'judged').forEach(id => judgedIds.add(id));
+    // 所求显示（result 冒号后的图形）是关卡作出解后的展示，载入求解器时直接隐藏 ——
+    // 每一组的都要看（不止作出的那一组）
+    const shownIds = new Set();
+    resultMarkSets().forEach(({kind, set}) => { if (kind === 'shown') set.forEach(id => shownIds.add(id)); });
+    elements.forEach(item => {
+      if (!shownIds.has(item.id) || judgedIds.has(item.id)) return;
+      // 给定图形（可能同时被列在「所求显示」里，如 ewp14 的 X）属于题面条件，保持显示
+      if (givenIds.has(item.id)) return;
+      item.visible = false;
+      hiddenIds.add(item.id);
+    });
+    // 探索显示的标记性质也不带过去：恢复默认配色（求解器自动配色：自由点红、其余灰）
+    (geometryElementLists.explore || []).forEach(id => {
+      if (judgedIds.has(id) || givenIds.has(id)) return;
+      const item = elements.find(element => element.id === id);
+      if (item) delete item.color;
+    });
+    // 可见性：玩家作出的所求要看得见；被换掉的那几个关卡预绘制判定对象隐藏起来，
+    // 免得它们与玩家作出的图形叠在一起把金色盖住
+    elements.forEach(item => {
+      if (judgedIds.has(item.id)) {
+        item.visible = true;
+        hiddenIds.delete(item.id);
+      }
+      if (levelJudgedIds.has(item.id)) {
+        item.visible = false;
+        hiddenIds.add(item.id);
+      }
+    });
     const lists = {
       initial: [...givenIds],
-      result: [...resultSetOf(1, 'judged')],
-      name: [], named: [], movepoints: [], hidden: [], resultShown: [], explore: [],
+      result: [...judgedIds],
+      name: [], named: [], movepoints: [], hidden: [...hiddenIds], resultShown: [], explore: [],
     };
+    // 其余选定栏（关卡带过来的 result2 / resultShown2 / explore…）统统清空：
+    // 求解器里只认「给定」与「所求」两种标记，别的标记性质不能跟着进来
+    Object.keys(geometryElementLists).forEach(key => { if (!(key in lists)) lists[key] = []; });
     sessionStorage.setItem('solverElements', JSON.stringify({elements: elements, lists: lists}));
     // from：求解器的「返回」据此回到本页并还原图形（关卡游玩 / 试玩由 savePlayBackup 存备份）
     const from = typeof savePlayBackup === 'function' ? savePlayBackup() : '';
@@ -909,7 +1043,6 @@
         const shown = shownPart === undefined
           ? judged.slice()
           : shownPart.split(',').map(item => item.trim()).filter(Boolean);
-        // 每一条 result 是一个解：第 1 条落到 result / resultShown（旧记录与关卡游玩沿用这两个键），
         // 之后的解落到 result2 / resultShown2、result3 / resultShown3 …
         const solution = resultGroups.length + 1;
         const judgedKey = solution <= 1 ? 'result' : `result${solution}`;
@@ -1126,7 +1259,6 @@
     };
     const keep = list => [...new Set(list)].map(normalizeId).filter(Boolean);
     // 设定栏原样保留：多解会在 lists 里多出 result2 / resultShown2 … 这些键，
-    // 这里写死键名的话它们会被丢掉，导入多解 gmt 就只剩解 1
     const result = {};
     Object.entries(lists).forEach(([key, value]) => { result[key] = keep(value); });
     ['initial', 'named'].forEach(key => { result[key] = (result[key] || []).filter(id => !edgePointIds.has(id)); });
@@ -1147,10 +1279,12 @@
     // name 集合表示「显示标签的对象」（画板既有的选定栏命名）
     result.name = elements.filter(item => item.showName).map(item => item.id);
 
-    // 判定分组：过滤掉引用了缺失对象的判定项
+    // 判定分组：过滤掉引用了缺失对象的判定项。
+    // 判定为空、只有「所求显示」的组（result=:S1,H 这种）也要留下，
+    // 否则这一组的冒号后图形永远不显示
     const groups = resultGroups
       .map(group => ({judged: keep(group.judged), shown: keep(group.shown)}))
-      .filter(group => group.judged.length);
+      .filter(group => group.judged.length || group.shown.length);
 
     return {elements: elements, lists: result, resultGroups: groups};
   };
@@ -1196,7 +1330,6 @@
     // 已知条件只取「给定」三类标记（给定 / 带标签给定 / 可移动点）。
     // 打开求解器时，关卡里隐藏 / 预绘制的图形也会被整份带过来并显示出来（例如某关隐藏的中点 D），
     // 它们既没标给定也不是目标 —— 当条件用就会搜出「用了题面里没有的点」的假解（4E 那种）。
-    // 一个给定标记都没有时（例如直接在求解器页自己画图）沿用旧行为：除目标之外都算条件。
     const givenIds = new Set();
     ['initial', 'named', 'movepoints'].forEach(key => {
       (geometryElementLists[key] || new Set()).forEach(id => givenIds.add(id));
@@ -1237,8 +1370,10 @@
           request.lineIds.push(id);
         }
       } else if (type === 'circle') {
-        // 圆心 + 半径
-        const circle = [first[0], first[1], Math.hypot(first[0] - second[0], first[1] - second[1])];
+        // 圆心 + 半径平方。第三个值故意用 (dx²+dy²) 而不是 Math.hypot(...) 再平方：
+        // 求解器里圆的系数就是这个公式，两边保持同一条算式才不会差出 ulp（见下面 eps 的说明）
+        const circle = [first[0], first[1],
+          (first[0] - second[0]) * (first[0] - second[0]) + (first[1] - second[1]) * (first[1] - second[1])];
         if (isGoal) request.goalCircles.push(...circle);
         else {
           request.circles.push(...circle);
@@ -1246,6 +1381,13 @@
         }
       }
     });
+    // 容差按图幅量级放大：圆的比较落在半径平方上（量级 ~r²），而搜索器默认的绝对 1e-11
+    // 在这个量级上比 1 ulp 还小，等于要求位级完全相同 —— 大坐标的题会出现「明明作出来了却匹配不上」。
+    // 放大后仍远小于状态去重 / 网格判定用的阈值（0.5），不会把不同状态并到一起
+    let extent = 1;
+    [request.points, request.lines, request.circles, request.goalPoints, request.goalLines, request.goalCircles]
+      .forEach(list => (list || []).forEach(value => { extent = Math.max(extent, Math.abs(value)); }));
+    request.eps = 1e-11 * extent;
     return request;
   };
 
@@ -1328,18 +1470,185 @@
     drawContent();
   };
 
+  /**
+   * 圆形按钮的图标：标记（小旗）
+   */
+  const markSideIcon = () => '<svg class="svg-icon" viewBox="0 0 200 200">' +
+    '<path d="M62 176 L62 28" fill="transparent" stroke-width="14" stroke-linecap="round"/>' +
+    '<path d="M62 38 L152 66 L62 94 Z" fill="transparent" stroke-width="14" stroke-linejoin="round"/></svg>';
+
+  /**
+   * 圆形按钮的图标：求解参数（三条滑杆）
+   */
+  const solverSideIcon = () => '<svg class="svg-icon" viewBox="0 0 200 200">' +
+    '<path d="M28 50 L172 50" fill="transparent" stroke-width="12" stroke-linecap="round"/>' +
+    '<path d="M28 100 L172 100" fill="transparent" stroke-width="12" stroke-linecap="round"/>' +
+    '<path d="M28 150 L172 150" fill="transparent" stroke-width="12" stroke-linecap="round"/>' +
+    '<circle cx="76" cy="50" r="16" fill="#fff" stroke-width="12"/>' +
+    '<circle cx="128" cy="100" r="16" fill="#fff" stroke-width="12"/>' +
+    '<circle cx="68" cy="150" r="16" fill="#fff" stroke-width="12"/></svg>';
+
+  // 上拉栏 → 对应的圆形按钮（关闭时要把按钮的高亮一起收掉）
+  const sheetButtons = new Map();
+
+  /**
+   * 把设置面板包进底部上拉栏 过程函数
+   * 画布上只留一个圆形按钮（见 addSideButton），点开才把面板从底部拉起来
+   * @param {Object} panel 面板元素
+   * @param {string} title 标题栏文字
+   * @returns {Object} 上拉栏容器
+   */
+  const wrapInSheet = (panel, title) => {
+    const sheet = document.createElement('section');
+    sheet.className = 'panel-sheet';
+    const head = document.createElement('div');
+    head.className = 'panel-sheet-head';
+    const name = document.createElement('strong');
+    name.textContent = title;
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'panel-sheet-close';
+    close.innerHTML = '&times;';
+    close.setAttribute('aria-label', title);
+    close.addEventListener('click', () => {
+      sheet.classList.remove('open', 'peek');
+      sheet.style.height = '';
+      sheet.style.transform = '';
+      const button = sheetButtons.get(sheet);
+      if (button) button.classList.remove('active');
+    });
+    // 抓住标题栏拖动：跟手改面板高度（可以停在任意高度），拖到底收起来、拉到顶完全展开。
+    // 用「高度」而不是 translateY：面板底部始终贴着屏幕底边，
+    // 面板里的滚动条才滚得到最下面的内容（位移会把底边推出屏幕，最后几行永远看不到）
+    let sheetDragFrom = null;
+    // 面板的自然高度：被拖矮之后也能量出来（临时去掉高度与 peek 再量）
+    const naturalHeightOf = () => {
+      const hadPeek = sheet.classList.contains('peek');
+      const previous = sheet.style.height;
+      if (hadPeek) sheet.classList.remove('peek');
+      sheet.style.height = '';
+      const natural = sheet.offsetHeight;
+      if (hadPeek) sheet.classList.add('peek');
+      sheet.style.height = previous;
+      return natural;
+    };
+    head.addEventListener('pointerdown', event => {
+      if (!sheet.classList.contains('open') && !sheet.classList.contains('peek')) return;
+      sheetDragFrom = {y: event.clientY, base: sheet.offsetHeight, natural: naturalHeightOf()};
+      head.setPointerCapture?.(event.pointerId);
+      event.preventDefault();
+    });
+    head.addEventListener('pointermove', event => {
+      if (!sheetDragFrom) return;
+      // 跟手：往上拖变高、往下拖变矮（最高就是自然高度）
+      const shown = Math.max(0, Math.min(sheetDragFrom.natural,
+        sheetDragFrom.base - (event.clientY - sheetDragFrom.y)));
+      sheet.style.height = `${Math.round(shown)}px`;
+      sheet.style.transform = '';
+      // 拖动期间按「半展开」处理：pointer-events 打开，别让面板收不到后续事件
+      sheet.classList.add('peek');
+      sheet.classList.remove('open');
+    });
+    head.addEventListener('pointerup', () => {
+      if (!sheetDragFrom) return;
+      const shown = sheet.offsetHeight;
+      const natural = sheetDragFrom.natural;
+      sheetDragFrom = null;
+      const button = sheetButtons.get(sheet);
+      if (shown <= 56) {
+        // 拖到底：收起来
+        sheet.classList.remove('open', 'peek');
+        sheet.style.height = '';
+        if (button) button.classList.remove('active');
+      }else if (shown >= natural - 24) {
+        // 拉到顶：完全展开
+        sheet.classList.add('open');
+        sheet.classList.remove('peek');
+        sheet.style.height = '';
+        if (button) button.classList.add('active');
+      }else{
+        // 停在拖到的任意高度
+        sheet.classList.add('peek');
+        sheet.classList.remove('open');
+        if (button) button.classList.add('active');
+      }
+    });
+    head.addEventListener('pointercancel', () => { sheetDragFrom = null; });
+    head.appendChild(name);
+    head.appendChild(close);
+    const body = document.createElement('div');
+    body.className = 'panel-sheet-body';
+    body.appendChild(panel);
+    sheet.appendChild(head);
+    sheet.appendChild(body);
+    document.body.appendChild(sheet);
+    return sheet;
+  };
+
+  /**
+   * 加一个圆形按钮，点开对应的上拉栏 过程函数
+   * @param {string} key id 后缀
+   * @param {string} svg 图标
+   * @param {string} title 悬停说明 / 无障碍标签
+   * @param {Object} sheet 上拉栏
+   * @returns {Object} 按钮
+   */
+  const addSideButton = (key, svg, title, sheet) => {
+    let box = document.getElementById('side-buttons');
+    if (!box) {
+      box = document.createElement('div');
+      box.id = 'side-buttons';
+      box.className = 'side-buttons';
+      document.body.appendChild(box);
+    }
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.id = `side-button-${key}`;
+    button.className = 'side-button';
+    button.title = title;
+    button.setAttribute('aria-label', title);
+    button.innerHTML = svg;
+    button.addEventListener('click', () => {
+      const open = sheet.classList.toggle('open');
+      // 半展开（或被拖到任意高度）状态下点按钮 = 直接拉满
+      sheet.classList.remove('peek');
+      sheet.style.height = '';
+      sheet.style.transform = '';
+      button.classList.toggle('active', open);
+      // 同时只留一个上拉栏，免得两层叠在一起
+      document.querySelectorAll('.panel-sheet.open, .panel-sheet.peek').forEach(item => {
+        if (item !== sheet) {
+          item.classList.remove('open', 'peek');
+          item.style.height = '';
+          item.style.transform = '';
+        }
+      });
+      document.querySelectorAll('.side-button.active').forEach(item => {
+        if (item !== button) item.classList.remove('active');
+      });
+    });
+    sheetButtons.set(sheet, button);
+    box.appendChild(button);
+    return button;
+  };
+
   const solverPanel = () => {
     const panel = document.createElement('aside');
     panel.className = 'solver-panel';
     panel.innerHTML = [
-      `<strong>${t('board.solverParams')}</strong>`,
-      `<label>${t('board.solverLimit')}<input id="geb-solver-limit" type="number" min="1" max="100" value="6"></label>`,
-      `<label>${t('board.solverTool')}<select id="geb-solver-tool">` +
-        `<option value="2">${t('board.solverToolBoth')}</option>` +
-        `<option value="1">${t('board.solverToolLine')}</option>` +
-        `<option value="0">${t('board.solverToolCircle')}</option></select></label>`,
-      `<label>${t('board.solverTime')}<input id="geb-solver-time" type="number" min="1" max="600" value="60"></label>`,
-      `<label>${t('board.solverCount')}<input id="geb-solver-solutions" type="number" min="1" max="20" value="20"></label>`,
+      // 标题在上拉栏的标题栏里（见 wrapInSheet），这里只放设置项
+      // 两两并排，省一半高度（见 index.css 的 .solver-field-row）
+      '<div class="solver-field-row">' +
+        `<label>${t('board.solverLimit')}<input id="geb-solver-limit" type="number" min="1" max="100" value="6"></label>` +
+        `<label>${t('board.solverTool')}<select id="geb-solver-tool">` +
+          `<option value="2">${t('board.solverToolBoth')}</option>` +
+          `<option value="1">${t('board.solverToolLine')}</option>` +
+          `<option value="0">${t('board.solverToolCircle')}</option></select></label>` +
+      '</div>',
+      '<div class="solver-field-row">' +
+        `<label>${t('board.solverTime')}<input id="geb-solver-time" type="number" min="1" max="600" value="60"></label>` +
+        `<label>${t('board.solverCount')}<input id="geb-solver-solutions" type="number" min="1" max="20" value="20"></label>` +
+      '</div>',
       `<button id="geb-solver-run">${t('board.solverRun')}</button>`,
       `<div class="solver-step-row"><button id="geb-solver-prev">${t('board.solverPrevStep')}</button>` +
         `<span id="geb-solver-stepinfo">—</span>` +
@@ -1348,7 +1657,8 @@
       `<output id="geb-solver-status">${t('board.solverIdle')}</output>`,
       '<div id="geb-solver-list" class="solver-solution-list"></div>',
     ].join('');
-    document.body.appendChild(panel);
+    // 收进底部上拉栏：画布上只留一个圆形按钮（见 addSideButton）
+    addSideButton('solver-params', solverSideIcon(), t('board.solverParams'), wrapInSheet(panel, t('board.solverParams')));
 
     const status = panel.querySelector('#geb-solver-status');
     const list = panel.querySelector('#geb-solver-list');
@@ -1405,8 +1715,12 @@
     const showReport = index => {
       const solution = latest && latest.solutions[index];
       if (!solution) return;
+      document.querySelectorAll('.board-dialog-report').forEach(item => {
+        item.closest('.board-dialog-mask')?.remove();
+      });
       const mask = document.createElement('div');
-      mask.className = 'board-dialog-mask';
+      // 修饰类把 z-index 提到上拉栏（手机端 z-index:12）之上
+      mask.className = 'board-dialog-mask board-dialog-report-mask';
       // 界面双语，但步骤报告本身只有中文：非中文界面加一行小提示
       const hint = currentLang() === 'zh' ? ''
         : `<p class="board-dialog-hint">${t('board.solverReportChineseOnly')}</p>`;
@@ -1673,19 +1987,30 @@
     });
     ask('');
   };
+  // 标记手势状态：手指按在图形上时置位，松手复位（见下面的 swallowMarkingGesture）
+  let markingGesture = false;
   const markFromCanvas = event => {
     if (!marking) return;
     const canvas = document.getElementById('canvas_id1');
     if (!canvas || event.target !== canvas) return;
+    // 手机端没有鼠标：触摸处理里 preventDefault 掉了合成鼠标事件，所以触摸按下也要走这条路。
+    // 触摸时 event.clientX 是 undefined（坐标在 touches[0] 上），不取出来就永远命中不了对象
+    const source = event.touches && event.touches[0] ? event.touches[0] : event;
+    if (typeof source.clientX !== 'number') return;
     const rect = event.target.getBoundingClientRect();
-    const x = (event.clientX - rect.left - transform.x) / transform.scale;
-    const y = (event.clientY - rect.top - transform.y) / transform.scale;
+    const x = (source.clientX - rect.left - transform.x) / transform.scale;
+    const y = (source.clientY - rect.top - transform.y) / transform.scale;
     // near() 内部已做点优先：交点不会被背后的直线 / 圆抢先命中
     const [id] = geometryManager.near([x, y], ['point', 'line', 'circle']);
     // 未命中对象时不拦截事件，交给画布拖拽（标记模式下当前工具已是「移动视图」）
-    if (!id) return;
+    if (!id) {
+      markingGesture = false;
+      return;
+    }
     event.preventDefault();
     event.stopPropagation();
+    // 手机端：这个手势按在图形上，整个手势都归标记，后续的 touchmove 不要再拿去平移画布
+    markingGesture = true;
     const item = geometryManager.get(id);
     // 可移动点只能是自由点（能拖得动的那种），交点 / 线上点 / 中点这些不算
     if (marking === 'movepoints' && (item?.getType() !== 'point' || item.getBase().type !== 'none')) {
@@ -1716,8 +2041,24 @@
     // 标记改动记一步历史
     notifyStorageChange('mark');
   };
+  // 手机端标记手势的后续事件（touchmove 等）用 capture 全部吃掉：
+  // 手指按在图形上拖动时，既不移动图形也不平移画布，只是标记它
+  const swallowMarkingGesture = event => {
+    if (!markingGesture) return;
+    event.preventDefault();
+    // 必须用 stopImmediatePropagation：index.js 的监听挂在同一个 canvas 上，
+    // 只 stopPropagation 挡不住同一元素上的其它监听
+    event.stopImmediatePropagation();
+    if (event.type === 'touchend' || event.type === 'touchcancel') markingGesture = false;
+  };
   const canvas = document.getElementById('canvas_id1');
-  if (canvas) canvas.addEventListener('mousedown', markFromCanvas, true);
+  if (canvas) {
+    canvas.addEventListener('mousedown', markFromCanvas, true);
+    canvas.addEventListener('touchstart', markFromCanvas, true);
+    canvas.addEventListener('touchmove', swallowMarkingGesture, true);
+    canvas.addEventListener('touchend', swallowMarkingGesture, true);
+    canvas.addEventListener('touchcancel', swallowMarkingGesture, true);
+  }
   const markPanel = document.createElement('aside');
   markPanel.className = 'mark-panel';
   // 面板折叠状态：结构重建（解数变化）时把用户的开合记下来
@@ -1735,24 +2076,29 @@
       const opened = markFoldState.get(key) ?? open;
       return `<details class="mark-fold" data-fold="${key}"${opened ? ' open' : ''}><summary>${title}</summary>${body}</details>`;
     };
+    // 哪些分组一开始就展开：求解器里本来就是（「要用的条件」与「要作的目标」），
+    // 手机版制题器也照这样（面板本身还是收起的，点圆形按钮才拉起来）
+    const foldOpened = solverMode || (mode === 'maker' && window.matchMedia('(max-width: 768px)').matches);
     const listOf = key => `<ul id="marked-${key}"></ul>`;
     const titled = (title, key) => `<div class="mark-item"><b>${title}</b>${listOf(key)}</div>`;
-    let html = `<strong>${t('board.markedTitle')}</strong>`;
+    // 标题在上拉栏的标题栏里（见 wrapInSheet），面板本体只放分组列表
+    let html = '';
     // 求解器里这两栏就是「要用的条件」与「要作的目标」，默认展开省得每次点开
-    html += fold('given', t('board.markGiven'), givenMarkItems.map(([key, labelKey]) => titled(t(labelKey), key)).join(''), solverMode);
     if (solverMode) {
-      // 求解器只接受给定与所求判定，面板也就只留「给定」「所求（判定）」两栏
-      html += fold('goal', t('board.markGoalGroup'), titled(t('board.markJudged'), 'result-1'), solverMode);
+      // 求解器的给定 / 所求各只有一种，条目上不再重复「给定」「判定」的小标题
+      html += fold('given', t('board.markGiven'), listOf('initial'), foldOpened);
+      html += fold('goal', t('board.markGoalGroup'), listOf('result-1'), foldOpened);
     }else{
+      html += fold('given', t('board.markGiven'), givenMarkItems.map(([key, labelKey]) => titled(t(labelKey), key)).join(''), foldOpened);
       let goals = '';
       for (let index = 1; index <= resultGroupCount(); index++) {
         const activeClass = index === resultActive ? ' mark-fold-active' : '';
         goals += fold(`result-${index}`, `<span class="mark-fold-title${activeClass}">${t('board.markGoalIndex', {index: index})}</span>`,
           titled(t('board.markJudged'), `result-${index}`) + titled(t('board.markShownShort'), `resultShown-${index}`), true);
       }
-      html += fold('goal', t('board.markGoalGroup'), goals);
+      html += fold('goal', t('board.markGoalGroup'), goals, foldOpened);
     }
-    if (!solverMode) html += fold('explore', t('board.markExplore'), listOf('explore'));
+    if (!solverMode) html += fold('explore', t('board.markExplore'), listOf('explore'), foldOpened);
     markPanel.innerHTML = html;
     // 记录用户的开合操作
     markPanel.querySelectorAll('details[data-fold]').forEach(detail => {
@@ -1774,9 +2120,8 @@
     if (item.getType() === 'circle') {
       const [center, on] = coord;
       const radius = Math.hypot(on[0] - center[0], on[1] - center[1]);
-      // 写成 (x±x0)^2+(y±y0)^2=r^2，负坐标时用加号
-      const shift = (value, axis) => `(${axis}${value < 0 ? '+' : '-'}${num(Math.abs(value))})`;
-      return `${shift(center[0], 'x')}^2+${shift(center[1], 'y')}^2=${num(radius)}^2`;
+      // 圆的标准式太长（已标记对象框一行放不下），写成「圆心(x, y) r=半径」
+      return `(${num(center[0])}, ${num(center[1])})r=${num(radius)}`;
     }
     if (item.getType() === 'line') {
       const [p1, p2] = coord;
@@ -1970,7 +2315,7 @@
     const toolbar = document.getElementById('menu_toolbar');
     if (!toolbar || toolbar.querySelector('[data-marking]')) return;
     const divider = document.createElement('div');
-    divider.className = 'vertical-divider';
+    divider.className = 'tool-separator';
     toolbar.appendChild(divider);
     markTools.forEach(markTool => {
       const button = document.createElement('button');
@@ -2109,11 +2454,15 @@
     if (backFrom && mode !== 'maker-play') { location.href = backFrom; return; }
     // 试玩返回制题器：restore=1 还原编辑状态，from 继续往下传（制题器的返回按钮据此回到最初的界面）
     const fromParam = backFrom ? '&from=' + encodeURIComponent(backFrom) : '';
-    // page 跟着关卡链接一路带过来（见 levels-data.js 的 levelRowHTML），返回关卡包时回原来那一页
     const pageParam = params.get('page') ? '&page=' + encodeURIComponent(params.get('page')) : '';
     location.href = mode === 'level' ? './pack.html?pack=' + encodeURIComponent(params.get('pack')) + pageParam : mode === 'maker-play' ? './board.html?mode=maker&restore=1' + fromParam : '../index.html';
   }, { templateId: 'back', actionKey: backActionKey });
-  if (mode === 'maker' || mode === 'solver') { document.body.appendChild(markPanel); refreshMarks(); }
+  if (mode === 'maker' || mode === 'solver') {
+    // 收进底部上拉栏，画布上只留一个圆形按钮（见 addSideButton）
+    // （面板里的各分组默认展开与否见 renderMarkPanel 的 foldOpened；上拉栏本身仍是收起的）
+    addSideButton('mark', markSideIcon(), t('board.markedTitle'), wrapInSheet(markPanel, t('board.markedTitle')));
+    refreshMarks();
+  }
   // 关卡游玩：LE 计数器放在返回按钮下方（返回按钮此时已就位）
   if (typeof updateMovesCounterPosition === 'function') updateMovesCounterPosition();
   // 刷新页面上静态文案的语言
@@ -2167,7 +2516,6 @@
       if (element && moving) {
         tip.hidden = false;
         // named 图形的表观标签可能与作图时的变量名不同（gmt 的 named=A.M 把 A 显示成 M），
-        // 悬停提示给的是原本的标签（变量名），免得对不上作图过程
         const originalLabel = element.getId();
         const tipLabel = originalLabel && originalLabel !== element.getName() ? originalLabel : element.getName();
         tip.textContent = `${tipLabel} · ${typeLabel(element)}`;
@@ -2200,10 +2548,78 @@
     if (canvasElement.parentElement) canvasElement.parentElement.appendChild(previewCanvas);
     // 预览该吸附到哪里：**点 / 交点优先**（两者都在 15px 吸附范围内时取更近的那个），
     // 附近既没有点也没有交点时，才退而吸附到线 / 圆上（把光标投到对象上）
-    const previewSnapOf = (x, y) => {
-      if (typeof transform === 'undefined') return {x: x, y: y, snapped: false};
-      const logicalX = (x - transform.x) / transform.scale;
-      const logicalY = (y - transform.y) / transform.scale;
+    /**
+     * 交点工具的光标吸附 过程函数
+     * 交点工具取的是「两个图形的交点」，落点是算出来的、不是光标指着的位置：
+     *   还没选图形 → 只有光标正压在某个相交处才给预览（其余时候连点预览都不画）；
+     *   已选了一个图形 → 光标下有第二个图形且与它有交点时，预览落在那个交点上（多个取最近的）
+     * @param {number} logicalX 逻辑 x
+     * @param {number} logicalY 逻辑 y
+     * @returns {{x: number, y: number, snapped: boolean}}
+     */
+    const intersectionSnapOf = (logicalX, logicalY) => {
+      const first = geometryManager.getToolKey('intersection', 'choice1');
+      if (!first) {
+        // 还没选图形：光标下确实是相交的位置才给预览
+        const only = geometryManager.nearestIntersection(logicalX, logicalY);
+        return only
+          ? {x: only.x, y: only.y, snapped: true}
+          : {x: logicalX, y: logicalY, snapped: false};
+      }
+      // 已经选了一个图形：取光标下最近的**另一个**图形，预览落在它与第一个图形的交点上
+      // （光标通常正压在刚选的那条线上，所以要跳过自身；near() 的返回顺序不是按距离排的，
+      //  这里自己逐个算一次「光标投到它上面的距离」再挑最近的那个）
+      const nearIds = geometryManager.near([logicalX, logicalY], ['line', 'circle'], 8)
+        .filter(item => item !== first.getId());
+      let second = null;
+      let secondDistance = Infinity;
+      nearIds.forEach(item => {
+        const element = geometryManager.get(item);
+        const coord = element?.getCoordinate?.();
+        if (!coord) return;
+        const p1 = {x: coord[0][0], y: coord[0][1]};
+        const p2 = {x: coord[1][0], y: coord[1][1]};
+        const p3 = {x: logicalX, y: logicalY};
+        let on = null;
+        if (element.getType() === 'line') {
+          const value = ToolsFunction.nearPointOnLine(p1, p2, p3);
+          if (value || value === 0) on = ToolsFunction.scalePoint(p1, p2, value);
+        }else{
+          on = ToolsFunction.radianToCoordinate(p1, p2, ToolsFunction.nearPointOnCircle(p1, p3));
+        }
+        if (!on) return;
+        const distance = Math.hypot(on.x - logicalX, on.y - logicalY);
+        if (distance < secondDistance) {
+          secondDistance = distance;
+          second = element;
+        }
+      });
+      if (second) {
+        const candidates = ToolsFunction.intersectionCandidates(first, second).filter(item =>
+          ToolsFunction.pointInElementRange(item.x, item.y, first) &&
+          ToolsFunction.pointInElementRange(item.x, item.y, second));
+        let best = null;
+        candidates.forEach(item => {
+          const distance = Math.hypot(item.x - logicalX, item.y - logicalY);
+          if (!best || distance < best.distance) best = {x: item.x, y: item.y, distance: distance};
+        });
+        if (best) return {x: best.x, y: best.y, snapped: true};
+      }
+      return {x: logicalX, y: logicalY, snapped: false};
+    };
+    /**
+     * 预览吸附位置（逻辑坐标）过程函数
+     * 光标的预览点、落点、以及 canvas.js 里那个半透明图形预览都用它 ——
+     * 三处共用一份逻辑，才不会出现「点预览吸对了、图形预览却从邻近的另一个交点擦过去」
+     * @param {number} logicalX 逻辑 x
+     * @param {number} logicalY 逻辑 y
+     * @returns {{x: number, y: number, snapped: boolean}}
+     */
+    const previewSnapLogicalOf = (logicalX, logicalY) => {
+      if (typeof transform === 'undefined') return {x: logicalX, y: logicalY, snapped: false};
+      if (typeof tool === 'string' && tool === 'intersection') {
+        return intersectionSnapOf(logicalX, logicalY);
+      }
       let best = null;
       const pointId = geometryManager.near([logicalX, logicalY], ['point'], 1)[0];
       if (pointId) {
@@ -2236,8 +2652,17 @@
           if (on) best = {x: on.x, y: on.y, distance: Math.hypot(on.x - logicalX, on.y - logicalY)};
         }
       }
-      if (!best) return {x: x, y: y, snapped: false};
-      return {x: transform.x + best.x * transform.scale, y: transform.y + best.y * transform.scale, snapped: true};
+      if (!best) return {x: logicalX, y: logicalY, snapped: false};
+      return {x: best.x, y: best.y, snapped: true};
+    };
+    window.previewSnapLogical = (logicalX, logicalY) => previewSnapLogicalOf(logicalX, logicalY);
+    const previewSnapOf = (x, y) => {
+      if (typeof transform === 'undefined') return {x: x, y: y, snapped: false};
+      const logicalX = (x - transform.x) / transform.scale;
+      const logicalY = (y - transform.y) / transform.scale;
+      const snap = previewSnapLogicalOf(logicalX, logicalY);
+      if (!snap.snapped) return {x: x, y: y, snapped: false};
+      return {x: transform.x + snap.x * transform.scale, y: transform.y + snap.y * transform.scale, snapped: true};
     };
     /**
      * 吸附后的落点 过程函数
@@ -2264,6 +2689,23 @@
         previewCanvas.hidden = true;
         return;
       }
+      // 光标下的点预览「下一步真的是落点」时才画，下面几种情况都不是：
+      // · 平行线 / 垂线：下一步可能是「选一条线」，只有已经选中了线才画（先点了点也一样：下一步还是选线）
+      // · 两直线角平分线：两步都是选直线，全程不画
+      // · 复制圆规：还没点圆时下一步是「选一个圆」，点了圆之后下一步才是落圆心
+      const hidePreviewPoint =
+          ((tool === 'parallelLine' || tool === 'perpendicularLine') && !geometryManager.getToolKey(tool, 'line'))
+          || subTool === 'twoLineAngleBisector'
+          || (subTool === 'compassCopy' && !geometryManager.getToolKey(tool, 'circle'))
+          // 样式刷 / 隐藏刷 / 切换线类型：光标自己已经画成圆环（或隐藏刷的方块）了，
+          // 再叠一个点预览只会互相干扰
+          || tool === 'styleBrush'
+          || tool === 'lineType';
+      if (hidePreviewPoint) {
+        context.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+        previewCanvas.hidden = true;
+        return;
+      }
       const width = canvasElement.clientWidth;
       const height = canvasElement.clientHeight;
       const dpr = window.devicePixelRatio || 1;
@@ -2285,15 +2727,35 @@
       }
       previewCanvas.hidden = false;
       const snap = previewSnapOf(x, y);
+      // 圆心工具：这个工具只会作出圆心，所以点预览落在「光标靠近的那个圆」的圆心上，
+      // 样式跟其他点预览完全一样（同一份代码画），只是位置不在光标处
+      let previewPoint = snap;
+      if (subTool === 'circleCenter') {
+        const logical = [(x - transform.x) / transform.scale, (y - transform.y) / transform.scale];
+        const [circleId] = geometryManager.near(logical, ['circle'], 1);
+        const coord = circleId ? geometryManager.get(circleId)?.getCoordinate?.() : null;
+        if (!coord) {
+          previewCanvas.hidden = true;
+          context.clearRect(0, 0, width, height);
+          return;
+        }
+        previewPoint = {x: transform.x + coord[0][0] * transform.scale, y: transform.y + coord[0][1] * transform.scale};
+      }
+      // 交点工具取的一定是交点：还在选图形的阶段（没吸到任何交点）就不给点预览
+      if (tool === 'intersection' && !snap.snapped) {
+        previewCanvas.hidden = true;
+        context.clearRect(0, 0, width, height);
+        return;
+      }
       // 样式与点图形一致（外径 8px + 内径 4px 白芯），但整体半透明：
       // 它只是「将要落在哪里」的预览，还没有真正落下
       context.globalAlpha = 0.5;
       context.beginPath();
-      context.arc(snap.x, snap.y, 8, 0, Math.PI * 2);
+      context.arc(previewPoint.x, previewPoint.y, 8, 0, Math.PI * 2);
       context.fillStyle = 'rgb(25, 25, 25)';
       context.fill();
       context.beginPath();
-      context.arc(snap.x, snap.y, 4, 0, Math.PI * 2);
+      context.arc(previewPoint.x, previewPoint.y, 4, 0, Math.PI * 2);
       context.fillStyle = 'rgb(255, 255, 255)';
       context.fill();
       context.globalAlpha = 1;

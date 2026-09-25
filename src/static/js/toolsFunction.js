@@ -154,9 +154,10 @@ class ToolsFunction {
         // 计算y轴上的偏移量
         const tmp = offset * dy / dx;
         const offsetY = Math.hypot(tmp, offset) / transform.scale;
-        // 点偏移
-        const pointOffsetY = offset * dx / Math.hypot(dx, dy);
-        const pointOffsetX = -offset * dy / Math.hypot(dx, dy);
+        // 点偏移（线段 / 射线选中时的那两条线），要跟直线一样是屏幕上的固定距离，所以要除以 scale：
+        // 少了这个除法，线段 / 射线的选中双线间距会随缩放一起变大，看着跟直线不一致
+        const pointOffsetY = offset * dx / Math.hypot(dx, dy) / transform.scale;
+        const pointOffsetX = -offset * dy / Math.hypot(dx, dy) / transform.scale;
         
         const intersections = tValues
             .map(t => ({
@@ -1061,6 +1062,102 @@ class ToolsFunction {
     }
     
     /**
+     * 两个坐标是不是同一个点 过程函数
+     * 容差按坐标量级放大（大坐标下的构造误差不该被算成两个点）
+     * @param {number[]} a
+     * @param {number[]} b
+     * @param {number} [tolerance]
+     * @returns {boolean}
+     */
+    static sameCoordinate(a, b, tolerance = 1e-6) {
+        if (!Array.isArray(a) || !Array.isArray(b)) return false;
+        const scale = Math.max(1, Math.abs(a[0]), Math.abs(a[1]), Math.abs(b[0]), Math.abs(b[1]));
+        return Math.hypot(a[0] - b[0], a[1] - b[1]) <= tolerance * scale;
+    }
+
+    /**
+     * 两个向量是不是同向（长度不限） 过程函数
+     * @param {number[]} p1
+     * @param {number[]} p2
+     * @param {number[]} q1
+     * @param {number[]} q2
+     * @returns {boolean}
+     */
+    static sameDirection(p1, p2, q1, q2) {
+        const dx = p2[0] - p1[0], dy = p2[1] - p1[1];
+        const ex = q2[0] - q1[0], ey = q2[1] - q1[1];
+        const lengthX = Math.hypot(dx, dy), lengthY = Math.hypot(ex, ey);
+        if (lengthX < 1e-9 || lengthY < 1e-9) return false;
+        const cross = dx * ey - dy * ex;
+        const dot = dx * ex + dy * ey;
+        // 叉积相对量级为 0（共线）且点积为正（没有反向）
+        return Math.abs(cross) <= 1e-9 * lengthX * lengthY && dot > 0;
+    }
+
+    /**
+     * 四个点是不是在同一条直线上（过 p1、p2 的直线是否也过 q1、q2） 过程函数
+     * @param {number[]} p1
+     * @param {number[]} p2
+     * @param {number[]} q1
+     * @param {number[]} q2
+     * @returns {boolean}
+     */
+    static collinearPoints(p1, p2, q1, q2) {
+        const dx = p2[0] - p1[0], dy = p2[1] - p1[1];
+        const length = Math.hypot(dx, dy);
+        if (length < 1e-9) return false;
+        // 叉积 / 长度 = 点到直线的距离
+        const distance1 = Math.abs(dx * (q1[1] - p1[1]) - dy * (q1[0] - p1[0])) / length;
+        const distance2 = Math.abs(dx * (q2[1] - p1[1]) - dy * (q2[0] - p1[0])) / length;
+        const tolerance = 1e-6 * Math.max(1, Math.abs(p1[0]), Math.abs(p1[1]), Math.abs(q1[0]), Math.abs(q1[1]));
+        return distance1 <= tolerance && distance2 <= tolerance;
+    }
+
+    /**
+     * 两个线图形是不是同一个图形 过程函数
+     * 看图形本身、不看它是怎么作出来的：直线只要求共线，射线比起点与方向，
+     * 线段比两个端点（顺序无关）；**直线 / 射线 / 线段之间不算同一个图形**
+     * @param {Object} line1
+     * @param {Object} line2
+     * @returns {boolean}
+     */
+    static sameLineElement(line1, line2) {
+        const coord1 = line1 && typeof line1.getCoordinate === 'function' ? line1.getCoordinate() : null;
+        const coord2 = line2 && typeof line2.getCoordinate === 'function' ? line2.getCoordinate() : null;
+        if (!coord1 || !coord2 || coord1.length < 2 || coord2.length < 2) return false;
+        const drawType1 = line1.getDrawType ? line1.getDrawType() : 'line';
+        const drawType2 = line2.getDrawType ? line2.getDrawType() : 'line';
+        if (drawType1 !== drawType2) return false;
+        if (drawType1 === 'lineSegment') {
+            return (ToolsFunction.sameCoordinate(coord1[0], coord2[0]) && ToolsFunction.sameCoordinate(coord1[1], coord2[1]))
+                || (ToolsFunction.sameCoordinate(coord1[0], coord2[1]) && ToolsFunction.sameCoordinate(coord1[1], coord2[0]));
+        }
+        if (drawType1 === 'ray') {
+            return ToolsFunction.sameCoordinate(coord1[0], coord2[0])
+                && ToolsFunction.sameDirection(coord1[0], coord1[1], coord2[0], coord2[1]);
+        }
+        return ToolsFunction.collinearPoints(coord1[0], coord1[1], coord2[0], coord2[1]);
+    }
+
+    /**
+     * 两个圆是不是同一个图形 过程函数
+     * 圆心与半径都一样就是同一个圆（怎么作出来的无关）
+     * @param {Object} circle1
+     * @param {Object} circle2
+     * @returns {boolean}
+     */
+    static sameCircleElement(circle1, circle2) {
+        const coord1 = circle1 && typeof circle1.getCoordinate === 'function' ? circle1.getCoordinate() : null;
+        const coord2 = circle2 && typeof circle2.getCoordinate === 'function' ? circle2.getCoordinate() : null;
+        if (!coord1 || !coord2 || coord1.length < 2 || coord2.length < 2) return false;
+        const radius1 = Math.hypot(coord1[1][0] - coord1[0][0], coord1[1][1] - coord1[0][1]);
+        const radius2 = Math.hypot(coord2[1][0] - coord2[0][0], coord2[1][1] - coord2[0][1]);
+        const tolerance = 1e-6 * Math.max(1, radius1, radius2);
+        return ToolsFunction.sameCoordinate(coord1[0], coord2[0])
+            && Math.abs(radius1 - radius2) <= tolerance;
+    }
+
+    /**
      * 圆的定义点坐标 过程函数
      * 「定义点」= 画圆时点的那两个点里的半径端点（Circle[A,B] 的 B）；取不到就返回 null
      * @param {Object} circle
@@ -1074,6 +1171,11 @@ class ToolsFunction {
         if (base.type !== 'twoPoints') return null;
         const figure = base.figure || [];
         const item = figure[1];
+        // 半径端点本身是个**自由点**时不算定义点：它只是被点在那儿，与「这个圆是怎么作出来的」无关。
+        // 不排除的话，它一旦恰好落在（或落笔时被吸附到）别的图形上，交点编号就会翻到另一侧 ——
+        // 表现为「自由点离别的图形很近，交点跳到另一边」。永远不要因为自由点恰好在特殊位置就当它是特殊的点
+        // （本来就是「线上点 / 交点」这类构造出来的点，仍然算定义点）
+        if (item && typeof item.getBase === 'function' && item.getBase().type === 'none') return null;
         const coord = item && typeof item.getCoordinate === 'function' ? item.getCoordinate() : null;
         return Array.isArray(coord) && typeof coord[0] === 'number' ? coord : null;
     }

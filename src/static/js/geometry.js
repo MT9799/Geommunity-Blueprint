@@ -518,6 +518,8 @@ class GeometryElementManager {
         this.repository = new Object();
         this.counter = {"total": 0};
         this.choice = new Object();
+        // 上一次作图因为「图形画布上已经有了」而作废（loadTool 里置位，storage 监听里取走）
+        this.duplicatedFlag = false;
         this.transform = {x: 0, y: 0, scale: 1};
         this.geometryStyle = {point: {colorChoice: "auto", color: "#191919"}, 
             line: {colorChoice: "auto", color: "#191919"}, 
@@ -608,20 +610,30 @@ class GeometryElementManager {
         const resultexceptPoints = new Array();
         const choice = new Array();
         
+        // 画在最上面的一层：所求判定 / 所求显示 / 探索显示的图形。
+        // 关卡作出解后，这些金色图形要压在玩家自己画的图形之上，否则会被盖住看不清
+        const isOnResultLayer = id => {
+            if (geometryElementLists.result?.has(id) || geometryElementLists.explore?.has(id)) return true;
+            for (let index = 1; index <= 20; index++) {
+                const key = index === 1 ? 'resultShown' : `resultShown${index}`;
+                if (geometryElementLists[key]?.has(id)) return true;
+            }
+            return false;
+        };
         // 实有对象
         let list = Object.values(this.repository);
         list.forEach((element) => {
             const type = element.getType();
             if (type === "point") {
                 const id = element.getId();
-                if (geometryElementLists.result.has(id) || geometryElementLists.explore.has(id)) {
+                if (isOnResultLayer(id)) {
                     resultPoints.push(element);
                 }else{
                     points.push(element);
                 }
             }else{
                 const id = element.getId();
-                if (geometryElementLists.result.has(id) || geometryElementLists.explore.has(id)) {
+                if (isOnResultLayer(id)) {
                     resultexceptPoints.push(element);
                 }else{
                     exceptPoints.push(element);
@@ -985,6 +997,44 @@ class GeometryElementManager {
     }
     
     /**
+     * 画布上是否已经有同一个图形 过程函数
+     * 判定只看图形本身、不看它是怎么作出来的：过 a 上一点作 a 的平行线，作出的还是 a；
+     * 以 A 为圆心、AB 为半径作的圆，也等于画布上已经有的那个圆。
+     * 只比线与圆（点的重复交给「引用已有点」那套），只看可见、有效的图形
+     * @param {Object} element
+     * @returns {Object|null} 画布上那个同一个图形
+     */
+    findSameElement(element) {
+        if (!element || typeof element.getType !== 'function') return null;
+        const type = element.getType();
+        if (type !== 'line' && type !== 'circle') return null;
+        if (typeof element.updateCoordinate === 'function') element.updateCoordinate();
+        for (const other of Object.values(this.repository)) {
+            if (!other || other === element) continue;
+            if (other.getType() !== type) continue;
+            if (!other.getValid() || !other.getVisible()) continue;
+            if (type === 'line') {
+                if (ToolsFunction.sameLineElement(element, other)) return other;
+            }else if (ToolsFunction.sameCircleElement(element, other)) {
+                return other;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 取走「上一次作图作废」的标记 过程函数
+     * 落图形前先问一遍画布上有没有同一个图形，有就把这次作图整个作废；
+     * 游玩模式的 storage 监听靠这个标记跳过步数（L/E）计数
+     * @returns {boolean}
+     */
+    takeDuplicatedFlag() {
+        const flag = this.duplicatedFlag === true;
+        this.duplicatedFlag = false;
+        return flag;
+    }
+
+    /**
      * 保存指定工具的所有缓存对象
      * @param {string} tool
      */
@@ -992,8 +1042,15 @@ class GeometryElementManager {
         // 检查存在性
         if (!Object.keys(this.choice).includes(tool)) return;
         
-        // 保存
         const elements = Object.values(this.choice[tool]);
+        // 预检：这次要作出的图形画布上已经有了 → 整次作图作废（半成品点也不落）
+        if (elements.some(element => element.type === 'create' && this.findSameElement(element.create))) {
+            this.duplicatedFlag = true;
+            this.deleteTool(tool);
+            return;
+        }
+        
+        // 保存
         for (const element of elements) {
             // 缓存对象为ID形式，说明是引用已存在的对象，跳过
             if (element.type === 'create') {
@@ -1545,10 +1602,12 @@ class GeometryElementManager {
     
     /**
      * 存储
+     * 就存在工具缓存里 —— 于是保存记录 / 记一步历史这类读操作会把选中的对象悄悄清掉
+     * （典型现象：选中图形后在「调整对象样式」面板里改一下，选中就没了）。
+     * 载入 / 清空画布那条路会走 deleteAll()，那里仍然会把缓存一起清掉
      * @returns {dict[]}
      */
     toStorage() {
-        this.deleteAllCache();
         const copy = [];
         for (const value of Object.values(this.repository)) {
             copy.push(value.getDict());
@@ -1630,4 +1689,136 @@ class GeometryElementManager {
             return element;
         }
     }
+}
+
+/**
+ * 应用元素一览详情里某个输入框的改动 过程函数
+ * 名称 / x / y / 基底值 / 颜色都在这里改；调用方只管重绘与记一步历史
+ * @param {Object} target 触发 change 的输入框（id 形如 item-<元素id>-<字段>-input）
+ * @returns {string|null} 记录历史用的类型（'name' | 'move' | 'style'）；没改动 / 非法输入返回 null
+ */
+function applyGeometryItemInput(target) {
+    const matched = target?.id?.match(/^item-(.+)-(name|x|y|base-value|color)-input$/);
+    if (!matched) return null;
+    const [, id, field] = matched;
+    const element = geometryManager.get(id);
+    if (!element) return null;
+
+    // 颜色
+    if (field === 'color') {
+        element.modifyColor(target.value);
+        return 'style';
+    }
+
+    // 名称：重名的话给重名那个加 1 / 2 / 3…（见 renameGeometryElement）
+    if (field === 'name') {
+        const name = String(target.value || '').trim();
+        if (!name || name === element.getName()) {
+            target.value = element.getName();
+            return null;
+        }
+        renameGeometryElement(id, name);
+        return 'name';
+    }
+
+    // 坐标：只有自由点能移动；线上点会被投影回线上（见 modifyPointCoordinate）
+    if (field === 'x' || field === 'y') {
+        const coord = element.getCoordinate();
+        const value = Number(target.value);
+        if (element.getType() !== 'point' || !Array.isArray(coord) || !Number.isFinite(value)) {
+            if (Array.isArray(coord)) target.value = field === 'x' ? coord[0] : coord[1];
+            return null;
+        }
+        geometryManager.modifyPointCoordinate(id,
+            field === 'x' ? value : coord[0],
+            field === 'y' ? value : coord[1]);
+        const now = element.getCoordinate();
+        target.value = field === 'x' ? now[0] : now[1];
+        return 'move';
+    }
+
+    // 基底值：线上点的参数 / 交点取第几个（自由点、中点、圆心没有可改的值）
+    const base = typeof element.getBase === 'function' ? element.getBase() : null;
+    const value = Number(target.value);
+    const changeable = base && element.getType() === 'point'
+        && base.type !== 'none' && base.type !== 'middlePoint' && base.type !== 'center';
+    if (!changeable || !Number.isFinite(value)) {
+        if (base) target.value = base.value;
+        return null;
+    }
+    element.modifyBase(base.type, base.bases, value, base.exclude);
+    // 改完再借已知坐标走一次「移动点」：让上层建筑跟着重算
+    const coord = element.getCoordinate();
+    if (Array.isArray(coord) && typeof coord[0] === 'number') {
+        geometryManager.modifyPointCoordinate(id, coord[0], coord[1]);
+    }
+    return 'move';
+}
+
+/**
+ * 显示用的数字 过程函数
+ * @param {number} value
+ * @returns {string}
+ */
+function displayNumber(value) {
+    if (!Number.isFinite(value)) return '—';
+    return String(value);
+}
+
+/**
+ * 直线的斜率文字 过程函数（竖直线的斜率写成 ∞）
+ */
+function lineSlopeText(coord) {
+    const [p1, p2] = coord;
+    if (Math.abs(p2[0] - p1[0]) < 1e-9) return '∞（竖直）';
+    return displayNumber((p2[1] - p1[1]) / (p2[0] - p1[0]));
+}
+
+/**
+ * 直线的截距文字 过程函数（竖直线的 y 轴截距不存在）
+ */
+function lineInterceptText(coord) {
+    const [p1, p2] = coord;
+    if (Math.abs(p2[0] - p1[0]) < 1e-9) return '—';
+    const k = (p2[1] - p1[1]) / (p2[0] - p1[0]);
+    return displayNumber(p1[1] - k * p1[0]);
+}
+
+/**
+ * 圆的圆心文字 过程函数
+ */
+function circleCenterText(coord) {
+    return `(${displayNumber(coord[0][0])}, ${displayNumber(coord[0][1])})`;
+}
+
+/**
+ * 圆的半径文字 过程函数
+ */
+function circleRadiusText(coord) {
+    return displayNumber(Math.hypot(coord[1][0] - coord[0][0], coord[1][1] - coord[0][1]));
+}
+
+/**
+ * 给图形改名 过程函数
+ * 名称与别的图形重名时，那些重名的图形依次加上 1、2、3… 后缀（1 也被占了就试 2，以此类推）
+ * @param {string} id 被改名的图形
+ * @param {string} name 新名称（调用方保证已去空格且非空）
+ * @returns {boolean} 是否真的改了名
+ */
+function renameGeometryElement(id, name) {
+    const element = geometryManager.get(id);
+    if (!element || !name) return false;
+    element.modifyName(name);
+    const taken = new Set([name]);
+    geometryManager.getAllByOrder().forEach(item => {
+        if (item.getId() === id || item.getName() !== name) return;
+        let index = 1, candidate = name + index;
+        while (taken.has(candidate)) {
+            index++;
+            candidate = name + index;
+        }
+        taken.add(candidate);
+        item.modifyName(candidate);
+    });
+    return true;
 }

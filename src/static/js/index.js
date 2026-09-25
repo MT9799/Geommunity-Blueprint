@@ -28,8 +28,14 @@ function updateLayout() {
 window.addEventListener('resize', updateLayout);
 
 // 手势变量
+// 按下之后要移够这么多像素才算「拖动」：手抖挪几像素不该被当成拖拽作图
+// （见 mouseMoveEventFunction / mouseUpEventFunction，只用于左键作图；中键平移画布不受限制）
+const dragThreshold = 15;
 let startX, startY, startTime;
 let isDragging = false;
+// 鼠标是不是正按着：mousemove 里靠它区分「按住拖动」与「纯悬停」
+// （松开之后的移动只是悬停，但 startX / startY 还停在上一次按下的位置）
+let isPressing = false;
 let touchDoubleFlag = false;
 let touchType = 1;
 let mouseType = 0;
@@ -78,10 +84,12 @@ let geometryElementLists = {
 const tools = {
     move: new MoveTool(),
     eraser: new EraserTool(),
+    styleBrush: new StyleBrushTool(),
     point: new PointTool(),
     line: new LineTool(),
     ray: new RayTool(),
     lineSegment: new LineSegmentTool(),
+    lineType: new LineTypeTool(),
     circle: new CircleTool(),
     intersection: new IntersectionTool(),
     parallelLine: new ParallelConstructTool(),
@@ -329,8 +337,16 @@ function recordPanel(event) {
             geometryElementLists[key] = new Set(value);
         }
     
-        // 几何对象
-        geometryManager.loadStorage(dict.geometryElement);
+        // 几何对象：走 loadStorageSnapshot —— loadStorage 会按当前绘制样式（求解器里是自动配色）
+        // 把对象重新涂成红 / 灰，存档里带的金色「所求判定」就没了；
+        // 快照这条路会按存档还原各自颜色，再补一次 refreshElementListColors（给定黑、所求金）
+        if (typeof loadStorageSnapshot === 'function') {
+            loadStorageSnapshot(dict.geometryElement);
+        } else {
+            geometryManager.loadStorage(dict.geometryElement);
+        }
+        // 无论走哪条路，最后都按标记重上一次色：给定黑、所求（多解每一组）金
+        if (typeof refreshElementListColors === 'function') refreshElementListColors();
         drawContent();
         
         // 历史记录
@@ -371,26 +387,26 @@ function touchstartEventFunction(e) {
 function touchendEventFunction(e) {
     // 事件预处理
     e.preventDefault();
+    // 这一手势算不算拖动（在 touchmove 里移够距离才置位），要在复位之前取出来
+    const dragged = isDragging;
     isDragging = false;
+    // 手指抬起了：工具光标收掉（手机上没有「悬停」，不收就会卡在原地）
+    if (typeof hidePointerCursor === 'function') hidePointerCursor();
 
     // 计算终点
     const endX = e.changedTouches[0].clientX - canvasLeft;
     const endY = e.changedTouches[0].clientY - canvasTop;
-    const duration = Date.now() - startTime;
-    const deltaX = endX - startX;
-    const deltaY = endY - startY;
-    const deltaAbsX = Math.abs(deltaX);
-    const deltaAbsY = Math.abs(deltaY);
 
     // 坑点：注意touchendEvent时点数是少的，且每松开一个手指就触发一次
     // 状态触发
     if (touchType === 1) {
-        if (duration < 300 && deltaAbsX < 15 && deltaAbsY < 15) {
-            // 点击
-            operateEventFunction("click", endX, endY);
-        } else {
+        if (dragged) {
             // 拖拽
             operateEventFunction("drawComplete", endX, endY);
+        } else {
+            // 点击（按住多久都算点击：手一直按着没挪地方，松手时不该按拖拽处理）
+            operateEventFunction("click", endX, endY);
+            if (typeof previewWaitForMove === 'function') previewWaitForMove();
         }
     }
     // 没有触点时还原
@@ -409,6 +425,8 @@ function touchcancelEventFunction(e) {
     isDragging = false;
     touchType = 1;
     touchDoubleFlag = false;
+    // 触摸被系统取消了（来电 / 手势）：工具光标也收掉
+    if (typeof hidePointerCursor === 'function') hidePointerCursor();
     drawContent();
     operateEventFunction("cancel", null, null);
 }
@@ -486,10 +504,13 @@ function touchmoveEventFunction(e) {
 
         pointerPosition.x = x;
         pointerPosition.y = y;
-        if (tool === 'eraser' || subTool === 'style') drawContent();
+        // 手指还在移动：工具光标该显示（force = 触摸自己的动作，不受「刚抬手」的忽略窗口影响）
+        if (typeof showPointerCursor === 'function') showPointerCursor(true);
+        // 橡皮擦的方块光标、切换线类型 / 样式刷的圆环光标都跟着指针走，要重绘
+        if (tool === 'eraser' || tool === 'lineType' || tool === 'styleBrush') drawContent();
 
-        // 拖拽判定
-        if (Math.abs(deltaX) > 15 || Math.abs(deltaY) > 15) {
+        // 拖拽判定：移够距离才算拖动（手抖不算）
+        if (Math.abs(deltaX) > dragThreshold || Math.abs(deltaY) > dragThreshold) {
             isDragging = true;
         }
         if (!isDragging) return;
@@ -512,7 +533,11 @@ function mouseDownEventFunction(e) {
     startY = y;
     preX = startX;
     preY = startY;
-    isDragging = true;
+    // 先当作「还没拖动」：移够距离才置位（见 mouseMoveEventFunction）。
+    isDragging = false;
+    isPressing = true;
+    // 鼠标按下了：工具光标该显示
+    if (typeof showPointerCursor === 'function') showPointerCursor();
     startTime = Date.now();
     mouseType = e.button;
 
@@ -534,8 +559,21 @@ function mouseMoveEventFunction(e) {
     const snapDraw = mouseType === 1 || typeof snapCursorPosition !== 'function' ? [x, y] : snapCursorPosition(x, y);
     pointerPosition.x = snapDraw[0];
     pointerPosition.y = snapDraw[1];
-    if (tool === 'eraser' || subTool === 'style' || hasToolPreview()) drawContent();
+    // 鼠标动了：工具光标该显示（刚触摸抬手时的合成鼠标事件会被 showPointerCursor 忽略）
+    if (typeof showPointerCursor === 'function') showPointerCursor();
+    // 预览消失的那一帧也要重绘（needRedrawForPreview 里管这件事）；
+    // 橡皮擦的方块光标、切换线类型 / 样式刷的圆环光标都跟着指针走
+    if (tool === 'eraser' || tool === 'lineType' || tool === 'styleBrush' || needRedrawForPreview()) drawContent();
 
+    // 拖拽判定：没按着键时的移动只是悬停（startX / startY 还停在上一次按下的位置，
+    // 不加这一层的话，点完一下再随手挪动就会被当成拖动）；按着左键还要移够距离才算
+    // 「拖动作图」（手抖挪几像素不该画出图形），中键本来就只是平移画布、不受阈值限制
+    if (!isPressing) {
+        isDragging = false;
+    }else if (mouseType === 1
+        || Math.abs(x - startX) > dragThreshold || Math.abs(y - startY) > dragThreshold) {
+        isDragging = true;
+    }
     if (!isDragging) return;
 
     if (mouseType === 0) {
@@ -567,32 +605,31 @@ function mouseMoveEventFunction(e) {
  */
 function mouseUpEventFunction(e) {
     e.preventDefault();
+    // 这次按压算不算拖动（移够距离才置位），要在复位之前取出来
+    const dragged = isDragging;
     isDragging = false;
 
     const endX = e.clientX - canvasLeft;
     const endY = e.clientY - canvasTop;
-    const duration = Date.now() - startTime;
-    const deltaX = endX - startX;
-    const deltaY = endY - startY;
-    const deltaAbsX = Math.abs(deltaX);
-    const deltaAbsY = Math.abs(deltaY);
 
     // 左键落点同样先吸附：最后一个点点在隐交点上也画得出图形
     const snapEnd = mouseType === 0 && typeof snapCursorPosition === 'function' ? snapCursorPosition(endX, endY) : [endX, endY];
-    if (duration < 300 && deltaAbsX < 15 && deltaAbsY < 15) {
-        if (mouseType === 0) {
-            operateEventFunction("click", snapEnd[0], snapEnd[1]);
-        }
-    } else {
-        if (mouseType === 0) {
-            // 左键
+    if (mouseType === 0) {
+        // 左键：按下后没移够距离（手抖）就还是「点击」，只有真的拖动过才当作拖拽完成；
+        // 按住多久都算点击，不再看时长
+        if (dragged) {
             operateEventFunction("drawComplete", snapEnd[0], snapEnd[1]);
-        }else if (mouseType === 1) {
-            // 中键
-            canvas.classList.remove('move-cursor');
+        } else {
+            operateEventFunction("click", snapEnd[0], snapEnd[1]);
+            // 点完这一下先不画预览，等指针移动过再画（见 canvas.js previewWaitForMove）
+            if (typeof previewWaitForMove === 'function') previewWaitForMove();
         }
+    }else if (mouseType === 1) {
+        // 中键：结束平移（不管有没有真的移动过，都把抓手光标收掉）
+        canvas.classList.remove('move-cursor');
     }
     mouseType = 0;
+    isPressing = false;
 }
 
 /**
@@ -604,6 +641,7 @@ function mouseCancelEventFunction(e) {
     e.preventDefault();
     operateEventFunction("cancel", null, null);
     isDragging = false;
+    isPressing = false;
     drawContent();
 }
 
@@ -617,20 +655,15 @@ function wheelEventFunction(e) {
     const x = e.clientX - canvasLeft;
     const y = e.clientY - canvasTop;
 
-    // 状态缓存
-    const currentScale = transform.scale * zoomDelta;
+    // 先把倍率钳进允许范围再算偏移：不钳的话，顶到缩放上限后 currentScale 仍在继续乘 1.1，
+    // 而真正的 scale 已经不动了 —— 于是每滚一格都把画面往一边猛推一次（看着像「画布瞬移」）
+    const currentScale = Math.min(Math.max(transform.scale * zoomDelta, minScale), maxScale);
     // 计算旧逻辑坐标（鼠标在缩放前的逻辑位置）
     const oldLogicX = (x - transform.x) / transform.scale;
     const oldLogicY = (y - transform.y) / transform.scale;
     // 计算新偏移量，使鼠标下的逻辑点保持不变
-    let offsetX, offsetY;
-    if (currentScale <= maxScale && currentScale >= minScale) {
-        offsetX = x - oldLogicX * currentScale;
-        offsetY = y - oldLogicY * currentScale;
-    } else {
-        offsetX = x - oldLogicX * transform.scale;
-        offsetY = y - oldLogicY * transform.scale;
-    }
+    const offsetX = x - oldLogicX * currentScale;
+    const offsetY = y - oldLogicY * currentScale;
 
     limitLoad(offsetX, offsetY, currentScale);
     refreshToolFloating();
@@ -900,6 +933,10 @@ function cancelPendingToolDraw() {
  */
 function hasPendingToolDraw() {
     if (typeof tools === 'undefined' || !tools[tool]) return false;
+    // 移动工具的缓存里放的是「选定栏」（选中的那个对象），样式刷的缓存里放的是刷子当前选中的图形，
+    // 都不是画到一半的作图：撤销 / 重做时不该把它们当成半成品清掉 —— 否则按撤销只会取消选中，
+    // 刷样式的那些步骤也撤不回去
+    if (tool === 'move' || tool === 'styleBrush') return false;
     return !!tools[tool].cacheFlag || geometryManager.ifToolInCache(tool);
 }
 
@@ -935,7 +972,14 @@ function redoStorage() {
     drawContent();
 }
 
-window.addEventListener("storage", storage);
+window.addEventListener("storage", () => {
+    // 这次作图因为「图形画布上已经有了」而作废：不记撤销历史，只把画布上的半成品擦掉
+    if (geometryManager.takeDuplicatedFlag()) {
+        drawContent();
+        return;
+    }
+    storage();
+});
 function storage() {
     // 存储：几何对象 + 选定栏（标记等改动也能撤销）
     storageManager.append(collectStorageSnapshot());
@@ -963,7 +1007,7 @@ const infDict = {
     "mark-initial": {title: "标记给定", context: "点击对象标记为给定的条件（黑色）"},
     "mark-named": {title: "带标签给定", context: "点击对象标记为带标签的给定（黑色 + 标签），会弹出命名框"},
     "mark-movepoints": {title: "可移动点", context: "点击对象标记为可移动点（蓝色），拖动它时图形随之变化"},
-    "mark-result": {title: "标记所求", context: "点击对象标记为所求的判定对象（金色）"},
+    "mark-result": {title: "标记所求", context: "点击对象标记为所求（金色）"},
     "mark-result-shown": {title: "所求显示", context: "点击对象标记为判定成功后要显示出来的图形（金色）"},
     "mark-explore": {title: "探索显示", context: "点击对象标记为探索模式里要显示的内容（金色）"},
     "clear-marks": {title: "清除标记", context: "清空给定与所求标记"},
@@ -992,6 +1036,9 @@ const infDict = {
     "move": {title: "移动工具", context: "可以拖动点、画布"},
     "point": {title: "点工具", context: "点击以创建一个点，可以拖动点以放置到几何对象上"},
     "eraser": {title: "橡皮擦工具", context: ""},
+    "styleBrush": {title: "样式刷", context: "先点一个图形当样式来源，之后点到的图形会套用它的颜色、粗细与标签显示"},
+    "brushStyle": {title: "样式刷模式", context: "先点一个图形当样式来源，之后点到的图形套用它的样式"},
+    "brushHidden": {title: "隐藏刷模式", context: "点一下图形把它隐藏起来（撤销、或到元素一览的「隐藏」档里可以找回来）"},
     "line": {title: "直线工具", context: ""},
     "circle": {title: "圆工具", context: ""},
     "intersection": {title: "交点工具", context: ""},
@@ -1014,6 +1061,7 @@ const infDict = {
     "any": {title: "任意对象", context: "可选中任意几何对象"},
     "choicePoint": {title: "点对象", context: "仅选中点对象"},
     "style": {title: "样式刷", context: "拖拽以配置直线的样式为当前线工具样式"},
+    "lineType": {title: "切换线类型", context: "点一下直线 / 射线 / 线段，把它的类型换成下一种"},
     "lineStyle": {title: "配置直线样式", context: "设置后续绘制的直线的颜色、粗细与标签显示"},
     "circleStyle": {title: "配置圆样式", context: "设置后续绘制的圆的颜色、粗细与标签显示"},
     "threePointAngleBisector": {title: "三点角平分线", context: "第二点为角的顶点"},
@@ -1132,6 +1180,9 @@ function dataLoad() {
     const constructRecordJSON = sessionStorage.getItem('constructRecord');
     if (constructRecordJSON) storageManager.deserialization(constructRecordJSON);
     refreshStorageButton();
+    // 按标记重上一次色（给定黑 / 所求金）：dataLoad 只按存档里的 color 画，
+    // 存档没带标记色（例如带过来的求解器 / 制题器记录）时「所求」在画布上就不金
+    if (typeof refreshElementListColors === 'function') refreshElementListColors();
     
     function deserialization(elementDict) {
         const type = elementDict.type;
@@ -1166,19 +1217,20 @@ function dataLoad() {
 }
 
 /**
- * 元素一览的颜色输入：修改对象自身的样式色
+ * 元素一览详情里的输入框：名称 / 坐标 / 基底值 / 颜色
+ * 具体改动交给 geometry.js 的 applyGeometryItemInput（两个页面共用）
  * （标记中的对象显示色由 board-tools 接管，这里改的只是样式色）
  * @param {Object} event
  */
 function geometryItemChange(event) {
-    const target = event.target;
-    if (target?.type !== 'color') return;
-    const id = target.id?.match(/^item-(.+)-color-input$/)?.[1];
-    if (!id) return;
-    const element = geometryManager.get(id);
-    if (!element) return;
-    element.modifyColor(target.value);
+    // 置灰的输入框一律不处理（制题器里非自由点的坐标、只读的结果框）
+    if (event.target?.disabled) return;
+    const type = typeof applyGeometryItemInput === 'function' ? applyGeometryItemInput(event.target) : null;
+    if (!type) return;
+    loadGeometryElements();
+    refreshOpenedGeometryItem();
     drawContent();
+    notifyStorageChange(type);
 }
 
 // 加载完毕

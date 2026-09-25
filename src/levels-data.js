@@ -131,7 +131,9 @@ function levelRowHTML(level, options) {
     // from：从搜索页进来的关卡，返回时回到原来那个搜索页（含查询条件）
     const fromParam = setting.levelFrom ? `&from=${encodeURIComponent(setting.levelFrom)}` : '';
     const href = `./level.html?pack=${encodeURIComponent(level.pack)}&id=${encodeURIComponent(level.id)}${pageParam}${fromParam}`;
-    return `<a class="level-row" href="${href}"${note}><span>${number}</span><span class="level-thumb">${thumb}</span><strong>${level.title}${packTag}</strong><small>${steps}　→</small></a>`;
+    // 标题与步数放同一格（.level-main）：窄屏时步数排在标题下面，不会被挤到新的一行
+    return `<a class="level-row" href="${href}"${note}><span>${number}</span><span class="level-thumb">${thumb}</span>` +
+        `<span class="level-main"><strong>${level.title}${packTag}</strong><small>${steps}　→</small></span></a>`;
 }
 
 /**

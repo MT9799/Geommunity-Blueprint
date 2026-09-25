@@ -3,6 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" href="./src/static/images/favicon.ico">
     <title>Geommunity Blueprint | 几何作图资料库</title>
     <style>
         :root { --ink: #263238; --muted: #68757a; --paper: #f4f0e8; --line: #d8dee0; --accent: #e5b42f; --blue: #277f96; }
@@ -23,8 +24,9 @@
         .lang-switch { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; background: #fff; }
         .lang-switch button { padding: 6px 14px; border: 0; background: transparent; color: var(--muted); font-size: 13px; cursor: pointer; }
         .lang-switch button.active { background: var(--blue); color: #fff; }
-        .hero { padding: 32px 0 32px; text-align: center; }
-        .hero img { width: min(280px, 62vw); height: 150px; object-fit: contain; margin-bottom: 5px; }
+        .hero { padding: 24px 0 20px; text-align: center; }
+        /* 图片按宽度定尺寸、高度自适应（原来固定在 280×150 的框里 contain，四周留一大片空白） */
+        .hero img { width: min(320px, 68vw); height: auto; max-height: 190px; object-fit: contain; margin-bottom: 5px; }
         .hero h1 { margin: 0; font-size: clamp(34px, 6vw, 58px); font-weight: 700; letter-spacing: .02em; }
         .hero .subtitle { margin: 15px auto 0; color: var(--muted); font-size: 17px; line-height: 1.7; }
         .hero .rule { width: 46px; height: 4px; margin: 25px auto 0; border: 0; background: var(--accent); }
@@ -47,7 +49,7 @@
         .footer-links a { color: var(--muted); text-decoration: none; }
         .footer-links a:hover { color: var(--blue); text-decoration: underline; }
         .footer-note { margin: 0; }
-        @media (max-width: 760px) { .site-header { align-items: flex-start; } .source-link { display: none; } .hero { padding: 48px 0 40px; } .entry-grid { grid-template-columns: repeat(2, 1fr); } .notes { grid-template-columns: 1fr; margin-top: 36px; } }
+        @media (max-width: 760px) { .site-header { align-items: flex-start; } .source-link { display: none; } .hero { padding: 22px 0 18px; } .entry-grid { grid-template-columns: repeat(2, 1fr); } .notes { grid-template-columns: 1fr; margin-top: 28px; } }
         @media (max-width: 420px) { .page { width: min(100% - 28px, 1080px); } .brand span { font-size: 16px; } .entry { min-height: 138px; padding: 16px; } .entry h3 { font-size: 18px; } }
         /* 项目说明弹窗 */
         .readme-mask { position: fixed; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(38, 50, 56, .45); }
@@ -98,7 +100,7 @@
             <section aria-labelledby="tools-title">
                 <div class="section-heading"><h2 id="tools-title" data-i18n="index.section">开始使用</h2><span data-i18n="index.sectionNote">选择一个工作区</span></div>
                 <div class="entry-grid">
-                    <a class="entry" href="./src/board.html"><div><span class="entry-number">01 / BOARD</span><h3 data-i18n="index.board">画板</h3><p data-i18n="index.boardNote">自由作图、导入导出 gmt</p></div><span class="entry-arrow">→</span></a>
+                    <a class="entry" href="./src/board.html"><div><span class="entry-number">01 / BOARD</span><h3 data-i18n="index.board">画板</h3><p data-i18n="index.boardNote">自由作图、任意发挥</p></div><span class="entry-arrow">→</span></a>
                     <a class="entry" href="./src/levels.html"><div><span class="entry-number">02 / LEVELS</span><h3 data-i18n="index.levels">关卡游玩</h3><p data-i18n="index.levelsNote">按关卡包浏览，支持搜索</p></div><span class="entry-arrow">→</span></a>
                     <a class="entry" href="./src/board.html?mode=maker"><div><span class="entry-number">03 / MAKER</span><h3 data-i18n="index.maker">自制关卡</h3><p data-i18n="index.makerNote">标出初始与所求，导出成关卡</p></div><span class="entry-arrow">→</span></a>
                     <a class="entry" href="./src/board.html?mode=solver"><div><span class="entry-number">04 / SOLVER</span><h3 data-i18n="index.solver">求解器</h3><p data-i18n="index.solverNote">按工具与步数搜索作图方案</p></div><span class="entry-arrow">→</span></a>

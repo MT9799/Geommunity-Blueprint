@@ -18,9 +18,19 @@ const maxMoveX = 500, // max是负的
     // 缩放范围给足：0.1 ~ 10 太小，滚几下一会儿就顶到头（表现为「卡住不能继续放大/缩小」）
     minScale = 1e-4,
     maxScale = 1e4,
-    // 初始 / 「还原视角」的缩放倍数：可视范围边长约为 1 时的两倍。
-    // 放在这里而不是各页脚本里：画板（index.js）与关卡游玩（playPage.js）共用一个值
-    initialScale = 0.5;
+    // 初始 / 「还原视角」的缩放倍数。
+    // 放在这里而不是各页脚本里：画板（index.js）与关卡游玩（playPage.js）共用一个值。
+    initialScale = (Math.random() - 0.5) * 0.01 + 0.5;
+// 点完一下之后先不画预览，等指针真的移动过再画：
+// 点完一条线时光标还停在那条线上，这时立刻画出「过该点的平行线 / 垂线」会让人以为点已经取好了
+let previewWaitPointer = null;
+/**
+ * 让预览等指针移动 过程函数
+ * 点击落点后调用：记下当前指针位置，在指针移动之前不再画预览（见 toolPreviewState）
+ */
+function previewWaitForMove() {
+    previewWaitPointer = {x: pointerPosition.x, y: pointerPosition.y};
+}
 const hex = '0123456789abcdef';
 
 // 当窗口大小改变时调整画布
@@ -370,6 +380,14 @@ const previewShapes = {
     // 切换项里的工具：键名用 subTool
     threePointCompass: 'compassCircle',
     threePointAngleBisector: 'bisector',
+    // 没有小项切换的页面（关卡游玩的角平分线 / 圆规）里 subTool 就是工具名本身，也要能找到形状
+    compass: 'compassCircle',
+    angleBisector: 'bisector',
+    // 圆心工具只用光标下那个点预览（落在圆的圆心上，见 board-tools.js 的 drawPreview），不在这里画
+    // 复制圆规：先点一个圆，圆心跟着光标走（半径 = 那个圆的半径），图形还是圆
+    compassCopy: 'circle',
+    // 两直线角平分线：点了第一条线、光标靠近第二条线时才预览
+    twoLineAngleBisector: 'twoLineBisector',
     // 点 + 线混合的工具：先点了线之后，光标处的点补上，预览过它的平行线 / 垂线
     parallelLine: 'parallelLine',
     perpendicularLine: 'perpendicularLine',
@@ -405,6 +423,13 @@ function previewCursor() {
         (pointerPosition.x - transform.x) / transform.scale,
         (pointerPosition.y - transform.y) / transform.scale,
     ];
+    // 与光标下那个预览点用同一套吸附逻辑（board-tools.js 的预览吸附）：
+    // 之前这里少算了「相交的位置」这一档，于是点预览吸在正确的交点上、
+    // 半透明图形预览却从邻近的另一个交点旁边擦过去（两个交点靠得近时特别明显）
+    if (typeof window.previewSnapLogical === 'function') {
+        const snap = window.previewSnapLogical(cursor[0], cursor[1]);
+        return [snap.x, snap.y];
+    }
     const [nearId] = geometryManager.near(cursor, ['point']);
     if (nearId) return geometryManager.get(nearId).getCoordinate();
     const [elementId] = geometryManager.near(cursor, ['line', 'circle']);
@@ -432,11 +457,44 @@ function previewCursor() {
  */
 function toolPreviewState() {
     if (typeof isDragging === 'undefined' || isDragging) return null;
+    // 刚点完一下、指针还停在同一处：先不画预览（指针一动就会照常出现）
+    if (previewWaitPointer
+        && pointerPosition.x === previewWaitPointer.x && pointerPosition.y === previewWaitPointer.y) return null;
+    // 没吸附过的原始光标位置：用来判断「光标靠近了哪个圆 / 哪条线」
+    const rawCursor = [
+        (pointerPosition.x - transform.x) / transform.scale,
+        (pointerPosition.y - transform.y) / transform.scale,
+    ];
     const config = toolPreviewConfig();
     if (!config) return null;
     const selected = config.keys.map(key => geometryManager.getToolKey(tool, key)).filter(item => item);
     if (selected.length !== config.need - 1) return null;
     const cursor = previewCursor();
+    // 刚点完第一个点时，光标还压在那个点上：两点重合，方向不定（会被画成一条默认竖直的线），
+    // 所以这时的预览先不画，等光标真的移开再给
+    const sameAsSelected = selected.some(item => {
+        const coord = item.getCoordinate?.();
+        return Array.isArray(coord) && typeof coord[0] === 'number'
+            && Math.abs(coord[0] - cursor[0]) < 1e-6 && Math.abs(coord[1] - cursor[1]) < 1e-6;
+    });
+    if (sameAsSelected) return null;
+    // 复制圆规：先点了一个圆之后，光标处就是圆心，半径跟着那个圆（还没点圆时没有预览）
+    if (subTool === 'compassCopy') {
+        const circle = selected.find(item => item.getType() === 'circle');
+        const coord = circle?.getCoordinate?.();
+        if (!coord) return null;
+        const radius = Math.hypot(coord[1][0] - coord[0][0], coord[1][1] - coord[0][1]);
+        return {shape: 'circle', coords: [cursor, [cursor[0] + radius, cursor[1]]]};
+    }
+    // 两直线角平分线：点了第一条线之后，光标靠近第二条线时才预览（作出的就是两条，预览也画两条）
+    if (subTool === 'twoLineAngleBisector') {
+        const first = selected.find(item => item.getType() === 'line');
+        if (!first) return null;
+        const [secondId] = geometryManager.near(rawCursor, ['line'], 1, [first.getId()]);
+        const second = secondId ? geometryManager.get(secondId) : null;
+        const bisectors = second ? previewTwoLineBisectors(first, second) : null;
+        return bisectors ? {shape: 'twoLineBisector', coords: bisectors} : null;
+    }
     // 平行线 / 垂线：先点了线，光标处补一个点
     if (tool === 'parallelLine' || tool === 'perpendicularLine') {
         const line = selected.find(item => item.getType() === 'line');
@@ -445,11 +503,42 @@ function toolPreviewState() {
         if (!lineCoord) return null;
         return {shape: config.shape, coords: [cursor, lineCoord[0], lineCoord[1]]};
     }
-    // 三点圆规：前两点定半径，光标处是圆心
-    if (subTool === 'threePointCompass') {
+    // 三点圆规：前两点定半径，光标处是圆心（没有小项切换时 subTool 就是 'compass'）
+    if (tool === 'compass' && subTool !== 'compassCopy') {
         return {shape: config.shape, coords: [cursor, selected[0].getCoordinate(), selected[1].getCoordinate()]};
     }
     return {shape: config.shape, coords: selected.map(item => item.getCoordinate()).concat([cursor])};
+}
+
+/**
+ * 两条直线的两条角平分线（预览用）
+ * @param {Object} line1 直线一
+ * @param {Object} line2 直线二
+ * @returns {number[][]|null} [交点, 第一条角平分线方向上的远点, 第二条角平分线方向上的远点]；平行时返回 null
+ */
+function previewTwoLineBisectors(line1, line2) {
+    const coord1 = line1.getCoordinate?.();
+    const coord2 = line2.getCoordinate?.();
+    const cross = ToolsFunction.lineIntersectionByGeometryObject(line1, line2);
+    if (!coord1 || !coord2 || !cross || !cross.flag) return null;
+    const unit = (p, q) => {
+        const norm = Math.hypot(q[0] - p[0], q[1] - p[1]);
+        return norm ? [(q[0] - p[0]) / norm, (q[1] - p[1]) / norm] : null;
+    };
+    const dir1 = unit(coord1[0], coord1[1]);
+    const dir2 = unit(coord2[0], coord2[1]);
+    if (!dir1 || !dir2) return null;
+    const apex = [cross.value.x, cross.value.y];
+    const far = 10000;
+    // 两个方向的角平分：单位方向相加与相减各得一条（相减那条在两线平行时退化，会被过滤掉）
+    const points = [[dir1[0] + dir2[0], dir1[1] + dir2[1]], [dir1[0] - dir2[0], dir1[1] - dir2[1]]]
+        .map(dir => {
+            const norm = Math.hypot(dir[0], dir[1]);
+            return norm > 1e-9 ? [apex[0] + dir[0] / norm * far, apex[1] + dir[1] / norm * far] : null;
+        })
+        .filter(item => item);
+    if (!points.length) return null;
+    return [apex].concat(points);
 }
 
 /**
@@ -459,6 +548,22 @@ function toolPreviewState() {
  */
 function hasToolPreview() {
     return !!toolPreviewState();
+}
+
+// 上一帧有没有画预览
+let toolPreviewShown = false;
+
+/**
+ * 鼠标移动时要不要重绘 过程函数
+ * 不能只看「这一帧有没有预览」：上一帧有、这一帧没有（圆心预览离开了圆、
+ * 两直线角平分线离开了第二条线）时也得重绘一次，否则那份半透明预览会一直留在画布上
+ * @returns {boolean}
+ */
+function needRedrawForPreview() {
+    const shown = hasToolPreview();
+    const changed = shown !== toolPreviewShown;
+    toolPreviewShown = shown;
+    return shown || changed;
 }
 
 /**
@@ -478,6 +583,25 @@ function previewCircumcenter(a, b, c) {
         (a2 * (b[1] - c[1]) + b2 * (c[1] - a[1]) + c2 * (a[1] - b[1])) / d,
         (a2 * (c[0] - b[0]) + b2 * (a[0] - c[0]) + c2 * (b[0] - a[0])) / d,
     ];
+}
+
+/**
+ * 绘制点的预览 过程函数
+ * 与真实点一致：外径 8、内径 4 白芯，且是屏幕上的固定大小（除以 scale，跟 drawPoint 一样）；
+ * 透明度也用光标下那个点预览的 0.5 —— 否则在 0.35 的半透明里会显得又小又淡
+ * @param {number[]} coord 逻辑坐标
+ */
+function drawPreviewPoint(coord) {
+    const [x, y] = coord;
+    ct.globalAlpha = 0.5;
+    ct.beginPath();
+    ct.arc(x, y, 8 / transform.scale, 0, Math.PI * 2);
+    ct.fillStyle = 'rgb(25, 25, 25)';
+    ct.fill();
+    ct.beginPath();
+    ct.arc(x, y, 4 / transform.scale, 0, Math.PI * 2);
+    ct.fillStyle = 'rgb(255, 255, 255)';
+    ct.fill();
 }
 
 /**
@@ -538,10 +662,7 @@ function drawToolPreview() {
             ct.stroke();
         }
     }else if (state.shape === 'middlePoint') {
-        const middle = [(first[0] + second[0]) / 2, (first[1] + second[1]) / 2];
-        ct.beginPath();
-        ct.arc(middle[0], middle[1], 6 / transform.scale, 0, 2 * Math.PI);
-        ct.fill();
+        drawPreviewPoint([(first[0] + second[0]) / 2, (first[1] + second[1]) / 2]);
     }else if (state.shape === 'parallelLine' || state.shape === 'perpendicularLine') {
         // coords: [光标补的点, 线的两个定义点]
         const base = state.coords[0];
@@ -591,15 +712,51 @@ function drawToolPreview() {
                 ct.stroke();
             }
         }
+    }else if (state.shape === 'twoLineBisector') {
+        // coords: [交点, 第一条角平分线方向上的远点, 第二条角平分线方向上的远点]
+        const apex = state.coords[0];
+        for (let i = 1; i < state.coords.length; i++) {
+            const bounds = ToolsFunction.getLineBounds([apex[0], apex[1], state.coords[i][0], state.coords[i][1], canvasWidth, canvasHeight], transform);
+            ct.beginPath();
+            ct.moveTo(bounds.p1.x, bounds.p1.y);
+            ct.lineTo(bounds.p2.x, bounds.p2.y);
+            ct.stroke();
+        }
     }
     ct.restore();
+}
+
+// 工具光标（橡皮擦 / 切换线类型 / 样式刷 / 隐藏刷的方块或圆环）是否该画：
+// 触摸端手指抬起后指针就没有「当前位置」了，光标不该继续停在原地；
+// 抬起后紧接着来的合成鼠标事件（Chrome 在 tap 后会补发）要忽略掉
+let pointerCursorVisible = true;
+let pointerCursorHiddenAt = 0;
+/**
+ * 允许画工具光标 过程函数（指针真的动了 / 鼠标按下时调用）
+ * @param {boolean} [force] 触摸自己的动作要给 true：只有触摸抬手后紧跟着来的
+ *        合成鼠标事件才需要被忽略（否掉它们，手机上的光标才会跟着手指抬起一起消失）
+ */
+function showPointerCursor(force) {
+    if (!force && Date.now() - pointerCursorHiddenAt < 500) return;
+    pointerCursorVisible = true;
+}
+/**
+ * 收起工具光标 过程函数（手指抬起 / 触摸取消时调用）
+ */
+function hidePointerCursor() {
+    pointerCursorVisible = false;
+    pointerCursorHiddenAt = Date.now();
 }
 
 /**
  * 绘制光标 过程函数
  */
 function drawPointer() {
-    if (tool === "eraser") {
+    // 手指抬起后先不画（见 hidePointerCursor）
+    if (!pointerCursorVisible) return;
+    // 隐藏刷的光标与橡皮擦一致（方块）：都是「点一下就把它去掉」
+    const hiddenBrush = tool === 'styleBrush' && typeof subTool !== 'undefined' && subTool === 'brushHidden';
+    if (tool === "eraser" || hiddenBrush) {
         const width = 16 / transform.scale;
         const x = (pointerPosition.x - transform.x) / transform.scale - width / 2;
         const y = (pointerPosition.y - transform.y) / transform.scale - width / 2;
@@ -610,10 +767,11 @@ function drawPointer() {
         ct.strokeStyle = 'rgb(25, 25, 25)';
         ct.lineWidth = 3 / transform.scale;
         ct.strokeRect(x, y, width, width);
-    }else if ((tool === 'line' || tool === 'ray' || tool === 'lineSegment') && subTool === 'style') {
+    }else if (tool === 'lineType' || (tool === 'styleBrush' && !hiddenBrush)) {
+        // 切换线类型 / 样式刷：光标画成一个圆环，提示「点这里就换类型 / 刷样式」
         const x = (pointerPosition.x - transform.x) / transform.scale;
         const y = (pointerPosition.y - transform.y) / transform.scale;
-        
+
         ct.fillStyle = 'rgb(25, 25, 25)';
         ct.beginPath();
         ct.arc(x, y, 15 / transform.scale, 0, Math.PI * 2);
@@ -772,20 +930,24 @@ function drawLabel(element) {
     // 点为 [x, y]，直线与圆为 [[x1, y1], [x2, y2]]，取第一个定义点作为标签位置
     const isPoint = typeof coordinate[0] === 'number';
     const [x, y] = isPoint ? coordinate : coordinate[0];
-    ct.font = `${20 / transform.scale}px serif`;
     const color = element.getColor();
     const backgroundColor = autoBackgroundColor(color);
-    const offsetX = (isPoint ? -20 : 14) / transform.scale;
-    const offsetY = (isPoint ? -15 : 6) / transform.scale;
+    // 标签按**屏幕坐标**画、字号固定 20px（先退回 CSS 像素坐标系）：
+    // 浏览器画不出字形、只剩描边轮廓 —— 于是标签看着消失了、点的四周还留着一圈白边
+    const ratio = canvasPixelRatio();
+    ct.save();
+    ct.setTransform(ratio, 0, 0, ratio, 0, 0);
+    ct.font = `20px serif`;
     drawStrokedText(
         ct, 
         element.getName(), 
-        x + offsetX, 
-        y + offsetY, 
+        transform.x + x * transform.scale + (isPoint ? -20 : 14), 
+        transform.y + y * transform.scale + (isPoint ? -15 : 6), 
         color, 
         backgroundColor, 
-        3 / transform.scale
+        3
     );
+    ct.restore();
 }
 
 /**
@@ -817,7 +979,8 @@ function drawPoint(element) {
  * @param {Object} point
  */
 function drawChoicePoint(point) {
-    const bigRadius = 12;
+    // 正好压在点的边缘上，看着就像没有选中效果
+    const bigRadius = 8 * Math.max(point.getWidth() || 1, 1) + 4;
     const [x, y] = point.getCoordinate();
     const color = point.getColor();
 

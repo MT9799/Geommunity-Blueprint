@@ -115,8 +115,8 @@ function buildGraph(request) {
     });
 
     readCircles(request.circles).forEach(circle => {
-        // 请求里的 r 是半径，元件里存的是半径平方
-        graph.addInitial(makeElementFromCoefficients(circle.a, circle.b, SQ(circle.r), TYPE_CIRCLE));
+        // 请求里的 r 就是半径平方（页面侧用 dx²+dy² 算的，与搜索里的圆系数同一条算式）
+        graph.addInitial(makeElementFromCoefficients(circle.a, circle.b, circle.r, TYPE_CIRCLE));
     });
 
     graph.initialElementCount = graph.elements.length;
@@ -128,7 +128,8 @@ function buildGraph(request) {
             graph.goalElements.push(makeElementFromCoefficients(goal.a, goal.b, goal.c, TYPE_LINE));
         });
         readCircles(request.goalCircles).forEach(goal => {
-            graph.goalElements.push(makeElementFromCoefficients(goal.a, goal.b, SQ(goal.r), TYPE_CIRCLE));
+            // 同上：goal.r 是半径平方
+            graph.goalElements.push(makeElementFromCoefficients(goal.a, goal.b, goal.r, TYPE_CIRCLE));
         });
         readPoints(request.goalPoints).forEach(goal => {
             graph.goalPoints.push({x: goal.x, y: goal.y});
@@ -136,7 +137,7 @@ function buildGraph(request) {
     } else if (request.goals && request.goals.length) {
         if (request.goalType === 0) {
             readCircles(request.goals).forEach(goal => graph.goalElements.push(
-                makeElementFromCoefficients(goal.a, goal.b, SQ(goal.r), TYPE_CIRCLE)));
+                makeElementFromCoefficients(goal.a, goal.b, goal.r, TYPE_CIRCLE)));
         } else if (request.goalType === 1) {
             readLines(request.goals).forEach(goal => graph.goalElements.push(
                 makeElementFromCoefficients(goal.a, goal.b, goal.c, TYPE_LINE)));

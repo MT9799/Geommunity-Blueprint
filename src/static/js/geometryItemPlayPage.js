@@ -2,6 +2,32 @@
 
 const overviewPanelSelector = document.getElementById("overview-select");
 let overviewPanelSelect = 'all';
+// 当前正在查看详情的元素 id：撤销 / 重做后按它把详情面板重画一遍
+let openedGeometryItemId = null;
+/**
+ * 重画当前正在查看的元素详情 过程函数
+ * 撤销 / 重做会重建图形（面板里的旧对象、控件状态都会失效），这时整块重画一次
+ */
+function refreshOpenedGeometryItem() {
+    const viewerMode = document.getElementById("geometry-item");
+    if (!openedGeometryItemId || !viewerMode || viewerMode.style.display === "none") return;
+    if (typeof window.showGeometryItemDetail === 'function') window.showGeometryItemDetail(openedGeometryItemId);
+}
+
+/**
+ * 元素一览详情里的输入框：名称 / 坐标 / 基底值（改动逻辑与制题器共用 geometry.js 的实现）
+ * @param {Object} event
+ */
+function geometryItemChange(event) {
+    // 游玩界面全是置灰输入框：一律不处理（双保险，防止用脚本硬塞 change 事件）
+    if (event.target?.disabled) return;
+    const type = typeof applyGeometryItemInput === 'function' ? applyGeometryItemInput(event.target) : null;
+    if (!type) return;
+    loadGeometryElements();
+    refreshOpenedGeometryItem();
+    drawContent();
+    notifyStorageChange(type);
+}
 overviewPanelSelector.addEventListener('change', overviewPanelSelectorChanged);
 /**
  * 几何元素列表选择器变化
@@ -195,6 +221,7 @@ function selectElementByOverview(event) {
     }
 
     function show(id) {
+        openedGeometryItemId = id;
         const overviewMode = document.getElementById("geometry-item-list");
         const viewerMode = document.getElementById("geometry-item");
         overviewMode.style.display = "none";
@@ -219,17 +246,20 @@ function selectElementByOverview(event) {
                 // 基底行
                 dataItem = baseRow(element);
                 viewerMode.appendChild(dataItem);
-                // 显示行
-                dataItem = showRow(element);                
-                viewerMode.appendChild(dataItem);
-                // 颜色行
-                dataItem = colorRow(element);                
-                viewerMode.appendChild(dataItem);
-                // 有效性行
-                dataItem = validRow(element);                
-                viewerMode.appendChild(dataItem);
+                const styleCol = document.createElement('div');
+                styleCol.className = "item-container-plain";
+                viewerMode.appendChild(styleCol);
+                if (typeof renderInlineStyleControls === 'function') {
+                    renderInlineStyleControls(styleCol, element, null, true);
+                }else{
+                    styleCol.appendChild(showRow(element));
+                    styleCol.appendChild(colorRow(element));
+                }
                 // 上层构造行
                 dataItem = superstructureRow(element);
+                viewerMode.appendChild(dataItem);
+                // 有效性行（放在上层构造下面）
+                dataItem = validRow(element);                
                 viewerMode.appendChild(dataItem);
             }else if (type === "line" || type === "circle") {
                 // 标题行
@@ -244,17 +274,20 @@ function selectElementByOverview(event) {
                 // 基底行
                 dataItem = baseRow(element);
                 viewerMode.appendChild(dataItem);
-                // 显示行
-                dataItem = showRow(element);                
-                viewerMode.appendChild(dataItem);
-                // 颜色行
-                dataItem = colorRow(element);                
-                viewerMode.appendChild(dataItem);
-                // 有效性行
-                dataItem = validRow(element);                
-                viewerMode.appendChild(dataItem);
+                const styleCol = document.createElement('div');
+                styleCol.className = "item-container-plain";
+                viewerMode.appendChild(styleCol);
+                if (typeof renderInlineStyleControls === 'function') {
+                    renderInlineStyleControls(styleCol, element, null, true);
+                }else{
+                    styleCol.appendChild(showRow(element));
+                    styleCol.appendChild(colorRow(element));
+                }
                 // 上层构造行
                 dataItem = superstructureRow(element);
+                viewerMode.appendChild(dataItem);
+                // 有效性行（放在上层构造下面）
+                dataItem = validRow(element);                
                 viewerMode.appendChild(dataItem);
             }
         }else{
@@ -280,17 +313,19 @@ function selectElementByOverview(event) {
                 // 基底行
                 dataItem = baseRow(element);
                 container1.appendChild(dataItem);
-                // 显示行
-                dataItem = showRow(element);                
-                container2.appendChild(dataItem);
-                // 颜色行
-                dataItem = colorRow(element);                
-                container2.appendChild(dataItem);
-                // 有效性行
-                dataItem = validRow(element);                
-                container2.appendChild(dataItem);
+                // 样式控件（颜色 / 粗细 / 标签 / 隐藏）直接铺在这一列里：
+                if (typeof renderInlineStyleControls === 'function') {
+                    renderInlineStyleControls(container2, element, null, true);
+                }else{
+                    container2.appendChild(showRow(element));
+                    container2.appendChild(colorRow(element));
+                }
                 // 上层构造行
                 dataItem = superstructureRow(element);
+                container3.appendChild(dataItem);
+                // 有效性行（挪到上层构造下面：这样中间列只剩样式控件，
+                // 控件每次重画清空容器时不会把它一起清掉）
+                dataItem = validRow(element);                
                 container3.appendChild(dataItem);
 
                 body.appendChild(container1);
@@ -317,17 +352,19 @@ function selectElementByOverview(event) {
                 // 基底行
                 dataItem = baseRow(element);
                 container1.appendChild(dataItem);
-                // 显示行
-                dataItem = showRow(element);                
-                container2.appendChild(dataItem);
-                // 颜色行
-                dataItem = colorRow(element);                
-                container2.appendChild(dataItem);
-                // 有效性行
-                dataItem = validRow(element);                
-                container2.appendChild(dataItem);
+                // 样式控件（颜色 / 粗细 / 标签 / 隐藏）直接铺在这一列里：
+                if (typeof renderInlineStyleControls === 'function') {
+                    renderInlineStyleControls(container2, element, null, true);
+                }else{
+                    container2.appendChild(showRow(element));
+                    container2.appendChild(colorRow(element));
+                }
                 // 上层构造行
                 dataItem = superstructureRow(element);
+                container3.appendChild(dataItem);
+                // 有效性行（挪到上层构造下面：这样中间列只剩样式控件，
+                // 控件每次重画清空容器时不会把它一起清掉）
+                dataItem = validRow(element);                
                 container3.appendChild(dataItem);
 
                 body.appendChild(container1);
@@ -337,6 +374,9 @@ function selectElementByOverview(event) {
             }
         }
     }
+    // show 是这个函数里的闭包，导出来给 refreshOpenedGeometryItem 用
+    window.showGeometryItemDetail = show;
+
     function titleRow(type, element) {
         // 标题行
         const dataItem = document.createElement("div");
@@ -361,9 +401,13 @@ function selectElementByOverview(event) {
         }
         dataItem.appendChild(textNode);
 
-        textNode = document.createElement('p');
-        textNode.innerText = element.getName();
-        dataItem.appendChild(textNode);
+        // 名称：游玩界面不能改（手机版也必须锁住）
+        const nameInput = document.createElement('input');
+        nameInput.type = 'text';
+        nameInput.value = element.getName();
+        nameInput.id = `item-${element.getId()}-name-input`;
+        nameInput.disabled = true;
+        dataItem.appendChild(nameInput);
         
         return dataItem;
     }
@@ -391,17 +435,25 @@ function selectElementByOverview(event) {
         }
         dataItem.appendChild(textNode);
 
-        textNode = document.createElement('p');
-        textNode.innerText = element.getName();
-        dataItem.appendChild(textNode);
+        // 名称：游玩界面不能改
+        const nameInput = document.createElement('input');
+        nameInput.type = 'text';
+        nameInput.value = element.getName();
+        nameInput.id = `item-${element.getId()}-name-input`;
+        nameInput.disabled = true;
+        dataItem.appendChild(nameInput);
 
+        // 「id」连同它的值一起贴右，值也是不可编辑输入框
         textNode = document.createElement('p');
+        textNode.className = 'item-id-value';
         textNode.innerText = "id";
         dataItem.appendChild(textNode);
 
-        textNode = document.createElement('p');
-        textNode.innerText = element.getId();
-        dataItem.appendChild(textNode);
+        const idInput = document.createElement('input');
+        idInput.className = 'item-id-input';
+        idInput.value = element.getId();
+        idInput.disabled = true;
+        dataItem.appendChild(idInput);
         
         return dataItem;
     }
@@ -414,40 +466,56 @@ function selectElementByOverview(event) {
         textNode.innerText = 'id';
         dataItem.appendChild(textNode);
 
-        const textNode2 = document.createElement('p');
-        textNode2.innerText = element.getId();
-        dataItem.appendChild(textNode2);
+        // 结果放进不可编辑（disabled）的输入框
+        const inputDE = document.createElement('input');
+        inputDE.value = element.getId();
+        inputDE.disabled = true;
+        dataItem.appendChild(inputDE);
         
         return dataItem;
     }
     function xyRow(element) {
-        // xy行
+        // xy行：x / y 各占一行（挤在一行太宽）
         const dataItem = document.createElement("div");
-        dataItem.className = "item-container-row";
+        dataItem.className = "item-container-plain";
+        const dataItem1 = document.createElement("div");
+        dataItem1.className = "item-container-row";
+        const dataItem2 = document.createElement("div");
+        dataItem2.className = "item-container-row";
         const [x, y] = element.getCoordinate();
 
         let textNode = document.createElement('p');
         textNode.innerText = 'x';
-        dataItem.appendChild(textNode);
+        dataItem1.appendChild(textNode);
 
-        textNode = document.createElement('p');
-        textNode.innerText = x;
-        dataItem.appendChild(textNode);
+        // x / y：游玩界面不能改，只读展示
+        const xInput = document.createElement('input');
+        xInput.type = 'text';
+        xInput.value = x;
+        xInput.id = `item-${element.getId()}-x-input`;
+        xInput.disabled = true;
+        dataItem1.appendChild(xInput);
 
         textNode = document.createElement('p');
         textNode.innerText = "y";
-        dataItem.appendChild(textNode);
+        dataItem2.appendChild(textNode);
 
-        textNode = document.createElement('p');
-        textNode.innerText = y;
-        dataItem.appendChild(textNode);
+        const yInput = document.createElement('input');
+        yInput.type = 'text';
+        yInput.value = y;
+        yInput.id = `item-${element.getId()}-y-input`;
+        yInput.disabled = true;
+        dataItem2.appendChild(yInput);
+
+        dataItem.appendChild(dataItem1);
+        dataItem.appendChild(dataItem2);
         
         return dataItem;
     }
     function twoCoordinateRow(element) {
-        // 二坐标行
+        // 图形本身的数据：直线看斜率 / 截距，圆看圆心 / 半径
         const dataItem = document.createElement("div");
-        dataItem.className = "item-container-column";
+        dataItem.className = "item-container-plain";
         const dataItem1 = document.createElement("div");
         dataItem1.className = "item-container-row";
         const dataItem2 = document.createElement("div");
@@ -457,27 +525,27 @@ function selectElementByOverview(event) {
 
         let textNode = document.createElement('p');
         if (type === "line") {
-            textNode.innerText = '点1';
+            textNode.innerText = '斜率';
         }else if (type === "circle") {
             textNode.innerText = '圆心';
         }
         dataItem1.appendChild(textNode);
+        const inputDE = document.createElement('input');
+        inputDE.value = type === 'line' ? lineSlopeText(coordList) : circleCenterText(coordList);
+        inputDE.disabled = true;
+        dataItem1.appendChild(inputDE);
 
-        textNode = document.createElement('p');
-        textNode.innerText = coordList[0];
-        dataItem1.appendChild(textNode);
-        
         textNode = document.createElement('p');
         if (type === "line") {
-            textNode.innerText = '点2';
+            textNode.innerText = '截距';
         }else if (type === "circle") {
-            textNode.innerText = '圆上点';
+            textNode.innerText = '半径';
         }
         dataItem2.appendChild(textNode);
-
-        textNode = document.createElement('p');
-        textNode.innerText = coordList[1];
-        dataItem2.appendChild(textNode);
+        const inputDE2 = document.createElement('input');
+        inputDE2.value = type === 'line' ? lineInterceptText(coordList) : circleRadiusText(coordList);
+        inputDE2.disabled = true;
+        dataItem2.appendChild(inputDE2);
         
         dataItem.appendChild(dataItem1);
         dataItem.appendChild(dataItem2);
@@ -486,7 +554,7 @@ function selectElementByOverview(event) {
     function baseRow(element) {
         // 基底行
         const dataItem = document.createElement("div");
-        dataItem.className = "item-container-column";
+        dataItem.className = "item-container-plain";
         const type = element.getType();
         const elementBase = element.getBase();
 
@@ -497,9 +565,16 @@ function selectElementByOverview(event) {
         textNode.innerText = '基底';
         dataItem1.appendChild(textNode);
 
-        const textNode2 = document.createElement('p');
-        textNode2.innerText = elementBase.type;
-        dataItem1.appendChild(textNode2);
+        // 基底的「结果」放进只读框：基底类型 + 各个基底图形
+        const baseFigures = type === "point" ? elementBase.bases : elementBase.figure;
+        let baseText = elementBase.type;
+        if (Array.isArray(baseFigures) && baseFigures.length) {
+            baseText += ' ' + baseFigures.map(item => item.getId()).join(' ');
+        }
+        const baseInput = document.createElement('input');
+        baseInput.value = baseText;
+        baseInput.disabled = true;
+        dataItem1.appendChild(baseInput);
 
         dataItem.appendChild(dataItem1);
 
@@ -520,11 +595,15 @@ function selectElementByOverview(event) {
             });
 
             const textNode = document.createElement('p');
-            textNode.innerText = '值';
+            textNode.innerText = '参数值';
             dataItem2.appendChild(textNode);
 
-            const inputDE = document.createElement('p');
-            inputDE.innerText = elementBase.value;
+            // 基底值：游玩界面不能改
+            const inputDE = document.createElement('input');
+            inputDE.type = 'text';
+            inputDE.value = elementBase.value;
+            inputDE.id = `item-${element.getId()}-base-value-input`;
+            inputDE.disabled = true;
             dataItem2.appendChild(inputDE);
 
             dataItem.appendChild(dataItem2);
@@ -579,28 +658,32 @@ function selectElementByOverview(event) {
         return dataItem;
     }
     function validRow(element) {
-        // 有效性行
+        // 有效性行（和「上层构造」一样换行：标签一行、值一行）
         const dataItem = document.createElement("div");
-        dataItem.className = "item-container-row";
+        dataItem.className = "item-container-plain";
+        const dataItem1 = document.createElement("div");
+        dataItem1.className = "item-container-row";
 
         const textNode = document.createElement('p');
         textNode.innerText = '有效性';
-        dataItem.appendChild(textNode);
+        dataItem1.appendChild(textNode);
+        dataItem.appendChild(dataItem1);
 
-        const textNode2 = document.createElement('p');
-        if (element.getValid()) {
-            textNode2.innerText = '有效';
-        }else{
-            textNode2.innerText = '无效';
-        }
-        dataItem.appendChild(textNode2);
+        const dataItem2 = document.createElement("div");
+        dataItem2.className = "item-container-row";
+        // 结果放进不可编辑（disabled）的输入框
+        const validInput = document.createElement('input');
+        validInput.value = element.getValid() ? '有效' : '无效';
+        validInput.disabled = true;
+        dataItem2.appendChild(validInput);
+        dataItem.appendChild(dataItem2);
         
         return dataItem;
     }
     function superstructureRow(element) {
         // 上层构造行
         const dataItem = document.createElement("div");
-        dataItem.className = "item-container-column";
+        dataItem.className = "item-container-plain";
         const dataItem1 = document.createElement("div");
         dataItem1.className = "item-container-row";
         const dataItem2 = document.createElement("div");
@@ -611,17 +694,11 @@ function selectElementByOverview(event) {
         textNode.innerText = '上层构造';
         dataItem1.appendChild(textNode);
 
-        if (superstructure.length === 0) {
-            const textNode = document.createElement('p');
-            textNode.innerText = '无';
-            dataItem2.appendChild(textNode);
-        }else{
-            superstructure.forEach((item) => {
-                const textNode = document.createElement('p');
-                textNode.innerText = item.getId();
-                dataItem2.appendChild(textNode);
-            });
-        }
+        // 结果放进不可编辑（disabled）的输入框：上层构造的各个图形（或「无」）
+        const superInput = document.createElement('input');
+        superInput.value = superstructure.length === 0 ? '无' : superstructure.map(item => item.getId()).join(' ');
+        superInput.disabled = true;
+        dataItem2.appendChild(superInput);
         
         dataItem.appendChild(dataItem1);
         dataItem.appendChild(dataItem2);
@@ -671,4 +748,5 @@ function closeItem() {
     const viewerMode = document.getElementById("geometry-item");
     overviewMode.style.display = "block";
     viewerMode.style.display = "none";
+    openedGeometryItemId = null;
 }

@@ -131,10 +131,11 @@ class MiddlePointConstructTool {
      * @param {number} oriY 原y坐标
      */
     toolEvent(type, oriX, oriY) {
-        if (subTool === 'twoPointsMiddlePoint') {
-            this.middlePointMode.toolEvent(type, oriX, oriY);
-        }else if (subTool === 'circleCenter') {
+        // 同上：只有明确选了「圆心」才取圆心，其余（含 subTool 停留在工具名的关卡页）取两点中点
+        if (subTool === 'circleCenter') {
             this.centerToolEvent(type, oriX, oriY);
+        }else{
+            this.middlePointMode.toolEvent(type, oriX, oriY);
         }
     }
     
@@ -359,10 +360,12 @@ class AngleBisectorConstructTool {
      * @param {number} oriY 原y坐标
      */
     toolEvent(type, oriX, oriY) {
-        if (subTool === 'threePointAngleBisector') {
-            this.threePointAngleBisectorMode.toolEvent(type, oriX, oriY);
-        }else if (subTool === 'angleBisector') {
+        // 只有明确选了「两线」才走两线模式：关卡页没有小项切换按钮时 subTool 会停留在
+        // 工具名（'angleBisector'），这时按三点模式处理，否则第一个点都点不出来
+        if (subTool === 'twoLineAngleBisector') {
             this.twoLineAngleBisectorMode.toolEvent(type, oriX, oriY);
+        }else{
+            this.threePointAngleBisectorMode.toolEvent(type, oriX, oriY);
         }
     }
     
@@ -410,6 +413,10 @@ class CompassConstructTool {
             this.define
             );
         
+        // 三点圆规：第一、第二点之间的距离是半径，第三点是圆心 —— 圆心可以和半径端点重合
+        // （以 A 为圆心、AB 为半径作圆），所以覆写成「第三个点允许与前面的点重复」
+        this.threePointCompassMode.repeatPointAllowed = index => index === 3;
+        
 
         this.copyCompassMode = new MixPointBaseToolTemplate(
             this.toolName,
@@ -428,10 +435,11 @@ class CompassConstructTool {
      * @param {number} oriY 原y坐标
      */
     toolEvent(type, oriX, oriY) {
-        if (subTool === 'threePointCompass') {
-            this.threePointCompassMode.toolEvent(type, oriX, oriY);
-        }else if (subTool === 'compassCopy') {
+        // 同上：只有明确选了「复制圆」才走复制，其余（含 subTool 停留在工具名的关卡页）走三点圆规
+        if (subTool === 'compassCopy') {
             this.copyCompassMode.toolEvent(type, oriX, oriY);
+        }else{
+            this.threePointCompassMode.toolEvent(type, oriX, oriY);
         }
     }
     

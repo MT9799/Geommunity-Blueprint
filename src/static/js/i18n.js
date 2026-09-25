@@ -14,7 +14,7 @@ const I18N_DICT = {
         'index.section': '开始使用',
         'index.sectionNote': '选择一个工作区',
         'index.board': '画板',
-        'index.boardNote': '自由作图、导入导出 gmt',
+        'index.boardNote': '自由作图、任意发挥',
         'index.levels': '关卡游玩',
         'index.levelsNote': '按关卡包浏览，支持搜索',
         'index.maker': '自制关卡',
@@ -215,7 +215,7 @@ const I18N_DICT = {
         'index.section': 'Get started',
         'index.sectionNote': 'Choose a workspace',
         'index.board': 'Board',
-        'index.boardNote': 'Draw freely, import / export gmt',
+        'index.boardNote': 'Draw, play and explore freely',
         'index.levels': 'Level play',
         'index.levelsNote': 'Browse by pack, with search',
         'index.maker': 'Level maker',
@@ -461,6 +461,9 @@ const TIP_EN = {
     'move': ['Move tool', 'Drag points, or pan the canvas'],
     'point': ['Point tool', 'Click to create a point; drag it onto an object to place it there'],
     'eraser': ['Eraser tool', ''],
+    'styleBrush': ['Style brush', 'Pick a figure as the style source; figures you pick next copy its colour, width and label'],
+    'brushStyle': ['Style brush mode', 'Pick a figure as the style source, then pick figures to copy its style onto'],
+    'brushHidden': ['Hide brush mode', 'Click a figure to hide it (undo, or the Hidden tab of the element list, brings it back)'],
     'line': ['Line tool', ''],
     'circle': ['Circle tool', ''],
     'intersection': ['Intersection tool', ''],
@@ -483,6 +486,7 @@ const TIP_EN = {
     'any': ['Any object', 'Any geometry object can be selected'],
     'choicePoint': ['Point objects', 'Only point objects are selected'],
     'style': ['Style brush', 'Drag to apply the current line style'],
+    'lineType': ['Switch line type', 'Click a line, ray or segment to switch it to the next type'],
     'lineStyle': ['Line style', 'Colour, width and label of the lines you draw next'],
     'circleStyle': ['Circle style', 'Colour, width and label of the circles you draw next'],
     'threePointAngleBisector': ['Angle bisector (3 points)', 'The second point is the vertex'],
@@ -497,12 +501,13 @@ const TIP_EN = {
  * 取按钮说明 过程函数
  * @param {string} action data-action
  * @param {{title: string, context: string}} zhEntry 中文条目（各页 infDict 里的那份）
+ * @param {Object<string, string[]>} [overrideEn] 本页专属的英文条目（同一个工具在不同画板用法不同时用）
  * @returns {{title: string, context: string}|null}
  */
-function tipOf(action, zhEntry) {
+function tipOf(action, zhEntry, overrideEn) {
     if (!zhEntry) return null;
     if (currentLang() !== 'en') return zhEntry;
-    const entry = TIP_EN[action];
+    const entry = (overrideEn && overrideEn[action]) || TIP_EN[action];
     return entry ? {title: entry[0], context: entry[1]} : zhEntry;
 }
 

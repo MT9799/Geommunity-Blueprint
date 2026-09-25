@@ -2,7 +2,7 @@
 let tool, menuTool, subTool;
 const toolMenus = {
     'standard': [
-        'move', 'point', 'line', 'circle', 'intersection', 'compass',
+        'move', 'point', 'line', 'circle', 'intersection', 
         'parallelLine', 'perpendicularLine', 'perpendicularBisector', 'angleBisector',
         'compass', 'middlePoint', 'threePointCircle'
     ],
@@ -57,15 +57,14 @@ const toolItems = {
         "choice": {"general": {"point1": 'point', "point2": 'point'}},
     }, 
     'angleBisector': {
-        'switch': ['threePointAngleBisector'],
+        // 关卡游玩里角平分线只有三点一种用法：不给小项切换，浮层里也就不铺小项按钮
         "button": ["clear", "lineStyle"], 
         "choice": {"general": {"point1": 'point', "point2": 'point', "point3": 'point'}},
     }, 
     'compass': {
-        'switch': ['threePointCompass', 'compassCopy'],
+        // 同角平分线：关卡游玩的圆规固定为三点圆规
         "button": ["clear", "circleStyle"], 
-        "choice": {"threePointCompass": {"point1": 'point', "point2": 'point', "point3": 'point'},
-            "compassCopy": {"point": 'point', "circle": 'circle'}},
+        "choice": {"general": {"point1": 'point', "point2": 'point', "point3": 'point'}},
     }, 
     'middlePoint': {
         'switch': ["twoPointsMiddlePoint", "circleCenter"], 
@@ -277,10 +276,31 @@ function choiceToolMenu(selectTool) {
 }
 
 /**
+ * 清掉某个工具「画到一半」的选中
+ * 切工具时不清的话，切回那个工具会发现上一次选的图形还挂着
+ * @param {string} previousTool
+ */
+function clearPendingToolChoice(previousTool) {
+    if (!previousTool || typeof tools === 'undefined' || !tools[previousTool]) return;
+    if (typeof tools[previousTool].clear === 'function') tools[previousTool].clear();
+    // 工具自己的 clear 只清当前管理器，关卡页有两套（正式 / 探索），都清一次
+    [typeof geometryManager === 'undefined' ? null : geometryManager,
+        typeof geometryManagerResult === 'undefined' ? null : geometryManagerResult,
+        typeof geometryManagerExplore === 'undefined' ? null : geometryManagerExplore]
+        .forEach(manager => {
+            if (manager && manager.ifToolInCache(previousTool)) manager.deleteTool(previousTool);
+        });
+}
+
+/**
  * 选中工具 过程函数
- * @param {string} tool
+ * @param {string} selectTool
  */
 function choiceTool(selectTool) {
+    // 切工具时先把上一个工具已经选中的图形清掉：画到一半的状态不该跨工具留着
+    const previousTool = typeof tool === 'undefined' ? null : tool;
+    if (previousTool && previousTool !== selectTool) clearPendingToolChoice(previousTool);
+    
     if (selectTool) {
         const buttons = document.querySelectorAll('.tool-item');
         // 移除所有按钮的选中状态
@@ -299,11 +319,14 @@ function choiceTool(selectTool) {
         loadToolSwitchButton(selectTool);
         const switchList = toolItems[tool]?.switch;
         if (switchList) choiceToolSwitch(switchList[0]);
-        pointerPosition.x = 0, pointerPosition.y = 0; 
+        // 只在真的换了工具时才把光标位置归零：重选当前工具也归零的话，
+        // 预览（草稿图）会按 (0,0) 算，看上去就是「预览跳到画布左上角」
+        if (previousTool !== selectTool) pointerPosition.x = 0, pointerPosition.y = 0;
         if (menuTool === 'construct') {
             toolMenuDefaultValue.construct = selectTool;
         }
     }
+    refreshConstructMenuCorner();
     drawContent();
 }
 
@@ -328,17 +351,32 @@ function choiceToolSwitch(selectTool) {
 }
 
 /**
+ * 刷新构造档右下角的「当前高级工具」角标 过程函数
+ * 与 tool.js 一致（角标持续显示最近选过的那个高级工具）；游玩页没有分类按钮时直接跳过
+ */
+// 角标上显示的高级工具（跨档保留）
+let constructMenuCornerTool = null;
+
+function refreshConstructMenuCorner() {
+    const corner = document.getElementById('construct-menu-corner');
+    if (!corner) return;
+    const constructTools = typeof toolMenus === 'undefined' ? [] : (toolMenus.construct || []);
+    // 只有从构造档里选中的工具才算数（游玩页没有分类按钮，这里一直不会命中）
+    if (menuTool === 'construct' && constructTools.includes(tool)) constructMenuCornerTool = tool;
+    // 还没选过任何高级工具时，用构造档的默认工具兜底
+    if (!constructMenuCornerTool && constructTools.length) {
+        constructMenuCornerTool = (typeof toolMenuDefaultValue !== 'undefined' && toolMenuDefaultValue.construct) || constructTools[0];
+    }
+    const template = constructMenuCornerTool ? document.getElementById(`svg-${constructMenuCornerTool}`) : null;
+    corner.innerHTML = template ? template.innerHTML : '';
+    corner.classList.toggle('show', !!template);
+}
+
+/**
  * 刷新工具菜单栏
  */
 function refreshMenuTool() {
-    if (menuTool === 'construct') {
-        const constructToolMenu = document.getElementById('button-construct-menu');
-        constructToolMenu.innerHTML = '';
-        const template = document.getElementById(`svg-${tool}`);
-        if (template) {
-            constructToolMenu.innerHTML = template.innerHTML;
-        }
-    }
+    // 分类按钮保持各自的图标（同 tool.js：不再把构造档的图标换成当前工具的图标）
     
     const menuToolbar = document.getElementById("menu_toolbar");
     menuToolbar.style.display = 'none';

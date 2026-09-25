@@ -509,27 +509,7 @@ class LineTool {
      * @param {number} oriY 原y坐标
      */
     toolEvent(type, oriX, oriY) {
-        if (subTool === 'style') {
-            const x = (oriX - transform.x) / transform.scale;
-            const y = (oriY - transform.y) / transform.scale;
-            if (type === "click") {
-                this.modifyLineStyle(x, y);
-            }else if (type === "draw") {
-                this.modifyLineStyle(x, y);
-            }
-        }else if (subTool === 'line') {
-            this.lineMode.toolEvent(type, oriX, oriY);
-        }
-    }
-    
-    /**
-     * 修改样式
-     */
-    modifyLineStyle(x, y) {
-        const [id] = geometryManager.near([x, y], ['line']);
-        if (!id) return;
-        const line = geometryManager.get(id);
-        line.modifyDrawType(this.toolName);
+        this.lineMode.toolEvent(type, oriX, oriY);
     }
     
     /**
@@ -566,27 +546,7 @@ class RayTool {
      * @param {number} oriY 原y坐标
      */
     toolEvent(type, oriX, oriY) {
-        if (subTool === 'style') {
-            const x = (oriX - transform.x) / transform.scale;
-            const y = (oriY - transform.y) / transform.scale;
-            if (type === "click") {
-                this.modifyLineStyle(x, y);
-            }else if (type === "draw") {
-                this.modifyLineStyle(x, y);
-            }
-        }else if (subTool === 'ray') {
-            this.lineMode.toolEvent(type, oriX, oriY);
-        }
-    }
-    
-    /**
-     * 修改样式
-     */
-    modifyLineStyle(x, y) {
-        const [id] = geometryManager.near([x, y], ['line']);
-        if (!id) return;
-        const line = geometryManager.get(id);
-        line.modifyDrawType(this.toolName);
+        this.lineMode.toolEvent(type, oriX, oriY);
     }
     
     /**
@@ -623,27 +583,7 @@ class LineSegmentTool {
      * @param {number} oriY 原y坐标
      */
     toolEvent(type, oriX, oriY) {
-        if (subTool === 'style') {
-            const x = (oriX - transform.x) / transform.scale;
-            const y = (oriY - transform.y) / transform.scale;
-            if (type === "click") {
-                this.modifyLineStyle(x, y);
-            }else if (type === "draw") {
-                this.modifyLineStyle(x, y);
-            }
-        }else if (subTool === 'lineSegment') {
-            this.lineMode.toolEvent(type, oriX, oriY);
-        }
-    }
-    
-    /**
-     * 修改样式
-     */
-    modifyLineStyle(x, y) {
-        const [id] = geometryManager.near([x, y], ['line']);
-        if (!id) return;
-        const line = geometryManager.get(id);
-        line.modifyDrawType(this.toolName);
+        this.lineMode.toolEvent(type, oriX, oriY);
     }
     
     /**
@@ -651,6 +591,46 @@ class LineSegmentTool {
      */
     clear() {
         this.lineMode.clear();
+    }
+}
+
+class LineTypeTool {
+    constructor() {
+        this.toolName = 'lineType';
+    }
+
+    /**
+     * 切换线类型 过程函数
+     * 点一下画布上的直线 / 射线 / 线段，就把它的类型换成下一种（直线 → 射线 → 线段 → 直线）。
+     * （三个线工具里各有一份死代码，已合并到这里）
+     * @param {string} type
+     * @param {number} oriX 原x坐标
+     * @param {number} oriY 原y坐标
+     */
+    toolEvent(type, oriX, oriY) {
+        if (type !== "click") return;
+        const x = (oriX - transform.x) / transform.scale;
+        const y = (oriY - transform.y) / transform.scale;
+        const [id] = geometryManager.near([x, y], ['line']);
+        if (!id) return;
+        const line = geometryManager.get(id);
+        const order = ['line', 'ray', 'lineSegment'];
+        const index = order.indexOf(line.getDrawType());
+        line.modifyDrawType(order[(index + 1) % order.length]);
+        // 触发存储事件：换类型可以撤销
+        const event = new CustomEvent("storage", {
+            detail: {
+                type: "lineType",
+            },
+        });
+        window.dispatchEvent(event);
+    }
+
+    /**
+     * 清空
+     */
+    clear() {
+        geometryManager.deleteTool(this.toolName);
     }
 }
 
@@ -710,7 +690,39 @@ class IntersectionTool {
      * @param {number} oriY 原y坐标
      */
     toolEvent(type, oriX, oriY) {
+        // 直接点在「两个图形相交的位置」上时，不必先选两个图形：就地作出这个交点
+        // （euclidea 的手感：交点工具点交叉处＝取这个交点）。否则点一下只会选中其中一个图形
+        if (type === "click" && this.createIntersectionAtCursor(oriX, oriY)) return;
         this.intersectionMode.toolEvent(type, oriX, oriY);
+    }
+    
+    /**
+     * 光标正落在某个交点上时直接作出它 过程函数
+     * @param {number} oriX 画布坐标
+     * @param {number} oriY 画布坐标
+     * @returns {boolean} 是否作出了交点
+     */
+    createIntersectionAtCursor(oriX, oriY) {
+        const x = (oriX - transform.x) / transform.scale;
+        const y = (oriY - transform.y) / transform.scale;
+        const snap = geometryManager.nearestIntersection(x, y);
+        if (!snap) return false;
+        // 这一次点击就是「要这个交点」，先把选了一半的对象丢掉
+        geometryManager.deleteTool(this.toolName);
+        const point = geometryManager.createPoint(snap.x, snap.y);
+        point.modifyBase("intersection", [snap.element1, snap.element2], snap.index);
+        snap.element1.addSuperstructure(point);
+        snap.element2.addSuperstructure(point);
+        geometryManager.addToolObject(this.toolName, "intersection", "append", point);
+        geometryManager.loadTool(this.toolName);
+        // 触发存储事件
+        const event = new CustomEvent("storage", {
+            detail: {
+                type: this.toolName,
+            },
+        });
+        window.dispatchEvent(event);
+        return true;
     }
     
     /**
@@ -757,5 +769,114 @@ class IntersectionTool {
      */
     clear() {
         this.intersectionMode.clear();
+    }
+}
+
+class StyleBrushTool {
+    constructor() {
+        this.toolName = 'styleBrush';
+        // 样式来源（首次点中的图形）：它的颜色 / 粗细 / 标签显示会被复制到之后点到的图形上
+        this.sourceId = null;
+    }
+
+    /**
+     * 样式刷 过程函数
+     * @param {string} type
+     * @param {number} oriX 原x坐标
+     * @param {number} oriY 原y坐标
+     */
+    toolEvent(type, oriX, oriY) {
+        if (type !== "click") return;
+        const x = (oriX - transform.x) / transform.scale;
+        const y = (oriY - transform.y) / transform.scale;
+        // 浮动栏里切到「隐藏刷」时隐藏对象，其余情况复制样式
+        if (typeof subTool !== 'undefined' && subTool === 'brushHidden') {
+            this.hideEventFunction(x, y);
+            return;
+        }
+        this.clickEventFunctionStyleBrush(x, y);
+    }
+
+    /**
+     * 隐藏刷 过程函数
+     * 点到的图形直接隐藏：隐藏后不再绘制（canvas.js 的绘制循环都跳过不可见对象），
+     * 也点不到它（near 会跳过不可见对象）。要恢复可以撤销，或到「元素一览 → 隐藏」档里找
+     * @param {number} x
+     * @param {number} y
+     */
+    hideEventFunction(x, y) {
+        const [id] = geometryManager.near([x, y], ["point", "line", "circle"]);
+        if (!id) return;
+        const item = geometryManager.get(id);
+        if (!item || !item.getVisible()) return;
+        item.modifyVisible(false);
+        // 与元素一览的「隐藏」档保持同步：撤销 / 导出 / 存读档都认这个集合
+        if (typeof geometryElementLists !== 'undefined' && geometryElementLists.hidden) geometryElementLists.hidden.add(id);
+        // 不留选中项：对象已经藏起来了，浮动栏的「清空选择」也就不该亮（此时并没有选中什么）
+        geometryManager.deleteTool(this.toolName);
+        this.notifyStorage();
+    }
+
+    /**
+     * 点击 过程函数
+     * 第一次点中的图形当样式来源；之后点到的图形把来源的样式复制过去，选中状态挪到它身上；
+     * 再点一次来源就取消选中（切换工具也会清掉，见 tool.js 的 clearPendingToolChoice）
+     * @param {number} x
+     * @param {number} y
+     */
+    clickEventFunctionStyleBrush(x, y) {
+        const [id] = geometryManager.near([x, y], ["point", "line", "circle"]);
+        // 点在空白处不算数：只有切换工具 / 再点来源才取消选中
+        if (!id) return;
+        // 来源被删掉了（撤销 / 删除对象）：这一步点的对象就当作新来源
+        if (this.sourceId && !geometryManager.get(this.sourceId)) this.sourceId = null;
+        if (id === this.sourceId) {
+            this.clear();
+            this.notifyStorage();
+            return;
+        }
+        if (this.sourceId) {
+            this.applyStyleTo(id);
+            // 目标用另一个键：这样「样式来源」的选中标记不会被顶掉，来源与目标一起高亮
+            geometryManager.addToolObject(this.toolName, "choice", "quote", id);
+        } else {
+            this.sourceId = id;
+            geometryManager.addToolObject(this.toolName, "source", "quote", id);
+        }
+        this.notifyStorage();
+    }
+
+    /**
+     * 把来源图形的样式复制到目标图形 过程函数
+     * @param {string} id 目标图形
+     */
+    applyStyleTo(id) {
+        const source = geometryManager.get(this.sourceId);
+        const target = geometryManager.get(id);
+        if (!source || !target) return;
+        target.modifyColor(source.getColor());
+        target.modifyWidth(source.getWidth());
+        target.modifyShowName(source.getShowName());
+    }
+
+    /**
+     * 记一步撤销 / 重做历史 过程函数
+     * 选来源、每刷一次样式、取消选中各算一步：可以一次次撤回，
+     * 连「选中来源」那一步也能撤回（撤销会重建对象并清掉工具缓存，选中状态随之消失）
+     */
+    notifyStorage() {
+        if (typeof notifyStorageChange === 'function') {
+            notifyStorageChange('style');
+            return;
+        }
+        window.dispatchEvent(new CustomEvent("storage", {detail: {type: "style"}}));
+    }
+
+    /**
+     * 清除
+     */
+    clear() {
+        geometryManager.deleteTool(this.toolName);
+        this.sourceId = null;
     }
 }

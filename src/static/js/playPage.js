@@ -18,8 +18,14 @@ function updateLayout() {
 window.addEventListener('resize', updateLayout);
 
 // 手势变量
+// 按下之后要移够这么多像素才算「拖动」：手抖挪几像素不该被当成拖拽作图
+// （见 mouseMoveEventFunction / mouseUpEventFunction，只用于左键作图；中键平移画布不受限制）
+const dragThreshold = 15;
 let startX, startY, startTime;
 let isDragging = false;
+// 鼠标是不是正按着：mousemove 里靠它区分「按住拖动」与「纯悬停」
+// （松开之后的移动只是悬停，但 startX / startY 还停在上一次按下的位置）
+let isPressing = false;
 let touchDoubleFlag = false;
 let touchType = 1;
 let mouseType = 0;
@@ -61,7 +67,6 @@ let movesStorageManager = movesStorageManagerResult;
 const geometryElementLists = {
     hidden: new Set(),
     initial: new Set(),
-    // named：带标签的给定（gmt 里的 named=）；name 是早期版本留下的键，保留以兼容旧记录
     named: new Set(),
     name: new Set(),
     movepoints: new Set(),
@@ -159,7 +164,6 @@ function refreshMovesCounterByTool(event) {
 /* 刷新步数 */
 function refreshMovesCounterByRestore(moves) {
     // 撤销 / 重做后指针已经停在那份快照上，moves 就是回到的那一步的总步数，
-    // 直接覆盖即可（原来用差值与累加算，撤销后变 0、重做后翻倍，L / E 判定跟着错）
     if (!moves) return;
     movesCounter.e = moves.e || 0;
     movesCounter.l = moves.l || 0;
@@ -172,9 +176,13 @@ function refreshMovesCounterByRestore(moves) {
 function refreshMovesCounter() {
     // 切换普通 / 探索模式后，当前管理器指针上的步数才是真实步数，直接同步过来
     const moves = movesStorageManager.get() || {};
-    movesCounter.e = moves.e || 0;
-    movesCounter.l = moves.l || 0;
-    movesCounterDE.innerText = `${movesCounter.l}L ${movesCounter.e}E`;
+    // 备份还原可能早于「步数历史开闸」（DOMContentLoaded 里才 setStatus(true)）：这一步读到的还是空历史，
+    // 照旧写 0 会把刚还原的 L / E 抹掉 —— 空历史就保持当前值不动，等开闸时 append 用的也正是这个值
+    if (moves.l !== undefined || moves.e !== undefined) {
+        movesCounter.e = moves.e || 0;
+        movesCounter.l = moves.l || 0;
+        movesCounterDE.innerText = `${movesCounter.l}L ${movesCounter.e}E`;
+    }
     // 步数变了，L / E 勾也要跟着重算
     if (typeof refreshLevelStatus === 'function') refreshLevelStatus();
 }
@@ -486,11 +494,13 @@ function recordPanel(event) {
             const element = deserialization(item);
             geometryManagerResult.addObject(element);
             geometryManagerExplore.addObject(element);
-            if (geometryElementLists.initial.has(item.id)) {
+            if (geometryElementLists.initial.has(item.id) || (geometryElementLists.named || new Set()).has(item.id)) {
                 element.modifyColor("#191919");
             }else if (geometryElementLists.movepoints.has(item.id)) {
                 element.modifyColor('#0099ff');
-            }else if (geometryElementLists.result.has(item.id)) {
+            }else if (isResultJudgedOfPage(item.id)) {
+                // 「所求显示」不在这里上色：它们多数是隐藏的，作出解之后由 setResultGroupsVisible 点亮；
+                // 「所求显示」不在这里上色：给定了的对象（如既在 named 又列在冒号后的点）保持黑色
                 element.modifyColor('#ffd700');
             }else if (geometryElementLists.explore.has(item.id)) {
                 element.modifyColor('#ffd700');
@@ -594,26 +604,26 @@ function touchstartEventFunction(e) {
 function touchendEventFunction(e) {
     // 事件预处理
     e.preventDefault();
+    // 这一手势算不算拖动（在 touchmove 里移够距离才置位），要在复位之前取出来
+    const dragged = isDragging;
     isDragging = false;
+    // 手指抬起了：工具光标收掉（手机上没有「悬停」，不收就会卡在原地）
+    if (typeof hidePointerCursor === 'function') hidePointerCursor();
 
     // 计算终点
     const endX = e.changedTouches[0].clientX - canvasLeft;
     const endY = e.changedTouches[0].clientY - canvasTop;
-    const duration = Date.now() - startTime;
-    const deltaX = endX - startX;
-    const deltaY = endY - startY;
-    const deltaAbsX = Math.abs(deltaX);
-    const deltaAbsY = Math.abs(deltaY);
 
     // 坑点：注意touchendEvent时点数是少的，且每松开一个手指就触发一次
     // 状态触发
     if (touchType === 1) {
-        if (duration < 300 && deltaAbsX < 15 && deltaAbsY < 15) {
-            // 点击
-            operateEventFunction("click", endX, endY);
-        } else {
+        if (dragged) {
             // 拖拽
             operateEventFunction("drawComplete", endX, endY);
+        } else {
+            // 点击（按住多久都算点击：手一直按着没挪地方，松手时不该按拖拽处理）
+            operateEventFunction("click", endX, endY);
+            if (typeof previewWaitForMove === 'function') previewWaitForMove();
         }
     }
     // 没有触点时还原
@@ -632,6 +642,8 @@ function touchcancelEventFunction(e) {
     isDragging = false;
     touchType = 1;
     touchDoubleFlag = false;
+    // 触摸被系统取消了（来电 / 手势）：工具光标也收掉
+    if (typeof hidePointerCursor === 'function') hidePointerCursor();
     drawContent();
     operateEventFunction("cancel", null, null);
 }
@@ -709,10 +721,13 @@ function touchmoveEventFunction(e) {
 
         pointerPosition.x = x;
         pointerPosition.y = y;
-        if (tool === 'eraser' || subTool === 'style') drawContent();
+        // 手指还在移动：工具光标该显示（force = 触摸自己的动作，不受「刚抬手」的忽略窗口影响）
+        if (typeof showPointerCursor === 'function') showPointerCursor(true);
+        // 橡皮擦的方块光标、切换线类型 / 样式刷的圆环光标都跟着指针走，要重绘
+        if (tool === 'eraser' || tool === 'lineType' || tool === 'styleBrush') drawContent();
 
-        // 拖拽判定
-        if (Math.abs(deltaX) > 15 || Math.abs(deltaY) > 15) {
+        // 拖拽判定：移够距离才算拖动（手抖不算）
+        if (Math.abs(deltaX) > dragThreshold || Math.abs(deltaY) > dragThreshold) {
             isDragging = true;
         }
         if (!isDragging) return;
@@ -735,7 +750,11 @@ function mouseDownEventFunction(e) {
     startY = y;
     preX = startX;
     preY = startY;
-    isDragging = true;
+    // 先当作「还没拖动」：移够距离才置位（见 mouseMoveEventFunction）。
+    isDragging = false;
+    isPressing = true;
+    // 鼠标按下了：工具光标该显示
+    if (typeof showPointerCursor === 'function') showPointerCursor();
     startTime = Date.now();
     mouseType = e.button;
 
@@ -757,8 +776,21 @@ function mouseMoveEventFunction(e) {
     const snapDraw = mouseType === 1 || typeof snapCursorPosition !== 'function' ? [x, y] : snapCursorPosition(x, y);
     pointerPosition.x = snapDraw[0];
     pointerPosition.y = snapDraw[1];
-    if (tool === 'eraser' || subTool === 'style' || hasToolPreview()) drawContent();
+    // 鼠标动了：工具光标该显示（刚触摸抬手时的合成鼠标事件会被 showPointerCursor 忽略）
+    if (typeof showPointerCursor === 'function') showPointerCursor();
+    // 预览消失的那一帧也要重绘（needRedrawForPreview 里管这件事）；
+    // 橡皮擦的方块光标、切换线类型 / 样式刷的圆环光标都跟着指针走
+    if (tool === 'eraser' || tool === 'lineType' || tool === 'styleBrush' || needRedrawForPreview()) drawContent();
 
+    // 拖拽判定：没按着键时的移动只是悬停（startX / startY 还停在上一次按下的位置，
+    // 不加这一层的话，点完一下再随手挪动就会被当成拖动）；按着左键还要移够距离才算
+    // 「拖动作图」（手抖挪几像素不该画出图形），中键本来就只是平移画布、不受阈值限制
+    if (!isPressing) {
+        isDragging = false;
+    }else if (mouseType === 1
+        || Math.abs(x - startX) > dragThreshold || Math.abs(y - startY) > dragThreshold) {
+        isDragging = true;
+    }
     if (!isDragging) return;
 
     if (mouseType === 0) {
@@ -790,32 +822,31 @@ function mouseMoveEventFunction(e) {
  */
 function mouseUpEventFunction(e) {
     e.preventDefault();
+    // 这次按压算不算拖动（移够距离才置位），要在复位之前取出来
+    const dragged = isDragging;
     isDragging = false;
 
     const endX = e.clientX - canvasLeft;
     const endY = e.clientY - canvasTop;
-    const duration = Date.now() - startTime;
-    const deltaX = endX - startX;
-    const deltaY = endY - startY;
-    const deltaAbsX = Math.abs(deltaX);
-    const deltaAbsY = Math.abs(deltaY);
 
     // 左键落点同样先吸附：最后一个点点在隐交点上也画得出图形
     const snapEnd = mouseType === 0 && typeof snapCursorPosition === 'function' ? snapCursorPosition(endX, endY) : [endX, endY];
-    if (duration < 300 && deltaAbsX < 15 && deltaAbsY < 15) {
-        if (mouseType === 0) {
-            operateEventFunction("click", snapEnd[0], snapEnd[1]);
-        }
-    } else {
-        if (mouseType === 0) {
-            // 左键
+    if (mouseType === 0) {
+        // 左键：按下后没移够距离（手抖）就还是「点击」，只有真的拖动过才当作拖拽完成；
+        // 按住多久都算点击，不再看时长
+        if (dragged) {
             operateEventFunction("drawComplete", snapEnd[0], snapEnd[1]);
-        }else if (mouseType === 1) {
-            // 中键
-            canvas.classList.remove('move-cursor');
+        } else {
+            operateEventFunction("click", snapEnd[0], snapEnd[1]);
+            // 点完这一下先不画预览，等指针移动过再画（见 canvas.js previewWaitForMove）
+            if (typeof previewWaitForMove === 'function') previewWaitForMove();
         }
+    }else if (mouseType === 1) {
+        // 中键：结束平移（不管有没有真的移动过，都把抓手光标收掉）
+        canvas.classList.remove('move-cursor');
     }
     mouseType = 0;
+    isPressing = false;
 }
 
 /**
@@ -827,6 +858,7 @@ function mouseCancelEventFunction(e) {
     e.preventDefault();
     operateEventFunction("cancel", null, null);
     isDragging = false;
+    isPressing = false;
     drawContent();
 }
 
@@ -840,20 +872,15 @@ function wheelEventFunction(e) {
     const x = e.clientX - canvasLeft;
     const y = e.clientY - canvasTop;
 
-    // 状态缓存
-    const currentScale = transform.scale * zoomDelta;
+    // 先把倍率钳进允许范围再算偏移：不钳的话，顶到缩放上限后 currentScale 仍在继续乘 1.1，
+    // 而真正的 scale 已经不动了 —— 于是每滚一格都把画面往一边猛推一次（看着像「画布瞬移」）
+    const currentScale = Math.min(Math.max(transform.scale * zoomDelta, minScale), maxScale);
     // 计算旧逻辑坐标（鼠标在缩放前的逻辑位置）
     const oldLogicX = (x - transform.x) / transform.scale;
     const oldLogicY = (y - transform.y) / transform.scale;
     // 计算新偏移量，使鼠标下的逻辑点保持不变
-    let offsetX, offsetY;
-    if (currentScale <= maxScale && currentScale >= minScale) {
-        offsetX = x - oldLogicX * currentScale;
-        offsetY = y - oldLogicY * currentScale;
-    } else {
-        offsetX = x - oldLogicX * transform.scale;
-        offsetY = y - oldLogicY * transform.scale;
-    }
+    const offsetX = x - oldLogicX * currentScale;
+    const offsetY = y - oldLogicY * currentScale;
 
     limitLoad(offsetX, offsetY, currentScale);
     refreshToolFloating();
@@ -1074,10 +1101,14 @@ function menuChoice(action) {
 
 let exploreFlag = false;
 let exploreShowIds = [];
+// 进探索视图时被临时藏起来的图形（两套管理器共用同一批对象，退出时要原样放回来）
+let exploreRestoreIds = [];
 // 载入题目时探索管理器里已有的对象：之后多出来的都是玩家自己在探索画布上画的
 let exploreBaseIds = new Set();
-// 本次载入是否来自「从制题器 / 求解器返回」的备份：是的话按备份原样还原，不再重新隐藏
+// 本次载入是否来自「从制题器 / 求解器返回」的备份：是的话按备份原样还原
 let playBackupRestored = false;
+// 撤销 / 重做历史是否也随备份还原了：是的话别再拿当前状态当新起点（否则玩家的作图全撤不回来）
+let playBackupHistoryRestored = false;
 // levels.json 里写的工具限制：straightedge = 单尺（只用直尺），compass = 单规（只用圆规）
 const limitedToolSets = {
     straightedge: ['move', 'point', 'line', 'intersection'],
@@ -1112,6 +1143,12 @@ function refreshToolLimit() {
  */
 function setExploreVisibility(explore) {
     if (explore) {
+        // 进探索视图前先记下当时可见的图形：探索视图会把它们临时藏起来
+        // （两套管理器共用同一批对象，藏了就是全局藏），退出时按这份名单放回来。
+        // 本来就处于隐藏状态的（预绘制解法等）不记，免得退出后反而冒出来
+        exploreRestoreIds = geometryManagerExplore.getAllByOrder()
+            .filter((item) => item.getVisible() && !isGivenObject(item.getId()))
+            .map((item) => item.getId());
         // 给定图形（initial 与带标签的 named）在探索视图里也要显示
         showInitialOnly();
         // 探索模式里自己画的图形（载入题目时不存在、之后才画上的对象）保留显示：
@@ -1124,6 +1161,9 @@ function setExploreVisibility(explore) {
     }else{
         exploreShowIds.forEach((id) => geometryManagerExplore.get(id)?.modifyVisible(false));
         exploreShowIds = [];
+        // 退出：把进探索视图时临时藏起来的图形放回来（普通模式画的图形不该被探索视图带走）
+        exploreRestoreIds.forEach((id) => geometryManagerResult.get(id)?.modifyVisible(true));
+        exploreRestoreIds = [];
     }
 }
 
@@ -1183,11 +1223,42 @@ function exploreMode() {
 function savePlayBackup() {
     const lists = {};
     Object.entries(geometryElementLists).forEach(([key, value]) => { lists[key] = [...value]; });
-    sessionStorage.setItem('playBackup', JSON.stringify({
+    const backup = {
         elements: geometryManager.toStorage(),
         lists: lists,
         moves: {l: movesCounter.l, e: movesCounter.e},
-    }));
+        // 已达成的 L / E 勾也一起带走：返回是一次整页重载，这些标记只活在内存里，
+        // 不带的话回来就全灰了（步数对得上也显示不出来）
+        progress: {reachedTarget: reachedTarget, thumbnailTicks: thumbnailTicks},
+        // 撤销 / 重做历史也一起带走：历史每一格都只活在内存里，不带的话回来只剩
+        // 「当前状态」一格，玩家去求解器 / 制题器之前作的图形就再也撤不回来了。
+        // 结果 / 探索两套各存各的：都塞同一份的话，在探索视图里撤销会回到普通模式的快照
+        history: storageManager.serialization(),
+        historyResult: storageManagerResult.serialization(),
+        historyExplore: storageManagerExplore.serialization(),
+        movesHistory: movesStorageManager.serialization(),
+        movesHistoryResult: movesStorageManagerResult.serialization(),
+        movesHistoryExplore: movesStorageManagerExplore.serialization(),
+        // 探索视图里玩家自己画的图形（只在探索管理器、且不是结果管理器里的同一个对象）
+        // 另存一份：回来时才知道哪些该只放回探索视图、哪些（普通模式画的）该被隐藏。
+        // 按对象身份判断，不能按 id —— 两套管理器各自命名，常会同名
+        exploreElements: typeof geometryManagerExplore !== 'undefined' && typeof geometryManagerResult !== 'undefined'
+            ? (() => {
+                const resultObjects = new Set(geometryManagerResult.getAllByOrder());
+                return geometryManagerExplore.getAllByOrder()
+                    .filter(item => !resultObjects.has(item))
+                    .map(item => item.getDict());
+            })()
+            : [],
+    };
+    try {
+        sessionStorage.setItem('playBackup', JSON.stringify(backup));
+    }catch (error) {
+        // 作图很多时历史可能撑爆 sessionStorage 配额：退一步只带图形与标记，
+        // 至少「返回后图形还在、L / E 与勾还在」，代价是撤销历史从头开始
+        ['history', 'historyResult', 'historyExplore', 'movesHistory', 'movesHistoryResult', 'movesHistoryExplore'].forEach(key => { delete backup[key]; });
+        sessionStorage.setItem('playBackup', JSON.stringify(backup));
+    }
     // 归一化地址并打上 restorePlay 标记（本来就有的话不重复加，免得 URL 越来越长）
     const params = new URLSearchParams(location.search);
     params.set('restorePlay', '1');
@@ -1217,19 +1288,30 @@ function allCanvasElements() {
 }
 
 function designMode() {
-    // 先把回来时要还原的备份与地址记下来（下面会改写这几个集合，备份要赶在改写之前）
+    // 先把回来时要还原的备份与地址记下来（下面会改写 sessionStorage，备份要赶在改写之前）
     const backUrl = savePlayBackup();
-    // 给定 = 关卡里初始显示的对象（initial 与带标签的 named），所求 = 关卡判定用的 result
-    const given = new Set([...(geometryElementLists.initial || []), ...(geometryElementLists.named || [])]);
-    geometryElementLists.initial = given;
-    geometryElementLists.result = new Set(geometryElementLists.result || []);
-    geometryElementLists.hidden = new Set();
-    // 隐藏的图形（含关卡预绘制的解法）在制题器里要全部显示，但只写进带过去的这份数据里：
+    // 带进制题器的是**关卡文件（gmt）本身**：玩家游玩时画的图形、移动过的点、探索画布上的
+    // 图形、游玩过程中改动的标记都不带过去 —— 要改的是题目，不是这一次的游玩过程。
+    // 关卡页载入时把 gmt 原样存进了 sessionStorage（level-loader 写的），直接用那份；
+    // 读不到（试玩等）才退回当前画布
+    let rawElements = null;
+    let rawLists = null;
+    try {
+        rawElements = JSON.parse(sessionStorage.getItem('elements') || 'null');
+        rawLists = JSON.parse(sessionStorage.getItem('geometryElementLists') || 'null');
+    }catch (error) {
+        rawElements = null;
+        rawLists = null;
+    }
+    const elements = (rawElements && rawElements.length) ? rawElements : geometryManager.toStorage();
+    const lists = (rawLists && Object.keys(rawLists).length) ? rawLists : {};
+    // 制题器里所有对象都要显示（含关卡预绘制的解法），这一步只写进带过去的这份数据里：
     // 不改动当前画布，否则跳转前会先在游玩界面闪一下解法
-    const elements = typeof allCanvasElements === 'function' ? allCanvasElements() : geometryManager.toStorage();
     elements.forEach(item => { item.visible = true; });
-    const lists = {};
-    Object.entries(geometryElementLists).forEach(([key, value]) => { lists[key] = [...value]; });
+    // 给定 = 关卡里初始显示的对象（initial 与带标签的 named），所求保证有集合，隐藏档清空
+    lists.initial = [...new Set([...(lists.initial || []), ...(lists.named || [])])];
+    lists.result = [...(lists.result || [])];
+    lists.hidden = [];
     sessionStorage.setItem('elements', JSON.stringify(elements));
     sessionStorage.setItem('geometryElementLists', JSON.stringify(lists));
     sessionStorage.setItem('makerBackup', JSON.stringify({
@@ -1322,6 +1404,9 @@ function refreshStorageButton() {
  */
 function hasPendingToolDraw() {
     if (typeof tools === 'undefined' || !tools[tool]) return false;
+    // 移动工具的缓存里放的是「选定栏」（选中的那个对象），不是画到一半的作图：
+    // 撤销 / 重做时不该把它当成半成品清掉，否则选中一个图形后按撤销只会取消选中
+    if (tool === 'move') return false;
     return !!tools[tool].cacheFlag || geometryManager.ifToolInCache(tool);
 }
 
@@ -1391,6 +1476,11 @@ function redoStorage() {
 }
 
 window.addEventListener("storage", (event) => {
+    // 这次作图因为「图形画布上已经有了」而作废：不加步数（L/E）、不记撤销，只把半成品擦掉
+    if (geometryManager.takeDuplicatedFlag()) {
+        drawContent();
+        return;
+    }
     storage();
     refreshMovesCounterByTool(event);
     resultVerify();
@@ -1421,7 +1511,7 @@ const infDict = {
     "mark-initial": {title: "标记给定", context: "点击对象标记为给定的条件（黑色）"},
     "mark-named": {title: "带标签给定", context: "点击对象标记为带标签的给定（黑色 + 标签），会弹出命名框"},
     "mark-movepoints": {title: "可移动点", context: "点击对象标记为可移动点（蓝色），拖动它时图形随之变化"},
-    "mark-result": {title: "标记所求", context: "点击对象标记为所求的判定对象（金色）"},
+    "mark-result": {title: "标记所求", context: "点击对象标记为所求（金色）"},
     "mark-result-shown": {title: "所求显示", context: "点击对象标记为判定成功后要显示出来的图形（金色）"},
     "mark-explore": {title: "探索显示", context: "点击对象标记为探索模式里要显示的内容（金色）"},
     "return-to-pack": {title: "返回关卡包", context: "返回当前关卡包列表"},
@@ -1449,8 +1539,9 @@ const infDict = {
     "parallelLine": {title: "平行线工具", context: ""},
     "perpendicularLine": {title: "垂线工具", context: ""},
     "perpendicularBisector": {title: "垂直平分线工具", context: ""},
-    "angleBisector": {title: "角平分线工具", context: "有3点式和直线式两种构造模式"},
-    "compass": {title: "圆规工具", context: "有3点式和复制式两种构造模式"},
+    // 游玩 / 试玩里这两个工具只有一种用法（没有小项切换），说明就写具体的那一个
+    "angleBisector": {title: "角平分线工具", context: "三点角平分线：第二点为角的顶点"},
+    "compass": {title: "圆规工具", context: "三点圆规：两点距离为半径，第三点为圆心作圆"},
     "middlePoint": {title: "中点工具", context: "构造两个点的中点，或构造圆心"},
     "threePointCircle": {title: "三点圆工具", context: "构造过三个点的圆"},
     "choiceDraw": {title: "选中拖拽模式", context: "可以选择几何对象，只能拖拽点"},
@@ -1472,6 +1563,14 @@ const infDict = {
     "twoPointsMiddlePoint": {title: "中点", context: "构造两个点的中点"},
     "circleCenter": {title: "圆心", context: "构造一个圆的圆心"},
 };
+/**
+ * 游玩 / 试玩专属的英文说明
+ * TIP_EN 是三块画板共用的，里面角平分线 / 圆规写着「有两种模式」；本页固定单一用法，按页覆盖
+ */
+const TIP_EN_PLAY = {
+    'angleBisector': ['Angle bisector tool', 'Three-point angle bisector: the second point is the vertex'],
+    'compass': ['Compass tool', 'Three-point compass: radius from two points, center at the third'],
+};
 window.addEventListener("click", showInformationMobile);
 /**
  * 加载信息
@@ -1485,8 +1584,8 @@ function showInformationMobile(event) {
     const infDE = document.getElementById("mobile-information");
     infDE.classList.add("active");
     
-    // 说明文案按当前语言取（中文用 infDict，英文在 i18n.js 的 TIP_EN 里）
-    const tip = tipOf(inf, infDict[inf]);
+    // 说明文案按当前语言取（中文用 infDict，英文在 i18n.js 的 TIP_EN 里，本页另有 TIP_EN_PLAY 覆盖）
+    const tip = tipOf(inf, infDict[inf], TIP_EN_PLAY);
     infDE.innerHTML = `
         <p class="inf-title">${tip.title}</p>
         <p class="inf-context">${tip.context}</p>
@@ -1516,8 +1615,8 @@ function showInformationDesktop(event) {
     
     infDE.classList.add("active");
     
-    // 说明文案按当前语言取（中文用 infDict，英文在 i18n.js 的 TIP_EN 里）
-    const tip = tipOf(inf, infDict[inf]);
+    // 说明文案按当前语言取（中文用 infDict，英文在 i18n.js 的 TIP_EN 里，本页另有 TIP_EN_PLAY 覆盖）
+    const tip = tipOf(inf, infDict[inf], TIP_EN_PLAY);
     infDE.innerHTML = `
         <p class="inf-title">${tip.title}</p>
         <p class="inf-context">${tip.context}</p>
@@ -1551,7 +1650,9 @@ function isGivenObject(id) {
  */
 window.isProtectedElement = id => {
     if (typeof isGivenObject === 'function' && isGivenObject(id)) return true;
-    return !!(geometryElementLists.level && geometryElementLists.level.has(id));
+    if (geometryElementLists.level && geometryElementLists.level.has(id)) return true;
+    // 所求判定 / 所求显示是关卡的展示内容，玩家不能删也不能改（橡皮擦、移动工具的删除都问这里）
+    return typeof isResultObjectOfPage === 'function' ? isResultObjectOfPage(id) : false;
 };
 
 function showInitialOnly() {
@@ -1610,11 +1711,11 @@ function playStartDataLoad() {
     // 几何对象
     loadGeometryElementsStorage();
     // 与关卡游玩一致：只显示初始条件，解法先藏起来等玩家自己作
-    // （从制题器 / 求解器返回时按备份原样还原，不再重新隐藏，否则自己画的图形会被藏掉）
+    // （从制题器 / 求解器返回时按备份原样还原，自己画的图形不会被藏掉）
     if (!playBackupRestored) showInitialOnly();
     fitInitialView();
-    // 代入的图形成为撤销/重做的新起点
-    if (typeof resetStorageHistory === 'function') resetStorageHistory();
+    // 代入的图形成为撤销/重做的新起点（从制题器 / 求解器返回时历史已随备份还原，别再清）
+    if (!playBackupHistoryRestored && typeof resetStorageHistory === 'function') resetStorageHistory();
     drawContent();
 }
 
@@ -1681,8 +1782,24 @@ function takePlayBackup() {
         movesCounter.l = backup.moves.l || 0;
         movesCounter.e = backup.moves.e || 0;
         movesCounterDE.innerText = `${movesCounter.l}L ${movesCounter.e}E`;
-        movesStorageManager.append({l: movesCounter.l, e: movesCounter.e});
+        // 步数历史随备份一起还原时不要再补一格：补了会和图形历史的格数错开，撤销时步数就错位
+        if (!backup.movesHistory) movesStorageManager.append({l: movesCounter.l, e: movesCounter.e});
     }
+    // 已达成的 L / E 勾（本关内点亮过就不熄灭）也还原回来
+    if (backup.progress) {
+        if (backup.progress.reachedTarget) reachedTarget = Object.assign({l: false, e: false}, backup.progress.reachedTarget);
+        if (backup.progress.thumbnailTicks) thumbnailTicks = Object.assign({done: false, l: false, e: false, v: false}, backup.progress.thumbnailTicks);
+    }
+    // 撤销 / 重做历史：结果 / 探索各还原各的（反序列化顺带把 status 打开，
+    // 之后玩家新画的图形照常进历史）
+    const restoreHistory = (manager, data) => { if (manager && data) manager.deserialization(data); };
+    restoreHistory(storageManagerResult, backup.historyResult);
+    restoreHistory(storageManagerExplore, backup.historyExplore);
+    restoreHistory(storageManager, backup.history);
+    restoreHistory(movesStorageManagerResult, backup.movesHistoryResult);
+    restoreHistory(movesStorageManagerExplore, backup.movesHistoryExplore);
+    restoreHistory(movesStorageManager, backup.movesHistory);
+    if (backup.history && backup.historyResult && backup.historyExplore) playBackupHistoryRestored = true;
     playBackupRestored = true;
     return backup;
 }
@@ -1698,15 +1815,22 @@ function loadGeometryElementsStorage() {
         const elements = JSON.parse(elementsJSON);
 
         // 1.反序列化为元素
+        // 备份里把探索视图独有的图形另存了一份（exploreElements）：它们只进探索管理器，
+        // 玩家在探索画布上画的图形不该出现在普通模式的画板上。
+        // 不能混进 elements 里按 id 判断 —— 两套管理器的对象各自独立命名，常会同名（如都有 L）
+        const exploreOnly = (backup && backup.exploreElements) || [];
+        const exploreOwnIds = new Set(exploreOnly.map(item => item.id));
         elements.forEach((item) => {
             const element = deserialization(item);
             geometryManagerResult.addObject(element);
             geometryManagerExplore.addObject(element);
-            if (geometryElementLists.initial.has(item.id)) {
+            if (geometryElementLists.initial.has(item.id) || (geometryElementLists.named || new Set()).has(item.id)) {
                 element.modifyColor("#191919");
             }else if (geometryElementLists.movepoints.has(item.id)) {
                 element.modifyColor('#0099ff');
-            }else if (geometryElementLists.result.has(item.id)) {
+            }else if (isResultJudgedOfPage(item.id)) {
+                // 「所求显示」不在这里上色：它们多数是隐藏的，作出解之后由 setResultGroupsVisible 点亮；
+                // 「所求显示」不在这里上色：给定了的对象（如既在 named 又列在冒号后的点）保持黑色
                 element.modifyColor('#ffd700');
             }else if (geometryElementLists.explore.has(item.id)) {
                 element.modifyColor('#ffd700');
@@ -1739,13 +1863,34 @@ function loadGeometryElementsStorage() {
             }
         }
 
+        // 2b.探索视图独有的图形：只加进探索管理器，并在那边单独接一次基底
+        exploreOnly.forEach((item) => {
+            geometryManagerExplore.addObject(deserialization(item));
+        });
+        exploreOnly.forEach((item) => {
+            const bases = item.base;
+            if (!bases || bases.type === 'none') return;
+            const currentElement = geometryManagerExplore.get(item.id);
+            if (!currentElement) return;
+            const objectList = (bases.basesId || []).map(id => geometryManagerExplore.get(id)).filter(Boolean);
+            if (item.type === 'point') {
+                currentElement.modifyBase(bases.type, objectList, bases.value, bases.excludeId ? geometryManagerExplore.get(bases.excludeId) : null);
+                objectList.forEach((base) => base.addSuperstructure(currentElement));
+            }else{
+                currentElement.modifyDefine(bases.type, objectList, bases.value);
+            }
+        });
+
         // 关卡自带的几何对象 ID：按选定栏着色时只认这些对象，
         // 避免玩家新画的图形恰好与关卡文件里未载入的对象（如所求对象）同名而被误判
         // 从备份还原时沿用备份里的 level：备份的图形里含玩家自己画的图形，
         // 重新算的话会把玩家的作图也算成关卡自带，判定就永远不通过
         geometryElementLists.level = backup ? new Set(backup.lists?.level || []) : new Set(elements.map(item => item.id));
-        // 记下这次载入的图形：之后探索管理器里多出来的都是玩家自己画的
-        exploreBaseIds = new Set(backup ? (backup.lists?.level || []) : geometryManagerExplore.getAllByOrder().map(item => item.getId()));
+        // 记下这次载入的图形：之后探索管理器里多出来的都是玩家自己在探索画布上画的。
+        // 从备份还原时「载入的图形」= 除备份里那些探索视图专属图形之外的全部：
+        // 只把 level 当基线的话，玩家在普通模式画的图形会被当成探索视图的图形，
+        // 切到探索视图后它们仍然显示（探索视图本该只剩题目与探索图形）
+        exploreBaseIds = new Set(elements.map(item => item.id).filter(id => !exploreOwnIds.has(id)));
 
         drawContent();
 
@@ -1754,6 +1899,9 @@ function loadGeometryElementsStorage() {
             refreshMovesCounter();
             refreshLevelStatus();
             resultVerify();
+            // 撤销 / 重做的可用性按还原后的历史重判：DOMContentLoaded 里判过一次，
+            // 那时历史还是空的，不重判的话返回后撤销按钮是灰的（历史其实是好的）
+            if (typeof refreshStorageButton === 'function') refreshStorageButton();
         }
     }
     
@@ -1815,16 +1963,67 @@ function isResultProduced(id) {
 }
 
 /**
+ * 本页解的多解组数 过程函数
+ * 关卡是 result / result2…、resultShown / resultShown2…，取最大的那个下标
+ * @returns {number}
+ */
+function resultGroupCountOfPage() {
+    if (typeof resultGroupCount === 'function') return Math.max(1, resultGroupCount());
+    return 20;
+}
+
+/**
+ * 某个对象是不是本页「所求」里的对象 过程函数
+ * 判定（result / result2…）与所求显示（resultShown / resultShown2…）都算：
+ * 只认第 1 组的话，多解关卡第 2 组起标不出金色
+ * @param {string} id
+ * @returns {boolean}
+ */
+function isResultObjectOfPage(id) {
+    const max = resultGroupCountOfPage();
+    for (let index = 1; index <= max; index++) {
+        const judgedKey = index === 1 ? 'result' : `result${index}`;
+        const shownKey = index === 1 ? 'resultShown' : `resultShown${index}`;
+        if (geometryElementLists[judgedKey]?.has(id)) return true;
+        if (geometryElementLists[shownKey]?.has(id)) return true;
+    }
+    return false;
+}
+
+/**
+ * 某个对象是不是本页的「所求判定」对象 过程函数
+ * 只认判定（result / result2…），不含「所求显示」——显示对象多半是隐藏的，
+ * 作出解之后才由 setResultGroupsVisible 点亮，不能载入时就染金
+ * @param {string} id
+ * @returns {boolean}
+ */
+function isResultJudgedOfPage(id) {
+    const max = resultGroupCountOfPage();
+    for (let index = 1; index <= max; index++) {
+        const judgedKey = index === 1 ? 'result' : `result${index}`;
+        if (geometryElementLists[judgedKey]?.has(id)) return true;
+    }
+    return false;
+}
+
+/**
  * 本页的 result 分组
- * 关卡来自 gmt 解析（window.gmtResultGroups）；画板试玩没有分组，
- * 退回把 result 选定栏当作一组，判定成功后显示这些对象
+ * 关卡来自 gmt 解析（window.gmtResultGroups）；画板试玩没有分组信息
+ * （window.gmtResultGroups 只由 level-loader 在关卡页赋值），退回按选定栏自己拼：
+ * result / result2… 与 resultShown / resultShown2…，别把「所求显示」与多解整组丢掉
  * @returns {{judged: string[], shown: string[]}[]}
  */
 function resultGroupsOfPage() {
-    const groups = (window.gmtResultGroups || []).filter(group => group.judged.length);
+    const groups = (window.gmtResultGroups || []).filter(group => group.judged.length || group.shown.length);
     if (groups.length) return groups;
-    const ids = [...(geometryElementLists.result || [])];
-    return ids.length ? [{judged: ids, shown: ids}] : [];
+    const out = [];
+    const max = resultGroupCountOfPage();
+    for (let index = 1; index <= max; index++) {
+        const judged = [...(geometryElementLists[index === 1 ? 'result' : `result${index}`] || [])];
+        const shown = [...(geometryElementLists[index === 1 ? 'resultShown' : `resultShown${index}`] || [])];
+        if (judged.length || shown.length) out.push({judged: judged, shown: shown.length ? shown : judged});
+    }
+    return out;
 }
 
 /**
@@ -1840,7 +2039,8 @@ function resultVerifyFunction() {
             resolve([]);
             return;
         }
-        resolve(groups.filter(group => group.judged.every(id => isResultProduced(id))));
+        // 只有「判定」非空且都作出的组才算作出（纯「所求显示」的组没有判定，不该直接算过）
+        resolve(groups.filter(group => group.judged.length && group.judged.every(id => isResultProduced(id))));
     });
 }
 
@@ -1864,7 +2064,9 @@ function setResultGroupsVisible(groups, visible) {
         const element = geometryManager.get(id);
         if (!element) return;
         if (visible) {
-            GeometryElement.prototype.modifyColor.call(element, '#ffd700');
+            // 给定对象保持自己的黑色：所求显示里可能混着给定（如 ewp14 的 X 既是带标签给定，
+            // 又列在所求显示的冒号后），一并染金会让题目条件变成金色
+            if (!isGivenObject(id)) GeometryElement.prototype.modifyColor.call(element, '#ffd700');
             element.modifyVisible(true);
         }else if (!isGivenObject(id)) {
             element.modifyVisible(false);
@@ -1896,7 +2098,7 @@ function targetStepsOfPage() {
     return {l: pick(/(\d+)\s*L/i), e: pick(/(\d+)\s*E/i)};
 }
 
-// 曾经达到过 L / E 目标：一旦亮起就不再变回灰色（重开本关才清零）
+// 达到过 L / E 目标：一旦亮起就保持金色（重开本关才清零）
 let reachedTarget = {l: false, e: false};
 // 上一次判定时已作出的 result 组数：只有真正多作出了一条解才再弹通关界面
 let lastSatisfiedCount = 0;
@@ -1979,11 +2181,8 @@ function refreshLevelStatus() {
     const box = document.getElementById('level-status');
     if (!box) return;
     const progress = levelProgress();
-    const goal = box.querySelector('#level-status-goal');
-    if (goal) {
-        const steps = [progress.target.l !== null ? `${progress.target.l}L` : '', progress.target.e !== null ? `${progress.target.e}E` : ''].filter(Boolean);
-        goal.textContent = steps.length ? steps.join(' / ') : t('level.noTarget');
-    }
+    const bottomInf = document.getElementById('bottom_inf');
+    if (bottomInf && !bottomInf.textContent.trim()) bottomInf.textContent = t('level.noTarget');
     const toggle = (name, active, visible = true) => {
         const item = box.querySelector(`[data-tick="${name}"]`);
         if (!item) return;
@@ -1997,6 +2196,20 @@ function refreshLevelStatus() {
     // V 勾不同：要求画板上**同时**画出全部 result 才亮，所以按当前判定结果现算，
     // 解被弄没了就跟着灭（progress.v = 当前满足的组数 >= 总组数，见 levelProgress）
     toggle('v', progress.v, progress.showV);
+
+    // 目标步数（未达成的黑、已达成的金）：收起时做成图片左上角的小窗，展开后写在正文那行的「目标：」后面
+    const goalParts = [];
+    if (progress.showL) goalParts.push(`<span class="goal-part${thumbnailTicks.l ? ' active' : ''}">${progress.target.l}L</span>`);
+    if (progress.showE) goalParts.push(`<span class="goal-part${thumbnailTicks.e ? ' active' : ''}">${progress.target.e}E</span>`);
+    const badge = document.getElementById('level-goal-badge');
+    if (badge) {
+        badge.innerHTML = goalParts.join('');
+        badge.hidden = !goalParts.length;
+    }
+    // 正文那行的步数只认 goalSteps 标记（试玩带进来的记录文本不能动）
+    if (bottomInf && bottomInf.dataset.goalSteps && goalParts.length) {
+        bottomInf.innerHTML = goalParts.join(' ');
+    }
 }
 
 /**
@@ -2006,6 +2219,15 @@ function refreshLevelStatus() {
 function showCompleteLayout() {
     const pop = document.getElementById('complete-layout');
     if (!pop) return;
+    // 竖直位置现算：滑入框的底部刚好停在浮动栏顶部再往上一点（浮动栏高度 / 位置随设备变）。
+    // 只在收起状态（没有 .trans）时算：滑入过程中改 bottom 会先竖直跳一下再横着滑
+    if (!pop.classList.contains('trans')) {
+        const bar = document.getElementById('floating-bar-buttons') || document.getElementById('container_toolbar');
+        if (bar) {
+            const barTop = bar.getBoundingClientRect().top;
+            pop.style.bottom = `${Math.max(8, Math.round(window.innerHeight - barTop) + 10)}px`;
+        }
+    }
     const progress = levelProgress();
     // 重新弹出的时机：多作出了一条解，或者刚好达成了 L / E 目标。
     // 后者很关键：弹层自动收回后步数才降到目标内时，L / E 的勾要当场弹出来给玩家看到，
@@ -2152,6 +2374,8 @@ function DOMLoaded() {
     document.getElementById("container_more").addEventListener("click", morebarChoice);
     document.getElementById("container_overview").addEventListener("click", selectElementByOverview);
     document.getElementById("geometry-item").addEventListener("click", geometryItemClick);
+    // 详情面板里的名称 / 坐标 / 基底值输入框（与制题器同一套处理）
+    document.getElementById("geometry-item").addEventListener("change", geometryItemChange);
     document.getElementById("recordPanel").addEventListener("click", recordPanel);
     // 初始化
     updateLayout();
@@ -2161,12 +2385,15 @@ function DOMLoaded() {
     // 存储管理器先就绪，playStartDataLoad 末尾的 resetStorageHistory 才会生效
     storageManagerResult.setStatus(true);
     storageManagerExplore.setStatus(true);
-    storageManagerResult.append(geometryManager.toStorage());
-    storageManagerExplore.append(geometryManager.toStorage());
     movesStorageManagerResult.setStatus(true);
     movesStorageManagerExplore.setStatus(true);
-    movesStorageManagerResult.append(movesCounter);
-    movesStorageManagerExplore.append(movesCounter);
+    // 从制题器 / 求解器返回：三套历史都随备份还原好了，这里再补一格会让撤销要多按一次才动
+    if (!playBackupHistoryRestored) {
+        storageManagerResult.append(geometryManager.toStorage());
+        storageManagerExplore.append(geometryManager.toStorage());
+        movesStorageManagerResult.append(movesCounter);
+        movesStorageManagerExplore.append(movesCounter);
+    }
     refreshStorageButton();
     playStartDataLoad();
     loadRecordStorage();

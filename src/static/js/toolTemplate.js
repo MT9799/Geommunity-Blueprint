@@ -67,7 +67,9 @@ class PointBaseToolTemplate {
     click(x, y) {
         const [pointId] = geometryManager.near([x, y], ["point"]);
         if (pointId) {
-            if (geometryManager.ifIdInCache(this.toolName, pointId)) {
+            // 已经点过这个点：这个位置不允许重复时按「再点一次＝取消」处理（见 repeatPointAllowed）
+            const repeated = geometryManager.ifIdInCache(this.toolName, pointId);
+            if (repeated && !this.repeatPointAllowed(this.status + 1)) {
                 geometryManager.deleteToolQuote(this.toolName, pointId)
                 this.status--;
             }else{
@@ -91,6 +93,17 @@ class PointBaseToolTemplate {
             });
             window.dispatchEvent(event);
         }
+    }
+    
+    /**
+     * 第 index 个点是否允许与前面已选的点重复 过程函数
+     * 默认不允许（再点一次同一个点＝把它取消掉）；三点圆规覆写成「第三个点允许重复」——
+     * 它的第三点是圆心，可以与定半径的那两个点重合（以 A 为圆心、AB 为半径作圆）
+     * @param {number} index 正在选第几个点（从 1 起）
+     * @returns {boolean}
+     */
+    repeatPointAllowed(index) {
+        return false;
     }
     
     /**
@@ -304,7 +317,9 @@ class PointBaseToolTemplate {
     movePoint(x, y) {
         const [pointId] = geometryManager.near([x, y], ["point"]);
         if (pointId) {
-            if (geometryManager.ifIdInCache(this.toolName, pointId)) return;
+            // 已经点过的点：默认跳过（不把同一个点引用两次）；
+            // 三点圆规的圆心（第三个点）允许重复，那时照常切成引用
+            if (geometryManager.ifIdInCache(this.toolName, pointId) && !this.repeatPointAllowed(this.status)) return;
             // 切换至引用
             geometryManager.modifyToolObject(this.toolName, `point${this.status}`, "quote", pointId);
             if (this.changedVerify !== "choice") {
@@ -942,8 +957,11 @@ class MixPointBaseToolTemplate {
                 this.createPoint(x, y);
                 this.create();
             }else if (exceptPointId) {
-                geometryManager.deleteToolQuote(this.toolName, exceptPointId)
-                this.status = 'none';
+                // 点在图形上 —— **包括刚选中的那条线 / 那个圆本身**：先在这个图形上取个点，再接着作图。
+                // 之前只在点是「别的图形」时才取点，点在已选中的线上则被当成「又点了一次」而取消，
+                // 于是垂线 / 平行线选完线之后，没法直接在这条线上取点作图（取消选中请用浮层的清空）
+                this.createPoint(x, y);
+                this.create();
             }else{
                 this.createPoint(x, y);
                 this.create();
@@ -1120,6 +1138,24 @@ class MixPointBaseToolTemplate {
     }
     
     /**
+     * 把「经过光标下这个交点的全部图形」一起挂进缓存（只为高亮） 过程函数
+     * 看不出这个交点到底属于哪几个图形；这里把交点的两个基底都取出来一起高亮
+     * @param {string} pointId 光标下的点（不是交点时只清掉这组高亮引用）
+     */
+    highlightThroughFigures(pointId) {
+        Object.keys(geometryManager.choice[this.toolName] || {})
+            .filter(key => key.startsWith('through'))
+            .forEach(key => geometryManager.deleteToolKey(this.toolName, key));
+        const point = pointId ? geometryManager.get(pointId) : null;
+        const base = point && typeof point.getBase === 'function' ? point.getBase() : null;
+        if (!base || base.type !== 'intersection' || !Array.isArray(base.bases)) return;
+        base.bases.forEach((item, index) => {
+            if (!item) return;
+            geometryManager.addToolObject(this.toolName, `through${index + 1}`, "quote", item.getId());
+        });
+    }
+
+    /**
      * 移动缓存点
      * @param {number} x
      * @param {number} y
@@ -1143,6 +1179,8 @@ class MixPointBaseToolTemplate {
                 if (geometryManager.ifIdInCache(this.toolName, pointId)) return;
                 
                 geometryManager.modifyToolObject(this.toolName, "point", "quote", pointId);
+                // 光标压在一个已标出的交点上：经过它的每条线 / 每个圆都一起高亮
+                this.highlightThroughFigures(pointId);
                 if (this.changedVerify !== "choice") {
                     this.changedVerify = "choice";
                     const point = geometryManager.getToolKey(this.toolName, "point");
@@ -1150,6 +1188,8 @@ class MixPointBaseToolTemplate {
                     geometryManager.getToolKey(this.toolName, this.goal).modifyDefine(this.define, [point, exceptPoint]);
                 }
             }else{
+                // 光标没压在点上：清掉上一次的「过交点图形」高亮
+                this.highlightThroughFigures(null);
                 // 刷新防引用混乱
                 geometryManager.modifyToolObject(this.toolName, "point", "create", [x, y]);
                 point = geometryManager.getToolKey(this.toolName, 'point');

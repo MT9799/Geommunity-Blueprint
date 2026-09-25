@@ -37,7 +37,12 @@
       const bodyInf = document.getElementById('body_inf');
       if (bodyInf && levelInfo?.subtitle) bodyInf.textContent = levelInfo.subtitle;
       const bottomInf = document.getElementById('bottom_inf');
-      if (bottomInf && levelInfo?.targetSteps) bottomInf.textContent = levelInfo.targetSteps;
+      // 「5L / 6E」里的斜杠换成空格（缩略图那行更紧凑，也不会看着像分数）。
+      // 打个标记：这行是「目标步数」，达成情况由 refreshLevelStatus 按 L / E 分别上色
+      if (bottomInf && levelInfo?.targetSteps) {
+        bottomInf.dataset.goalSteps = '1';
+        bottomInf.textContent = levelInfo.targetSteps.replace(/\s*\/\s*/g, ' ');
+      }
       loadGeometryElementsStorage();
       if (typeof fitInitialView === 'function') fitInitialView();
       drawContent();
@@ -49,12 +54,19 @@
         picture.alt = id;
         document.getElementById('thumbnail-middle').appendChild(picture);
       }
-      // 关卡初始图形成为撤销/重做的新起点，避免撤销把 initial 撤掉
-      if (typeof resetStorageHistory === 'function') resetStorageHistory();
+      // 从制题器 / 求解器返回：这份存档是要接着玩的，已经挣到的步数与达成记录都得留着
+      const restoredPlay = typeof playBackupRestored !== 'undefined' && playBackupRestored;
+      // 撤销 / 重做历史随备份一起回来了（里面本来就有关卡初始图形那一格）：别再清成「当前状态」一格，
+      // 否则玩家去求解器 / 制题器之前作的图形全撤不回来
+      const restoredHistory = restoredPlay && typeof playBackupHistoryRestored !== 'undefined' && playBackupHistoryRestored;
+      // 关卡初始图形成为撤销/重做的新起点，避免撤销把 initial 撤掉（返回时步数不清零）
+      if (!restoredHistory && typeof resetStorageHistory === 'function') resetStorageHistory(restoredPlay);
       // 缩略图下方的目标与达成情况（初始全灰；换关卡时清掉上一关的达成记录，
       // 缩略图的钩是「点亮过就不熄灭」的，所以也要在这里复位）
-      if (typeof resetLevelProgress === 'function') resetLevelProgress();
-      if (typeof resetThumbnailTicks === 'function') resetThumbnailTicks();
+      if (!restoredPlay) {
+        if (typeof resetLevelProgress === 'function') resetLevelProgress();
+        if (typeof resetThumbnailTicks === 'function') resetThumbnailTicks();
+      }
       if (typeof refreshLevelStatus === 'function') refreshLevelStatus();
       // 工具栏按本关的工具限制重建（探索模式不受限）
       if (typeof refreshToolLimit === 'function') refreshToolLimit();

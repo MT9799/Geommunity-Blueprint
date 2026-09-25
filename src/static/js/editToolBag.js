@@ -71,6 +71,20 @@ class MoveTool {
     }
     
     /**
+     * 图形的自由定义点 过程函数
+     * 图形的定义点（base.figure）全是自由点（坐标为 none 的点）时，拖着图形就能整体平移：
+     * 把这些定义点一起挪，依此作出的直线 / 线段 / 圆会跟着走
+     * @param {Object} element 图形对象
+     * @returns {Object[]} 可以一起平移的自由点；条件不满足时返回空数组
+     */
+    freeDefinitionPoints(element) {
+        const figure = element.getBase?.()?.figure || [];
+        if (!figure.length) return [];
+        const allFreePoints = figure.every(item => item.getType() === 'point' && item.getBase?.()?.type === 'none');
+        return allFreePoints ? figure : [];
+    }
+    
+    /**
      * 拖拽 过程函数
      * @param {number} x
      * @param {number} y
@@ -103,7 +117,25 @@ class MoveTool {
         }
         
         const type = choice.getType();
-        if (type !== "point") drawCanvas();
+        if (type !== "point") {
+            // 定义点全是自由点的图形：直接拖着图形走（把这些点一起平移，图形跟着走）；
+            // 定义点里有点不动（交点、线上点…）或者还牵着别的图形的，照旧拖画布
+            const points = this.freeDefinitionPoints(choice);
+            if (!points.length) {
+                drawCanvas();
+                return;
+            }
+            const deltaX = (x - preX) / transform.scale;
+            const deltaY = (y - preY) / transform.scale;
+            points.forEach(point => {
+                const [pointX, pointY] = point.getCoordinate();
+                geometryManager.modifyPointCoordinate(point.getId(), pointX + deltaX, pointY + deltaY);
+            });
+            preX = x;
+            preY = y;
+            if (deltaX || deltaY) this.movedFlag = true;
+            return;
+        }
         // 拖拽点
         const logicX = (x - transform.x) / transform.scale;
         const logicY = (y - transform.y) / transform.scale;

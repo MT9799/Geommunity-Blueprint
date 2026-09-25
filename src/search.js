@@ -85,6 +85,19 @@ loadLevelsData().then(({ packs, levels }) => {
     // 从关卡返回时停在原来那一屏（只在首次渲染后还原；改搜索词时不跳）
     restoreListScroll();
 
+    // 手机端：点到搜索框就把它顶到最上面。
+    // subpage-header 是 sticky，滚到顶时它仍会吸在顶部，所以减掉它的高度再滚，免得把搜索框挡住。
+    // 监听 click 而不只是 focus：页面带 autofocus，输入框可能已经是聚焦状态，那时再 focus() 不会再触发事件
+    const bringInputToTop = () => {
+        if (window.innerWidth > 700) return;
+        const header = document.querySelector('.subpage-header');
+        const headerHeight = header ? header.getBoundingClientRect().height : 0;
+        const top = input.getBoundingClientRect().top + window.scrollY - headerHeight - 6;
+        window.scrollTo({top: Math.max(0, top), behavior: 'smooth'});
+    };
+    input.addEventListener('click', bringInputToTop);
+    input.addEventListener('focus', bringInputToTop);
+
     chipsBox.addEventListener('click', event => {
         const button = event.target.closest('.search-chip');
         if (!button || button.disabled) return;

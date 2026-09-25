@@ -4,6 +4,7 @@
     <meta charset="utf-8" name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <title>关卡游玩 | Geommunity Blueprint</title>
     <link rel="stylesheet" href="./static/css/index.css">
+    <link rel="icon" href="./static/images/favicon.ico">
     <!-- 词典先就位：兜底标题按语言定，关卡数据回来后 level-loader 再换成具体关卡 -->
     <script src="./static/js/i18n.js"></script>
     <script>
@@ -42,24 +43,26 @@ fill="transparent" stroke-width="10"  stroke-linejoin="round"/>
             </div>
             <div class="full-width"><hr></div>
         </div>
-        <div class="thumbnail-middle" id="thumbnail-middle"></div>
+        <div class="thumbnail-middle" id="thumbnail-middle">
+            <!-- 收起时的小窗：目标步数（未达成黑色、达成金色），浮在图片左上角 -->
+            <div class="level-goal-badge" id="level-goal-badge" hidden></div>
+        </div>
         <div class="hidden_inf thumbnail-body" style="display: none;">
             <div class="thumbnail-bottom-container">
                 <div data-i18n="level.goal">目标：</div>
                 <div class="switch_inf" id="bottom_inf">&emsp;</div>
+                <!-- 达成情况：完成 / L / E / V 四个勾，紧跟在目标步数后面 -->
+                <div id="level-status" class="level-status">
+                    <span class="level-tick" data-tick="done"><span class="complete-check">&#10004;</span><span data-i18n="level.tickDone">完成</span></span>
+                    <span class="level-tick" data-tick="l"><span class="complete-check">&#10004;</span>L</span>
+                    <span class="level-tick" data-tick="e"><span class="complete-check">&#10004;</span>E</span>
+                    <span class="level-tick" data-tick="v"><span class="complete-check">&#10004;</span>V</span>
+                </div>
             </div>
             <div class="full-width"><hr></div>
             <div class="thumbnail-body-container">
                 <div class="switch_inf" id="body_inf">&emsp;</div>
             </div>
-        </div>
-        <!-- 目标与达成情况：目标 L / E 步数 + 完成 / L / E / V 四个勾 -->
-        <div id="level-status" class="level-status">
-            <span class="level-status-goal" id="level-status-goal"></span>
-            <span class="level-tick" data-tick="done"><span class="complete-check">&#10004;</span><span data-i18n="level.tickDone">完成</span></span>
-            <span class="level-tick" data-tick="l"><span class="complete-check">&#10004;</span>L</span>
-            <span class="level-tick" data-tick="e"><span class="complete-check">&#10004;</span>E</span>
-            <span class="level-tick" data-tick="v"><span class="complete-check">&#10004;</span>V</span>
         </div>
     </div>
     <div id="masks" class="masks"></div>

@@ -1,14 +1,16 @@
 /* tool.js */
 let tool, menuTool, subTool;
 const toolMenus = {
+    // 样式刷是全局性的操作（给任意图形刷样式），挂在通用档、紧挨橡皮擦，
+    // 后面用一条分隔线跟「作图类」工具分开（见 toolMenuDividers）
     'general': [
-        'move', 'eraser', 'point', 'line', 'circle', 'intersection', 'compass', 'lineSegment'
+        'move', 'eraser', 'styleBrush', 'point', 'line', 'circle', 'lineSegment', 'compass', 'intersection'
     ],
     'point': [
         'point', 'intersection'
     ],
     'line': [
-        'line', 'ray', 'lineSegment'
+        'line', 'ray', 'lineSegment', 'lineType'
     ],
     'circle': [
         'circle', 'compass'
@@ -25,10 +27,23 @@ const toolMenuDefaultValue = {
     'circle': "circle",
     'construct': "parallelLine",
 }
+// 工具栏里的分隔线：值为「某个工具之后插一条竖线」，用来把功能性质不同的工具分组
+// 通用档：样式刷之后的作图类工具；线档：三种线之后的「切换线类型」
+const toolMenuDividers = {
+    'general': ['styleBrush'],
+    'line': ['lineSegment'],
+}
 const toolItems = {
     'move': {
         'switch': ["choiceDraw", "moveView"],
         "button": ["restoreTransform", "objectStyle", "deleteObject", "clear"],
+    },
+    'styleBrush': {
+        // 两种模式，在浮动栏里用两个按钮切换（图标 svg-brushStyle / svg-brushHidden）：
+        // 样式刷＝先点一个图形当样式来源，之后点到的图形套用它的颜色 / 粗细 / 标签显示；
+        // 隐藏刷＝点到的图形直接隐藏（光标与橡皮擦一致）
+        'switch': ["brushStyle", "brushHidden"],
+        "button": ["clear"],
     },
     'eraser': {
         "switch": ["any", "choicePoint"],
@@ -36,20 +51,21 @@ const toolItems = {
     'point': {
         "button": ["pointStyle"],
     },
+    // 线类工具（直线 / 射线 / 线段）：subTool 就是工具名，没有小项
     'line': {
-        "switch": ["line", "style"],
         "button": ["clear", "lineStyle"],
         "choice": {"line": {"point1": 'point', "point2": 'point'}},
     },
     'ray': {
-        "switch": ["ray", "style"],
         "button": ["clear", "lineStyle"],
         "choice": {"ray": {"point1": 'point', "point2": 'point'}},
     },
     'lineSegment': {
-        "switch": ["lineSegment", "style"],
         "button": ["clear", "lineStyle"],
         "choice": {"lineSegment": {"point1": 'point', "point2": 'point'}},
+    },
+    'lineType': {
+        // 切换线类型：点画布上的直线 / 射线 / 线段就把它的类型换成下一种，没有小项与浮动按钮
     },
     'circle': {
         "button": ["clear", "circleStyle"],
@@ -119,6 +135,12 @@ function generateTool(selectMenuTool) {
         }
 
         toolbar.appendChild(toolDocumentElement);
+        // 分组分隔线（例如通用档里样式刷之后）
+        if ((toolMenuDividers[selectMenuTool] || []).includes(item)) {
+            const separator = document.createElement('div');
+            separator.classList.add('tool-separator');
+            toolbar.appendChild(separator);
+        }
     })
 
     toolbar.style.display = 'none';
@@ -246,10 +268,31 @@ function choiceToolMenu(selectTool) {
 }
 
 /**
+ * 清掉某个工具「画到一半」的选中
+ * 切工具时不清的话，切回那个工具会发现上一次选的图形还挂着
+ * @param {string} previousTool
+ */
+function clearPendingToolChoice(previousTool) {
+    if (!previousTool || typeof tools === 'undefined' || !tools[previousTool]) return;
+    if (typeof tools[previousTool].clear === 'function') tools[previousTool].clear();
+    // 工具自己的 clear 只清当前管理器，探索模式那一套也顺手清一次
+    [typeof geometryManager === 'undefined' ? null : geometryManager,
+        typeof geometryManagerResult === 'undefined' ? null : geometryManagerResult,
+        typeof geometryManagerExplore === 'undefined' ? null : geometryManagerExplore]
+        .forEach(manager => {
+            if (manager && manager.ifToolInCache(previousTool)) manager.deleteTool(previousTool);
+        });
+}
+
+/**
  * 选中工具 过程函数
- * @param {string} tool
+ * @param {string} selectTool
  */
 function choiceTool(selectTool) {
+    // 切工具时先把上一个工具已经选中的图形清掉：画到一半的状态不该跨工具留着
+    const previousTool = typeof tool === 'undefined' ? null : tool;
+    if (previousTool && previousTool !== selectTool) clearPendingToolChoice(previousTool);
+    
     if (selectTool) {
         const buttons = document.querySelectorAll('.tool-item');
         // 移除所有按钮的选中状态
@@ -267,11 +310,14 @@ function choiceTool(selectTool) {
         loadToolSwitchButton(selectTool);
         const switchList = toolItems[tool]?.switch;
         if (switchList) choiceToolSwitch(switchList[0]);
-        pointerPosition.x = 0, pointerPosition.y = 0; 
+        // 只在真的换了工具时才把光标位置归零：重选当前工具也归零的话，
+        // 预览（草稿图）会按 (0,0) 算，看上去就是「预览跳到画布左上角」
+        if (previousTool !== selectTool) pointerPosition.x = 0, pointerPosition.y = 0;
         if (menuTool === 'construct') {
             toolMenuDefaultValue.construct = selectTool;
         }
     }
+    refreshConstructMenuCorner();
     drawContent();
 }
 
@@ -294,18 +340,35 @@ function choiceToolSwitch(selectTool) {
 }
 
 /**
+ * 刷新构造档右下角的「当前高级工具」角标 过程函数
+ * 分类图标本身固定（board.html 里画的直尺 + 圆规），角标一直显示最近选过的那个高级工具：
+ * 切到别的档、选中别的档的工具时也不消失，这样随时能看到构造档当前是哪个工具
+ */
+// 角标上显示的高级工具（跨档保留）
+let constructMenuCornerTool = null;
+
+function refreshConstructMenuCorner() {
+    const corner = document.getElementById('construct-menu-corner');
+    if (!corner) return;
+    const constructTools = typeof toolMenus === 'undefined' ? [] : (toolMenus.construct || []);
+    // 只有从构造档里选中的工具才算数：圆规这类工具在通用档里也有（menuTool 还是 general），
+    // 从通用档点它不该把角标换掉
+    if (menuTool === 'construct' && constructTools.includes(tool)) constructMenuCornerTool = tool;
+    // 还没选过任何高级工具时，用构造档的默认工具兜底
+    if (!constructMenuCornerTool && constructTools.length) {
+        constructMenuCornerTool = (typeof toolMenuDefaultValue !== 'undefined' && toolMenuDefaultValue.construct) || constructTools[0];
+    }
+    const template = constructMenuCornerTool ? document.getElementById(`svg-${constructMenuCornerTool}`) : null;
+    corner.innerHTML = template ? template.innerHTML : '';
+    corner.classList.toggle('show', !!template);
+}
+
+/**
  * 刷新工具菜单栏
  */
 function refreshMenuTool() {
-    if (menuTool === 'construct') {
-        const constructToolMenu = document.getElementById('button-construct-menu');
-        constructToolMenu.innerHTML = '';
-        const template = document.getElementById(`svg-${tool}`);
-        if (template) {
-            constructToolMenu.innerHTML = template.innerHTML;
-        }
-    }
-    
+    // 分类按钮保持各自的图标（构造档是 board.html 里画的那套直尺 + 圆规）：
+    // 而且换进去的模板没有 button-icon-toolbar 这个类，图标大小也会跳一下
     const menuToolbar = document.getElementById("menu_toolbar");
     menuToolbar.style.display = 'none';
     menuToolbar.offsetHeight;
