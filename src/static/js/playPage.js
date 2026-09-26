@@ -95,6 +95,7 @@ const tools = {
     threePointCircle: new ThreePointCircleConstructTool(),
     angleBisector: new AngleBisectorConstructTool(),
     compass: new CompassConstructTool(),
+    fixedAngle: new FixedAngleConstructTool(),
 };
 
 /**
@@ -1544,6 +1545,7 @@ const infDict = {
     "compass": {title: "圆规工具", context: "三点圆规：两点距离为半径，第三点为圆心作圆"},
     "middlePoint": {title: "中点工具", context: "构造两个点的中点，或构造圆心"},
     "threePointCircle": {title: "三点圆工具", context: "构造过三个点的圆"},
+    "fixedAngle": {title: "指定角工具", context: "构造角的顶点、角的一边，顺时针另一边为指定角度的射线"},
     "choiceDraw": {title: "选中拖拽模式", context: "可以选择几何对象，只能拖拽点"},
     "moveView": {title: "移动视图模式", context: "防误触几何对象"},
     "restoreTransform": {title: "还原画布变化量", context: "将画布的视图变换还原至初始值"},

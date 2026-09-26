@@ -4,28 +4,13 @@
 
 ## 1. 补全关卡信息
 
-### 1.1 缺答案图（8 关）
+### 1.1 缺答案图（3 关）
 
-- `sprfes`：sprfes2025-01 ~ sprfes2025-05
 - `straightedge-only-pzls`：circumcenter-isosceles150、point-on-radical-axis、isosceles-double-circle
 
-### 1.2 缺示意图（15 关，全在 `straightedge-only-pzls`）
+### 1.3 缺步数 targetSteps（3 关）
 
-double-degrees、diameter-angle30、diameter-angle22.5、diameter-angle15、incenter-to-circumcenter、orthocenter-to-circumcenter、double-circles、concentric-circles、diameter-sqrt5-2、diameter-sqrt6-3、1escenter-to-circumcenter、circumcenter-isosceles150、point-on-radical-axis、5points1circle、isosceles-double-circle
-
-另外 `xeuclidea-puzzle` 的 XEWPC1 ~ XEWPC7 七关示意图完全相同，可能需要各自更换。
-
-### 1.3 缺步数 targetSteps（122 关）
-
-- `ewp`：ewp286
-- `xmath`：xmath2020-5
-- `c-s-pzls-other`（16）：pararetcir、rhorectwi、equtriintripbisetroupoi、pararetincir、segcir、squsym、rettwiang、miha、cirsegequ、concirtan、isotricir、anglin、paracirrit、equalanglepoint、incen2polarprestorebicenqua、paraangle
-- `euc-addit`（2）：PerpEquSegOnCircle、unnper
-- `from-baidu-tieba`：retequincir
-- `mingjing-forum`：equcir、secpara
-- `sprfes`（10）：sprfes2024-01 ~ sprfes2024-05、sprfes2025-01 ~ sprfes2025-05
-- `straightedge-only-pzls`（33）：double-degrees、diameter-angle30、diameter-angle22.5、diameter-angle15、incenter-to-circumcenter、orthocenter-to-circumcenter、double-circles、concentric-circles、diameter-sqrt5-2、diameter-sqrt6-3、1escenter-to-circumcenter、circumcenter-isosceles150、point-on-radical-axis、5points1circle、isosceles-double-circle、equal-chord、Castillon's Problem、incenter-rt45、lperp、tri-on3v3pt、tri-cscr-3vonl、lmidpoint、mparallel、3dparallel、l-doubleseg、mmirror、perp-mirror、abisect-perp、ldropperp、drop-perp-c、drop-perp-d、tangent1、Tangent2OnlyLine
-- `xeuclidea-puzzle`（56）：xewpc1 ~ xewpc7、xep1 ~ xep48（含 xep18、xep18-2、xep40-2）
+- `straightedge-only-pzls`：circumcenter-isosceles150、point-on-radical-axis、isosceles-double-circle
 
 ### 1.4 缺说明 subtitle（221 关）
 
@@ -72,3 +57,20 @@ double-degrees、diameter-angle30、diameter-angle22.5、diameter-angle15、ince
 - 网页样式需要进一步美化。手机版适配也需要优化。
 
 ## 5. 其它
+
+近期TODO()：
+fixedangle支持绘制+导入导出
+补全信息
+gmt兼容性
+测bug（已发现3个）
+readme也加一套英文版
+把网页配套js语言标签改成html，solver的js仍然保持js
+
+BUG(3)：
+手机的上拉栏往下收一点时候点叉会先跳到默认位置再收起。
+选择非游玩模式下的构造工具栏里面的工具后构造工具栏按钮不会像其他按钮一样有一个变窄的动画而是直接突变窄。
+一部分手机设备看不到thumbnail展开态下的题目文字说明，会被图片部分挡住。
+
+远期：
+网格模式
+账号系统

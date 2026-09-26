@@ -137,6 +137,8 @@ const I18N_DICT = {
         'board.answerHint': '图片名是该解法对应的星标步数，点击图片可以放大。',
         'board.gmtImportFailed': '未能识别 gmt 内容，请检查格式',
         'board.solverNeedSolution': '先作出至少一个解，才能把图形交给求解器。',
+        'board.inputNumber': '请输入一个数。',
+        'board.inputString': '请输入文本。',
         // 求解器面板
         'board.solverParams': '求解参数',
         'board.solverLimit': '最大步数',
@@ -205,6 +207,8 @@ const I18N_DICT = {
         'help.maker': '制题器：先用工具画出题目条件与解法，再用工具栏上的标记按钮把对象标记为「初始」或「所求」。\n初始对象在关卡里会直接显示（黑色），所求对象用于判定玩家是否作出。\n「导出 gmt」可以查看代码、下载文件或提交到 Issue；「试玩」用当前图形进入游玩模式预览。',
         'help.solver': '求解器：右侧面板设置最大步数与可用工具，点击「开始求解」后会用 Web Worker 搜索作图方案。\n画布上的图形是搜索的已知条件，搜索结果会在下方的状态栏显示。\n搜索内核由 [Ander](https://github.com/Aricler-Ander) 与 zzzzzz 共同开发，本项目使用的是它的 JavaScript 移植版。',
         'help.makerPlay': '试玩：把刚做好的题目按关卡游玩的方式验一遍，用来检查标记与解法是否正确。\n黑色对象是你标记的「给定」（带标签给定会显示标签），作出「所求」后右上角会弹出通关界面；右上角也是步数计数器与「返回」。\n「探索」可以按探索模式查看标记为探索的内容，自己画在探索画布上的图形会一直留着。\n验完点「返回」回到制题器继续编辑（图形与标记都会保留）。',
+
+        "exception.pointBaseDialogToolTemplateTypeException": "点基工具模板输入类型不匹配",
     },
     en: {
         // Home
@@ -338,6 +342,8 @@ const I18N_DICT = {
         'board.answerHint': 'The file name is the star target, click an image to enlarge.',
         'board.gmtImportFailed': 'Could not recognise the gmt content; please check the format.',
         'board.solverNeedSolution': 'Solve at least one goal before sending the figure to the solver.',
+        'board.inputNumber': 'Please enter a number.',
+        'board.inputString': 'Please enter text.',
         // Solver panel
         'board.solverParams': 'Search settings',
         'board.solverLimit': 'Max moves',
@@ -406,6 +412,8 @@ const I18N_DICT = {
         'help.maker': 'Maker: draw the givens and the solution with the tools, then use the marking buttons on the toolbar to mark objects as "given" or "goal".\nGiven objects are shown in the level (black), goal objects are used to check the player.\n"Export gmt" shows the code, downloads a file or opens an issue; "Test play" previews the level in play mode.',
         'help.solver': 'Solver: set the move limit and the allowed tools in the right panel, then press "Start" to search with a Web Worker.\nThe figure on the canvas is the known configuration; the search result appears in the status line below.\nThe search engine was developed by [Ander](https://github.com/Aricler-Ander) and zzzzzz; this project ships a JavaScript port of it.',
         'help.makerPlay': 'Playtest: check the level you just built the way a player would see it, to verify your marks and solution.\nBlack objects are the givens you marked (labelled givens show their label); solve the goal and the completion panel appears at the top right, together with the move counter and "Back".\n"Explore" switches to explore mode to look at what you marked as explore; anything you draw on the explore canvas stays there.\nPress "Back" when you are done to return to the maker with your figure and marks kept.',
+
+        "exception.pointBaseDialogToolTemplateTypeException": "PointBaseDialogToolTemplate input type mismatched exception",
     },
 };
 

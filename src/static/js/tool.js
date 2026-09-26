@@ -16,8 +16,14 @@ const toolMenus = {
         'circle', 'compass'
     ],
     'construct': [
-        'parallelLine', 'perpendicularLine', 'perpendicularBisector', 'angleBisector',
-        'compass', 'middlePoint', 'threePointCircle'
+        'parallelLine', 
+        'perpendicularLine', 
+        'perpendicularBisector', 
+        'angleBisector',
+        'compass', 
+        'middlePoint', 
+        'threePointCircle', 
+        "fixedAngle",
     ],
 }
 const toolMenuDefaultValue = {
@@ -108,6 +114,10 @@ const toolItems = {
     'threePointCircle': {
         "button": ["clear", "circleStyle"], 
         "choice": {"general": {"point1": 'point', "point2": 'point', "point3": 'point'}},
+    }, 
+    'fixedAngle': {
+        "button": ["clear", "lineStyle"], 
+        "choice": {"general": {"point1": 'point', "point2": 'point'}},
     }, 
 }
 

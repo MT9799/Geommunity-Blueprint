@@ -452,3 +452,41 @@ class CompassConstructTool {
     }
     
 }
+
+class FixedAngleConstructTool {
+    constructor() {
+        this.toolName = 'fixedAngle';
+        this.maxStatus = 2;
+        this.goal = "ray";
+        this.goalType = "line";
+        this.define = "fixAngle";
+        this.dialogType = "number";
+        this.drawType = "ray";
+        
+        this.lineMode = new PointBaseDialogToolTemplate(
+            this.toolName,
+            this.maxStatus,
+            this.goal,
+            this.goalType,
+            this.define,
+            this.dialogType,
+            this.drawType,
+            );
+    }
+    
+    /**
+     * @param {string} type
+     * @param {number} oriX 原x坐标
+     * @param {number} oriY 原y坐标
+     */
+    toolEvent(type, oriX, oriY) {
+        this.lineMode.toolEvent(type, oriX, oriY);
+    }
+    
+    /**
+     * 清空
+     */
+    clear() {
+        this.lineMode.clear();
+    }
+}

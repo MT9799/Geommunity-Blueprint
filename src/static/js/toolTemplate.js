@@ -553,6 +553,566 @@ class PointBaseToolTemplate {
 }
 
 
+class PointBaseDialogToolTemplate {
+    /**
+     * 初始构造器
+     * @param {string} toolName
+     * @param {number} maxStatus            // 有几个状态点才会完成构造
+     * @param {string} goal                 // 输入对话框的目标图形
+     * @param {string} goalType
+     * @param {string} define               // 定义 点对目标的约束
+     * @param {string} type                 // 对话框的输入类型
+     * @param {string} [drawType = null]
+     */
+    constructor(
+        toolName, 
+        maxStatus, 
+        goal, 
+        goalType, 
+        define, 
+        type, 
+        drawType = null
+    ) {
+        this.cacheFlag = false;
+        this.status = 0;
+        this.startCoord;
+        this.changedVerify;
+        
+        this.toolName = toolName;
+        this.maxStatus = maxStatus;
+        this.goal = goal;
+        this.goalType = goalType;
+        this.define = define;
+        this.type = type;
+        this.drawType = drawType;
+    }
+    
+    /**
+     * 工具事件
+     * @param {string} type
+     * @param {number} oriX 原x坐标
+     * @param {number} oriY 原y坐标
+     */
+    toolEvent(type, oriX, oriY) {
+        const x = (oriX - transform.x) / transform.scale;
+        const y = (oriY - transform.y) / transform.scale;
+        if (type === "start") {
+            this.startCoord = [x, y];
+        }else if (type === "click") {
+            this.click(x, y);
+        }else if (type === "draw") {
+            this.draw(x, y);
+        }else if (type === "drawComplete") {
+            this.drawComplete();
+        }else if (type === "cancel") {
+            this.cancel();
+        }
+    }
+    
+    /**
+     * 点击
+     * @param {number} x
+     * @param {number} y
+     */
+    click(x, y) {
+        const [pointId] = geometryManager.near([x, y], ["point"]);
+        if (pointId) {
+            // 已经点过这个点：这个位置不允许重复时按「再点一次＝取消」处理（见 repeatPointAllowed）
+            const repeated = geometryManager.ifIdInCache(this.toolName, pointId);
+            if (repeated && !this.repeatPointAllowed(this.status + 1)) {
+                geometryManager.deleteToolQuote(this.toolName, pointId)
+                this.status--;
+            }else{
+                geometryManager.addToolObject(this.toolName, `point${this.status + 1}`, "quote", pointId);
+                this.status++;
+            }
+        }else{
+            this.createPoint(x, y);
+            this.status++;
+        }
+        
+        if (this.status >= this.maxStatus) {
+            this.constructionCompleted();
+        }
+    }
+    
+    /**
+     * 第 index 个点是否允许与前面已选的点重复 过程函数
+     * 默认不允许（再点一次同一个点＝把它取消掉）；三点圆规覆写成「第三个点允许重复」——
+     * 它的第三点是圆心，可以与定半径的那两个点重合（以 A 为圆心、AB 为半径作圆）
+     * @param {number} index 正在选第几个点（从 1 起）
+     * @returns {boolean}
+     */
+    repeatPointAllowed(index) {
+        return false;
+    }
+    
+    /**
+     * 拖拽
+     * @param {number} x
+     * @param {number} y
+     */
+    draw(x, y) {
+        if (!this.cacheFlag) {
+            if (this.status + 1 < this.maxStatus) {
+                this.draw2Points();
+                this.status++;
+                this.status++;
+            }else if (this.status + 1 === this.maxStatus) {
+                this.createLastPoint();
+                this.status++;
+            }
+            this.cacheFlag = true;
+        }
+        this.movePoint(x, y);
+    }
+    
+    /**
+     * 拖拽完成
+     */
+    drawComplete() {
+        this.cacheFlag = false;
+        if (this.status >= this.maxStatus) {
+            this.constructionCompleted();
+        }
+    }
+
+    constructionCompleted() {
+        let dialogTitle = "";
+        if (this.type === "number") {
+            dialogTitle = t('board.inputNumber');
+        }
+        else if (this.type === "string") {
+            dialogTitle = t('board.inputString');
+        }
+        boardInput(dialogTitle, "", "", value => {
+            let newValue = value;
+            if (this.type === "number") {
+                newValue = parseFloat(value);
+            };
+
+            this.create(newValue);
+            this.status = 0;
+            geometryManager.loadTool(this.toolName);
+            // 触发存储事件
+            const event = new CustomEvent("storage", {
+                detail: {
+                    type: this.toolName,
+                },
+            });
+            window.dispatchEvent(event);
+        });
+    }
+    
+    /**
+     * 取消
+     */
+    cancel() {
+        if (this.cacheFlag) {
+            geometryManager.deleteTool(this.toolName);
+            this.cacheFlag = false;
+            this.status = 0;
+        }
+    }
+    
+    /**
+     * 创建固定点
+     * @param {number} x
+     * @param {number} y
+     */
+    createPoint(x, y) {
+        let goalX = x, goalY = y, index = 0;
+        // 先看光标附近最近的那个交点（附近图形两两求交，见 GeometryManager.nearestIntersection）：
+        // 只看最近的两个图形会取到它们很远处的交点，光标下明明有交点也标不出来
+        const snap = geometryManager.nearestIntersection(x, y);
+        const exceptPoints = snap
+            ? [snap.element1.getId(), snap.element2.getId()]
+            : geometryManager.near([x, y], ["line", "circle"], 1);
+        if (exceptPoints.length === 2) {
+            const element1 = geometryManager.get(exceptPoints[0]);
+            const element2 = geometryManager.get(exceptPoints[1]);
+            if (element1.getType() === "line") {
+                if (element2.getType() === "line") {
+                    const flagValue = ToolsFunction.lineIntersectionByGeometryObject(element1, element2);
+                    if (!flagValue) return;
+                    const coord = flagValue.value;
+                    goalX = coord.x;
+                    goalY = coord.y;
+                    
+                }else if (element2.getType() === "circle") {
+                    const countValue = ToolsFunction.lineCircleIntersectionByGeometryObject(element1, element2);
+                    if (countValue.count === 0) return;
+                    
+                    if (countValue.count === 1) {
+                        const [coord] = countValue.value;
+                        goalX = coord.x;
+                        goalY = coord.y;
+                        
+                    }else if (countValue.count === 2) {
+                        const coord1 = countValue.value[0];
+                        const coord2 = countValue.value[1];
+                        const p3 = {x, y};
+                        const distance1 = ToolsFunction.distance(coord1, p3);
+                        const distance2 = ToolsFunction.distance(coord2, p3);
+                        if (distance1 > distance2) index = 1;
+                        
+                        const coord = countValue.value[index];
+                        goalX = coord.x;
+                        goalY = coord.y;
+                    }
+                }
+            }else if (element1.getType() === "circle") {
+                if (element2.getType() === "line") {
+                    const countValue = ToolsFunction.lineCircleIntersectionByGeometryObject(element2, element1);
+                    if (countValue.count === 0) return;
+                    
+                    if (countValue.count === 1) {
+                        const [coord] = countValue.value;
+                        goalX = coord.x;
+                        goalY = coord.y;
+                        
+                    }else if (countValue.count === 2) {
+                        const coord1 = countValue.value[0];
+                        const coord2 = countValue.value[1];
+                        const p3 = {x, y};
+                        const distance1 = ToolsFunction.distance(coord1, p3);
+                        const distance2 = ToolsFunction.distance(coord2, p3);
+                        if (distance1 > distance2) index = 1;
+                        
+                        const coord = countValue.value[index];
+                        goalX = coord.x;
+                        goalY = coord.y;
+                        
+                    }
+                }else if (element2.getType() === "circle") {
+                    const countValue = ToolsFunction.circleCircleIntersectionByGeometryObject(element1, element2);
+                    if (countValue.count === 0) return;
+                    
+                    if (countValue.count === 1) {
+                        const [coord] = countValue.value;
+                        goalX = coord.x;
+                        goalY = coord.y;
+                        
+                    }else if (countValue.count === 2) {
+                        const coord1 = countValue.value[0];
+                        const coord2 = countValue.value[1];
+                        const p3 = {x, y};
+                        const distance1 = ToolsFunction.distance(coord1, p3);
+                        const distance2 = ToolsFunction.distance(coord2, p3);
+                        if (distance1 > distance2) index = 1;
+                        
+                        const coord = countValue.value[index];
+                        goalX = coord.x;
+                        goalY = coord.y;
+                    }
+                }
+            }
+            
+            const pointObject = geometryManager.createPoint(goalX, goalY);
+            pointObject.modifyBase("intersection", [element1, element2], index);
+            element1.addSuperstructure(pointObject);
+            element2.addSuperstructure(pointObject);
+            geometryManager.addToolObject(this.toolName, `point${this.status + 1}`, "append", pointObject);
+            
+        }else if (exceptPoints.length === 1) {
+            let value;
+            const item = geometryManager.get(exceptPoints[0]);
+            if (item.getType() === "line") {
+                const coordList = item.getCoordinate();
+                const point1Coord = coordList[0];
+                const point2Coord = coordList[1];
+                const p1 = {x: point1Coord[0], y: point1Coord[1]};
+                const p2 = {x: point2Coord[0], y: point2Coord[1]};
+                const p3 = {x, y};
+                
+                value = ToolsFunction.onlineValueOf(item, p1, p2, p3);
+                if (!value) return;
+                const coord = ToolsFunction.scalePoint(p1, p2, value);
+                goalX = coord.x;
+                goalY = coord.y;
+                
+            }else if (item.getType() === "circle") {
+                const coordList = item.getCoordinate();
+                const point1Coord = coordList[0];
+                const point2Coord = coordList[1];
+                const p1 = {x: point1Coord[0], y: point1Coord[1]};
+                const p2 = {x: point2Coord[0], y: point2Coord[1]};
+                const p3 = {x, y};
+                
+                value = ToolsFunction.nearPointOnCircle(p1, p3);
+                const coord = ToolsFunction.radianToCoordinate(p1, p2, value);
+                goalX = coord.x;
+                goalY = coord.y;
+                
+            }
+            
+            const pointObject = geometryManager.createPoint(goalX, goalY);
+            const geometryObject = item;
+            pointObject.modifyBase("online", [geometryObject], value);
+            geometryObject.addSuperstructure(pointObject);
+            geometryManager.addToolObject(this.toolName, `point${this.status + 1}`, "append", pointObject);
+                
+        }else if (exceptPoints.length === 0) {
+            const pointObject = geometryManager.createPoint(goalX, goalY);
+            geometryManager.addToolObject(this.toolName, `point${this.status + 1}`, "append", pointObject);
+        }
+    }
+    
+    /**
+     * 创建目标图形
+     * @param {any} value 
+     */
+    create(value) {
+        if (typeof value !== this.type) throw new Error("exception.pointBaseDialogToolTemplateTypeException");
+
+        geometryManager.createGeometryElementInputTool(this.goalType, this.toolName, this.goal);
+        if (this.drawType) geometryManager.getToolKey(this.toolName, this.goal).modifyDrawType(this.drawType);
+        this.setDefine(value);
+    }
+    
+    /**
+     * 移动缓存点
+     * @param {number} x
+     * @param {number} y
+     */
+    movePoint(x, y) {
+        const [pointId] = geometryManager.near([x, y], ["point"]);
+        if (pointId) {
+            // 已经点过的点：默认跳过（不把同一个点引用两次）；
+            // 三点圆规的圆心（第三个点）允许重复，那时照常切成引用
+            if (geometryManager.ifIdInCache(this.toolName, pointId) && !this.repeatPointAllowed(this.status)) return;
+            // 切换至引用
+            geometryManager.modifyToolObject(this.toolName, `point${this.status}`, "quote", pointId);
+            if (this.changedVerify !== "choice") {
+                this.changedVerify = "choice";
+            }
+        }else{
+            // 从引用切换回创建，防干扰
+            geometryManager.modifyToolObject(this.toolName, `point${this.status}`, "create", [x, y]);
+            const point = geometryManager.getToolKey(this.toolName, `point${this.status}`);
+            point.clearBase();
+            let goalX = x, goalY = y, index = 0;
+            // 与 createPoint 一致：先吸附光标附近最近的那个交点
+            const snap = geometryManager.nearestIntersection(x, y);
+            const exceptPoints = snap
+                ? [snap.element1.getId(), snap.element2.getId()]
+                : geometryManager.near([x, y], ["line", "circle"], 1);
+            if (exceptPoints.length === 2) {
+                geometryManager.deleteToolKey(this.toolName, "adsorb");
+                
+                const element1 = geometryManager.get(exceptPoints[0]);
+                const element2 = geometryManager.get(exceptPoints[1]);
+                if (element1.getType() === "line") {
+                    if (element2.getType() === "line") {
+                        const flagValue = ToolsFunction.lineIntersectionByGeometryObject(element1, element2);
+                        if (!flagValue) return;
+                        const coord = flagValue.value;
+                        goalX = coord.x;
+                        goalY = coord.y;
+                        
+                        point.modifyBase("intersection", [element1, element2], 0);
+                        geometryManager.addToolObject(this.toolName, "inter1", "quote", exceptPoints[0]);
+                        geometryManager.addToolObject(this.toolName, "inter2", "quote", exceptPoints[1]);
+                    
+                    }else if (element2.getType() === "circle") {
+                        const countValue = ToolsFunction.lineCircleIntersectionByGeometryObject(element1, element2);
+                        if (countValue.count === 0) return;
+                        
+                        if (countValue.count === 1) {
+                            const [coord] = countValue.value;
+                            goalX = coord.x;
+                            goalY = coord.y;
+                            
+                            point.modifyBase("intersection", [element1, element2], 0);
+                            geometryManager.addToolObject(this.toolName, "inter1", "quote", exceptPoints[0]);
+                            geometryManager.addToolObject(this.toolName, "inter2", "quote", exceptPoints[1]);
+                            
+                        }else if (countValue.count === 2) {
+                            const coord1 = countValue.value[0];
+                            const coord2 = countValue.value[1];
+                            const p3 = {x, y};
+                            const distance1 = ToolsFunction.distance(coord1, p3);
+                            const distance2 = ToolsFunction.distance(coord2, p3);
+                            if (distance1 > distance2) index = 1;
+                            
+                            const coord = countValue.value[index];
+                            goalX = coord.x;
+                            goalY = coord.y;
+                            
+                            point.modifyBase("intersection", [element1, element2], index);
+                            geometryManager.addToolObject(this.toolName, "inter1", "quote", exceptPoints[0]);
+                            geometryManager.addToolObject(this.toolName, "inter2", "quote", exceptPoints[1]);
+                            
+                        }
+                    }
+                }else if (element1.getType() === "circle") {
+                    if (element2.getType() === "line") {
+                        const countValue = ToolsFunction.lineCircleIntersectionByGeometryObject(element2, element1);
+                        if (countValue.count === 0) return;
+                        
+                        if (countValue.count === 1) {
+                            const [coord] = countValue.value;
+                            goalX = coord.x;
+                            goalY = coord.y;
+                            
+                            point.modifyBase("intersection", [element1, element2], 0);
+                            geometryManager.addToolObject(this.toolName, "inter1", "quote", exceptPoints[0]);
+                            geometryManager.addToolObject(this.toolName, "inter2", "quote", exceptPoints[1]);
+                            
+                        }else if (countValue.count === 2) {
+                            const coord1 = countValue.value[0];
+                            const coord2 = countValue.value[1];
+                            const p3 = {x, y};
+                            const distance1 = ToolsFunction.distance(coord1, p3);
+                            const distance2 = ToolsFunction.distance(coord2, p3);
+                            if (distance1 > distance2) index = 1;
+                            
+                            const coord = countValue.value[index];
+                            goalX = coord.x;
+                            goalY = coord.y;
+                            
+                            point.modifyBase("intersection", [element1, element2], index);
+                            geometryManager.addToolObject(this.toolName, "inter1", "quote", exceptPoints[0]);
+                            geometryManager.addToolObject(this.toolName, "inter2", "quote", exceptPoints[1]);
+                            
+                        }
+                    }else if (element2.getType() === "circle") {
+                        const countValue = ToolsFunction.circleCircleIntersectionByGeometryObject(element1, element2);
+                        if (countValue.count === 0) return;
+                        
+                        if (countValue.count === 1) {
+                            const [coord] = countValue.value;
+                            goalX = coord.x;
+                            goalY = coord.y;
+                            
+                            point.modifyBase("intersection", [element1, element2], 0);
+                            geometryManager.addToolObject(this.toolName, "inter1", "quote", exceptPoints[0]);
+                            geometryManager.addToolObject(this.toolName, "inter2", "quote", exceptPoints[1]);
+                            
+                        }else if (countValue.count === 2) {
+                            const coord1 = countValue.value[0];
+                            const coord2 = countValue.value[1];
+                            const p3 = {x, y};
+                            const distance1 = ToolsFunction.distance(coord1, p3);
+                            const distance2 = ToolsFunction.distance(coord2, p3);
+                            if (distance1 > distance2) index = 1;
+                            
+                            const coord = countValue.value[index];
+                            goalX = coord.x;
+                            goalY = coord.y;
+                            
+                            point.modifyBase("intersection", [element1, element2], index);
+                            geometryManager.addToolObject(this.toolName, "inter1", "quote", exceptPoints[0]);
+                            geometryManager.addToolObject(this.toolName, "inter2", "quote", exceptPoints[1]);
+                            
+                        }
+                    }
+                }
+            }else if (exceptPoints.length === 1) {
+                geometryManager.deleteToolKey(this.toolName, "inter1");
+                geometryManager.deleteToolKey(this.toolName, "inter2");
+                let value;
+                const item = geometryManager.get(exceptPoints[0]);
+                if (item.getType() === "line") {
+                    const coordList = item.getCoordinate();
+                    const point1Coord = coordList[0];
+                    const point2Coord = coordList[1];
+                    const p1 = {x: point1Coord[0], y: point1Coord[1]};
+                    const p2 = {x: point2Coord[0], y: point2Coord[1]};
+                    const p3 = {x, y};
+                    
+                    value = ToolsFunction.onlineValueOf(item, p1, p2, p3);
+                    if (!value) return;
+                    const coord = ToolsFunction.scalePoint(p1, p2, value);
+                    goalX = coord.x;
+                    goalY = coord.y;
+                    
+                    const geometryObject = item;
+                    point.modifyBase("online", [geometryObject], value);
+                    geometryManager.addToolObject(this.toolName, "adsorb", "quote", exceptPoints[0]);
+                    
+                }else if (item.getType() === "circle") {
+                    const coordList = item.getCoordinate();
+                    const point1Coord = coordList[0];
+                    const point2Coord = coordList[1];
+                    const p1 = {x: point1Coord[0], y: point1Coord[1]};
+                    const p2 = {x: point2Coord[0], y: point2Coord[1]};
+                    const p3 = {x, y};
+                    
+                    value = ToolsFunction.nearPointOnCircle(p1, p3);
+                    const coord = ToolsFunction.radianToCoordinate(p1, p2, value);
+                    goalX = coord.x;
+                    goalY = coord.y;
+                    
+                    const geometryObject = item;
+                    point.modifyBase("online", [geometryObject], value);
+                    geometryManager.addToolObject(this.toolName, "adsorb", "quote", exceptPoints[0]);
+                }
+            }else if (exceptPoints.length === 0) {
+                geometryManager.deleteToolKey(this.toolName, "inter1");
+                geometryManager.deleteToolKey(this.toolName, "inter2");
+                geometryManager.deleteToolKey(this.toolName, "adsorb");
+            }
+            
+            geometryManager.modifyToolObject(this.toolName, `point${this.status}`, "create", [goalX, goalY]);
+            if (this.changedVerify !== "move") {
+                this.changedVerify = "move";
+            }
+        }
+    }
+    
+    /**
+     * 配置定义点
+     * @param {any} value 
+     */
+    setDefine(value) {
+        if (this.status < this.maxStatus) return;
+        
+        const pointList = [];
+        for (let i = 1; i <= this.maxStatus; i++) {
+            pointList.push(geometryManager.getToolKey(this.toolName, `point${i}`));
+        }
+        const goal = geometryManager.getToolKey(this.toolName, this.goal)
+        if (goal.getType() === "point") {
+            goal.modifyBase(this.define, pointList, value);
+        }else{
+            goal.modifyDefine(this.define, pointList, value);
+        }
+    }
+    
+    /**
+     * 创建最后点
+     */
+    createLastPoint() {
+        const [x, y] = this.startCoord;
+        geometryManager.addToolObject(this.toolName, `point${this.status + 1}`, "create", [x, y]);
+    }
+    
+    /**
+     * 创建2点
+     */
+    draw2Points() {
+        const [x, y] = this.startCoord;
+        const [pointId] = geometryManager.near([x, y], ["point"]);
+        if (pointId) {
+            geometryManager.addToolObject(this.toolName, `point${this.status + 1}`, "quote", pointId);
+        }else{
+            this.createPoint(x, y);
+        }
+        geometryManager.addToolObject(this.toolName, `point${this.status + 2}`, "create", [x, y]);
+    }
+    
+    /**
+     * 清空
+     */
+    clear() {
+        geometryManager.deleteTool(this.toolName);
+        this.cacheFlag = false;
+        this.status = 0;
+    }
+}
+
+
 
 /*
 toolEvent +
