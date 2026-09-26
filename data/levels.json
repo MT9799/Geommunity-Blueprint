@@ -228,7 +228,7 @@
         "pack": "ewp",
         "title": "EWP43",
         "subtitle": "已知不共线的点A、B、C，在点C处构造过A、B、C三点的圆的切线（圆未给出）。",
-        "targetSteps": "5L / 5E",
+        "targetSteps": "4L / 5E",
         "diagram": "diagrams/ewp/ewp43.png",
         "file": "levels/ewp/ewp43.gmt",
         "keywords": [
@@ -241,7 +241,7 @@
         "solutions": [
             {
                 "file": "answers/ewp/ewp43/5L5E.png",
-                "star": "5L 5E"
+                "star": "4L 5E"
             }
         ]
     },
@@ -577,7 +577,7 @@
         "pack": "ewp",
         "title": "EWP97",
         "subtitle": "用6步将一个正方形分成边长比1:3和2:3两个矩形。",
-        "targetSteps": "4L / 6E",
+        "targetSteps": "4L / 5E",
         "diagram": "diagrams/ewp/ewp97.png",
         "file": "levels/ewp/ewp97.gmt",
         "keywords": [
@@ -1034,7 +1034,7 @@
     {
         "id": "ewp138",
         "pack": "ewp",
-        "title": "EWP138(4,10,(3))",
+        "title": "EWP138",
         "subtitle": "作出3个点，使之与给定的3个点分别形成三个梯形。注意：每个梯形都共用构造的3个点，而不是共用给定的3个点。",
         "targetSteps": "4L / 10E",
         "diagram": "diagrams/ewp/ewp138.png",
@@ -2563,7 +2563,7 @@
     {
         "id": "ewp271",
         "pack": "ewp",
-        "title": "ewp271",
+        "title": "EWP271",
         "subtitle": "求作点A的对径点，3步更佳。",
         "targetSteps": "2L / 3E",
         "diagram": "diagrams/ewp/ewp271.png",
@@ -2590,7 +2590,7 @@
     {
         "id": "ewp272",
         "pack": "ewp",
-        "title": "ewp272",
+        "title": "EWP272",
         "subtitle": "求作点A与圆心的中点，6步更佳。",
         "targetSteps": "4L / 6E",
         "diagram": "diagrams/ewp/ewp272.png",
@@ -2617,7 +2617,7 @@
     {
         "id": "ewp273",
         "pack": "ewp",
-        "title": "ewp273",
+        "title": "EWP273",
         "subtitle": "求作过点A的割线，与圆交于点BC，使AB=BC,6步更佳。",
         "targetSteps": "5L / 6E",
         "diagram": "diagrams/ewp/ewp273.png",
@@ -2649,7 +2649,7 @@
     {
         "id": "ewp274",
         "pack": "ewp",
-        "title": "ewp274",
+        "title": "EWP274",
         "subtitle": "求作过点A的切线，6步更佳。",
         "targetSteps": "5L / 6E",
         "diagram": "diagrams/ewp/ewp274.png",
@@ -2823,39 +2823,6 @@
             },
             {
                 "file": "answers/ewp/ewp289/2V.png",
-                "star": "2V"
-            }
-        ]
-    },
-    {
-        "id": "ewp53-2",
-        "pack": "ewp",
-        "title": "EWP53",
-        "subtitle": "已知直角三角形斜边上的垂足，角平分线交点和中点，还原这个直角三角形。",
-        "targetSteps": "7L / 10E",
-        "diagram": "diagrams/ewp/ewp53-2.png",
-        "file": "levels/ewp/ewp53-2.gmt",
-        "keywords": [
-            "EWP",
-            "作图",
-            "蓝三角",
-            "尺规",
-            "直角三角形",
-            "垂线",
-            "角平分线",
-            "中线"
-        ],
-        "solutions": [
-            {
-                "file": "answers/ewp/ewp53-2/7L.png",
-                "star": "7L"
-            },
-            {
-                "file": "answers/ewp/ewp53-2/10E.png",
-                "star": "10E"
-            },
-            {
-                "file": "answers/ewp/ewp53-2/2V.png",
                 "star": "2V"
             }
         ]
@@ -6395,10 +6362,10 @@
         "solutions": [
             {
                 "file": "answers/sprfes/sprfes2024-01/01-10L10E.png",
-                "star": "10L 10E"
+                "star": "9L 10E"
             }
         ],
-        "targetSteps": "10L / 10E"
+        "targetSteps": "9L / 10E"
     },
     {
         "id": "sprfes2024-02",
