@@ -13,7 +13,7 @@ A geometry-construction playground that runs entirely in the browser: solve the 
 | Workspace | What it is for |
 | --- | --- |
 | **Board** | Free drawing with every tool unlocked — sketch and study constructions. |
-| **Levels** | Play the bundled levels (346 of them); match the `L / E` step limits to clear a level. |
+| **Levels** | Play the bundled levels; match the `L / E` step limits to clear a level. |
 | **Maker** | Create your own problem: mark the givens and the goal, then test-play it. |
 | **Solver** | Give a few figures and let the program find a construction that meets the goal. |
 
@@ -235,7 +235,7 @@ Levels and the board's "Import gmt" share one parser. For the syntax see ggb2gmt
 | `CopyAngle[A,B,C,D,E]` | copied-angle ray | vertex E, with D a point on one side |
 | `FixAngle[A,B,x]` | fixed-angle ray | vertex A, starting side AB, rotated counter-clockwise by x degrees |
 
-`ShiftSeg`, `ABisect[two lines]`, `Tangent[two circles]` and `rules` (constraints) are not supported yet: those objects are dropped together with everything that depends on them, while the rest parses normally (none of the current 346 level files uses `ShiftSeg` or the two-circle tangent). Trailing comments (`assignment # comment`) and mixed-case command names are recognised; a few files have individual objects that are degenerate at their initial position (three collinear points, a point inside a circle …) and therefore can't be drawn for the moment.
+`ShiftSeg`, `ABisect[two lines]`, `Tangent[two circles]` and `rules` (constraints) are not supported yet: those objects are dropped together with everything that depends on them, while the rest parses normally (none of the current level files uses `ShiftSeg` or the two-circle tangent). Trailing comments (`assignment # comment`) and mixed-case command names are recognised; a few files have individual objects that are degenerate at their initial position (three collinear points, a point inside a circle …) and therefore can't be drawn for the moment.
 
 **How the parameter is computed (`Linepoint[object,x]`)**
 
