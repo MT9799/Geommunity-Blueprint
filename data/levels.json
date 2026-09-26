@@ -6494,7 +6494,14 @@
         "file": "levels/sprfes/sprfes2025-01.gmt",
         "keywords": [
             "SprFes"
-        ]
+        ],
+        "solutions": [
+            {
+                "file": "answers/sprfes/sprfes2025-01/01-11E.png",
+                "star": "11E"
+            }
+        ],
+        "targetSteps": "11E"
     },
     {
         "id": "sprfes2025-02",
@@ -6505,7 +6512,18 @@
         "keywords": [
             "SprFes",
             "多解"
-        ]
+        ],
+        "solutions": [
+            {
+                "file": "answers/sprfes/sprfes2025-02/02-9E.png",
+                "star": "9E"
+            },
+            {
+                "file": "answers/sprfes/sprfes2025-02/02-2V.png",
+                "star": "2V"
+            }
+        ],
+        "targetSteps": "9E"
     },
     {
         "id": "sprfes2025-03",
@@ -6515,7 +6533,18 @@
         "file": "levels/sprfes/sprfes2025-03.gmt",
         "keywords": [
             "SprFes"
-        ]
+        ],
+        "solutions": [
+            {
+                "file": "answers/sprfes/sprfes2025-03/03-8E.png",
+                "star": "8E"
+            },
+            {
+                "file": "answers/sprfes/sprfes2025-03/03-8E-2.png",
+                "star": "8E"
+            }
+        ],
+        "targetSteps": "8E"
     },
     {
         "id": "sprfes2025-04",
@@ -6525,7 +6554,14 @@
         "file": "levels/sprfes/sprfes2025-04.gmt",
         "keywords": [
             "SprFes"
-        ]
+        ],
+        "solutions": [
+            {
+                "file": "answers/sprfes/sprfes2025-04/04-18E.png",
+                "star": "18E"
+            }
+        ],
+        "targetSteps": "18E"
     },
     {
         "id": "sprfes2025-05",
@@ -6536,13 +6572,25 @@
         "keywords": [
             "SprFes",
             "多解"
-        ]
+        ],
+        "solutions": [
+            {
+                "file": "answers/sprfes/sprfes2025-05/05-19E.png",
+                "star": "19E"
+            },
+            {
+                "file": "answers/sprfes/sprfes2025-05/05-2V.png",
+                "star": "2V"
+            }
+        ],
+        "targetSteps": "19E"
     },
     {
         "id": "double-degrees",
         "pack": "straightedge-only-pzls",
         "tools": "straightedge",
         "title": "01.径倍角找心",
+        "targetSteps": "6E",
         "file": "levels/straightedge-only-pzls/double-degrees.gmt",
         "keywords": [
             "Straightedge-only_Pzls"
@@ -6559,6 +6607,7 @@
         "pack": "straightedge-only-pzls",
         "tools": "straightedge",
         "title": "02.径弦30度找心",
+        "targetSteps": "8E",
         "file": "levels/straightedge-only-pzls/diameter-angle30.gmt",
         "keywords": [
             "Straightedge-only_Pzls",
@@ -6580,6 +6629,7 @@
         "pack": "straightedge-only-pzls",
         "tools": "straightedge",
         "title": "03.径弦22.5度找心",
+        "targetSteps": "11E",
         "file": "levels/straightedge-only-pzls/diameter-angle22.5.gmt",
         "keywords": [
             "Straightedge-only_Pzls",
@@ -6597,6 +6647,7 @@
         "pack": "straightedge-only-pzls",
         "tools": "straightedge",
         "title": "04.径弦15度找心",
+        "targetSteps": "13E",
         "file": "levels/straightedge-only-pzls/diameter-angle15.gmt",
         "keywords": [
             "Straightedge-only_Pzls",
@@ -6614,6 +6665,7 @@
         "pack": "straightedge-only-pzls",
         "tools": "straightedge",
         "title": "05.内心作外心",
+        "targetSteps": "9E",
         "file": "levels/straightedge-only-pzls/incenter-to-circumcenter.gmt",
         "keywords": [
             "Straightedge-only_Pzls",
@@ -6632,6 +6684,7 @@
         "pack": "straightedge-only-pzls",
         "tools": "straightedge",
         "title": "06.垂心作外心",
+        "targetSteps": "20E",
         "file": "levels/straightedge-only-pzls/orthocenter-to-circumcenter.gmt",
         "keywords": [
             "Straightedge-only_Pzls",
@@ -6650,6 +6703,7 @@
         "pack": "straightedge-only-pzls",
         "tools": "straightedge",
         "title": "07.双圆相交找心",
+        "targetSteps": "13E",
         "file": "levels/straightedge-only-pzls/double-circles.gmt",
         "keywords": [
             "Straightedge-only_Pzls"
@@ -6666,6 +6720,7 @@
         "pack": "straightedge-only-pzls",
         "tools": "straightedge",
         "title": "08.双同心圆找心",
+        "targetSteps": "18E",
         "file": "levels/straightedge-only-pzls/concentric-circles.gmt",
         "keywords": [
             "Straightedge-only_Pzls"
@@ -6726,6 +6781,7 @@
         "pack": "straightedge-only-pzls",
         "tools": "straightedge",
         "title": "11.旁心作外心",
+        "targetSteps": "9E",
         "file": "levels/straightedge-only-pzls/1escenter-to-circumcenter.gmt",
         "keywords": [
             "Straightedge-only_Pzls",
@@ -6766,6 +6822,7 @@
         "pack": "straightedge-only-pzls",
         "tools": "straightedge",
         "title": "14.五点共圆找心",
+        "targetSteps": "15E",
         "file": "levels/straightedge-only-pzls/5points1circle.gmt",
         "keywords": [
             "Straightedge-only_Pzls",
@@ -6794,6 +6851,7 @@
         "pack": "straightedge-only-pzls",
         "tools": "straightedge",
         "title": "A01.等弦",
+        "targetSteps": "8E",
         "diagram": "diagrams/straightedge-only-pzls/equal-chord.png",
         "file": "levels/straightedge-only-pzls/equal-chord.gmt",
         "keywords": [
@@ -6821,6 +6879,7 @@
         "pack": "straightedge-only-pzls",
         "tools": "straightedge",
         "title": "A02.卡斯蒂朗问题",
+        "targetSteps": "15E",
         "diagram": "diagrams/straightedge-only-pzls/Castillon's Problem.png",
         "file": "levels/straightedge-only-pzls/Castillon's Problem.gmt",
         "keywords": [
@@ -6851,6 +6910,7 @@
         "pack": "straightedge-only-pzls",
         "tools": "straightedge",
         "title": "A03.内心Rt45",
+        "targetSteps": "5E",
         "diagram": "diagrams/straightedge-only-pzls/incenter-rt45.png",
         "file": "levels/straightedge-only-pzls/incenter-rt45.gmt",
         "keywords": [
@@ -6877,6 +6937,7 @@
         "pack": "straightedge-only-pzls",
         "tools": "straightedge",
         "title": "A04.圆心作垂(15.7)",
+        "targetSteps": "10E",
         "diagram": "diagrams/straightedge-only-pzls/lperp.png",
         "file": "levels/straightedge-only-pzls/lperp.gmt",
         "keywords": [
@@ -6902,6 +6963,7 @@
         "pack": "straightedge-only-pzls",
         "tools": "straightedge",
         "title": "A05.三边过点三角形",
+        "targetSteps": "7E",
         "diagram": "diagrams/straightedge-only-pzls/tri-on3v3pt.png",
         "file": "levels/straightedge-only-pzls/tri-on3v3pt.gmt",
         "keywords": [
@@ -6928,6 +6990,7 @@
         "pack": "straightedge-only-pzls",
         "tools": "straightedge",
         "title": "A06.三线上外切三角形",
+        "targetSteps": "14E",
         "diagram": "diagrams/straightedge-only-pzls/tri-cscr-3vonl.png",
         "file": "levels/straightedge-only-pzls/tri-cscr-3vonl.gmt",
         "keywords": [
@@ -7266,6 +7329,7 @@
         "id": "xewpc1",
         "pack": "xewpc",
         "title": "XEWPC1",
+        "targetSteps": "10E",
         "diagram": "diagrams/xewpc/xewpc1.png",
         "file": "levels/xewpc/xewpc1.gmt",
         "keywords": [
@@ -7280,6 +7344,7 @@
         "id": "xewpc2",
         "pack": "xewpc",
         "title": "XEWPC2",
+        "targetSteps": "4E",
         "diagram": "diagrams/xewpc/xewpc2.png",
         "file": "levels/xewpc/xewpc2.gmt",
         "keywords": [
@@ -7294,6 +7359,7 @@
         "id": "xewpc3",
         "pack": "xewpc",
         "title": "XEWPC3",
+        "targetSteps": "12E",
         "diagram": "diagrams/xewpc/xewpc3.png",
         "file": "levels/xewpc/xewpc3.gmt",
         "keywords": [
@@ -7308,6 +7374,7 @@
         "id": "xewpc4",
         "pack": "xewpc",
         "title": "XEWPC4",
+        "targetSteps": "10E",
         "diagram": "diagrams/xewpc/xewpc4.png",
         "file": "levels/xewpc/xewpc4.gmt",
         "keywords": [
@@ -7322,6 +7389,7 @@
         "id": "xewpc5",
         "pack": "xewpc",
         "title": "XEWPC5",
+        "targetSteps": "9E",
         "diagram": "diagrams/xewpc/xewpc5.png",
         "file": "levels/xewpc/xewpc5.gmt",
         "keywords": [
@@ -7336,6 +7404,7 @@
         "id": "xewpc6",
         "pack": "xewpc",
         "title": "XEWPC6",
+        "targetSteps": "5E",
         "diagram": "diagrams/xewpc/xewpc6.png",
         "file": "levels/xewpc/xewpc6.gmt",
         "keywords": [
@@ -7350,6 +7419,7 @@
         "id": "xewpc7",
         "pack": "xewpc",
         "title": "XEWPC7",
+        "targetSteps": "8E",
         "diagram": "diagrams/xewpc/xewpc7.png",
         "file": "levels/xewpc/xewpc7.gmt",
         "keywords": [
