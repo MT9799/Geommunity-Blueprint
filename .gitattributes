@@ -1,0 +1,5 @@
+# 语言统计：本站的页面脚本都是直接放在 HTML 里跑的，不需要构建，也不是给别的程序调用的库。
+# 除了求解器内核（src/solver/）以外，其余 js 都按 HTML 记，免得仓库被统计成一堆 JavaScript。
+/src/**/*.js linguist-language=HTML
+/src/solver/**/*.js linguist-language=JavaScript
+/src/solver/**/*.js -linguist-documentation

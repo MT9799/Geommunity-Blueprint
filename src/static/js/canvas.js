@@ -23,13 +23,38 @@ const maxMoveX = 500, // max是负的
     initialScale = (Math.random() - 0.5) * 0.01 + 0.5;
 // 点完一下之后先不画预览，等指针真的移动过再画：
 // 点完一条线时光标还停在那条线上，这时立刻画出「过该点的平行线 / 垂线」会让人以为点已经取好了
+// 记的是**未吸附的原始指针坐标**：用吸附后的坐标比较时，吸附候选会随亚像素抖动在两个图形之间跳，
+// 坐标一下差出十几像素，判定就失效了（鼠标没动也会冒出预览）
 let previewWaitPointer = null;
 /**
  * 让预览等指针移动 过程函数
- * 点击落点后调用：记下当前指针位置，在指针移动之前不再画预览（见 toolPreviewState）
+ * 点击落点后调用：记下这一刻指针的原始画布坐标，指针真的动开之前不再画预览（见 toolPreviewState）
+ * @param {number} [x] 原始指针 x（未吸附）
+ * @param {number} [y] 原始指针 y（未吸附）
  */
-function previewWaitForMove() {
-    previewWaitPointer = {x: pointerPosition.x, y: pointerPosition.y};
+function previewWaitForMove(x, y) {
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+    previewWaitPointer = {x: x, y: y};
+}
+
+/**
+ * 指针移动了 过程函数
+ * 每个真实的指针移动事件都要调用它：动开 2px 以上才解除「先不画预览」的限制
+ * @param {number} x 原始指针 x（未吸附）
+ * @param {number} y 原始指针 y（未吸附）
+ */
+function previewPointerMoved(x, y) {
+    if (!previewWaitPointer) return;
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+    if (Math.hypot(x - previewWaitPointer.x, y - previewWaitPointer.y) > 2) previewWaitPointer = null;
+}
+
+/**
+ * 还在等指针移动吗 过程函数
+ * @returns {boolean}
+ */
+function previewWaiting() {
+    return !!previewWaitPointer;
 }
 const hex = '0123456789abcdef';
 
@@ -440,9 +465,8 @@ function previewCursor() {
     const p2 = {x: coord[1][0], y: coord[1][1]};
     const p3 = {x: cursor[0], y: cursor[1]};
     if (element.getType() === 'line') {
-        const value = ToolsFunction.nearPointOnLine(p1, p2, p3);
-        if (!value && value !== 0) return cursor;
-        const point = ToolsFunction.scalePoint(p1, p2, value);
+        // 不夹紧的投影：nearPointOnLine 会把比例夹到 [0,1]，落在渲染段外的点会被拽回端点
+        const point = ToolsFunction.onlineCoordinateOf(p1, p2, p3);
         return [point.x, point.y];
     }
     const value = ToolsFunction.nearPointOnCircle(p1, p3);
@@ -457,9 +481,8 @@ function previewCursor() {
  */
 function toolPreviewState() {
     if (typeof isDragging === 'undefined' || isDragging) return null;
-    // 刚点完一下、指针还停在同一处：先不画预览（指针一动就会照常出现）
-    if (previewWaitPointer
-        && pointerPosition.x === previewWaitPointer.x && pointerPosition.y === previewWaitPointer.y) return null;
+    // 刚点完一下、指针还没真的移动：先不画预览
+    if (previewWaiting()) return null;
     // 没吸附过的原始光标位置：用来判断「光标靠近了哪个圆 / 哪条线」
     const rawCursor = [
         (pointerPosition.x - transform.x) / transform.scale,
@@ -992,6 +1015,27 @@ function drawChoicePoint(point) {
 }
 
 /**
+ * 标记集合的键名 常量
+ * 给定（给定 / 带标签给定）与所求（每一组解的所求判定 / 所求显示 + 探索显示）
+ */
+const MARKED_LINE_KEY = /^(initial|named|result\d*|resultShown\d*|explore)$/;
+
+/**
+ * 这条直线 / 射线是否属于「给定」或「所求」 过程函数
+ * 属于的话整条都画实色：那是题面条件与目标，延长段不该淡掉
+ * @param {string} id 对象 id
+ * @returns {boolean}
+ */
+function isMarkedLineElement(id) {
+    if (typeof geometryElementLists === 'undefined' || !geometryElementLists) return false;
+    for (const [key, value] of Object.entries(geometryElementLists)) {
+        if (!MARKED_LINE_KEY.test(key)) continue;
+        if (value instanceof Set ? value.has(id) : Array.isArray(value) && value.includes(id)) return true;
+    }
+    return false;
+}
+
+/**
  * 绘制直线 过程函数
  * @param {Object} element 直线对象
  */
@@ -1014,31 +1058,44 @@ function drawInfiniteLine(element) {
     } = ToolsFunction.getLineBounds(bag, transform);
 
     const drawType = element.getDrawType();
+    const lineWidth = (4 * width) / transform.scale;
+    // 画一段（alpha < 1 时半透明）
+    const stroke = (x1, y1, x2, y2, alpha) => {
+        ct.globalAlpha = alpha;
+        ct.beginPath();
+        ct.moveTo(x1, y1);
+        ct.lineTo(x2, y2);
+        ct.strokeStyle = color;
+        ct.lineWidth = lineWidth;
+        ct.stroke();
+        ct.globalAlpha = 1;
+    };
+    // 屏幕上这两个裁剪点各自落在「第一个定义点 → 第二个定义点」连线上的位置：
+    // 0 = 第一个定义点，1 = 第二个定义点，小于 0 / 大于 1 就是延长出去的那部分
+    const square = (endX - startX) ** 2 + (endY - startY) ** 2;
+    const positionOf = point => (((point.x - startX) * (endX - startX)) + ((point.y - startY) * (endY - startY))) / square;
+
+    // 延长段的透明度：只对「两点定的直线 / 射线」半透明。
+    // 垂线、平行线、中垂线、角平分线、定值角、切线这些构造出来的线，以及被标成
+    // 给定 / 所求（各解的判定 / 显示 + 探索）的线，都整条画实色
+    const plainTwoPoints = element.getBase?.()?.type === 'twoPoints';
+    const extensionAlpha = plainTwoPoints && !isMarkedLineElement(element.getId()) ? 0.5 : 1;
     if (drawType === 'line') {
-        ct.beginPath();
-        ct.moveTo(p1.x, p1.y);
-        ct.lineTo(p2.x, p2.y);
-        ct.strokeStyle = color;
-        ct.lineWidth = (4 * width) / transform.scale;
-        ct.stroke();
+        // 两个定义点之间是实体
+        stroke(startX, startY, endX, endY, 1);
+        // 两头延长出去的部分半透明（屏幕里看不到的那一头不用画）
+        const near = positionOf(p1) <= positionOf(p2) ? p1 : p2;
+        const far = near === p1 ? p2 : p1;
+        if (positionOf(near) < 0) stroke(near.x, near.y, startX, startY, extensionAlpha);
+        if (positionOf(far) > 1) stroke(endX, endY, far.x, far.y, extensionAlpha);
     }else if (drawType === 'ray') {
-        ct.beginPath();
-        ct.moveTo(startX, startY);
-        if (startX < endX) {
-            ct.lineTo(p2.x, p2.y);
-        }else{
-            ct.lineTo(p1.x, p1.y);
-        }
-        ct.strokeStyle = color;
-        ct.lineWidth = (4 * width) / transform.scale;
-        ct.stroke();
+        // 起点到第二个定义点是实体
+        stroke(startX, startY, endX, endY, 1);
+        // 第二个定义点往外的那一边半透明
+        const far = positionOf(p1) >= positionOf(p2) ? p1 : p2;
+        stroke(endX, endY, far.x, far.y, extensionAlpha);
     }else if (drawType === 'lineSegment') {
-        ct.beginPath();
-        ct.moveTo(startX, startY);
-        ct.lineTo(endX, endY);
-        ct.strokeStyle = color;
-        ct.lineWidth = (4 * width) / transform.scale;
-        ct.stroke();
+        stroke(startX, startY, endX, endY, 1);
     }
 }
 

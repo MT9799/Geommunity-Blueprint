@@ -49,7 +49,11 @@
         .footer-links a { color: var(--muted); text-decoration: none; }
         .footer-links a:hover { color: var(--blue); text-decoration: underline; }
         .footer-note { margin: 0; }
-        @media (max-width: 760px) { .site-header { align-items: flex-start; } .source-link { display: none; } .hero { padding: 22px 0 18px; } .entry-grid { grid-template-columns: repeat(2, 1fr); } .notes { grid-template-columns: 1fr; margin-top: 28px; } }
+        /* 「项目说明」按钮：桌面上在头部右上角，手机端挪进 footer（见下面的媒体查询） */
+        .footer-readme-item { display: none; }
+        .footer-readme { padding: 0; border: 0; background: none; color: var(--muted); font: inherit; cursor: pointer; }
+        .footer-readme:hover { color: var(--blue); text-decoration: underline; }
+        @media (max-width: 760px) { .site-header { align-items: flex-start; } .source-link { display: none; } .hero { padding: 22px 0 18px; } .entry-grid { grid-template-columns: repeat(2, 1fr); } .notes { grid-template-columns: 1fr; margin-top: 28px; } .footer-links { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; } .footer-readme-item { display: block; grid-column: 1 / -1; text-align: center; } }
         @media (max-width: 420px) { .page { width: min(100% - 28px, 1080px); } .brand span { font-size: 16px; } .entry { min-height: 138px; padding: 16px; } .entry h3 { font-size: 18px; } }
         /* 项目说明弹窗 */
         .readme-mask { position: fixed; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(38, 50, 56, .45); }
@@ -117,6 +121,7 @@
                 <li><a href="https://qm.qq.com/q/XO4QEVzCAY" target="_blank" rel="noreferrer" data-i18n="index.qq">开发交流 QQ 群</a></li>
                 <li><a href="https://www.euclidea.xyz/" target="_blank" rel="noreferrer" data-i18n="index.euclidea">Euclidea 官网</a></li>
                 <li><a href="https://www.geogebra.org/" target="_blank" rel="noreferrer" data-i18n="index.ggb">GeoGebra 官网</a></li>
+                <li class="footer-readme-item"><button type="button" class="footer-readme" data-readme-button data-i18n="index.sourceLink">项目说明</button></li>
             </ul>
             <p class="footer-note" data-i18n="index.footer">Geommunity Blueprint · GitHub Page</p>
         </footer>

@@ -594,6 +594,27 @@ class ToolsFunction {
         const deltaY = p2.y - p1.y;
         return {x: p1.x + k * deltaX, y: p1.y + k * deltaY};
     }
+
+    /**
+     * 线上点的视觉坐标 过程函数
+     * 与 onlineValueOf 配套使用：onlineValueOf 返回的是**各类线型自己的参数**
+     * （垂线是「比例 + 1」、切线是「距离 / 半径」、角平分线要按基底长度换算…），
+     * 直接 scalePoint(p1, p2, value) 会落到沿线偏移一整段的地方 ——
+     * 表现就是吸附到垂线上以后，预览点和预览线突然跑到离光标几百像素外的线上位置。
+     * 这里统一按「不夹紧的投影比例」算坐标（夹紧的版本是 nearPointOnLine）
+     * @param {{x: number, y: number}} p1 渲染的第一点
+     * @param {{x: number, y: number}} p2 渲染的第二点
+     * @param {{x: number, y: number}} p3 光标位置
+     * @returns {{x: number, y: number}}
+     */
+    static onlineCoordinateOf(p1, p2, p3) {
+        const deltaX = p2.x - p1.x;
+        const deltaY = p2.y - p1.y;
+        const lengthSquared = deltaX * deltaX + deltaY * deltaY;
+        if (lengthSquared < 1e-20) return {x: p1.x, y: p1.y};
+        const proportion = ((p3.x - p1.x) * deltaX + (p3.y - p1.y) * deltaY) / lengthSquared;
+        return {x: p1.x + proportion * deltaX, y: p1.y + proportion * deltaY};
+    }
     
     /**
      * 角平分线
@@ -1615,9 +1636,11 @@ class ToolsFunction {
             const [vertex, start] = define.figure;
             const [ax, ay] = vertex.getCoordinate();
             const [bx, by] = start.getCoordinate();
+            // 单位长度取两个定义点的距离（重合时退回 100）
+            const length = Math.hypot(bx - ax, by - ay) || 100;
             // y 轴朝下：视觉上的逆时针对应 atan2 角度的减少方向
             const angle = Math.atan2(by - ay, bx - ax) - define.value * Math.PI / 180;
-            return [[ax, ay], [ax + Math.cos(angle) * 100, ay + Math.sin(angle) * 100]];
+            return [[ax, ay], [ax + Math.cos(angle) * length, ay + Math.sin(angle) * length]];
         }else if (define.type === "twoLineAngleBisector") {
             const [line1, line2] = define.figure;
             const coordList1 = line1.getCoordinate();

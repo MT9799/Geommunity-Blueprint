@@ -205,7 +205,7 @@ const I18N_DICT = {
         'help.board': '画板：左侧工具栏选择工具，画布上点击（有些工具需要点击多次）即可作图；拖动可平移视图，滚轮缩放。\n顶栏右侧依次是：菜单（构造面板 / 元素一览 / 记录 / 清空画布 / 打开求解器）、撤销、重做、返回。\n「菜单 → 打开求解器」会把画布上的图形交给求解器搜索构造方案。\n鼠标停在按钮上时，工具栏上方会显示这个按钮的说明。',
         'help.level': '关卡：按标题给出的目标作图，画布上的黑色对象是题目条件，金色对象是你作出的所求。\n每作出一个所求，右上角会弹出通关界面：完成勾表示作出了解，L / E 勾表示步数不超过最佳步数，V 勾表示作出了全部多解。\n顶栏右侧是 LE 计数器与返回按钮；「探索」可以把所求的关联图形标金显示，方便观察。\n「菜单 → 查看答案」可以看该关收录的解法图（会先确认一次）。',
         'help.maker': '制题器：先用工具画出题目条件与解法，再用工具栏上的标记按钮把对象标记为「初始」或「所求」。\n初始对象在关卡里会直接显示（黑色），所求对象用于判定玩家是否作出。\n「导出 gmt」可以查看代码、下载文件或提交到 Issue；「试玩」用当前图形进入游玩模式预览。',
-        'help.solver': '求解器：右侧面板设置最大步数与可用工具，点击「开始求解」后会用 Web Worker 搜索作图方案。\n画布上的图形是搜索的已知条件，搜索结果会在下方的状态栏显示。\n搜索内核由 [Ander](https://github.com/Aricler-Ander) 与 zzzzzz 共同开发，本项目使用的是它的 JavaScript 移植版。',
+        'help.solver': '求解器：求解参数中设置最大步数与可用工具，点击「开始求解」后会用 Web Worker 搜索作图方案。\n画布上的图形是搜索的已知条件，搜索结果会在下方的状态栏显示。\n搜索内核由 [Ander](https://github.com/Aricler-Ander) 与 zzzzzz 共同开发，本项目使用的是它的 JavaScript 移植版。',
         'help.makerPlay': '试玩：把刚做好的题目按关卡游玩的方式验一遍，用来检查标记与解法是否正确。\n黑色对象是你标记的「给定」（带标签给定会显示标签），作出「所求」后右上角会弹出通关界面；右上角也是步数计数器与「返回」。\n「探索」可以按探索模式查看标记为探索的内容，自己画在探索画布上的图形会一直留着。\n验完点「返回」回到制题器继续编辑（图形与标记都会保留）。',
 
         "exception.pointBaseDialogToolTemplateTypeException": "点基工具模板输入类型不匹配",
@@ -410,7 +410,7 @@ const I18N_DICT = {
         'help.board': 'Board: pick a tool on the left toolbar and click on the canvas (some tools need several clicks). Drag to pan the view, scroll to zoom.\nThe right side of the top bar holds the menu (tools / elements / records / clear canvas / open solver), undo, redo and back.\n"Menu → Open solver" sends the current figure to the solver.\nHover a button to read its description above the toolbar.',
         'help.level': 'Level: build the construction described by the title. Black objects are given, golden objects are what you have constructed.\nEvery time you solve a goal, the completion panel slides in: the done tick means a goal is solved, L / E mean you stayed within the target moves, V means every variant is solved.\nThe top right shows the L/E counter and the back button; "Explore" highlights the related objects in gold.\n"Menu → View answer" shows the archived solution images (after a confirmation).',
         'help.maker': 'Maker: draw the givens and the solution with the tools, then use the marking buttons on the toolbar to mark objects as "given" or "goal".\nGiven objects are shown in the level (black), goal objects are used to check the player.\n"Export gmt" shows the code, downloads a file or opens an issue; "Test play" previews the level in play mode.',
-        'help.solver': 'Solver: set the move limit and the allowed tools in the right panel, then press "Start" to search with a Web Worker.\nThe figure on the canvas is the known configuration; the search result appears in the status line below.\nThe search engine was developed by [Ander](https://github.com/Aricler-Ander) and zzzzzz; this project ships a JavaScript port of it.',
+        'help.solver': 'Solver: set the move limit and the allowed tools in the solver panel, then press "Start" to search with a Web Worker.\nThe figure on the canvas is the known configuration; the search result appears in the status line below.\nThe search engine was developed by [Ander](https://github.com/Aricler-Ander) and zzzzzz; this project ships a JavaScript port of it.',
         'help.makerPlay': 'Playtest: check the level you just built the way a player would see it, to verify your marks and solution.\nBlack objects are the givens you marked (labelled givens show their label); solve the goal and the completion panel appears at the top right, together with the move counter and "Back".\n"Explore" switches to explore mode to look at what you marked as explore; anything you draw on the explore canvas stays there.\nPress "Back" when you are done to return to the maker with your figure and marks kept.',
 
         "exception.pointBaseDialogToolTemplateTypeException": "PointBaseDialogToolTemplate input type mismatched exception",
@@ -484,6 +484,7 @@ const TIP_EN = {
     'compass': ['Compass tool', 'Three-point and copy modes'],
     'middlePoint': ['Midpoint tool', 'Midpoint of two points, or the center of a circle'],
     'threePointCircle': ['Three-point circle tool', 'Circle through three points'],
+    'fixedAngle': ['Fixed angle tool', 'Pick a point on one side of the angle, then the vertex; a ray turning the given angle from that side is drawn'],
     'choiceDraw': ['Select & drag', 'Select objects; only points can be dragged'],
     'moveView': ['Pan view', 'Avoid touching objects by accident'],
     'restoreTransform': ['Reset view', 'Restore the canvas transform to its initial value'],

@@ -614,6 +614,9 @@ class LineTypeTool {
         const [id] = geometryManager.near([x, y], ['line']);
         if (!id) return;
         const line = geometryManager.get(id);
+        // 只有「两点定的直线 / 射线 / 线段」能换类型：垂线、平行线、角平分线、定值角
+        // 这些构造出来的线换了类型没有意义
+        if (line.getBase()?.type !== 'twoPoints') return;
         const order = ['line', 'ray', 'lineSegment'];
         const index = order.indexOf(line.getDrawType());
         line.modifyDrawType(order[(index + 1) % order.length]);

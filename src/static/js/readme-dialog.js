@@ -138,7 +138,9 @@ async function openReadmeDialog() {
     document.body.appendChild(mask);
     const body = mask.querySelector('.readme-body');
     try {
-        const response = await fetch('./README.md');
+        // 说明文档按当前界面语言取：英文界面读英文版，其余读中文版
+        const readmeFile = typeof currentLang === 'function' && currentLang() === 'en' ? './src/README.en.md' : './README.md';
+        const response = await fetch(readmeFile);
         if (!response.ok) throw new Error(String(response.status));
         body.innerHTML = renderMarkdown(await response.text());
     }catch (error) {
@@ -148,6 +150,8 @@ async function openReadmeDialog() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    const button = document.getElementById('readme-button');
-    if (button) button.addEventListener('click', openReadmeDialog);
+    // 头部按钮与 footer 里的按钮（手机端）都打开同一个弹层
+    document.querySelectorAll('#readme-button, [data-readme-button]').forEach(button => {
+        button.addEventListener('click', openReadmeDialog);
+    });
 });

@@ -241,7 +241,7 @@
         "solutions": [
             {
                 "file": "answers/ewp/ewp43/5L5E.png",
-                "star": "4L 5E"
+                "star": "5E"
             }
         ]
     },
@@ -3490,22 +3490,22 @@
         "pack": "c-s-pzls-other",
         "title": "Conway Circle",
         "targetSteps": "5L / 10E",
-        "diagram": "diagrams/c-s-pzls-other/Conway Circle.jpg",
-        "file": "levels/c-s-pzls-other/Conway Circle.gmt",
+        "diagram": "diagrams/c-s-pzls-other/001.Conway Circle.jpg",
+        "file": "levels/c-s-pzls-other/001.Conway Circle.gmt",
         "keywords": [
             "C-s_Pzls_Other"
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/Conway Circle/5L.png",
+                "file": "answers/c-s-pzls-other/001.Conway Circle/5L.png",
                 "star": "5L"
             },
             {
-                "file": "answers/c-s-pzls-other/Conway Circle/10E.png",
+                "file": "answers/c-s-pzls-other/001.Conway Circle/10E.png",
                 "star": "10E"
             },
             {
-                "file": "answers/c-s-pzls-other/Conway Circle/Disp.png",
+                "file": "answers/c-s-pzls-other/001.Conway Circle/Disp.png",
                 "star": "Disp"
             }
         ]
@@ -3515,14 +3515,14 @@
         "pack": "c-s-pzls-other",
         "title": "Malfatti's Problem",
         "targetSteps": "23L / 31E",
-        "diagram": "diagrams/c-s-pzls-other/Malfatti's Problem.png",
-        "file": "levels/c-s-pzls-other/Malfatti's Problem.gmt",
+        "diagram": "diagrams/c-s-pzls-other/002.Malfatti's Problem.png",
+        "file": "levels/c-s-pzls-other/002.Malfatti's Problem.gmt",
         "keywords": [
             "C-s_Pzls_Other"
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/Malfatti's Problem/23L31E.png",
+                "file": "answers/c-s-pzls-other/002.Malfatti's Problem/23L31E.png",
                 "star": "23L 31E"
             }
         ]
@@ -3532,15 +3532,15 @@
         "pack": "c-s-pzls-other",
         "title": "IncOrthoc ReTriangle",
         "targetSteps": "13L / 15E",
-        "diagram": "diagrams/c-s-pzls-other/IncOrthoc ReTriangle.png",
-        "file": "levels/c-s-pzls-other/IncOrthoc ReTriangle.gmt",
+        "diagram": "diagrams/c-s-pzls-other/003.IncOrthoc ReTriangle.png",
+        "file": "levels/c-s-pzls-other/003.IncOrthoc ReTriangle.gmt",
         "keywords": [
             "C-s_Pzls_Other",
             "三角形"
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/IncOrthoc ReTriangle/13L15E.png",
+                "file": "answers/c-s-pzls-other/003.IncOrthoc ReTriangle/13L15E.png",
                 "star": "13L 15E"
             }
         ]
@@ -3550,19 +3550,19 @@
         "pack": "c-s-pzls-other",
         "title": "IncCircmc ReTriangle",
         "targetSteps": "8L / 14E",
-        "diagram": "diagrams/c-s-pzls-other/IncCircmc ReTriangle.png",
-        "file": "levels/c-s-pzls-other/IncCircmc ReTriangle.gmt",
+        "diagram": "diagrams/c-s-pzls-other/004.IncCircmc ReTriangle.png",
+        "file": "levels/c-s-pzls-other/004.IncCircmc ReTriangle.gmt",
         "keywords": [
             "C-s_Pzls_Other",
             "三角形"
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/IncCircmc ReTriangle/8L.png",
+                "file": "answers/c-s-pzls-other/004.IncCircmc ReTriangle/8L.png",
                 "star": "8L"
             },
             {
-                "file": "answers/c-s-pzls-other/IncCircmc ReTriangle/14E.png",
+                "file": "answers/c-s-pzls-other/004.IncCircmc ReTriangle/14E.png",
                 "star": "14E"
             }
         ]
@@ -3572,22 +3572,22 @@
         "pack": "c-s-pzls-other",
         "title": "Regular_octagon",
         "targetSteps": "10L / 13E",
-        "diagram": "diagrams/c-s-pzls-other/regular-octagon.png",
-        "file": "levels/c-s-pzls-other/regular-octagon.gmt",
+        "diagram": "diagrams/c-s-pzls-other/005.regular-octagon.png",
+        "file": "levels/c-s-pzls-other/005.regular-octagon.gmt",
         "keywords": [
             "C-s_Pzls_Other"
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/regular-octagon/10L.png",
+                "file": "answers/c-s-pzls-other/005.regular-octagon/10L.png",
                 "star": "10L"
             },
             {
-                "file": "answers/c-s-pzls-other/regular-octagon/11L.png",
+                "file": "answers/c-s-pzls-other/005.regular-octagon/11L.png",
                 "star": "11L"
             },
             {
-                "file": "answers/c-s-pzls-other/regular-octagon/13E.png",
+                "file": "answers/c-s-pzls-other/005.regular-octagon/13E.png",
                 "star": "13E"
             }
         ]
@@ -3597,18 +3597,18 @@
         "pack": "c-s-pzls-other",
         "title": "I_H_O_Linear_ReTri",
         "targetSteps": "9L / 10E",
-        "diagram": "diagrams/c-s-pzls-other/i-h-o-linear-retri.png",
-        "file": "levels/c-s-pzls-other/i-h-o-linear-retri.gmt",
+        "diagram": "diagrams/c-s-pzls-other/006.i-h-o-linear-retri.png",
+        "file": "levels/c-s-pzls-other/006.i-h-o-linear-retri.gmt",
         "keywords": [
             "C-s_Pzls_Other"
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/i-h-o-linear-retri/9L.png",
+                "file": "answers/c-s-pzls-other/006.i-h-o-linear-retri/9L.png",
                 "star": "9L"
             },
             {
-                "file": "answers/c-s-pzls-other/i-h-o-linear-retri/10E.png",
+                "file": "answers/c-s-pzls-other/006.i-h-o-linear-retri/10E.png",
                 "star": "10E"
             }
         ]
@@ -3618,15 +3618,15 @@
         "pack": "c-s-pzls-other",
         "title": "SquareSum",
         "targetSteps": "6L / 14E",
-        "diagram": "diagrams/c-s-pzls-other/squaresum.jpg",
-        "file": "levels/c-s-pzls-other/squaresum.gmt",
+        "diagram": "diagrams/c-s-pzls-other/007.squaresum.jpg",
+        "file": "levels/c-s-pzls-other/007.squaresum.gmt",
         "keywords": [
             "C-s_Pzls_Other",
             "正方形"
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/squaresum/6L14E.jpg",
+                "file": "answers/c-s-pzls-other/007.squaresum/6L14E.jpg",
                 "star": "6L 14E"
             }
         ]
@@ -3636,8 +3636,8 @@
         "pack": "c-s-pzls-other",
         "title": "Tri_Area_Peri_Bisect",
         "targetSteps": "6L / 13E",
-        "diagram": "diagrams/c-s-pzls-other/tri-area-peri-bisect.png",
-        "file": "levels/c-s-pzls-other/tri-area-peri-bisect.gmt",
+        "diagram": "diagrams/c-s-pzls-other/008.tri-area-peri-bisect.png",
+        "file": "levels/c-s-pzls-other/008.tri-area-peri-bisect.gmt",
         "keywords": [
             "C-s_Pzls_Other",
             "面积",
@@ -3645,11 +3645,11 @@
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/tri-area-peri-bisect/6L13E.png",
+                "file": "answers/c-s-pzls-other/008.tri-area-peri-bisect/6L13E.png",
                 "star": "6L 13E"
             },
             {
-                "file": "answers/c-s-pzls-other/tri-area-peri-bisect/2V.png",
+                "file": "answers/c-s-pzls-other/008.tri-area-peri-bisect/2V.png",
                 "star": "2V"
             }
         ]
@@ -3659,19 +3659,19 @@
         "pack": "c-s-pzls-other",
         "title": "Mixtilinear_Incircle",
         "targetSteps": "5L / 12E",
-        "diagram": "diagrams/c-s-pzls-other/mixtilinear-incircle.png",
-        "file": "levels/c-s-pzls-other/mixtilinear-incircle.gmt",
+        "diagram": "diagrams/c-s-pzls-other/009.mixtilinear-incircle.png",
+        "file": "levels/c-s-pzls-other/009.mixtilinear-incircle.gmt",
         "keywords": [
             "C-s_Pzls_Other",
             "内切圆"
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/mixtilinear-incircle/5L.png",
+                "file": "answers/c-s-pzls-other/009.mixtilinear-incircle/5L.png",
                 "star": "5L"
             },
             {
-                "file": "answers/c-s-pzls-other/mixtilinear-incircle/12E.png",
+                "file": "answers/c-s-pzls-other/009.mixtilinear-incircle/12E.png",
                 "star": "12E"
             }
         ]
@@ -3681,23 +3681,23 @@
         "pack": "c-s-pzls-other",
         "title": "Apollonius_PPC",
         "targetSteps": "8L / 12E",
-        "diagram": "diagrams/c-s-pzls-other/apollonius-ppc.jpg",
-        "file": "levels/c-s-pzls-other/apollonius-ppc.gmt",
+        "diagram": "diagrams/c-s-pzls-other/010.apollonius-ppc.jpg",
+        "file": "levels/c-s-pzls-other/010.apollonius-ppc.gmt",
         "keywords": [
             "C-s_Pzls_Other",
             "多解"
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/apollonius-ppc/8L.png",
+                "file": "answers/c-s-pzls-other/010.apollonius-ppc/8L.png",
                 "star": "8L"
             },
             {
-                "file": "answers/c-s-pzls-other/apollonius-ppc/12E.png",
+                "file": "answers/c-s-pzls-other/010.apollonius-ppc/12E.png",
                 "star": "12E"
             },
             {
-                "file": "answers/c-s-pzls-other/apollonius-ppc/2V.png",
+                "file": "answers/c-s-pzls-other/010.apollonius-ppc/2V.png",
                 "star": "2V"
             }
         ]
@@ -3707,27 +3707,27 @@
         "pack": "c-s-pzls-other",
         "title": "Apollonius_LLC",
         "targetSteps": "7L / 12E",
-        "diagram": "diagrams/c-s-pzls-other/apollonius-llc.png",
-        "file": "levels/c-s-pzls-other/apollonius-llc.gmt",
+        "diagram": "diagrams/c-s-pzls-other/011.apollonius-llc.png",
+        "file": "levels/c-s-pzls-other/011.apollonius-llc.gmt",
         "keywords": [
             "C-s_Pzls_Other",
             "多解"
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/apollonius-llc/7L(sp).png",
+                "file": "answers/c-s-pzls-other/011.apollonius-llc/7L(sp).png",
                 "star": "7L"
             },
             {
-                "file": "answers/c-s-pzls-other/apollonius-llc/7L.png",
+                "file": "answers/c-s-pzls-other/011.apollonius-llc/7L.png",
                 "star": "7L"
             },
             {
-                "file": "answers/c-s-pzls-other/apollonius-llc/12E.png",
+                "file": "answers/c-s-pzls-other/011.apollonius-llc/12E.png",
                 "star": "12E"
             },
             {
-                "file": "answers/c-s-pzls-other/apollonius-llc/4V.png",
+                "file": "answers/c-s-pzls-other/011.apollonius-llc/4V.png",
                 "star": "4V"
             }
         ]
@@ -3737,19 +3737,19 @@
         "pack": "c-s-pzls-other",
         "title": "Quadrilateral_G_Center",
         "targetSteps": "7L / 11E",
-        "diagram": "diagrams/c-s-pzls-other/quadrilateral-g-center.png",
-        "file": "levels/c-s-pzls-other/quadrilateral-g-center.gmt",
+        "diagram": "diagrams/c-s-pzls-other/012.quadrilateral-g-center.png",
+        "file": "levels/c-s-pzls-other/012.quadrilateral-g-center.gmt",
         "keywords": [
             "C-s_Pzls_Other",
             "四边形"
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/quadrilateral-g-center/7L11E.jpg",
+                "file": "answers/c-s-pzls-other/012.quadrilateral-g-center/7L11E.jpg",
                 "star": "7L 11E"
             },
             {
-                "file": "answers/c-s-pzls-other/quadrilateral-g-center/11L19E.png",
+                "file": "answers/c-s-pzls-other/012.quadrilateral-g-center/11L19E.png",
                 "star": "11L 19E"
             }
         ]
@@ -3759,14 +3759,14 @@
         "pack": "c-s-pzls-other",
         "title": "First_Lemoine_Circle",
         "targetSteps": "10L / 21E",
-        "diagram": "diagrams/c-s-pzls-other/first-lemoine-circle.png",
-        "file": "levels/c-s-pzls-other/first-lemoine-circle.gmt",
+        "diagram": "diagrams/c-s-pzls-other/013.first-lemoine-circle.png",
+        "file": "levels/c-s-pzls-other/013.first-lemoine-circle.gmt",
         "keywords": [
             "C-s_Pzls_Other"
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/first-lemoine-circle/10L21E.png",
+                "file": "answers/c-s-pzls-other/013.first-lemoine-circle/10L21E.png",
                 "star": "10L 21E"
             }
         ]
@@ -3776,19 +3776,19 @@
         "pack": "c-s-pzls-other",
         "title": "Mixtilinear_Hexagon",
         "targetSteps": "15L / 15E",
-        "diagram": "diagrams/c-s-pzls-other/mixtilinear-hexagon.jpg",
-        "file": "levels/c-s-pzls-other/mixtilinear-hexagon.gmt",
+        "diagram": "diagrams/c-s-pzls-other/014.mixtilinear-hexagon.jpg",
+        "file": "levels/c-s-pzls-other/014.mixtilinear-hexagon.gmt",
         "keywords": [
             "C-s_Pzls_Other",
             "多解"
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/mixtilinear-hexagon/15E.jpg",
+                "file": "answers/c-s-pzls-other/014.mixtilinear-hexagon/15E.jpg",
                 "star": "15E"
             },
             {
-                "file": "answers/c-s-pzls-other/mixtilinear-hexagon/2V.jpg",
+                "file": "answers/c-s-pzls-other/014.mixtilinear-hexagon/2V.jpg",
                 "star": "2V"
             }
         ]
@@ -3798,14 +3798,14 @@
         "pack": "c-s-pzls-other",
         "title": "Penta_Trans_Squ",
         "targetSteps": "19L / 19E",
-        "diagram": "diagrams/c-s-pzls-other/penta-trans-squ.jpg",
-        "file": "levels/c-s-pzls-other/penta-trans-squ.gmt",
+        "diagram": "diagrams/c-s-pzls-other/015.penta-trans-squ.jpg",
+        "file": "levels/c-s-pzls-other/015.penta-trans-squ.gmt",
         "keywords": [
             "C-s_Pzls_Other"
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/penta-trans-squ/19E.jpg",
+                "file": "answers/c-s-pzls-other/015.penta-trans-squ/19E.jpg",
                 "star": "19E"
             }
         ]
@@ -3815,15 +3815,15 @@
         "pack": "c-s-pzls-other",
         "title": "Min_Insc_Chord",
         "targetSteps": "4L / 8E",
-        "diagram": "diagrams/c-s-pzls-other/min-insc-chord.jpg",
-        "file": "levels/c-s-pzls-other/min-insc-chord.gmt",
+        "diagram": "diagrams/c-s-pzls-other/016.min-insc-chord.jpg",
+        "file": "levels/c-s-pzls-other/016.min-insc-chord.gmt",
         "keywords": [
             "C-s_Pzls_Other",
             "弦"
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/min-insc-chord/4L8E.jpg",
+                "file": "answers/c-s-pzls-other/016.min-insc-chord/4L8E.jpg",
                 "star": "4L 8E"
             }
         ]
@@ -3833,15 +3833,15 @@
         "pack": "c-s-pzls-other",
         "title": "Min_Insc_Chord_2",
         "targetSteps": "6L / 8E",
-        "diagram": "diagrams/c-s-pzls-other/min-insc-chord-2.jpg",
-        "file": "levels/c-s-pzls-other/min-insc-chord-2.gmt",
+        "diagram": "diagrams/c-s-pzls-other/017.min-insc-chord-2.jpg",
+        "file": "levels/c-s-pzls-other/017.min-insc-chord-2.gmt",
         "keywords": [
             "C-s_Pzls_Other",
             "弦"
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/min-insc-chord-2/8E.jpg",
+                "file": "answers/c-s-pzls-other/017.min-insc-chord-2/8E.jpg",
                 "star": "8E"
             }
         ]
@@ -3851,19 +3851,19 @@
         "pack": "c-s-pzls-other",
         "title": "Diameter_Circle",
         "targetSteps": "6L / 7E",
-        "diagram": "diagrams/c-s-pzls-other/diameter-circle.jpg",
-        "file": "levels/c-s-pzls-other/diameter-circle.gmt",
+        "diagram": "diagrams/c-s-pzls-other/018.diameter-circle.jpg",
+        "file": "levels/c-s-pzls-other/018.diameter-circle.gmt",
         "keywords": [
             "C-s_Pzls_Other",
             "直径"
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/diameter-circle/6L.jpg",
+                "file": "answers/c-s-pzls-other/018.diameter-circle/6L.jpg",
                 "star": "6L"
             },
             {
-                "file": "answers/c-s-pzls-other/diameter-circle/7E.jpg",
+                "file": "answers/c-s-pzls-other/018.diameter-circle/7E.jpg",
                 "star": "7E"
             }
         ]
@@ -3873,8 +3873,8 @@
         "pack": "c-s-pzls-other",
         "title": "Half_Perp_Chord",
         "targetSteps": "4L / 11E",
-        "diagram": "diagrams/c-s-pzls-other/half-perp-chord.jpg",
-        "file": "levels/c-s-pzls-other/half-perp-chord.gmt",
+        "diagram": "diagrams/c-s-pzls-other/019.half-perp-chord.jpg",
+        "file": "levels/c-s-pzls-other/019.half-perp-chord.gmt",
         "keywords": [
             "C-s_Pzls_Other",
             "弦",
@@ -3882,15 +3882,15 @@
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/half-perp-chord/4L.jpg",
+                "file": "answers/c-s-pzls-other/019.half-perp-chord/4L.jpg",
                 "star": "4L"
             },
             {
-                "file": "answers/c-s-pzls-other/half-perp-chord/11E.jpg",
+                "file": "answers/c-s-pzls-other/019.half-perp-chord/11E.jpg",
                 "star": "11E"
             },
             {
-                "file": "answers/c-s-pzls-other/half-perp-chord/2V.jpg",
+                "file": "answers/c-s-pzls-other/019.half-perp-chord/2V.jpg",
                 "star": "2V"
             }
         ]
@@ -3900,23 +3900,23 @@
         "pack": "c-s-pzls-other",
         "title": "Copy_Angle",
         "targetSteps": "4L / 5E",
-        "diagram": "diagrams/c-s-pzls-other/copy-angle.jpg",
-        "file": "levels/c-s-pzls-other/copy-angle.gmt",
+        "diagram": "diagrams/c-s-pzls-other/020.copy-angle.jpg",
+        "file": "levels/c-s-pzls-other/020.copy-angle.gmt",
         "keywords": [
             "C-s_Pzls_Other",
             "多解"
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/copy-angle/4L.jpg",
+                "file": "answers/c-s-pzls-other/020.copy-angle/4L.jpg",
                 "star": "4L"
             },
             {
-                "file": "answers/c-s-pzls-other/copy-angle/5E.jpg",
+                "file": "answers/c-s-pzls-other/020.copy-angle/5E.jpg",
                 "star": "5E"
             },
             {
-                "file": "answers/c-s-pzls-other/copy-angle/2V.jpg",
+                "file": "answers/c-s-pzls-other/020.copy-angle/2V.jpg",
                 "star": "2V"
             }
         ]
@@ -3926,18 +3926,18 @@
         "pack": "c-s-pzls-other",
         "title": "Min60",
         "targetSteps": "5L / 5E",
-        "diagram": "diagrams/c-s-pzls-other/min60.jpg",
-        "file": "levels/c-s-pzls-other/min60.gmt",
+        "diagram": "diagrams/c-s-pzls-other/021.min60.jpg",
+        "file": "levels/c-s-pzls-other/021.min60.gmt",
         "keywords": [
             "C-s_Pzls_Other"
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/min60/5E.png",
+                "file": "answers/c-s-pzls-other/021.min60/5E.png",
                 "star": "5E"
             },
             {
-                "file": "answers/c-s-pzls-other/min60/6E.jpg",
+                "file": "answers/c-s-pzls-other/021.min60/6E.jpg",
                 "star": "6E"
             }
         ]
@@ -3947,15 +3947,15 @@
         "pack": "c-s-pzls-other",
         "title": "PPC_Orthogonal",
         "targetSteps": "6L / 10E",
-        "diagram": "diagrams/c-s-pzls-other/ppc-orthogonal.png",
-        "file": "levels/c-s-pzls-other/ppc-orthogonal.gmt",
+        "diagram": "diagrams/c-s-pzls-other/022.ppc-orthogonal.png",
+        "file": "levels/c-s-pzls-other/022.ppc-orthogonal.gmt",
         "keywords": [
             "C-s_Pzls_Other",
             "垂线"
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/ppc-orthogonal/6L10E.png",
+                "file": "answers/c-s-pzls-other/022.ppc-orthogonal/6L10E.png",
                 "star": "6L 10E"
             }
         ]
@@ -3965,8 +3965,8 @@
         "pack": "c-s-pzls-other",
         "title": "Parallel_4EquSeg",
         "targetSteps": "10L / 15E",
-        "diagram": "diagrams/c-s-pzls-other/parallel-4equseg.png",
-        "file": "levels/c-s-pzls-other/parallel-4equseg.gmt",
+        "diagram": "diagrams/c-s-pzls-other/023.parallel-4equseg.png",
+        "file": "levels/c-s-pzls-other/023.parallel-4equseg.gmt",
         "keywords": [
             "C-s_Pzls_Other",
             "平行线",
@@ -3974,11 +3974,11 @@
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/parallel-4equseg/10L15E.png",
+                "file": "answers/c-s-pzls-other/023.parallel-4equseg/10L15E.png",
                 "star": "10L 15E"
             },
             {
-                "file": "answers/c-s-pzls-other/parallel-4equseg/2V.png",
+                "file": "answers/c-s-pzls-other/023.parallel-4equseg/2V.png",
                 "star": "2V"
             }
         ]
@@ -3988,8 +3988,8 @@
         "pack": "c-s-pzls-other",
         "title": "Parallel_SegP_Isosc",
         "targetSteps": "5L / 7E",
-        "diagram": "diagrams/c-s-pzls-other/parallel-segp-isosc.png",
-        "file": "levels/c-s-pzls-other/parallel-segp-isosc.gmt",
+        "diagram": "diagrams/c-s-pzls-other/024.parallel-segp-isosc.png",
+        "file": "levels/c-s-pzls-other/024.parallel-segp-isosc.gmt",
         "keywords": [
             "C-s_Pzls_Other",
             "平行线",
@@ -3997,19 +3997,19 @@
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/parallel-segp-isosc/5L.png",
+                "file": "answers/c-s-pzls-other/024.parallel-segp-isosc/5L.png",
                 "star": "5L"
             },
             {
-                "file": "answers/c-s-pzls-other/parallel-segp-isosc/6L.png",
+                "file": "answers/c-s-pzls-other/024.parallel-segp-isosc/6L.png",
                 "star": "6L"
             },
             {
-                "file": "answers/c-s-pzls-other/parallel-segp-isosc/7E.png",
+                "file": "answers/c-s-pzls-other/024.parallel-segp-isosc/7E.png",
                 "star": "7E"
             },
             {
-                "file": "answers/c-s-pzls-other/parallel-segp-isosc/2V.png",
+                "file": "answers/c-s-pzls-other/024.parallel-segp-isosc/2V.png",
                 "star": "2V"
             }
         ]
@@ -4019,8 +4019,8 @@
         "pack": "c-s-pzls-other",
         "title": "025.ChordEuqSeg_ThP",
         "targetSteps": "5L / 11E",
-        "diagram": "diagrams/c-s-pzls-other/chordeuqseg-thp.jpg",
-        "file": "levels/c-s-pzls-other/chordeuqseg-thp.gmt",
+        "diagram": "diagrams/c-s-pzls-other/025.chordeuqseg-thp.jpg",
+        "file": "levels/c-s-pzls-other/025.chordeuqseg-thp.gmt",
         "keywords": [
             "C-s_Pzls_Other",
             "弦",
@@ -4028,15 +4028,15 @@
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/chordeuqseg-thp/5L.jpg",
+                "file": "answers/c-s-pzls-other/025.chordeuqseg-thp/5L.jpg",
                 "star": "5L"
             },
             {
-                "file": "answers/c-s-pzls-other/chordeuqseg-thp/11E.jpg",
+                "file": "answers/c-s-pzls-other/025.chordeuqseg-thp/11E.jpg",
                 "star": "11E"
             },
             {
-                "file": "answers/c-s-pzls-other/chordeuqseg-thp/2V.jpg",
+                "file": "answers/c-s-pzls-other/025.chordeuqseg-thp/2V.jpg",
                 "star": "2V"
             }
         ]
@@ -4046,18 +4046,18 @@
         "pack": "c-s-pzls-other",
         "title": "Tri_3distSum_Seg",
         "targetSteps": "5L / 8E",
-        "diagram": "diagrams/c-s-pzls-other/tri-3distsum-seg.jpg",
-        "file": "levels/c-s-pzls-other/tri-3distsum-seg.gmt",
+        "diagram": "diagrams/c-s-pzls-other/026.tri-3distsum-seg.jpg",
+        "file": "levels/c-s-pzls-other/026.tri-3distsum-seg.gmt",
         "keywords": [
             "C-s_Pzls_Other"
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/tri-3distsum-seg/5L.jpg",
+                "file": "answers/c-s-pzls-other/026.tri-3distsum-seg/5L.jpg",
                 "star": "5L"
             },
             {
-                "file": "answers/c-s-pzls-other/tri-3distsum-seg/8E.jpg",
+                "file": "answers/c-s-pzls-other/026.tri-3distsum-seg/8E.jpg",
                 "star": "8E"
             }
         ]
@@ -4067,19 +4067,19 @@
         "pack": "c-s-pzls-other",
         "title": "Tangent_EqualDist",
         "targetSteps": "3L / 4E",
-        "diagram": "diagrams/c-s-pzls-other/tangent-equaldist.jpg",
-        "file": "levels/c-s-pzls-other/tangent-equaldist.gmt",
+        "diagram": "diagrams/c-s-pzls-other/027.tangent-equaldist.jpg",
+        "file": "levels/c-s-pzls-other/027.tangent-equaldist.gmt",
         "keywords": [
             "C-s_Pzls_Other",
             "切线"
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/tangent-equaldist/3L.jpg",
+                "file": "answers/c-s-pzls-other/027.tangent-equaldist/3L.jpg",
                 "star": "3L"
             },
             {
-                "file": "answers/c-s-pzls-other/tangent-equaldist/4E.jpg",
+                "file": "answers/c-s-pzls-other/027.tangent-equaldist/4E.jpg",
                 "star": "4E"
             }
         ]
@@ -4089,14 +4089,14 @@
         "pack": "c-s-pzls-other",
         "title": "InscTri_SquSum_Min",
         "targetSteps": "12L / 26E",
-        "diagram": "diagrams/c-s-pzls-other/insctri-squsum-min.jpg",
-        "file": "levels/c-s-pzls-other/insctri-squsum-min.gmt",
+        "diagram": "diagrams/c-s-pzls-other/028.insctri-squsum-min.jpg",
+        "file": "levels/c-s-pzls-other/028.insctri-squsum-min.gmt",
         "keywords": [
             "C-s_Pzls_Other"
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/insctri-squsum-min/12L26E.jpg",
+                "file": "answers/c-s-pzls-other/028.insctri-squsum-min/12L26E.jpg",
                 "star": "12L 26E"
             }
         ]
@@ -4106,18 +4106,18 @@
         "pack": "c-s-pzls-other",
         "title": "2Angles_Diff_45",
         "targetSteps": "7L / 10E",
-        "diagram": "diagrams/c-s-pzls-other/2angles-diff-45.png",
-        "file": "levels/c-s-pzls-other/2angles-diff-45.gmt",
+        "diagram": "diagrams/c-s-pzls-other/029.2angles-diff-45.png",
+        "file": "levels/c-s-pzls-other/029.2angles-diff-45.gmt",
         "keywords": [
             "C-s_Pzls_Other"
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/2angles-diff-45/7L.png",
+                "file": "answers/c-s-pzls-other/029.2angles-diff-45/7L.png",
                 "star": "7L"
             },
             {
-                "file": "answers/c-s-pzls-other/2angles-diff-45/10E.png",
+                "file": "answers/c-s-pzls-other/029.2angles-diff-45/10E.png",
                 "star": "10E"
             }
         ]
@@ -4127,30 +4127,30 @@
         "pack": "c-s-pzls-other",
         "title": "OnCircle_C_Orthoc",
         "targetSteps": "8L / 11E",
-        "diagram": "diagrams/c-s-pzls-other/oncircle-c-orthoc.png",
-        "file": "levels/c-s-pzls-other/oncircle-c-orthoc.gmt",
+        "diagram": "diagrams/c-s-pzls-other/030.oncircle-c-orthoc.png",
+        "file": "levels/c-s-pzls-other/030.oncircle-c-orthoc.gmt",
         "keywords": [
             "C-s_Pzls_Other"
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/oncircle-c-orthoc/8L.png",
+                "file": "answers/c-s-pzls-other/030.oncircle-c-orthoc/8L.png",
                 "star": "8L"
             },
             {
-                "file": "answers/c-s-pzls-other/oncircle-c-orthoc/10E(sp).png",
+                "file": "answers/c-s-pzls-other/030.oncircle-c-orthoc/10E(sp).png",
                 "star": "10E"
             },
             {
-                "file": "answers/c-s-pzls-other/oncircle-c-orthoc/11E(sp).png",
+                "file": "answers/c-s-pzls-other/030.oncircle-c-orthoc/11E(sp).png",
                 "star": "11E"
             },
             {
-                "file": "answers/c-s-pzls-other/oncircle-c-orthoc/16E.png",
+                "file": "answers/c-s-pzls-other/030.oncircle-c-orthoc/16E.png",
                 "star": "16E"
             },
             {
-                "file": "answers/c-s-pzls-other/oncircle-c-orthoc/Applicability.png",
+                "file": "answers/c-s-pzls-other/030.oncircle-c-orthoc/Applicability.png",
                 "star": "Applicability"
             }
         ]
@@ -4160,23 +4160,23 @@
         "pack": "c-s-pzls-other",
         "title": "MidP_Windmill",
         "targetSteps": "9L / 10E",
-        "diagram": "diagrams/c-s-pzls-other/midp-windmill.png",
-        "file": "levels/c-s-pzls-other/midp-windmill.gmt",
+        "diagram": "diagrams/c-s-pzls-other/031.midp-windmill.png",
+        "file": "levels/c-s-pzls-other/031.midp-windmill.gmt",
         "keywords": [
             "C-s_Pzls_Other",
             "多解"
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/midp-windmill/9L.png",
+                "file": "answers/c-s-pzls-other/031.midp-windmill/9L.png",
                 "star": "9L"
             },
             {
-                "file": "answers/c-s-pzls-other/midp-windmill/10E.png",
+                "file": "answers/c-s-pzls-other/031.midp-windmill/10E.png",
                 "star": "10E"
             },
             {
-                "file": "answers/c-s-pzls-other/midp-windmill/2V.jpg",
+                "file": "answers/c-s-pzls-other/031.midp-windmill/2V.jpg",
                 "star": "2V"
             }
         ]
@@ -4186,23 +4186,23 @@
         "pack": "c-s-pzls-other",
         "title": "DoubleC_EquChord",
         "targetSteps": "9L / 13E",
-        "diagram": "diagrams/c-s-pzls-other/doublec-equchord.png",
-        "file": "levels/c-s-pzls-other/doublec-equchord.gmt",
+        "diagram": "diagrams/c-s-pzls-other/032.doublec-equchord.png",
+        "file": "levels/c-s-pzls-other/032.doublec-equchord.gmt",
         "keywords": [
             "C-s_Pzls_Other",
             "弦"
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/doublec-equchord/9L.png",
+                "file": "answers/c-s-pzls-other/032.doublec-equchord/9L.png",
                 "star": "9L"
             },
             {
-                "file": "answers/c-s-pzls-other/doublec-equchord/10L.png",
+                "file": "answers/c-s-pzls-other/032.doublec-equchord/10L.png",
                 "star": "10L"
             },
             {
-                "file": "answers/c-s-pzls-other/doublec-equchord/13E.png",
+                "file": "answers/c-s-pzls-other/032.doublec-equchord/13E.png",
                 "star": "13E"
             }
         ]
@@ -4212,23 +4212,23 @@
         "pack": "c-s-pzls-other",
         "title": "DiamP_TanL_C",
         "targetSteps": "10L / 15E",
-        "diagram": "diagrams/c-s-pzls-other/diamp-tanl-c.png",
-        "file": "levels/c-s-pzls-other/diamp-tanl-c.gmt",
+        "diagram": "diagrams/c-s-pzls-other/033.diamp-tanl-c.png",
+        "file": "levels/c-s-pzls-other/033.diamp-tanl-c.gmt",
         "keywords": [
             "C-s_Pzls_Other",
             "多解"
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/diamp-tanl-c/10L.png",
+                "file": "answers/c-s-pzls-other/033.diamp-tanl-c/10L.png",
                 "star": "10L"
             },
             {
-                "file": "answers/c-s-pzls-other/diamp-tanl-c/15E.png",
+                "file": "answers/c-s-pzls-other/033.diamp-tanl-c/15E.png",
                 "star": "15E"
             },
             {
-                "file": "answers/c-s-pzls-other/diamp-tanl-c/2V.png",
+                "file": "answers/c-s-pzls-other/033.diamp-tanl-c/2V.png",
                 "star": "2V"
             }
         ]
@@ -4238,18 +4238,18 @@
         "pack": "c-s-pzls-other",
         "title": "VP_Tan_InAngle",
         "targetSteps": "8L / 12E",
-        "diagram": "diagrams/c-s-pzls-other/vp-tan-inangle.png",
-        "file": "levels/c-s-pzls-other/vp-tan-inangle.gmt",
+        "diagram": "diagrams/c-s-pzls-other/034.vp-tan-inangle.png",
+        "file": "levels/c-s-pzls-other/034.vp-tan-inangle.gmt",
         "keywords": [
             "C-s_Pzls_Other"
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/vp-tan-inangle/8L.png",
+                "file": "answers/c-s-pzls-other/034.vp-tan-inangle/8L.png",
                 "star": "8L"
             },
             {
-                "file": "answers/c-s-pzls-other/vp-tan-inangle/12E.png",
+                "file": "answers/c-s-pzls-other/034.vp-tan-inangle/12E.png",
                 "star": "12E"
             }
         ]
@@ -4259,23 +4259,23 @@
         "pack": "c-s-pzls-other",
         "title": "Side_1_2_OnAngle",
         "targetSteps": "5L / 10E",
-        "diagram": "diagrams/c-s-pzls-other/side-1-2-onangle.png",
-        "file": "levels/c-s-pzls-other/side-1-2-onangle.gmt",
+        "diagram": "diagrams/c-s-pzls-other/035.side-1-2-onangle.png",
+        "file": "levels/c-s-pzls-other/035.side-1-2-onangle.gmt",
         "keywords": [
             "C-s_Pzls_Other",
             "多解"
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/side-1-2-onangle/5L.jpg",
+                "file": "answers/c-s-pzls-other/035.side-1-2-onangle/5L.jpg",
                 "star": "5L"
             },
             {
-                "file": "answers/c-s-pzls-other/side-1-2-onangle/10E.jpg",
+                "file": "answers/c-s-pzls-other/035.side-1-2-onangle/10E.jpg",
                 "star": "10E"
             },
             {
-                "file": "answers/c-s-pzls-other/side-1-2-onangle/2V.jpg",
+                "file": "answers/c-s-pzls-other/035.side-1-2-onangle/2V.jpg",
                 "star": "2V"
             }
         ]
@@ -4285,27 +4285,27 @@
         "pack": "c-s-pzls-other",
         "title": "P_3Lines_MidP",
         "targetSteps": "11L / 16E",
-        "diagram": "diagrams/c-s-pzls-other/p-3lines-midp.jpg",
-        "file": "levels/c-s-pzls-other/p-3lines-midp.gmt",
+        "diagram": "diagrams/c-s-pzls-other/036.p-3lines-midp.jpg",
+        "file": "levels/c-s-pzls-other/036.p-3lines-midp.gmt",
         "keywords": [
             "C-s_Pzls_Other",
             "多解"
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/p-3lines-midp/11L.jpg",
+                "file": "answers/c-s-pzls-other/036.p-3lines-midp/11L.jpg",
                 "star": "11L"
             },
             {
-                "file": "answers/c-s-pzls-other/p-3lines-midp/11L2.jpg",
+                "file": "answers/c-s-pzls-other/036.p-3lines-midp/11L2.jpg",
                 "star": "11L"
             },
             {
-                "file": "answers/c-s-pzls-other/p-3lines-midp/14L16E.jpg",
+                "file": "answers/c-s-pzls-other/036.p-3lines-midp/14L16E.jpg",
                 "star": "14L 16E"
             },
             {
-                "file": "answers/c-s-pzls-other/p-3lines-midp/6V.jpg",
+                "file": "answers/c-s-pzls-other/036.p-3lines-midp/6V.jpg",
                 "star": "6V"
             }
         ]
@@ -4315,19 +4315,19 @@
         "pack": "c-s-pzls-other",
         "title": "2V_EuLine_ReTri",
         "targetSteps": "6L / 8E",
-        "diagram": "diagrams/c-s-pzls-other/2v-euline-retri.jpg",
-        "file": "levels/c-s-pzls-other/2v-euline-retri.gmt",
+        "diagram": "diagrams/c-s-pzls-other/037.2v-euline-retri.jpg",
+        "file": "levels/c-s-pzls-other/037.2v-euline-retri.gmt",
         "keywords": [
             "C-s_Pzls_Other",
             "多解"
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/2v-euline-retri/6L8E.jpg",
+                "file": "answers/c-s-pzls-other/037.2v-euline-retri/6L8E.jpg",
                 "star": "6L 8E"
             },
             {
-                "file": "answers/c-s-pzls-other/2v-euline-retri/2V.jpg",
+                "file": "answers/c-s-pzls-other/037.2v-euline-retri/2V.jpg",
                 "star": "2V"
             }
         ]
@@ -4337,27 +4337,27 @@
         "pack": "c-s-pzls-other",
         "title": "Paral_3EqualR",
         "targetSteps": "5L / 10E",
-        "diagram": "diagrams/c-s-pzls-other/paral-3equalr.png",
-        "file": "levels/c-s-pzls-other/paral-3equalr.gmt",
+        "diagram": "diagrams/c-s-pzls-other/038.paral-3equalr.png",
+        "file": "levels/c-s-pzls-other/038.paral-3equalr.gmt",
         "keywords": [
             "C-s_Pzls_Other",
             "多解"
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/paral-3equalr/5L.png",
+                "file": "answers/c-s-pzls-other/038.paral-3equalr/5L.png",
                 "star": "5L"
             },
             {
-                "file": "answers/c-s-pzls-other/paral-3equalr/6L'.jpg",
+                "file": "answers/c-s-pzls-other/038.paral-3equalr/6L'.jpg",
                 "star": "6L"
             },
             {
-                "file": "answers/c-s-pzls-other/paral-3equalr/10E.jpg",
+                "file": "answers/c-s-pzls-other/038.paral-3equalr/10E.jpg",
                 "star": "10E"
             },
             {
-                "file": "answers/c-s-pzls-other/paral-3equalr/2V.jpg",
+                "file": "answers/c-s-pzls-other/038.paral-3equalr/2V.jpg",
                 "star": "2V"
             }
         ]
@@ -4367,23 +4367,23 @@
         "pack": "c-s-pzls-other",
         "title": "Tgt_onLine_Pt90",
         "targetSteps": "9L / 14E",
-        "diagram": "diagrams/c-s-pzls-other/tgt-online-pt90.jpg",
-        "file": "levels/c-s-pzls-other/tgt-online-pt90.gmt",
+        "diagram": "diagrams/c-s-pzls-other/039.tgt-online-pt90.jpg",
+        "file": "levels/c-s-pzls-other/039.tgt-online-pt90.gmt",
         "keywords": [
             "C-s_Pzls_Other",
             "多解"
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/tgt-online-pt90/9L.jpg",
+                "file": "answers/c-s-pzls-other/039.tgt-online-pt90/9L.jpg",
                 "star": "9L"
             },
             {
-                "file": "answers/c-s-pzls-other/tgt-online-pt90/14E.jpg",
+                "file": "answers/c-s-pzls-other/039.tgt-online-pt90/14E.jpg",
                 "star": "14E"
             },
             {
-                "file": "answers/c-s-pzls-other/tgt-online-pt90/4V.jpg",
+                "file": "answers/c-s-pzls-other/039.tgt-online-pt90/4V.jpg",
                 "star": "4V"
             }
         ]
@@ -4393,19 +4393,19 @@
         "pack": "c-s-pzls-other",
         "title": "3C_CTan_P",
         "targetSteps": "18L / 20E",
-        "diagram": "diagrams/c-s-pzls-other/3c-ctan-p.png",
-        "file": "levels/c-s-pzls-other/3c-ctan-p.gmt",
+        "diagram": "diagrams/c-s-pzls-other/040.3c-ctan-p.png",
+        "file": "levels/c-s-pzls-other/040.3c-ctan-p.gmt",
         "keywords": [
             "C-s_Pzls_Other",
             "多解"
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/3c-ctan-p/18L20E.jpg",
+                "file": "answers/c-s-pzls-other/040.3c-ctan-p/18L20E.jpg",
                 "star": "18L 20E"
             },
             {
-                "file": "answers/c-s-pzls-other/3c-ctan-p/2V.jpg",
+                "file": "answers/c-s-pzls-other/040.3c-ctan-p/2V.jpg",
                 "star": "2V"
             }
         ]
@@ -4415,8 +4415,8 @@
         "pack": "c-s-pzls-other",
         "title": "Rhombus_Tri_Side",
         "targetSteps": "6L / 9E",
-        "diagram": "diagrams/c-s-pzls-other/rhombus-tri-side.jpg",
-        "file": "levels/c-s-pzls-other/rhombus-tri-side.gmt",
+        "diagram": "diagrams/c-s-pzls-other/041.rhombus-tri-side.jpg",
+        "file": "levels/c-s-pzls-other/041.rhombus-tri-side.gmt",
         "keywords": [
             "C-s_Pzls_Other",
             "菱形",
@@ -4424,15 +4424,15 @@
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/rhombus-tri-side/6L.jpg",
+                "file": "answers/c-s-pzls-other/041.rhombus-tri-side/6L.jpg",
                 "star": "6L"
             },
             {
-                "file": "answers/c-s-pzls-other/rhombus-tri-side/9E.jpg",
+                "file": "answers/c-s-pzls-other/041.rhombus-tri-side/9E.jpg",
                 "star": "9E"
             },
             {
-                "file": "answers/c-s-pzls-other/rhombus-tri-side/2V.jpg",
+                "file": "answers/c-s-pzls-other/041.rhombus-tri-side/2V.jpg",
                 "star": "2V"
             }
         ]
@@ -4442,8 +4442,8 @@
         "pack": "c-s-pzls-other",
         "title": "Inversion_on_Tri",
         "targetSteps": "5L / 11E",
-        "diagram": "diagrams/c-s-pzls-other/inversion-on-tri.jpg",
-        "file": "levels/c-s-pzls-other/inversion-on-tri.gmt",
+        "diagram": "diagrams/c-s-pzls-other/042.inversion-on-tri.jpg",
+        "file": "levels/c-s-pzls-other/042.inversion-on-tri.gmt",
         "keywords": [
             "C-s_Pzls_Other",
             "反演",
@@ -4451,7 +4451,7 @@
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/inversion-on-tri/5L11E2V.jpg",
+                "file": "answers/c-s-pzls-other/042.inversion-on-tri/5L11E2V.jpg",
                 "star": "5L 11E 2V"
             }
         ]
@@ -4461,14 +4461,14 @@
         "pack": "c-s-pzls-other",
         "title": "ABisect_on_FieldA",
         "targetSteps": "6L / 6E",
-        "diagram": "diagrams/c-s-pzls-other/abisect-on-fielda.jpg",
-        "file": "levels/c-s-pzls-other/abisect-on-fielda.gmt",
+        "diagram": "diagrams/c-s-pzls-other/043.abisect-on-fielda.jpg",
+        "file": "levels/c-s-pzls-other/043.abisect-on-fielda.gmt",
         "keywords": [
             "C-s_Pzls_Other"
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/abisect-on-fielda/6E.jpg",
+                "file": "answers/c-s-pzls-other/043.abisect-on-fielda/6E.jpg",
                 "star": "6E"
             }
         ]
@@ -4477,8 +4477,8 @@
         "id": "pararetcir",
         "pack": "c-s-pzls-other",
         "title": "pararetcir",
-        "diagram": "diagrams/c-s-pzls-other/pararetcir.png",
-        "file": "levels/c-s-pzls-other/pararetcir.gmt",
+        "diagram": "diagrams/c-s-pzls-other/044.pararetcir.png",
+        "file": "levels/c-s-pzls-other/044.pararetcir.gmt",
         "keywords": [
             "C-s_Pzls_Other",
             "平行线",
@@ -4487,15 +4487,15 @@
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/pararetcir/19l35e (2).jpg",
+                "file": "answers/c-s-pzls-other/044.pararetcir/19l35e (2).jpg",
                 "star": "19L 35E"
             },
             {
-                "file": "answers/c-s-pzls-other/pararetcir/19l35e.jpg",
+                "file": "answers/c-s-pzls-other/044.pararetcir/19l35e.jpg",
                 "star": "19L 35E"
             },
             {
-                "file": "answers/c-s-pzls-other/pararetcir/2v.jpg",
+                "file": "answers/c-s-pzls-other/044.pararetcir/2v.jpg",
                 "star": "2V"
             }
         ],
@@ -4505,8 +4505,8 @@
         "id": "rhorectwi",
         "pack": "c-s-pzls-other",
         "title": "rhorectwi",
-        "diagram": "diagrams/c-s-pzls-other/rhorectwi.png",
-        "file": "levels/c-s-pzls-other/rhorectwi.gmt",
+        "diagram": "diagrams/c-s-pzls-other/045.rhorectwi.png",
+        "file": "levels/c-s-pzls-other/045.rhorectwi.gmt",
         "keywords": [
             "C-s_Pzls_Other",
             "菱形",
@@ -4515,11 +4515,11 @@
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/rhorectwi/12e.jpg",
+                "file": "answers/c-s-pzls-other/045.rhorectwi/12e.jpg",
                 "star": "12E"
             },
             {
-                "file": "answers/c-s-pzls-other/rhorectwi/2v.jpg",
+                "file": "answers/c-s-pzls-other/045.rhorectwi/2v.jpg",
                 "star": "2V"
             }
         ],
@@ -4529,19 +4529,19 @@
         "id": "equtriintripbisetroupoi",
         "pack": "c-s-pzls-other",
         "title": "EquTriInTriPBiseTrouPoi",
-        "diagram": "diagrams/c-s-pzls-other/equtriintripbisetroupoi.png",
-        "file": "levels/c-s-pzls-other/equtriintripbisetroupoi.gmt",
+        "diagram": "diagrams/c-s-pzls-other/046.equtriintripbisetroupoi.png",
+        "file": "levels/c-s-pzls-other/046.equtriintripbisetroupoi.gmt",
         "keywords": [
             "C-s_Pzls_Other",
             "多解"
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/equtriintripbisetroupoi/23l51e.jpg",
+                "file": "answers/c-s-pzls-other/046.equtriintripbisetroupoi/23l51e.jpg",
                 "star": "23L 51E"
             },
             {
-                "file": "answers/c-s-pzls-other/equtriintripbisetroupoi/6v.jpg",
+                "file": "answers/c-s-pzls-other/046.equtriintripbisetroupoi/6v.jpg",
                 "star": "6V"
             }
         ],
@@ -4551,19 +4551,19 @@
         "id": "pararetincir",
         "pack": "c-s-pzls-other",
         "title": "ParaRetInCir",
-        "diagram": "diagrams/c-s-pzls-other/pararetincir.png",
-        "file": "levels/c-s-pzls-other/pararetincir.gmt",
+        "diagram": "diagrams/c-s-pzls-other/047.pararetincir.png",
+        "file": "levels/c-s-pzls-other/047.pararetincir.gmt",
         "keywords": [
             "C-s_Pzls_Other",
             "多解"
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/pararetincir/9l11e.jpg",
+                "file": "answers/c-s-pzls-other/047.pararetincir/9l11e.jpg",
                 "star": "9L 11E"
             },
             {
-                "file": "answers/c-s-pzls-other/pararetincir/2v.jpg",
+                "file": "answers/c-s-pzls-other/047.pararetincir/2v.jpg",
                 "star": "2V"
             }
         ],
@@ -4573,23 +4573,23 @@
         "id": "segcir",
         "pack": "c-s-pzls-other",
         "title": "SegCir",
-        "diagram": "diagrams/c-s-pzls-other/segcir.png",
-        "file": "levels/c-s-pzls-other/segcir.gmt",
+        "diagram": "diagrams/c-s-pzls-other/048.segcir.png",
+        "file": "levels/c-s-pzls-other/048.segcir.gmt",
         "keywords": [
             "C-s_Pzls_Other",
             "多解"
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/segcir/4l.jpg",
+                "file": "answers/c-s-pzls-other/048.segcir/4l.jpg",
                 "star": "4L"
             },
             {
-                "file": "answers/c-s-pzls-other/segcir/9e.jpg",
+                "file": "answers/c-s-pzls-other/048.segcir/9e.jpg",
                 "star": "9E"
             },
             {
-                "file": "answers/c-s-pzls-other/segcir/2v.jpg",
+                "file": "answers/c-s-pzls-other/048.segcir/2v.jpg",
                 "star": "2V"
             }
         ],
@@ -4599,23 +4599,23 @@
         "id": "squsym",
         "pack": "c-s-pzls-other",
         "title": "SquSym",
-        "diagram": "diagrams/c-s-pzls-other/squsym.png",
-        "file": "levels/c-s-pzls-other/squsym.gmt",
+        "diagram": "diagrams/c-s-pzls-other/049.squsym.png",
+        "file": "levels/c-s-pzls-other/049.squsym.gmt",
         "keywords": [
             "C-s_Pzls_Other",
             "多解"
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/squsym/10l.jpg",
+                "file": "answers/c-s-pzls-other/049.squsym/10l.jpg",
                 "star": "10L"
             },
             {
-                "file": "answers/c-s-pzls-other/squsym/17e.jpg",
+                "file": "answers/c-s-pzls-other/049.squsym/17e.jpg",
                 "star": "17E"
             },
             {
-                "file": "answers/c-s-pzls-other/squsym/2v.jpg",
+                "file": "answers/c-s-pzls-other/049.squsym/2v.jpg",
                 "star": "2V"
             }
         ],
@@ -4625,19 +4625,19 @@
         "id": "rettwiang",
         "pack": "c-s-pzls-other",
         "title": "RetTwiAng",
-        "diagram": "diagrams/c-s-pzls-other/rettwiang.png",
-        "file": "levels/c-s-pzls-other/rettwiang.gmt",
+        "diagram": "diagrams/c-s-pzls-other/050.rettwiang.png",
+        "file": "levels/c-s-pzls-other/050.rettwiang.gmt",
         "keywords": [
             "C-s_Pzls_Other",
             "多解"
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/rettwiang/5l.jpg",
+                "file": "answers/c-s-pzls-other/050.rettwiang/5l.jpg",
                 "star": "5L"
             },
             {
-                "file": "answers/c-s-pzls-other/rettwiang/6e.jpg",
+                "file": "answers/c-s-pzls-other/050.rettwiang/6e.jpg",
                 "star": "6E"
             }
         ],
@@ -4647,18 +4647,18 @@
         "id": "miha",
         "pack": "c-s-pzls-other",
         "title": "MIHa",
-        "diagram": "diagrams/c-s-pzls-other/miha.png",
-        "file": "levels/c-s-pzls-other/miha.gmt",
+        "diagram": "diagrams/c-s-pzls-other/051.miha.png",
+        "file": "levels/c-s-pzls-other/051.miha.gmt",
         "keywords": [
             "C-s_Pzls_Other"
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/miha/28e.jpg",
+                "file": "answers/c-s-pzls-other/051.miha/28e.jpg",
                 "star": "28E"
             },
             {
-                "file": "answers/c-s-pzls-other/miha/28e2.jpg",
+                "file": "answers/c-s-pzls-other/051.miha/28e2.jpg",
                 "star": "28E"
             }
         ],
@@ -4668,19 +4668,19 @@
         "id": "cirsegequ",
         "pack": "c-s-pzls-other",
         "title": "CirSegEqu",
-        "diagram": "diagrams/c-s-pzls-other/cirsegequ.png",
-        "file": "levels/c-s-pzls-other/cirsegequ.gmt",
+        "diagram": "diagrams/c-s-pzls-other/052.cirsegequ.png",
+        "file": "levels/c-s-pzls-other/052.cirsegequ.gmt",
         "keywords": [
             "C-s_Pzls_Other",
             "多解"
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/cirsegequ/7l18e.jpg",
+                "file": "answers/c-s-pzls-other/052.cirsegequ/7l18e.jpg",
                 "star": "7L 18E"
             },
             {
-                "file": "answers/c-s-pzls-other/cirsegequ/2v.jpg",
+                "file": "answers/c-s-pzls-other/052.cirsegequ/2v.jpg",
                 "star": "2V"
             }
         ],
@@ -4690,19 +4690,19 @@
         "id": "concirtan",
         "pack": "c-s-pzls-other",
         "title": "ConCirTan",
-        "diagram": "diagrams/c-s-pzls-other/concirtan.png",
-        "file": "levels/c-s-pzls-other/concirtan.gmt",
+        "diagram": "diagrams/c-s-pzls-other/053.concirtan.png",
+        "file": "levels/c-s-pzls-other/053.concirtan.gmt",
         "keywords": [
             "C-s_Pzls_Other",
             "多解"
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/concirtan/9l13e.jpg",
+                "file": "answers/c-s-pzls-other/053.concirtan/9l13e.jpg",
                 "star": "9L 13E"
             },
             {
-                "file": "answers/c-s-pzls-other/concirtan/2v.jpg",
+                "file": "answers/c-s-pzls-other/053.concirtan/2v.jpg",
                 "star": "2V"
             }
         ],
@@ -4712,14 +4712,14 @@
         "id": "isotricir",
         "pack": "c-s-pzls-other",
         "title": "IsoTriCir",
-        "diagram": "diagrams/c-s-pzls-other/isotricir.png",
-        "file": "levels/c-s-pzls-other/isotricir.gmt",
+        "diagram": "diagrams/c-s-pzls-other/054.isotricir.png",
+        "file": "levels/c-s-pzls-other/054.isotricir.gmt",
         "keywords": [
             "C-s_Pzls_Other"
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/isotricir/8e.jpg",
+                "file": "answers/c-s-pzls-other/054.isotricir/8e.jpg",
                 "star": "8E"
             }
         ],
@@ -4729,19 +4729,19 @@
         "id": "anglin",
         "pack": "c-s-pzls-other",
         "title": "AngLin",
-        "diagram": "diagrams/c-s-pzls-other/anglin.png",
-        "file": "levels/c-s-pzls-other/anglin.gmt",
+        "diagram": "diagrams/c-s-pzls-other/055.anglin.png",
+        "file": "levels/c-s-pzls-other/055.anglin.gmt",
         "keywords": [
             "C-s_Pzls_Other",
             "多解"
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/anglin/14e.jpg",
+                "file": "answers/c-s-pzls-other/055.anglin/14e.jpg",
                 "star": "14E"
             },
             {
-                "file": "answers/c-s-pzls-other/anglin/2v.jpg",
+                "file": "answers/c-s-pzls-other/055.anglin/2v.jpg",
                 "star": "2V"
             }
         ],
@@ -4751,23 +4751,23 @@
         "id": "paracirrit",
         "pack": "c-s-pzls-other",
         "title": "ParaCirRit",
-        "diagram": "diagrams/c-s-pzls-other/paracirrit.png",
-        "file": "levels/c-s-pzls-other/paracirrit.gmt",
+        "diagram": "diagrams/c-s-pzls-other/056.paracirrit.png",
+        "file": "levels/c-s-pzls-other/056.paracirrit.gmt",
         "keywords": [
             "C-s_Pzls_Other",
             "多解"
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/paracirrit/18l34e.jpg",
+                "file": "answers/c-s-pzls-other/056.paracirrit/18l34e.jpg",
                 "star": "18L 34E"
             },
             {
-                "file": "answers/c-s-pzls-other/paracirrit/18l34e2.jpg",
+                "file": "answers/c-s-pzls-other/056.paracirrit/18l34e2.jpg",
                 "star": "18L 34E"
             },
             {
-                "file": "answers/c-s-pzls-other/paracirrit/2v.jpg",
+                "file": "answers/c-s-pzls-other/056.paracirrit/2v.jpg",
                 "star": "2V"
             }
         ],
@@ -4777,19 +4777,19 @@
         "id": "equalanglepoint",
         "pack": "c-s-pzls-other",
         "title": "EqualAnglePoint",
-        "diagram": "diagrams/c-s-pzls-other/equalanglepoint.png",
-        "file": "levels/c-s-pzls-other/equalanglepoint.gmt",
+        "diagram": "diagrams/c-s-pzls-other/057.equalanglepoint.png",
+        "file": "levels/c-s-pzls-other/057.equalanglepoint.gmt",
         "keywords": [
             "C-s_Pzls_Other",
             "多解"
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/equalanglepoint/6l8e2v.jpg",
+                "file": "answers/c-s-pzls-other/057.equalanglepoint/6l8e2v.jpg",
                 "star": "6L 8E 2V"
             },
             {
-                "file": "answers/c-s-pzls-other/equalanglepoint/6l8e2v2.jpg",
+                "file": "answers/c-s-pzls-other/057.equalanglepoint/6l8e2v2.jpg",
                 "star": "6L 8E 2V"
             }
         ],
@@ -4799,14 +4799,14 @@
         "id": "incen2polarprestorebicenqua",
         "pack": "c-s-pzls-other",
         "title": "Incen2PolarPRestoreBicenQua",
-        "diagram": "diagrams/c-s-pzls-other/incen2polarprestorebicenqua.png",
-        "file": "levels/c-s-pzls-other/incen2polarprestorebicenqua.gmt",
+        "diagram": "diagrams/c-s-pzls-other/058.incen2polarprestorebicenqua.png",
+        "file": "levels/c-s-pzls-other/058.incen2polarprestorebicenqua.gmt",
         "keywords": [
             "C-s_Pzls_Other"
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/incen2polarprestorebicenqua/13l15e.jpg",
+                "file": "answers/c-s-pzls-other/058.incen2polarprestorebicenqua/13l15e.jpg",
                 "star": "13L 15E"
             }
         ],
@@ -4816,23 +4816,23 @@
         "id": "paraangle",
         "pack": "c-s-pzls-other",
         "title": "ParaAngle",
-        "diagram": "diagrams/c-s-pzls-other/paraangle.png",
-        "file": "levels/c-s-pzls-other/paraangle.gmt",
+        "diagram": "diagrams/c-s-pzls-other/059.paraangle.png",
+        "file": "levels/c-s-pzls-other/059.paraangle.gmt",
         "keywords": [
             "C-s_Pzls_Other",
             "多解"
         ],
         "solutions": [
             {
-                "file": "answers/c-s-pzls-other/paraangle/7l.jpg",
+                "file": "answers/c-s-pzls-other/059.paraangle/7l.jpg",
                 "star": "7L"
             },
             {
-                "file": "answers/c-s-pzls-other/paraangle/10e.jpg",
+                "file": "answers/c-s-pzls-other/059.paraangle/10e.jpg",
                 "star": "10E"
             },
             {
-                "file": "answers/c-s-pzls-other/paraangle/2v.jpg",
+                "file": "answers/c-s-pzls-other/059.paraangle/2v.jpg",
                 "star": "2V"
             }
         ],
@@ -4843,8 +4843,8 @@
         "pack": "euc-addit",
         "title": "双圆梯形",
         "targetSteps": "4L / 6E",
-        "diagram": "diagrams/euc-addit/inc-circumc-re-trapezoid.png",
-        "file": "levels/euc-addit/inc-circumc-re-trapezoid.gmt",
+        "diagram": "diagrams/euc-addit/001.inc-circumc-re-trapezoid.png",
+        "file": "levels/euc-addit/001.inc-circumc-re-trapezoid.gmt",
         "keywords": [
             "Euc_Addit",
             "梯形",
@@ -4852,15 +4852,15 @@
         ],
         "solutions": [
             {
-                "file": "answers/euc-addit/inc-circumc-re-trapezoid/01.4L.png",
+                "file": "answers/euc-addit/001.inc-circumc-re-trapezoid/01.4L.png",
                 "star": "4L"
             },
             {
-                "file": "answers/euc-addit/inc-circumc-re-trapezoid/01.6E.png",
+                "file": "answers/euc-addit/001.inc-circumc-re-trapezoid/01.6E.png",
                 "star": "6E"
             },
             {
-                "file": "answers/euc-addit/inc-circumc-re-trapezoid/01.2V.png",
+                "file": "answers/euc-addit/001.inc-circumc-re-trapezoid/01.2V.png",
                 "star": "2V"
             }
         ]
@@ -4870,8 +4870,8 @@
         "pack": "euc-addit",
         "title": "四边形角分线",
         "targetSteps": "5L / 7E",
-        "diagram": "diagrams/euc-addit/abisect-in-quadrilateral.png",
-        "file": "levels/euc-addit/abisect-in-quadrilateral.gmt",
+        "diagram": "diagrams/euc-addit/002.abisect-in-quadrilateral.png",
+        "file": "levels/euc-addit/002.abisect-in-quadrilateral.gmt",
         "keywords": [
             "Euc_Addit",
             "四边形",
@@ -4879,15 +4879,15 @@
         ],
         "solutions": [
             {
-                "file": "answers/euc-addit/abisect-in-quadrilateral/02.5L.png",
+                "file": "answers/euc-addit/002.abisect-in-quadrilateral/02.5L.png",
                 "star": "5L"
             },
             {
-                "file": "answers/euc-addit/abisect-in-quadrilateral/02.7E.png",
+                "file": "answers/euc-addit/002.abisect-in-quadrilateral/02.7E.png",
                 "star": "7E"
             },
             {
-                "file": "answers/euc-addit/abisect-in-quadrilateral/02.2V.png",
+                "file": "answers/euc-addit/002.abisect-in-quadrilateral/02.2V.png",
                 "star": "2V"
             }
         ]
@@ -4897,18 +4897,18 @@
         "pack": "euc-addit",
         "title": "等截直线",
         "targetSteps": "6L / 10E",
-        "diagram": "diagrams/euc-addit/segment-equal-l.png",
-        "file": "levels/euc-addit/segment-equal-l.gmt",
+        "diagram": "diagrams/euc-addit/003.segment-equal-l.png",
+        "file": "levels/euc-addit/003.segment-equal-l.gmt",
         "keywords": [
             "Euc_Addit"
         ],
         "solutions": [
             {
-                "file": "answers/euc-addit/segment-equal-l/03.6L.png",
+                "file": "answers/euc-addit/003.segment-equal-l/03.6L.png",
                 "star": "6L"
             },
             {
-                "file": "answers/euc-addit/segment-equal-l/03.10E.png",
+                "file": "answers/euc-addit/003.segment-equal-l/03.10E.png",
                 "star": "10E"
             }
         ]
@@ -4918,18 +4918,18 @@
         "pack": "euc-addit",
         "title": "根轴",
         "targetSteps": "5L / 6E",
-        "diagram": "diagrams/euc-addit/root-axis.png",
-        "file": "levels/euc-addit/root-axis.gmt",
+        "diagram": "diagrams/euc-addit/004.root-axis.png",
+        "file": "levels/euc-addit/004.root-axis.gmt",
         "keywords": [
             "Euc_Addit"
         ],
         "solutions": [
             {
-                "file": "answers/euc-addit/root-axis/04.5L.png",
+                "file": "answers/euc-addit/004.root-axis/04.5L.png",
                 "star": "5L"
             },
             {
-                "file": "answers/euc-addit/root-axis/04.6E.png",
+                "file": "answers/euc-addit/004.root-axis/04.6E.png",
                 "star": "6E"
             }
         ]
@@ -4939,8 +4939,8 @@
         "pack": "euc-addit",
         "title": "等积三角形",
         "targetSteps": "9L / 13E",
-        "diagram": "diagrams/euc-addit/equal-area-tr-in-angle.png",
-        "file": "levels/euc-addit/equal-area-tr-in-angle.gmt",
+        "diagram": "diagrams/euc-addit/005.equal-area-tr-in-angle.png",
+        "file": "levels/euc-addit/005.equal-area-tr-in-angle.gmt",
         "keywords": [
             "Euc_Addit",
             "三角形",
@@ -4948,23 +4948,23 @@
         ],
         "solutions": [
             {
-                "file": "answers/euc-addit/equal-area-tr-in-angle/05.9L.png",
+                "file": "answers/euc-addit/005.equal-area-tr-in-angle/05.9L.png",
                 "star": "9L"
             },
             {
-                "file": "answers/euc-addit/equal-area-tr-in-angle/05.11L.png",
+                "file": "answers/euc-addit/005.equal-area-tr-in-angle/05.11L.png",
                 "star": "11L"
             },
             {
-                "file": "answers/euc-addit/equal-area-tr-in-angle/05.13E.png",
+                "file": "answers/euc-addit/005.equal-area-tr-in-angle/05.13E.png",
                 "star": "13E"
             },
             {
-                "file": "answers/euc-addit/equal-area-tr-in-angle/05.19E.png",
+                "file": "answers/euc-addit/005.equal-area-tr-in-angle/05.19E.png",
                 "star": "19E"
             },
             {
-                "file": "answers/euc-addit/equal-area-tr-in-angle/05.2V.png",
+                "file": "answers/euc-addit/005.equal-area-tr-in-angle/05.2V.png",
                 "star": "2V"
             }
         ]
@@ -4974,23 +4974,23 @@
         "pack": "euc-addit",
         "title": "3倍角",
         "targetSteps": "7L / 8E",
-        "diagram": "diagrams/euc-addit/TripleAngle.jpg",
-        "file": "levels/euc-addit/TripleAngle.gmt",
+        "diagram": "diagrams/euc-addit/006.TripleAngle.jpg",
+        "file": "levels/euc-addit/006.TripleAngle.gmt",
         "keywords": [
             "Euc_Addit",
             "多解"
         ],
         "solutions": [
             {
-                "file": "answers/euc-addit/TripleAngle/06.7L.jpg",
+                "file": "answers/euc-addit/006.TripleAngle/06.7L.jpg",
                 "star": "7L"
             },
             {
-                "file": "answers/euc-addit/TripleAngle/06.8E.jpg",
+                "file": "answers/euc-addit/006.TripleAngle/06.8E.jpg",
                 "star": "8E"
             },
             {
-                "file": "answers/euc-addit/TripleAngle/06.2V.jpg",
+                "file": "answers/euc-addit/006.TripleAngle/06.2V.jpg",
                 "star": "2V"
             }
         ]
@@ -5000,34 +5000,34 @@
         "pack": "euc-addit",
         "title": "4PointCircle",
         "targetSteps": "9L / 13E",
-        "diagram": "diagrams/euc-addit/4pointcircle.png",
-        "file": "levels/euc-addit/4pointcircle.gmt",
+        "diagram": "diagrams/euc-addit/007.4pointcircle.png",
+        "file": "levels/euc-addit/007.4pointcircle.gmt",
         "keywords": [
             "Euc_Addit"
         ],
         "solutions": [
             {
-                "file": "answers/euc-addit/4pointcircle/9L13E.jpg",
+                "file": "answers/euc-addit/007.4pointcircle/9L13E.jpg",
                 "star": "9L 13E"
             },
             {
-                "file": "answers/euc-addit/4pointcircle/4 Point Circle Hint.png",
+                "file": "answers/euc-addit/007.4pointcircle/4 Point Circle Hint.png",
                 "star": "4 Point Circle Hint"
             },
             {
-                "file": "answers/euc-addit/4pointcircle/4 Point Circle.png",
+                "file": "answers/euc-addit/007.4pointcircle/4 Point Circle.png",
                 "star": "4 Point Circle"
             },
             {
-                "file": "answers/euc-addit/4pointcircle/Euc.jpg",
+                "file": "answers/euc-addit/007.4pointcircle/Euc.jpg",
                 "star": "Euc"
             },
             {
-                "file": "answers/euc-addit/4pointcircle/4 Point Circle Hint.png",
+                "file": "answers/euc-addit/007.4pointcircle/4 Point Circle Hint.png",
                 "star": "4 Point Circle Hint"
             },
             {
-                "file": "answers/euc-addit/4pointcircle/4 Point Circle Proof.png",
+                "file": "answers/euc-addit/007.4pointcircle/4 Point Circle Proof.png",
                 "star": "4 Point Circle Proof"
             }
         ]
@@ -5037,31 +5037,31 @@
         "pack": "euc-addit",
         "title": "4LinkageMechanism",
         "targetSteps": "9L / 15E",
-        "diagram": "diagrams/euc-addit/4linkagemechanism.png",
-        "file": "levels/euc-addit/4linkagemechanism.gmt",
+        "diagram": "diagrams/euc-addit/008.4linkagemechanism.png",
+        "file": "levels/euc-addit/008.4linkagemechanism.gmt",
         "keywords": [
             "Euc_Addit",
             "多解"
         ],
         "solutions": [
             {
-                "file": "answers/euc-addit/4linkagemechanism/9L15E.jpg",
+                "file": "answers/euc-addit/008.4linkagemechanism/9L15E.jpg",
                 "star": "9L 15E"
             },
             {
-                "file": "answers/euc-addit/4linkagemechanism/4V.jpg",
+                "file": "answers/euc-addit/008.4linkagemechanism/4V.jpg",
                 "star": "4V"
             },
             {
-                "file": "answers/euc-addit/4linkagemechanism/4 Linkage Mechanism Hint.png",
+                "file": "answers/euc-addit/008.4linkagemechanism/4 Linkage Mechanism Hint.png",
                 "star": "4 Linkage Mechanism Hint"
             },
             {
-                "file": "answers/euc-addit/4linkagemechanism/4 Linkage Mechanism.png",
+                "file": "answers/euc-addit/008.4linkagemechanism/4 Linkage Mechanism.png",
                 "star": "4 Linkage Mechanism"
             },
             {
-                "file": "answers/euc-addit/4linkagemechanism/4 Linkage Mechanism Hint.png",
+                "file": "answers/euc-addit/008.4linkagemechanism/4 Linkage Mechanism Hint.png",
                 "star": "4 Linkage Mechanism Hint"
             }
         ]
@@ -5070,8 +5070,8 @@
         "id": "PerpEquSegOnCircle",
         "pack": "euc-addit",
         "title": "PerpEquSegOnCircle",
-        "diagram": "diagrams/euc-addit/PerpEquSegOnCircle.jpg",
-        "file": "levels/euc-addit/PerpEquSegOnCircle.gmt",
+        "diagram": "diagrams/euc-addit/009.PerpEquSegOnCircle.jpg",
+        "file": "levels/euc-addit/009.PerpEquSegOnCircle.gmt",
         "keywords": [
             "Euc_Addit",
             "垂线",
@@ -5079,15 +5079,15 @@
         ],
         "solutions": [
             {
-                "file": "answers/euc-addit/PerpEquSegOnCircle/9l23e.jpg",
+                "file": "answers/euc-addit/009.PerpEquSegOnCircle/9l23e.jpg",
                 "star": "9L 23E"
             },
             {
-                "file": "answers/euc-addit/PerpEquSegOnCircle/2v.jpg",
+                "file": "answers/euc-addit/009.PerpEquSegOnCircle/2v.jpg",
                 "star": "2V"
             },
             {
-                "file": "answers/euc-addit/PerpEquSegOnCircle/euc.jpg",
+                "file": "answers/euc-addit/009.PerpEquSegOnCircle/euc.jpg",
                 "star": "euc"
             }
         ],
@@ -5097,26 +5097,26 @@
         "id": "unnper",
         "pack": "euc-addit",
         "title": "UnnPer",
-        "diagram": "diagrams/euc-addit/unnper.jpg",
-        "file": "levels/euc-addit/unnper.gmt",
+        "diagram": "diagrams/euc-addit/010.unnper.jpg",
+        "file": "levels/euc-addit/010.unnper.gmt",
         "keywords": [
             "Euc_Addit"
         ],
         "solutions": [
             {
-                "file": "answers/euc-addit/unnper/11l.jpg",
+                "file": "answers/euc-addit/010.unnper/11l.jpg",
                 "star": "11L"
             },
             {
-                "file": "answers/euc-addit/unnper/12l18e.jpg",
+                "file": "answers/euc-addit/010.unnper/12l18e.jpg",
                 "star": "12L 18E"
             },
             {
-                "file": "answers/euc-addit/unnper/15e.jpg",
+                "file": "answers/euc-addit/010.unnper/15e.jpg",
                 "star": "15E"
             },
             {
-                "file": "answers/euc-addit/unnper/euc.jpg",
+                "file": "answers/euc-addit/010.unnper/euc.jpg",
                 "star": "euc"
             }
         ],
@@ -5127,18 +5127,18 @@
         "pack": "from-baidu-tieba",
         "title": "2.024Length",
         "targetSteps": "8L / 9E",
-        "diagram": "diagrams/from-baidu-tieba/024length.jpg",
-        "file": "levels/from-baidu-tieba/024length.gmt",
+        "diagram": "diagrams/from-baidu-tieba/001.024length.jpg",
+        "file": "levels/from-baidu-tieba/001.024length.gmt",
         "keywords": [
             "From_Baidu_Tieba"
         ],
         "solutions": [
             {
-                "file": "answers/from-baidu-tieba/024length/8L.jpg",
+                "file": "answers/from-baidu-tieba/001.024length/8L.jpg",
                 "star": "8L"
             },
             {
-                "file": "answers/from-baidu-tieba/024length/9E.jpg",
+                "file": "answers/from-baidu-tieba/001.024length/9E.jpg",
                 "star": "9E"
             }
         ]
@@ -5148,19 +5148,19 @@
         "pack": "from-baidu-tieba",
         "title": "DiamEnd_2Pt_Equal",
         "targetSteps": "4L / 6E",
-        "diagram": "diagrams/from-baidu-tieba/diamend-2pt-equal.png",
-        "file": "levels/from-baidu-tieba/diamend-2pt-equal.gmt",
+        "diagram": "diagrams/from-baidu-tieba/002.diamend-2pt-equal.png",
+        "file": "levels/from-baidu-tieba/002.diamend-2pt-equal.gmt",
         "keywords": [
             "From_Baidu_Tieba",
             "多解"
         ],
         "solutions": [
             {
-                "file": "answers/from-baidu-tieba/diamend-2pt-equal/4L6E.png",
+                "file": "answers/from-baidu-tieba/002.diamend-2pt-equal/4L6E.png",
                 "star": "4L 6E"
             },
             {
-                "file": "answers/from-baidu-tieba/diamend-2pt-equal/2V.png",
+                "file": "answers/from-baidu-tieba/002.diamend-2pt-equal/2V.png",
                 "star": "2V"
             }
         ]
@@ -5170,19 +5170,19 @@
         "pack": "from-baidu-tieba",
         "title": "Perp_Midpoint",
         "targetSteps": "2L / 5E",
-        "diagram": "diagrams/from-baidu-tieba/perp-midpoint.png",
-        "file": "levels/from-baidu-tieba/perp-midpoint.gmt",
+        "diagram": "diagrams/from-baidu-tieba/003.perp-midpoint.png",
+        "file": "levels/from-baidu-tieba/003.perp-midpoint.gmt",
         "keywords": [
             "From_Baidu_Tieba",
             "中点"
         ],
         "solutions": [
             {
-                "file": "answers/from-baidu-tieba/perp-midpoint/2L.png",
+                "file": "answers/from-baidu-tieba/003.perp-midpoint/2L.png",
                 "star": "2L"
             },
             {
-                "file": "answers/from-baidu-tieba/perp-midpoint/5E.png",
+                "file": "answers/from-baidu-tieba/003.perp-midpoint/5E.png",
                 "star": "5E"
             }
         ]
@@ -5192,14 +5192,14 @@
         "pack": "from-baidu-tieba",
         "title": "P_C_Root_Axis",
         "targetSteps": "4L / 6E",
-        "diagram": "diagrams/from-baidu-tieba/p-c-root-axis.png",
-        "file": "levels/from-baidu-tieba/p-c-root-axis.gmt",
+        "diagram": "diagrams/from-baidu-tieba/004.p-c-root-axis.png",
+        "file": "levels/from-baidu-tieba/004.p-c-root-axis.gmt",
         "keywords": [
             "From_Baidu_Tieba"
         ],
         "solutions": [
             {
-                "file": "answers/from-baidu-tieba/p-c-root-axis/4L6E.png",
+                "file": "answers/from-baidu-tieba/004.p-c-root-axis/4L6E.png",
                 "star": "4L 6E"
             }
         ]
@@ -5209,23 +5209,23 @@
         "pack": "from-baidu-tieba",
         "title": "P_P_L_1to2",
         "targetSteps": "8L / 11E",
-        "diagram": "diagrams/from-baidu-tieba/p-p-l-1to2.jpg",
-        "file": "levels/from-baidu-tieba/p-p-l-1to2.gmt",
+        "diagram": "diagrams/from-baidu-tieba/005.p-p-l-1to2.jpg",
+        "file": "levels/from-baidu-tieba/005.p-p-l-1to2.gmt",
         "keywords": [
             "From_Baidu_Tieba",
             "多解"
         ],
         "solutions": [
             {
-                "file": "answers/from-baidu-tieba/p-p-l-1to2/8L.png",
+                "file": "answers/from-baidu-tieba/005.p-p-l-1to2/8L.png",
                 "star": "8L"
             },
             {
-                "file": "answers/from-baidu-tieba/p-p-l-1to2/11E.png",
+                "file": "answers/from-baidu-tieba/005.p-p-l-1to2/11E.png",
                 "star": "11E"
             },
             {
-                "file": "answers/from-baidu-tieba/p-p-l-1to2/2V.png",
+                "file": "answers/from-baidu-tieba/005.p-p-l-1to2/2V.png",
                 "star": "2V"
             }
         ]
@@ -5235,19 +5235,19 @@
         "pack": "from-baidu-tieba",
         "title": "IsosV_inAngle_Concyclic",
         "targetSteps": "3L / 3E",
-        "diagram": "diagrams/from-baidu-tieba/isosv-inangle-concyclic.png",
-        "file": "levels/from-baidu-tieba/isosv-inangle-concyclic.gmt",
+        "diagram": "diagrams/from-baidu-tieba/006.isosv-inangle-concyclic.png",
+        "file": "levels/from-baidu-tieba/006.isosv-inangle-concyclic.gmt",
         "keywords": [
             "From_Baidu_Tieba",
             "共圆"
         ],
         "solutions": [
             {
-                "file": "answers/from-baidu-tieba/isosv-inangle-concyclic/3L3E(compass).png",
+                "file": "answers/from-baidu-tieba/006.isosv-inangle-concyclic/3L3E(compass).png",
                 "star": "3L 3E"
             },
             {
-                "file": "answers/from-baidu-tieba/isosv-inangle-concyclic/3L3E.png",
+                "file": "answers/from-baidu-tieba/006.isosv-inangle-concyclic/3L3E.png",
                 "star": "3L 3E"
             }
         ]
@@ -5257,14 +5257,14 @@
         "pack": "from-baidu-tieba",
         "title": "2SideR_EulerL_ReTri",
         "targetSteps": "5L / 9E",
-        "diagram": "diagrams/from-baidu-tieba/2sider-eulerl-retri.png",
-        "file": "levels/from-baidu-tieba/2sider-eulerl-retri.gmt",
+        "diagram": "diagrams/from-baidu-tieba/007.2sider-eulerl-retri.png",
+        "file": "levels/from-baidu-tieba/007.2sider-eulerl-retri.gmt",
         "keywords": [
             "From_Baidu_Tieba"
         ],
         "solutions": [
             {
-                "file": "answers/from-baidu-tieba/2sider-eulerl-retri/5L9E.png",
+                "file": "answers/from-baidu-tieba/007.2sider-eulerl-retri/5L9E.png",
                 "star": "5L 9E"
             }
         ]
@@ -5274,8 +5274,8 @@
         "pack": "from-baidu-tieba",
         "title": "Parallel_Bounce_Lines",
         "targetSteps": "8L / 12E",
-        "diagram": "diagrams/from-baidu-tieba/parallel-bounce-lines.jpg",
-        "file": "levels/from-baidu-tieba/parallel-bounce-lines.gmt",
+        "diagram": "diagrams/from-baidu-tieba/008.parallel-bounce-lines.jpg",
+        "file": "levels/from-baidu-tieba/008.parallel-bounce-lines.gmt",
         "keywords": [
             "From_Baidu_Tieba",
             "平行线",
@@ -5283,11 +5283,11 @@
         ],
         "solutions": [
             {
-                "file": "answers/from-baidu-tieba/parallel-bounce-lines/8L12E.jpg",
+                "file": "answers/from-baidu-tieba/008.parallel-bounce-lines/8L12E.jpg",
                 "star": "8L 12E"
             },
             {
-                "file": "answers/from-baidu-tieba/parallel-bounce-lines/2V.jpg",
+                "file": "answers/from-baidu-tieba/008.parallel-bounce-lines/2V.jpg",
                 "star": "2V"
             }
         ]
@@ -5297,23 +5297,23 @@
         "pack": "from-baidu-tieba",
         "title": "Bicentric_Quad_by_3V",
         "targetSteps": "8L / 11E",
-        "diagram": "diagrams/from-baidu-tieba/bicentric-quad-by-3v.png",
-        "file": "levels/from-baidu-tieba/bicentric-quad-by-3v.gmt",
+        "diagram": "diagrams/from-baidu-tieba/009.bicentric-quad-by-3v.png",
+        "file": "levels/from-baidu-tieba/009.bicentric-quad-by-3v.gmt",
         "keywords": [
             "From_Baidu_Tieba",
             "多解"
         ],
         "solutions": [
             {
-                "file": "answers/from-baidu-tieba/bicentric-quad-by-3v/8L.jpg",
+                "file": "answers/from-baidu-tieba/009.bicentric-quad-by-3v/8L.jpg",
                 "star": "8L"
             },
             {
-                "file": "answers/from-baidu-tieba/bicentric-quad-by-3v/11E.jpg",
+                "file": "answers/from-baidu-tieba/009.bicentric-quad-by-3v/11E.jpg",
                 "star": "11E"
             },
             {
-                "file": "answers/from-baidu-tieba/bicentric-quad-by-3v/3V.jpg",
+                "file": "answers/from-baidu-tieba/009.bicentric-quad-by-3v/3V.jpg",
                 "star": "3V"
             }
         ]
@@ -5323,8 +5323,8 @@
         "pack": "from-baidu-tieba",
         "title": "InAngle_Collinear_Concyclic",
         "targetSteps": "6L / 13E",
-        "diagram": "diagrams/from-baidu-tieba/inangle-collinear-concyclic.png",
-        "file": "levels/from-baidu-tieba/inangle-collinear-concyclic.gmt",
+        "diagram": "diagrams/from-baidu-tieba/010.inangle-collinear-concyclic.png",
+        "file": "levels/from-baidu-tieba/010.inangle-collinear-concyclic.gmt",
         "keywords": [
             "From_Baidu_Tieba",
             "共圆",
@@ -5332,15 +5332,15 @@
         ],
         "solutions": [
             {
-                "file": "answers/from-baidu-tieba/inangle-collinear-concyclic/6L13E.jpg",
+                "file": "answers/from-baidu-tieba/010.inangle-collinear-concyclic/6L13E.jpg",
                 "star": "6L 13E"
             },
             {
-                "file": "answers/from-baidu-tieba/inangle-collinear-concyclic/6L8E.png",
+                "file": "answers/from-baidu-tieba/010.inangle-collinear-concyclic/6L8E.png",
                 "star": "6L 8E"
             },
             {
-                "file": "answers/from-baidu-tieba/inangle-collinear-concyclic/2V.jpg",
+                "file": "answers/from-baidu-tieba/010.inangle-collinear-concyclic/2V.jpg",
                 "star": "2V"
             }
         ]
@@ -5350,19 +5350,19 @@
         "pack": "from-baidu-tieba",
         "title": "P_C_Center_OnC_Tan",
         "targetSteps": "4L / 6E",
-        "diagram": "diagrams/from-baidu-tieba/p-c-center-onc-tan.jpg",
-        "file": "levels/from-baidu-tieba/p-c-center-onc-tan.gmt",
+        "diagram": "diagrams/from-baidu-tieba/011.p-c-center-onc-tan.jpg",
+        "file": "levels/from-baidu-tieba/011.p-c-center-onc-tan.gmt",
         "keywords": [
             "From_Baidu_Tieba",
             "多解"
         ],
         "solutions": [
             {
-                "file": "answers/from-baidu-tieba/p-c-center-onc-tan/4L6E.jpg",
+                "file": "answers/from-baidu-tieba/011.p-c-center-onc-tan/4L6E.jpg",
                 "star": "4L 6E"
             },
             {
-                "file": "answers/from-baidu-tieba/p-c-center-onc-tan/4V.jpg",
+                "file": "answers/from-baidu-tieba/011.p-c-center-onc-tan/4V.jpg",
                 "star": "4V"
             }
         ]
@@ -5372,23 +5372,23 @@
         "pack": "from-baidu-tieba",
         "title": "RTri_P_On_Perp",
         "targetSteps": "9L / 15E",
-        "diagram": "diagrams/from-baidu-tieba/rtri-p-on-perp.jpg",
-        "file": "levels/from-baidu-tieba/rtri-p-on-perp.gmt",
+        "diagram": "diagrams/from-baidu-tieba/012.rtri-p-on-perp.jpg",
+        "file": "levels/from-baidu-tieba/012.rtri-p-on-perp.gmt",
         "keywords": [
             "From_Baidu_Tieba",
             "多解"
         ],
         "solutions": [
             {
-                "file": "answers/from-baidu-tieba/rtri-p-on-perp/9L.jpg",
+                "file": "answers/from-baidu-tieba/012.rtri-p-on-perp/9L.jpg",
                 "star": "9L"
             },
             {
-                "file": "answers/from-baidu-tieba/rtri-p-on-perp/15E.png",
+                "file": "answers/from-baidu-tieba/012.rtri-p-on-perp/15E.png",
                 "star": "15E"
             },
             {
-                "file": "answers/from-baidu-tieba/rtri-p-on-perp/2V.jpg",
+                "file": "answers/from-baidu-tieba/012.rtri-p-on-perp/2V.jpg",
                 "star": "2V"
             }
         ]
@@ -5398,19 +5398,19 @@
         "pack": "from-baidu-tieba",
         "title": "3Diams_InTriangle",
         "targetSteps": "8L / 15E",
-        "diagram": "diagrams/from-baidu-tieba/3diams-intriangle.jpg",
-        "file": "levels/from-baidu-tieba/3diams-intriangle.gmt",
+        "diagram": "diagrams/from-baidu-tieba/013.3diams-intriangle.jpg",
+        "file": "levels/from-baidu-tieba/013.3diams-intriangle.gmt",
         "keywords": [
             "From_Baidu_Tieba",
             "三角形"
         ],
         "solutions": [
             {
-                "file": "answers/from-baidu-tieba/3diams-intriangle/8L.png",
+                "file": "answers/from-baidu-tieba/013.3diams-intriangle/8L.png",
                 "star": "8L"
             },
             {
-                "file": "answers/from-baidu-tieba/3diams-intriangle/15E.png",
+                "file": "answers/from-baidu-tieba/013.3diams-intriangle/15E.png",
                 "star": "15E"
             }
         ]
@@ -5420,18 +5420,18 @@
         "pack": "from-baidu-tieba",
         "title": "2Equal_Insc_C",
         "targetSteps": "8L / 15E",
-        "diagram": "diagrams/from-baidu-tieba/2equal-insc-c.png",
-        "file": "levels/from-baidu-tieba/2equal-insc-c.gmt",
+        "diagram": "diagrams/from-baidu-tieba/014.2equal-insc-c.png",
+        "file": "levels/from-baidu-tieba/014.2equal-insc-c.gmt",
         "keywords": [
             "From_Baidu_Tieba"
         ],
         "solutions": [
             {
-                "file": "answers/from-baidu-tieba/2equal-insc-c/8L.png",
+                "file": "answers/from-baidu-tieba/014.2equal-insc-c/8L.png",
                 "star": "8L"
             },
             {
-                "file": "answers/from-baidu-tieba/2equal-insc-c/15E.jpg",
+                "file": "answers/from-baidu-tieba/014.2equal-insc-c/15E.jpg",
                 "star": "15E"
             }
         ]
@@ -5441,19 +5441,19 @@
         "pack": "from-baidu-tieba",
         "title": "Miquel_Point-SimTri",
         "targetSteps": "8L / 16E",
-        "diagram": "diagrams/from-baidu-tieba/miquel-point-simtri.png",
-        "file": "levels/from-baidu-tieba/miquel-point-simtri.gmt",
+        "diagram": "diagrams/from-baidu-tieba/015.miquel-point-simtri.png",
+        "file": "levels/from-baidu-tieba/015.miquel-point-simtri.gmt",
         "keywords": [
             "From_Baidu_Tieba",
             "多解"
         ],
         "solutions": [
             {
-                "file": "answers/from-baidu-tieba/miquel-point-simtri/8L16E.jpg",
+                "file": "answers/from-baidu-tieba/015.miquel-point-simtri/8L16E.jpg",
                 "star": "8L 16E"
             },
             {
-                "file": "answers/from-baidu-tieba/miquel-point-simtri/2V.jpg",
+                "file": "answers/from-baidu-tieba/015.miquel-point-simtri/2V.jpg",
                 "star": "2V"
             }
         ]
@@ -5463,19 +5463,19 @@
         "pack": "from-baidu-tieba",
         "title": "Dumpty_Point-SimTri",
         "targetSteps": "5L / 11E",
-        "diagram": "diagrams/from-baidu-tieba/dumpty-point-simtri.jpg",
-        "file": "levels/from-baidu-tieba/dumpty-point-simtri.gmt",
+        "diagram": "diagrams/from-baidu-tieba/016.dumpty-point-simtri.jpg",
+        "file": "levels/from-baidu-tieba/016.dumpty-point-simtri.gmt",
         "keywords": [
             "From_Baidu_Tieba",
             "多解"
         ],
         "solutions": [
             {
-                "file": "answers/from-baidu-tieba/dumpty-point-simtri/5L11E.jpg",
+                "file": "answers/from-baidu-tieba/016.dumpty-point-simtri/5L11E.jpg",
                 "star": "5L 11E"
             },
             {
-                "file": "answers/from-baidu-tieba/dumpty-point-simtri/3V.jpg",
+                "file": "answers/from-baidu-tieba/016.dumpty-point-simtri/3V.jpg",
                 "star": "3V"
             }
         ]
@@ -5485,23 +5485,23 @@
         "pack": "from-baidu-tieba",
         "title": "SPerp_Tri_Area_Bisect",
         "targetSteps": "5L / 10E",
-        "diagram": "diagrams/from-baidu-tieba/sperp-tri-area-bisect.png",
-        "file": "levels/from-baidu-tieba/sperp-tri-area-bisect.gmt",
+        "diagram": "diagrams/from-baidu-tieba/017.sperp-tri-area-bisect.png",
+        "file": "levels/from-baidu-tieba/017.sperp-tri-area-bisect.gmt",
         "keywords": [
             "From_Baidu_Tieba",
             "面积"
         ],
         "solutions": [
             {
-                "file": "answers/from-baidu-tieba/sperp-tri-area-bisect/5L.png",
+                "file": "answers/from-baidu-tieba/017.sperp-tri-area-bisect/5L.png",
                 "star": "5L"
             },
             {
-                "file": "answers/from-baidu-tieba/sperp-tri-area-bisect/8L18E.jpg",
+                "file": "answers/from-baidu-tieba/017.sperp-tri-area-bisect/8L18E.jpg",
                 "star": "8L 18E"
             },
             {
-                "file": "answers/from-baidu-tieba/sperp-tri-area-bisect/10E.png",
+                "file": "answers/from-baidu-tieba/017.sperp-tri-area-bisect/10E.png",
                 "star": "10E"
             }
         ]
@@ -5511,31 +5511,31 @@
         "pack": "from-baidu-tieba",
         "title": "InAngle_SegmentEqual",
         "targetSteps": "7L / 15E",
-        "diagram": "diagrams/from-baidu-tieba/inangle-segmentequal.png",
-        "file": "levels/from-baidu-tieba/inangle-segmentequal.gmt",
+        "diagram": "diagrams/from-baidu-tieba/018.inangle-segmentequal.png",
+        "file": "levels/from-baidu-tieba/018.inangle-segmentequal.gmt",
         "keywords": [
             "From_Baidu_Tieba",
             "多解"
         ],
         "solutions": [
             {
-                "file": "answers/from-baidu-tieba/inangle-segmentequal/6L.jpg",
+                "file": "answers/from-baidu-tieba/018.inangle-segmentequal/6L.jpg",
                 "star": "6L"
             },
             {
-                "file": "answers/from-baidu-tieba/inangle-segmentequal/7L.png",
+                "file": "answers/from-baidu-tieba/018.inangle-segmentequal/7L.png",
                 "star": "7L"
             },
             {
-                "file": "answers/from-baidu-tieba/inangle-segmentequal/14E.jpg",
+                "file": "answers/from-baidu-tieba/018.inangle-segmentequal/14E.jpg",
                 "star": "14E"
             },
             {
-                "file": "answers/from-baidu-tieba/inangle-segmentequal/15E.png",
+                "file": "answers/from-baidu-tieba/018.inangle-segmentequal/15E.png",
                 "star": "15E"
             },
             {
-                "file": "answers/from-baidu-tieba/inangle-segmentequal/4V.png",
+                "file": "answers/from-baidu-tieba/018.inangle-segmentequal/4V.png",
                 "star": "4V"
             }
         ]
@@ -5545,26 +5545,26 @@
         "pack": "from-baidu-tieba",
         "title": "SegmentSum_on3Ray",
         "targetSteps": "9L / 14E",
-        "diagram": "diagrams/from-baidu-tieba/segmentsum-on3ray.png",
-        "file": "levels/from-baidu-tieba/segmentsum-on3ray.gmt",
+        "diagram": "diagrams/from-baidu-tieba/019.segmentsum-on3ray.png",
+        "file": "levels/from-baidu-tieba/019.segmentsum-on3ray.gmt",
         "keywords": [
             "From_Baidu_Tieba"
         ],
         "solutions": [
             {
-                "file": "answers/from-baidu-tieba/segmentsum-on3ray/8L.png",
+                "file": "answers/from-baidu-tieba/019.segmentsum-on3ray/8L.png",
                 "star": "8L"
             },
             {
-                "file": "answers/from-baidu-tieba/segmentsum-on3ray/9L.png",
+                "file": "answers/from-baidu-tieba/019.segmentsum-on3ray/9L.png",
                 "star": "9L"
             },
             {
-                "file": "answers/from-baidu-tieba/segmentsum-on3ray/11E.png",
+                "file": "answers/from-baidu-tieba/019.segmentsum-on3ray/11E.png",
                 "star": "11E"
             },
             {
-                "file": "answers/from-baidu-tieba/segmentsum-on3ray/14E.png",
+                "file": "answers/from-baidu-tieba/019.segmentsum-on3ray/14E.png",
                 "star": "14E"
             }
         ]
@@ -5574,19 +5574,19 @@
         "pack": "from-baidu-tieba",
         "title": "EquiTri_V_InAngle",
         "targetSteps": "8L / 8E",
-        "diagram": "diagrams/from-baidu-tieba/equitri-v-inangle.png",
-        "file": "levels/from-baidu-tieba/equitri-v-inangle.gmt",
+        "diagram": "diagrams/from-baidu-tieba/020.equitri-v-inangle.png",
+        "file": "levels/from-baidu-tieba/020.equitri-v-inangle.gmt",
         "keywords": [
             "From_Baidu_Tieba",
             "多解"
         ],
         "solutions": [
             {
-                "file": "answers/from-baidu-tieba/equitri-v-inangle/8L8E.png",
+                "file": "answers/from-baidu-tieba/020.equitri-v-inangle/8L8E.png",
                 "star": "8L 8E"
             },
             {
-                "file": "answers/from-baidu-tieba/equitri-v-inangle/2V.png",
+                "file": "answers/from-baidu-tieba/020.equitri-v-inangle/2V.png",
                 "star": "2V"
             }
         ]
@@ -5596,8 +5596,8 @@
         "pack": "from-baidu-tieba",
         "title": "P_P_L_EqualChord",
         "targetSteps": "8L / 26E",
-        "diagram": "diagrams/from-baidu-tieba/p-p-l-equalchord.png",
-        "file": "levels/from-baidu-tieba/p-p-l-equalchord.gmt",
+        "diagram": "diagrams/from-baidu-tieba/021.p-p-l-equalchord.png",
+        "file": "levels/from-baidu-tieba/021.p-p-l-equalchord.gmt",
         "keywords": [
             "From_Baidu_Tieba",
             "弦",
@@ -5605,15 +5605,15 @@
         ],
         "solutions": [
             {
-                "file": "answers/from-baidu-tieba/p-p-l-equalchord/8L26E.png",
+                "file": "answers/from-baidu-tieba/021.p-p-l-equalchord/8L26E.png",
                 "star": "8L 26E"
             },
             {
-                "file": "answers/from-baidu-tieba/p-p-l-equalchord/13L19E.jpg",
+                "file": "answers/from-baidu-tieba/021.p-p-l-equalchord/13L19E.jpg",
                 "star": "13L 19E"
             },
             {
-                "file": "answers/from-baidu-tieba/p-p-l-equalchord/2V.png",
+                "file": "answers/from-baidu-tieba/021.p-p-l-equalchord/2V.png",
                 "star": "2V"
             }
         ]
@@ -5623,23 +5623,23 @@
         "pack": "from-baidu-tieba",
         "title": "EquAng_of_2Seg",
         "targetSteps": "10L / 10E",
-        "diagram": "diagrams/from-baidu-tieba/equang-of-2seg.png",
-        "file": "levels/from-baidu-tieba/equang-of-2seg.gmt",
+        "diagram": "diagrams/from-baidu-tieba/022.equang-of-2seg.png",
+        "file": "levels/from-baidu-tieba/022.equang-of-2seg.gmt",
         "keywords": [
             "From_Baidu_Tieba",
             "多解"
         ],
         "solutions": [
             {
-                "file": "answers/from-baidu-tieba/equang-of-2seg/10L10E.png",
+                "file": "answers/from-baidu-tieba/022.equang-of-2seg/10L10E.png",
                 "star": "10L 10E"
             },
             {
-                "file": "answers/from-baidu-tieba/equang-of-2seg/2V.jpg",
+                "file": "answers/from-baidu-tieba/022.equang-of-2seg/2V.jpg",
                 "star": "2V"
             },
             {
-                "file": "answers/from-baidu-tieba/equang-of-2seg/Display.jpg",
+                "file": "answers/from-baidu-tieba/022.equang-of-2seg/Display.jpg",
                 "star": "Display"
             }
         ]
@@ -5649,8 +5649,8 @@
         "pack": "from-baidu-tieba",
         "title": "Insc_Chord_MPoint",
         "targetSteps": "6L / 10E",
-        "diagram": "diagrams/from-baidu-tieba/insc-chord-mpoint.png",
-        "file": "levels/from-baidu-tieba/insc-chord-mpoint.gmt",
+        "diagram": "diagrams/from-baidu-tieba/023.insc-chord-mpoint.png",
+        "file": "levels/from-baidu-tieba/023.insc-chord-mpoint.gmt",
         "keywords": [
             "From_Baidu_Tieba",
             "弦",
@@ -5658,23 +5658,23 @@
         ],
         "solutions": [
             {
-                "file": "answers/from-baidu-tieba/insc-chord-mpoint/6L10E.png",
+                "file": "answers/from-baidu-tieba/023.insc-chord-mpoint/6L10E.png",
                 "star": "6L 10E"
             },
             {
-                "file": "answers/from-baidu-tieba/insc-chord-mpoint/9L.png",
+                "file": "answers/from-baidu-tieba/023.insc-chord-mpoint/9L.png",
                 "star": "9L"
             },
             {
-                "file": "answers/from-baidu-tieba/insc-chord-mpoint/12E.png",
+                "file": "answers/from-baidu-tieba/023.insc-chord-mpoint/12E.png",
                 "star": "12E"
             },
             {
-                "file": "answers/from-baidu-tieba/insc-chord-mpoint/2V.jpg",
+                "file": "answers/from-baidu-tieba/023.insc-chord-mpoint/2V.jpg",
                 "star": "2V"
             },
             {
-                "file": "answers/from-baidu-tieba/insc-chord-mpoint/Display.jpg",
+                "file": "answers/from-baidu-tieba/023.insc-chord-mpoint/Display.jpg",
                 "star": "Display"
             }
         ]
@@ -5684,22 +5684,22 @@
         "pack": "from-baidu-tieba",
         "title": "V_H_I_ReTri",
         "targetSteps": "16L / 19E",
-        "diagram": "diagrams/from-baidu-tieba/v-h-i-retri.png",
-        "file": "levels/from-baidu-tieba/v-h-i-retri.gmt",
+        "diagram": "diagrams/from-baidu-tieba/024.v-h-i-retri.png",
+        "file": "levels/from-baidu-tieba/024.v-h-i-retri.gmt",
         "keywords": [
             "From_Baidu_Tieba"
         ],
         "solutions": [
             {
-                "file": "answers/from-baidu-tieba/v-h-i-retri/16L.jpg",
+                "file": "answers/from-baidu-tieba/024.v-h-i-retri/16L.jpg",
                 "star": "16L"
             },
             {
-                "file": "answers/from-baidu-tieba/v-h-i-retri/19E.png",
+                "file": "answers/from-baidu-tieba/024.v-h-i-retri/19E.png",
                 "star": "19E"
             },
             {
-                "file": "answers/from-baidu-tieba/v-h-i-retri/Display.jpg",
+                "file": "answers/from-baidu-tieba/024.v-h-i-retri/Display.jpg",
                 "star": "Display"
             }
         ]
@@ -5709,23 +5709,23 @@
         "pack": "from-baidu-tieba",
         "title": "Tri_Peri_Bisect_of_Point",
         "targetSteps": "12L / 26E",
-        "diagram": "diagrams/from-baidu-tieba/tri-peri-bisect-of-point.png",
-        "file": "levels/from-baidu-tieba/tri-peri-bisect-of-point.gmt",
+        "diagram": "diagrams/from-baidu-tieba/025.tri-peri-bisect-of-point.png",
+        "file": "levels/from-baidu-tieba/025.tri-peri-bisect-of-point.gmt",
         "keywords": [
             "From_Baidu_Tieba",
             "多解"
         ],
         "solutions": [
             {
-                "file": "answers/from-baidu-tieba/tri-peri-bisect-of-point/12L26E.jpg",
+                "file": "answers/from-baidu-tieba/025.tri-peri-bisect-of-point/12L26E.jpg",
                 "star": "12L 26E"
             },
             {
-                "file": "answers/from-baidu-tieba/tri-peri-bisect-of-point/2V.png",
+                "file": "answers/from-baidu-tieba/025.tri-peri-bisect-of-point/2V.png",
                 "star": "2V"
             },
             {
-                "file": "answers/from-baidu-tieba/tri-peri-bisect-of-point/Display.jpg",
+                "file": "answers/from-baidu-tieba/025.tri-peri-bisect-of-point/Display.jpg",
                 "star": "Display"
             }
         ]
@@ -5735,8 +5735,8 @@
         "pack": "from-baidu-tieba",
         "title": "PerpTri_EquArea",
         "targetSteps": "5L / 15E",
-        "diagram": "diagrams/from-baidu-tieba/perptri-equarea.png",
-        "file": "levels/from-baidu-tieba/perptri-equarea.gmt",
+        "diagram": "diagrams/from-baidu-tieba/026.perptri-equarea.png",
+        "file": "levels/from-baidu-tieba/026.perptri-equarea.gmt",
         "keywords": [
             "From_Baidu_Tieba",
             "面积",
@@ -5744,15 +5744,15 @@
         ],
         "solutions": [
             {
-                "file": "answers/from-baidu-tieba/perptri-equarea/5L15E.jpg",
+                "file": "answers/from-baidu-tieba/026.perptri-equarea/5L15E.jpg",
                 "star": "5L 15E"
             },
             {
-                "file": "answers/from-baidu-tieba/perptri-equarea/6V.jpg",
+                "file": "answers/from-baidu-tieba/026.perptri-equarea/6V.jpg",
                 "star": "6V"
             },
             {
-                "file": "answers/from-baidu-tieba/perptri-equarea/Display.jpg",
+                "file": "answers/from-baidu-tieba/026.perptri-equarea/Display.jpg",
                 "star": "Display"
             }
         ]
@@ -5762,22 +5762,22 @@
         "pack": "from-baidu-tieba",
         "title": "ParaInscTri_EquSeg",
         "targetSteps": "7L / 12E",
-        "diagram": "diagrams/from-baidu-tieba/parainsctri-equseg.png",
-        "file": "levels/from-baidu-tieba/parainsctri-equseg.gmt",
+        "diagram": "diagrams/from-baidu-tieba/027.parainsctri-equseg.png",
+        "file": "levels/from-baidu-tieba/027.parainsctri-equseg.gmt",
         "keywords": [
             "From_Baidu_Tieba"
         ],
         "solutions": [
             {
-                "file": "answers/from-baidu-tieba/parainsctri-equseg/7L.png",
+                "file": "answers/from-baidu-tieba/027.parainsctri-equseg/7L.png",
                 "star": "7L"
             },
             {
-                "file": "answers/from-baidu-tieba/parainsctri-equseg/12E.png",
+                "file": "answers/from-baidu-tieba/027.parainsctri-equseg/12E.png",
                 "star": "12E"
             },
             {
-                "file": "answers/from-baidu-tieba/parainsctri-equseg/Display.jpg",
+                "file": "answers/from-baidu-tieba/027.parainsctri-equseg/Display.jpg",
                 "star": "Display"
             }
         ]
@@ -5787,18 +5787,18 @@
         "pack": "from-baidu-tieba",
         "title": "Min_Peri_InAngle",
         "targetSteps": "6L / 10E",
-        "diagram": "diagrams/from-baidu-tieba/min-peri-inangle.png",
-        "file": "levels/from-baidu-tieba/min-peri-inangle.gmt",
+        "diagram": "diagrams/from-baidu-tieba/028.min-peri-inangle.png",
+        "file": "levels/from-baidu-tieba/028.min-peri-inangle.gmt",
         "keywords": [
             "From_Baidu_Tieba"
         ],
         "solutions": [
             {
-                "file": "answers/from-baidu-tieba/min-peri-inangle/6L.png",
+                "file": "answers/from-baidu-tieba/028.min-peri-inangle/6L.png",
                 "star": "6L"
             },
             {
-                "file": "answers/from-baidu-tieba/min-peri-inangle/10E.png",
+                "file": "answers/from-baidu-tieba/028.min-peri-inangle/10E.png",
                 "star": "10E"
             }
         ]
@@ -5808,34 +5808,34 @@
         "pack": "from-baidu-tieba",
         "title": "Min_2RaySeg_InAngle",
         "targetSteps": "7L / 12E",
-        "diagram": "diagrams/from-baidu-tieba/min-2rayseg-inangle.png",
-        "file": "levels/from-baidu-tieba/min-2rayseg-inangle.gmt",
+        "diagram": "diagrams/from-baidu-tieba/029.min-2rayseg-inangle.png",
+        "file": "levels/from-baidu-tieba/029.min-2rayseg-inangle.gmt",
         "keywords": [
             "From_Baidu_Tieba"
         ],
         "solutions": [
             {
-                "file": "answers/from-baidu-tieba/min-2rayseg-inangle/7L.jpg",
+                "file": "answers/from-baidu-tieba/029.min-2rayseg-inangle/7L.jpg",
                 "star": "7L"
             },
             {
-                "file": "answers/from-baidu-tieba/min-2rayseg-inangle/9L.png",
+                "file": "answers/from-baidu-tieba/029.min-2rayseg-inangle/9L.png",
                 "star": "9L"
             },
             {
-                "file": "answers/from-baidu-tieba/min-2rayseg-inangle/12E-view2.png",
+                "file": "answers/from-baidu-tieba/029.min-2rayseg-inangle/12E-view2.png",
                 "star": "12E"
             },
             {
-                "file": "answers/from-baidu-tieba/min-2rayseg-inangle/12E.jpg",
+                "file": "answers/from-baidu-tieba/029.min-2rayseg-inangle/12E.jpg",
                 "star": "12E"
             },
             {
-                "file": "answers/from-baidu-tieba/min-2rayseg-inangle/14E.jpg",
+                "file": "answers/from-baidu-tieba/029.min-2rayseg-inangle/14E.jpg",
                 "star": "14E"
             },
             {
-                "file": "answers/from-baidu-tieba/min-2rayseg-inangle/22E.png",
+                "file": "answers/from-baidu-tieba/029.min-2rayseg-inangle/22E.png",
                 "star": "22E"
             }
         ]
@@ -5845,23 +5845,23 @@
         "pack": "from-baidu-tieba",
         "title": "Apol_MidP_EquCC",
         "targetSteps": "3L / 7E",
-        "diagram": "diagrams/from-baidu-tieba/apol-midp-equcc.png",
-        "file": "levels/from-baidu-tieba/apol-midp-equcc.gmt",
+        "diagram": "diagrams/from-baidu-tieba/030.apol-midp-equcc.png",
+        "file": "levels/from-baidu-tieba/030.apol-midp-equcc.gmt",
         "keywords": [
             "From_Baidu_Tieba",
             "多解"
         ],
         "solutions": [
             {
-                "file": "answers/from-baidu-tieba/apol-midp-equcc/3L.png",
+                "file": "answers/from-baidu-tieba/030.apol-midp-equcc/3L.png",
                 "star": "3L"
             },
             {
-                "file": "answers/from-baidu-tieba/apol-midp-equcc/7E.png",
+                "file": "answers/from-baidu-tieba/030.apol-midp-equcc/7E.png",
                 "star": "7E"
             },
             {
-                "file": "answers/from-baidu-tieba/apol-midp-equcc/2V.png",
+                "file": "answers/from-baidu-tieba/030.apol-midp-equcc/2V.png",
                 "star": "2V"
             }
         ]
@@ -5871,19 +5871,19 @@
         "pack": "from-baidu-tieba",
         "title": "Insc_Pedal_Tri",
         "targetSteps": "7L / 17E",
-        "diagram": "diagrams/from-baidu-tieba/insc-pedal-tri.jpg",
-        "file": "levels/from-baidu-tieba/insc-pedal-tri.gmt",
+        "diagram": "diagrams/from-baidu-tieba/031.insc-pedal-tri.jpg",
+        "file": "levels/from-baidu-tieba/031.insc-pedal-tri.gmt",
         "keywords": [
             "From_Baidu_Tieba",
             "多解"
         ],
         "solutions": [
             {
-                "file": "answers/from-baidu-tieba/insc-pedal-tri/7L17E.png",
+                "file": "answers/from-baidu-tieba/031.insc-pedal-tri/7L17E.png",
                 "star": "7L 17E"
             },
             {
-                "file": "answers/from-baidu-tieba/insc-pedal-tri/2V.png",
+                "file": "answers/from-baidu-tieba/031.insc-pedal-tri/2V.png",
                 "star": "2V"
             }
         ]
@@ -5893,14 +5893,14 @@
         "pack": "from-baidu-tieba",
         "title": "Fisheye_Perspective",
         "targetSteps": "7L / 11E",
-        "diagram": "diagrams/from-baidu-tieba/fisheye-perspective.png",
-        "file": "levels/from-baidu-tieba/fisheye-perspective.gmt",
+        "diagram": "diagrams/from-baidu-tieba/032.fisheye-perspective.png",
+        "file": "levels/from-baidu-tieba/032.fisheye-perspective.gmt",
         "keywords": [
             "From_Baidu_Tieba"
         ],
         "solutions": [
             {
-                "file": "answers/from-baidu-tieba/fisheye-perspective/7L11E.png",
+                "file": "answers/from-baidu-tieba/032.fisheye-perspective/7L11E.png",
                 "star": "7L 11E"
             }
         ]
@@ -5910,14 +5910,14 @@
         "pack": "from-baidu-tieba",
         "title": "Tri_Trans_EquiTri",
         "targetSteps": "12L / 12E",
-        "diagram": "diagrams/from-baidu-tieba/tri-trans-equitri.png",
-        "file": "levels/from-baidu-tieba/tri-trans-equitri.gmt",
+        "diagram": "diagrams/from-baidu-tieba/033.tri-trans-equitri.png",
+        "file": "levels/from-baidu-tieba/033.tri-trans-equitri.gmt",
         "keywords": [
             "From_Baidu_Tieba"
         ],
         "solutions": [
             {
-                "file": "answers/from-baidu-tieba/tri-trans-equitri/12E.png",
+                "file": "answers/from-baidu-tieba/033.tri-trans-equitri/12E.png",
                 "star": "12E"
             }
         ]
@@ -5926,19 +5926,19 @@
         "id": "retequincir",
         "pack": "from-baidu-tieba",
         "title": "RetEquInCir",
-        "diagram": "diagrams/from-baidu-tieba/retequincir.jpg",
-        "file": "levels/from-baidu-tieba/retequincir.gmt",
+        "diagram": "diagrams/from-baidu-tieba/034.retequincir.jpg",
+        "file": "levels/from-baidu-tieba/034.retequincir.gmt",
         "keywords": [
             "From_Baidu_Tieba",
             "多解"
         ],
         "solutions": [
             {
-                "file": "answers/from-baidu-tieba/retequincir/11l23e.jpg",
+                "file": "answers/from-baidu-tieba/034.retequincir/11l23e.jpg",
                 "star": "11L 23E"
             },
             {
-                "file": "answers/from-baidu-tieba/retequincir/2v.jpg",
+                "file": "answers/from-baidu-tieba/034.retequincir/2v.jpg",
                 "star": "2V"
             }
         ],
@@ -6362,7 +6362,7 @@
         "solutions": [
             {
                 "file": "answers/sprfes/sprfes2024-01/01-10L10E.png",
-                "star": "9L 10E"
+                "star": "10E"
             }
         ],
         "targetSteps": "9L / 10E"
@@ -6553,18 +6553,247 @@
         "targetSteps": "19E"
     },
     {
-        "id": "double-degrees",
+        "id": "lmidpoint",
         "pack": "straightedge-only-pzls",
         "tools": "straightedge",
-        "title": "01.径倍角找心",
-        "targetSteps": "6E",
-        "file": "levels/straightedge-only-pzls/double-degrees.gmt",
+        "title": "01.平行作中点(9.5)",
+        "diagram": "diagrams/straightedge-only-pzls/001.lmidpoint.png",
+        "file": "levels/straightedge-only-pzls/001.lmidpoint.gmt",
+        "keywords": [
+            "Straightedge-only_Pzls",
+            "中点",
+            "平行线"
+        ],
+        "solutions": [
+            {
+                "file": "answers/straightedge-only-pzls/001.lmidpoint/05_6E.png",
+                "star": "6E"
+            }
+        ],
+        "targetSteps": "6E"
+    },
+    {
+        "id": "mparallel",
+        "pack": "straightedge-only-pzls",
+        "tools": "straightedge",
+        "title": "02.中点作平行",
+        "diagram": "diagrams/straightedge-only-pzls/002.mparallel.png",
+        "file": "levels/straightedge-only-pzls/002.mparallel.gmt",
+        "keywords": [
+            "Straightedge-only_Pzls",
+            "中点",
+            "平行线"
+        ],
+        "solutions": [
+            {
+                "file": "answers/straightedge-only-pzls/002.mparallel/05_6E.png",
+                "star": "6E"
+            }
+        ],
+        "targetSteps": "6E"
+    },
+    {
+        "id": "3dparallel",
+        "pack": "straightedge-only-pzls",
+        "tools": "straightedge",
+        "title": "03.平行作平行(11.5)",
+        "diagram": "diagrams/straightedge-only-pzls/003.3dparallel.png",
+        "file": "levels/straightedge-only-pzls/003.3dparallel.gmt",
+        "keywords": [
+            "Straightedge-only_Pzls",
+            "平行线"
+        ],
+        "solutions": [
+            {
+                "file": "answers/straightedge-only-pzls/003.3dparallel/05_6E.png",
+                "star": "6E"
+            }
+        ],
+        "targetSteps": "6E"
+    },
+    {
+        "id": "l-doubleseg",
+        "pack": "straightedge-only-pzls",
+        "tools": "straightedge",
+        "title": "04.平行作倍长",
+        "diagram": "diagrams/straightedge-only-pzls/004.l-doubleseg.png",
+        "file": "levels/straightedge-only-pzls/004.l-doubleseg.gmt",
+        "keywords": [
+            "Straightedge-only_Pzls",
+            "平行线"
+        ],
+        "solutions": [
+            {
+                "file": "answers/straightedge-only-pzls/004.l-doubleseg/05_6E.png",
+                "star": "6E"
+            }
+        ],
+        "targetSteps": "6E"
+    },
+    {
+        "id": "mmirror",
+        "pack": "straightedge-only-pzls",
+        "tools": "straightedge",
+        "title": "05.中点作对称",
+        "diagram": "diagrams/straightedge-only-pzls/005.mmirror.png",
+        "file": "levels/straightedge-only-pzls/005.mmirror.gmt",
+        "keywords": [
+            "Straightedge-only_Pzls",
+            "中点",
+            "对称"
+        ],
+        "solutions": [
+            {
+                "file": "answers/straightedge-only-pzls/005.mmirror/05_6E.png",
+                "star": "6E"
+            }
+        ],
+        "targetSteps": "6E"
+    },
+    {
+        "id": "perp-mirror",
+        "pack": "straightedge-only-pzls",
+        "tools": "straightedge",
+        "title": "06.垂线作对称(13.8)",
+        "diagram": "diagrams/straightedge-only-pzls/006.perp-mirror.png",
+        "file": "levels/straightedge-only-pzls/006.perp-mirror.gmt",
+        "keywords": [
+            "Straightedge-only_Pzls",
+            "垂线",
+            "对称"
+        ],
+        "solutions": [
+            {
+                "file": "answers/straightedge-only-pzls/006.perp-mirror/05_6E.png",
+                "star": "6E"
+            }
+        ],
+        "targetSteps": "6E"
+    },
+    {
+        "id": "abisect-perp",
+        "pack": "straightedge-only-pzls",
+        "tools": "straightedge",
+        "title": "07.角平分线作垂",
+        "diagram": "diagrams/straightedge-only-pzls/007.abisect-perp.png",
+        "file": "levels/straightedge-only-pzls/007.abisect-perp.gmt",
+        "keywords": [
+            "Straightedge-only_Pzls",
+            "角平分线"
+        ],
+        "solutions": [
+            {
+                "file": "answers/straightedge-only-pzls/007.abisect-perp/05_6E.png",
+                "star": "6E"
+            }
+        ],
+        "targetSteps": "6E"
+    },
+    {
+        "id": "ldropperp",
+        "pack": "straightedge-only-pzls",
+        "tools": "straightedge",
+        "title": "08.任意点作径垂(9.4改)",
+        "diagram": "diagrams/straightedge-only-pzls/008.ldropperp.png",
+        "file": "levels/straightedge-only-pzls/008.ldropperp.gmt",
         "keywords": [
             "Straightedge-only_Pzls"
         ],
         "solutions": [
             {
-                "file": "answers/straightedge-only-pzls/double-degrees/01.jpeg",
+                "file": "answers/straightedge-only-pzls/008.ldropperp/05_6E.png",
+                "star": "6E"
+            }
+        ],
+        "targetSteps": "6E"
+    },
+    {
+        "id": "drop-perp-c",
+        "pack": "straightedge-only-pzls",
+        "tools": "straightedge",
+        "title": "09.圆上点作径垂",
+        "diagram": "diagrams/straightedge-only-pzls/009.drop-perp-c.png",
+        "file": "levels/straightedge-only-pzls/009.drop-perp-c.gmt",
+        "keywords": [
+            "Straightedge-only_Pzls"
+        ],
+        "solutions": [
+            {
+                "file": "answers/straightedge-only-pzls/009.drop-perp-c/05_6E.png",
+                "star": "6E"
+            }
+        ],
+        "targetSteps": "6E"
+    },
+    {
+        "id": "drop-perp-d",
+        "pack": "straightedge-only-pzls",
+        "tools": "straightedge",
+        "title": "10.径上点作径垂",
+        "diagram": "diagrams/straightedge-only-pzls/010.drop-perp-d.png",
+        "file": "levels/straightedge-only-pzls/010.drop-perp-d.gmt",
+        "keywords": [
+            "Straightedge-only_Pzls"
+        ],
+        "solutions": [
+            {
+                "file": "answers/straightedge-only-pzls/010.drop-perp-d/05_6E.png",
+                "star": "6E"
+            }
+        ],
+        "targetSteps": "6E"
+    },
+    {
+        "id": "tangent1",
+        "pack": "straightedge-only-pzls",
+        "tools": "straightedge",
+        "title": "11.圆上点作切(2.8改)",
+        "diagram": "diagrams/straightedge-only-pzls/011.tangent1.png",
+        "file": "levels/straightedge-only-pzls/011.tangent1.gmt",
+        "keywords": [
+            "Straightedge-only_Pzls"
+        ],
+        "solutions": [
+            {
+                "file": "answers/straightedge-only-pzls/011.tangent1/05_6E.png",
+                "star": "6E"
+            }
+        ],
+        "targetSteps": "6E"
+    },
+    {
+        "id": "Tangent2OnlyLine",
+        "pack": "straightedge-only-pzls",
+        "tools": "straightedge",
+        "title": "12.圆外点作切(15.5)",
+        "diagram": "diagrams/straightedge-only-pzls/012.Tangent2OnlyLine.png",
+        "file": "levels/straightedge-only-pzls/012.Tangent2OnlyLine.gmt",
+        "keywords": [
+            "Straightedge-only_Pzls",
+            "多解"
+        ],
+        "solutions": [
+            {
+                "file": "answers/straightedge-only-pzls/012.Tangent2OnlyLine/05_6E.png",
+                "star": "6E"
+            }
+        ],
+        "targetSteps": "6E"
+    },
+    {
+        "id": "double-degrees",
+        "pack": "straightedge-only-pzls",
+        "tools": "straightedge",
+        "title": "01.径倍角找心",
+        "targetSteps": "6E",
+        "diagram": "diagrams/straightedge-only-pzls/013.double-degrees.png",
+        "file": "levels/straightedge-only-pzls/013.double-degrees.gmt",
+        "keywords": [
+            "Straightedge-only_Pzls"
+        ],
+        "solutions": [
+            {
+                "file": "answers/straightedge-only-pzls/013.double-degrees/01.jpeg",
                 "star": "01"
             }
         ]
@@ -6575,18 +6804,19 @@
         "tools": "straightedge",
         "title": "02.径弦30度找心",
         "targetSteps": "8E",
-        "file": "levels/straightedge-only-pzls/diameter-angle30.gmt",
+        "diagram": "diagrams/straightedge-only-pzls/014.diameter-angle30.png",
+        "file": "levels/straightedge-only-pzls/014.diameter-angle30.gmt",
         "keywords": [
             "Straightedge-only_Pzls",
             "弦"
         ],
         "solutions": [
             {
-                "file": "answers/straightedge-only-pzls/diameter-angle30/2V.jpg",
+                "file": "answers/straightedge-only-pzls/014.diameter-angle30/2V.jpg",
                 "star": "2V"
             },
             {
-                "file": "answers/straightedge-only-pzls/diameter-angle30/02.jpg",
+                "file": "answers/straightedge-only-pzls/014.diameter-angle30/02.jpg",
                 "star": "02"
             }
         ]
@@ -6597,14 +6827,15 @@
         "tools": "straightedge",
         "title": "03.径弦22.5度找心",
         "targetSteps": "11E",
-        "file": "levels/straightedge-only-pzls/diameter-angle22.5.gmt",
+        "diagram": "diagrams/straightedge-only-pzls/015.diameter-angle22.5.png",
+        "file": "levels/straightedge-only-pzls/015.diameter-angle22.5.gmt",
         "keywords": [
             "Straightedge-only_Pzls",
             "弦"
         ],
         "solutions": [
             {
-                "file": "answers/straightedge-only-pzls/diameter-angle22.5/03.jpeg",
+                "file": "answers/straightedge-only-pzls/015.diameter-angle22.5/03.jpeg",
                 "star": "03"
             }
         ]
@@ -6615,14 +6846,15 @@
         "tools": "straightedge",
         "title": "04.径弦15度找心",
         "targetSteps": "13E",
-        "file": "levels/straightedge-only-pzls/diameter-angle15.gmt",
+        "diagram": "diagrams/straightedge-only-pzls/016.diameter-angle15.png",
+        "file": "levels/straightedge-only-pzls/016.diameter-angle15.gmt",
         "keywords": [
             "Straightedge-only_Pzls",
             "弦"
         ],
         "solutions": [
             {
-                "file": "answers/straightedge-only-pzls/diameter-angle15/04.jpeg",
+                "file": "answers/straightedge-only-pzls/016.diameter-angle15/04.jpeg",
                 "star": "04"
             }
         ]
@@ -6633,7 +6865,8 @@
         "tools": "straightedge",
         "title": "05.内心作外心",
         "targetSteps": "9E",
-        "file": "levels/straightedge-only-pzls/incenter-to-circumcenter.gmt",
+        "diagram": "diagrams/straightedge-only-pzls/017.incenter-to-circumcenter.png",
+        "file": "levels/straightedge-only-pzls/017.incenter-to-circumcenter.gmt",
         "keywords": [
             "Straightedge-only_Pzls",
             "内心",
@@ -6641,7 +6874,7 @@
         ],
         "solutions": [
             {
-                "file": "answers/straightedge-only-pzls/incenter-to-circumcenter/05.jpeg",
+                "file": "answers/straightedge-only-pzls/017.incenter-to-circumcenter/05.jpeg",
                 "star": "05"
             }
         ]
@@ -6652,7 +6885,8 @@
         "tools": "straightedge",
         "title": "06.垂心作外心",
         "targetSteps": "20E",
-        "file": "levels/straightedge-only-pzls/orthocenter-to-circumcenter.gmt",
+        "diagram": "diagrams/straightedge-only-pzls/018.orthocenter-to-circumcenter.png",
+        "file": "levels/straightedge-only-pzls/018.orthocenter-to-circumcenter.gmt",
         "keywords": [
             "Straightedge-only_Pzls",
             "垂心",
@@ -6660,7 +6894,7 @@
         ],
         "solutions": [
             {
-                "file": "answers/straightedge-only-pzls/orthocenter-to-circumcenter/06.jpeg",
+                "file": "answers/straightedge-only-pzls/018.orthocenter-to-circumcenter/06.jpeg",
                 "star": "06"
             }
         ]
@@ -6671,13 +6905,14 @@
         "tools": "straightedge",
         "title": "07.双圆相交找心",
         "targetSteps": "13E",
-        "file": "levels/straightedge-only-pzls/double-circles.gmt",
+        "diagram": "diagrams/straightedge-only-pzls/019.double-circles.png",
+        "file": "levels/straightedge-only-pzls/019.double-circles.gmt",
         "keywords": [
             "Straightedge-only_Pzls"
         ],
         "solutions": [
             {
-                "file": "answers/straightedge-only-pzls/double-circles/07.jpeg",
+                "file": "answers/straightedge-only-pzls/019.double-circles/07.jpeg",
                 "star": "07"
             }
         ]
@@ -6688,13 +6923,14 @@
         "tools": "straightedge",
         "title": "08.双同心圆找心",
         "targetSteps": "18E",
-        "file": "levels/straightedge-only-pzls/concentric-circles.gmt",
+        "diagram": "diagrams/straightedge-only-pzls/020.concentric-circles.png",
+        "file": "levels/straightedge-only-pzls/020.concentric-circles.gmt",
         "keywords": [
             "Straightedge-only_Pzls"
         ],
         "solutions": [
             {
-                "file": "answers/straightedge-only-pzls/concentric-circles/08.jpeg",
+                "file": "answers/straightedge-only-pzls/020.concentric-circles/08.jpeg",
                 "star": "08"
             }
         ]
@@ -6704,18 +6940,19 @@
         "pack": "straightedge-only-pzls",
         "tools": "straightedge",
         "title": "09.径弦4比1找心",
-        "file": "levels/straightedge-only-pzls/diameter-sqrt5-2.gmt",
+        "diagram": "diagrams/straightedge-only-pzls/021.diameter-sqrt5-2.png",
+        "file": "levels/straightedge-only-pzls/021.diameter-sqrt5-2.gmt",
         "keywords": [
             "Straightedge-only_Pzls",
             "弦"
         ],
         "solutions": [
             {
-                "file": "answers/straightedge-only-pzls/diameter-sqrt5-2/9E.png",
+                "file": "answers/straightedge-only-pzls/021.diameter-sqrt5-2/9E.png",
                 "star": "9E"
             },
             {
-                "file": "answers/straightedge-only-pzls/diameter-sqrt5-2/09.jpg",
+                "file": "answers/straightedge-only-pzls/021.diameter-sqrt5-2/09.jpg",
                 "star": "09"
             }
         ],
@@ -6726,18 +6963,19 @@
         "pack": "straightedge-only-pzls",
         "tools": "straightedge",
         "title": "10.径弦2比1找心",
-        "file": "levels/straightedge-only-pzls/diameter-sqrt6-3.gmt",
+        "diagram": "diagrams/straightedge-only-pzls/022.diameter-sqrt6-3.png",
+        "file": "levels/straightedge-only-pzls/022.diameter-sqrt6-3.gmt",
         "keywords": [
             "Straightedge-only_Pzls",
             "弦"
         ],
         "solutions": [
             {
-                "file": "answers/straightedge-only-pzls/diameter-sqrt6-3/10E.png",
+                "file": "answers/straightedge-only-pzls/022.diameter-sqrt6-3/10E.png",
                 "star": "10E"
             },
             {
-                "file": "answers/straightedge-only-pzls/diameter-sqrt6-3/10.jpg",
+                "file": "answers/straightedge-only-pzls/022.diameter-sqrt6-3/10.jpg",
                 "star": "10"
             }
         ],
@@ -6749,7 +6987,8 @@
         "tools": "straightedge",
         "title": "11.旁心作外心",
         "targetSteps": "9E",
-        "file": "levels/straightedge-only-pzls/1escenter-to-circumcenter.gmt",
+        "diagram": "diagrams/straightedge-only-pzls/023.1escenter-to-circumcenter.png",
+        "file": "levels/straightedge-only-pzls/023.1escenter-to-circumcenter.gmt",
         "keywords": [
             "Straightedge-only_Pzls",
             "外心",
@@ -6757,7 +6996,7 @@
         ],
         "solutions": [
             {
-                "file": "answers/straightedge-only-pzls/1escenter-to-circumcenter/11.jpeg",
+                "file": "answers/straightedge-only-pzls/023.1escenter-to-circumcenter/11.jpeg",
                 "star": "11"
             }
         ]
@@ -6767,7 +7006,8 @@
         "pack": "straightedge-only-pzls",
         "tools": "straightedge",
         "title": "12.外心等腰150",
-        "file": "levels/straightedge-only-pzls/circumcenter-isosceles150.gmt",
+        "diagram": "diagrams/straightedge-only-pzls/024.circumcenter-isosceles150.png",
+        "file": "levels/straightedge-only-pzls/024.circumcenter-isosceles150.gmt",
         "keywords": [
             "Straightedge-only_Pzls",
             "外心",
@@ -6779,7 +7019,8 @@
         "pack": "straightedge-only-pzls",
         "tools": "straightedge",
         "title": "13.根轴上点找心",
-        "file": "levels/straightedge-only-pzls/point-on-radical-axis.gmt",
+        "diagram": "diagrams/straightedge-only-pzls/025.point-on-radical-axis.png",
+        "file": "levels/straightedge-only-pzls/025.point-on-radical-axis.gmt",
         "keywords": [
             "Straightedge-only_Pzls"
         ]
@@ -6790,14 +7031,15 @@
         "tools": "straightedge",
         "title": "14.五点共圆找心",
         "targetSteps": "15E",
-        "file": "levels/straightedge-only-pzls/5points1circle.gmt",
+        "diagram": "diagrams/straightedge-only-pzls/026.5points1circle.png",
+        "file": "levels/straightedge-only-pzls/026.5points1circle.gmt",
         "keywords": [
             "Straightedge-only_Pzls",
             "共圆"
         ],
         "solutions": [
             {
-                "file": "answers/straightedge-only-pzls/5points1circle/14.png",
+                "file": "answers/straightedge-only-pzls/026.5points1circle/14.png",
                 "star": "14"
             }
         ]
@@ -6807,7 +7049,8 @@
         "pack": "straightedge-only-pzls",
         "tools": "straightedge",
         "title": "15.双圆等腰找心",
-        "file": "levels/straightedge-only-pzls/isosceles-double-circle.gmt",
+        "diagram": "diagrams/straightedge-only-pzls/027.isosceles-double-circle.png",
+        "file": "levels/straightedge-only-pzls/027.isosceles-double-circle.gmt",
         "keywords": [
             "Straightedge-only_Pzls",
             "等腰三角形"
@@ -6819,8 +7062,8 @@
         "tools": "straightedge",
         "title": "A01.等弦",
         "targetSteps": "8E",
-        "diagram": "diagrams/straightedge-only-pzls/equal-chord.png",
-        "file": "levels/straightedge-only-pzls/equal-chord.gmt",
+        "diagram": "diagrams/straightedge-only-pzls/028.equal-chord.png",
+        "file": "levels/straightedge-only-pzls/028.equal-chord.gmt",
         "keywords": [
             "Straightedge-only_Pzls",
             "弦",
@@ -6828,15 +7071,15 @@
         ],
         "solutions": [
             {
-                "file": "answers/straightedge-only-pzls/equal-chord/A01.png",
+                "file": "answers/straightedge-only-pzls/028.equal-chord/A01.png",
                 "star": "A01"
             },
             {
-                "file": "answers/straightedge-only-pzls/equal-chord/01.jpeg",
+                "file": "answers/straightedge-only-pzls/028.equal-chord/01.jpeg",
                 "star": "01"
             },
             {
-                "file": "answers/straightedge-only-pzls/equal-chord/A01.png",
+                "file": "answers/straightedge-only-pzls/028.equal-chord/A01.png",
                 "star": "A01"
             }
         ]
@@ -6847,27 +7090,27 @@
         "tools": "straightedge",
         "title": "A02.卡斯蒂朗问题",
         "targetSteps": "15E",
-        "diagram": "diagrams/straightedge-only-pzls/Castillon's Problem.png",
-        "file": "levels/straightedge-only-pzls/Castillon's Problem.gmt",
+        "diagram": "diagrams/straightedge-only-pzls/029.Castillon's Problem.png",
+        "file": "levels/straightedge-only-pzls/029.Castillon's Problem.gmt",
         "keywords": [
             "Straightedge-only_Pzls",
             "多解"
         ],
         "solutions": [
             {
-                "file": "answers/straightedge-only-pzls/Castillon's Problem/2V.jpg",
+                "file": "answers/straightedge-only-pzls/029.Castillon's Problem/2V.jpg",
                 "star": "2V"
             },
             {
-                "file": "answers/straightedge-only-pzls/Castillon's Problem/A02.png",
+                "file": "answers/straightedge-only-pzls/029.Castillon's Problem/A02.png",
                 "star": "A02"
             },
             {
-                "file": "answers/straightedge-only-pzls/Castillon's Problem/02.jpg",
+                "file": "answers/straightedge-only-pzls/029.Castillon's Problem/02.jpg",
                 "star": "02"
             },
             {
-                "file": "answers/straightedge-only-pzls/Castillon's Problem/A02.png",
+                "file": "answers/straightedge-only-pzls/029.Castillon's Problem/A02.png",
                 "star": "A02"
             }
         ]
@@ -6878,23 +7121,23 @@
         "tools": "straightedge",
         "title": "A03.内心Rt45",
         "targetSteps": "5E",
-        "diagram": "diagrams/straightedge-only-pzls/incenter-rt45.png",
-        "file": "levels/straightedge-only-pzls/incenter-rt45.gmt",
+        "diagram": "diagrams/straightedge-only-pzls/030.incenter-rt45.png",
+        "file": "levels/straightedge-only-pzls/030.incenter-rt45.gmt",
         "keywords": [
             "Straightedge-only_Pzls",
             "内心"
         ],
         "solutions": [
             {
-                "file": "answers/straightedge-only-pzls/incenter-rt45/A03.png",
+                "file": "answers/straightedge-only-pzls/030.incenter-rt45/A03.png",
                 "star": "A03"
             },
             {
-                "file": "answers/straightedge-only-pzls/incenter-rt45/03.jpeg",
+                "file": "answers/straightedge-only-pzls/030.incenter-rt45/03.jpeg",
                 "star": "03"
             },
             {
-                "file": "answers/straightedge-only-pzls/incenter-rt45/A03.png",
+                "file": "answers/straightedge-only-pzls/030.incenter-rt45/A03.png",
                 "star": "A03"
             }
         ]
@@ -6905,22 +7148,22 @@
         "tools": "straightedge",
         "title": "A04.圆心作垂(15.7)",
         "targetSteps": "10E",
-        "diagram": "diagrams/straightedge-only-pzls/lperp.png",
-        "file": "levels/straightedge-only-pzls/lperp.gmt",
+        "diagram": "diagrams/straightedge-only-pzls/031.lperp.png",
+        "file": "levels/straightedge-only-pzls/031.lperp.gmt",
         "keywords": [
             "Straightedge-only_Pzls"
         ],
         "solutions": [
             {
-                "file": "answers/straightedge-only-pzls/lperp/A04.png",
+                "file": "answers/straightedge-only-pzls/031.lperp/A04.png",
                 "star": "A04"
             },
             {
-                "file": "answers/straightedge-only-pzls/lperp/04.jpeg",
+                "file": "answers/straightedge-only-pzls/031.lperp/04.jpeg",
                 "star": "04"
             },
             {
-                "file": "answers/straightedge-only-pzls/lperp/A04.png",
+                "file": "answers/straightedge-only-pzls/031.lperp/A04.png",
                 "star": "A04"
             }
         ]
@@ -6931,23 +7174,23 @@
         "tools": "straightedge",
         "title": "A05.三边过点三角形",
         "targetSteps": "7E",
-        "diagram": "diagrams/straightedge-only-pzls/tri-on3v3pt.png",
-        "file": "levels/straightedge-only-pzls/tri-on3v3pt.gmt",
+        "diagram": "diagrams/straightedge-only-pzls/032.tri-on3v3pt.png",
+        "file": "levels/straightedge-only-pzls/032.tri-on3v3pt.gmt",
         "keywords": [
             "Straightedge-only_Pzls",
             "三角形"
         ],
         "solutions": [
             {
-                "file": "answers/straightedge-only-pzls/tri-on3v3pt/A05.png",
+                "file": "answers/straightedge-only-pzls/032.tri-on3v3pt/A05.png",
                 "star": "A05"
             },
             {
-                "file": "answers/straightedge-only-pzls/tri-on3v3pt/05.jpeg",
+                "file": "answers/straightedge-only-pzls/032.tri-on3v3pt/05.jpeg",
                 "star": "05"
             },
             {
-                "file": "answers/straightedge-only-pzls/tri-on3v3pt/A05.png",
+                "file": "answers/straightedge-only-pzls/032.tri-on3v3pt/A05.png",
                 "star": "A05"
             }
         ]
@@ -6958,8 +7201,8 @@
         "tools": "straightedge",
         "title": "A06.三线上外切三角形",
         "targetSteps": "14E",
-        "diagram": "diagrams/straightedge-only-pzls/tri-cscr-3vonl.png",
-        "file": "levels/straightedge-only-pzls/tri-cscr-3vonl.gmt",
+        "diagram": "diagrams/straightedge-only-pzls/033.tri-cscr-3vonl.png",
+        "file": "levels/straightedge-only-pzls/033.tri-cscr-3vonl.gmt",
         "keywords": [
             "Straightedge-only_Pzls",
             "三角形",
@@ -6967,15 +7210,15 @@
         ],
         "solutions": [
             {
-                "file": "answers/straightedge-only-pzls/tri-cscr-3vonl/A06.png",
+                "file": "answers/straightedge-only-pzls/033.tri-cscr-3vonl/A06.png",
                 "star": "A06"
             },
             {
-                "file": "answers/straightedge-only-pzls/tri-cscr-3vonl/06.jpeg",
+                "file": "answers/straightedge-only-pzls/033.tri-cscr-3vonl/06.jpeg",
                 "star": "06"
             },
             {
-                "file": "answers/straightedge-only-pzls/tri-cscr-3vonl/A06.png",
+                "file": "answers/straightedge-only-pzls/033.tri-cscr-3vonl/A06.png",
                 "star": "A06"
             }
         ]
@@ -6986,35 +7229,35 @@
         "tools": "straightedge",
         "title": "3单位长",
         "targetSteps": "16E",
-        "diagram": "diagrams/straightedge-only-pzls/TripleRadius.jpg",
-        "file": "levels/straightedge-only-pzls/TripleRadius.gmt",
+        "diagram": "diagrams/straightedge-only-pzls/034.TripleRadius.jpg",
+        "file": "levels/straightedge-only-pzls/034.TripleRadius.gmt",
         "keywords": [
             "Straightedge-only_Pzls",
             "多解"
         ],
         "solutions": [
             {
-                "file": "answers/straightedge-only-pzls/TripleRadius/解法1视角1_16E.jpg",
+                "file": "answers/straightedge-only-pzls/034.TripleRadius/解法1视角1_16E.jpg",
                 "star": "16E"
             },
             {
-                "file": "answers/straightedge-only-pzls/TripleRadius/解法1视角2_16E.jpg",
+                "file": "answers/straightedge-only-pzls/034.TripleRadius/解法1视角2_16E.jpg",
                 "star": "16E"
             },
             {
-                "file": "answers/straightedge-only-pzls/TripleRadius/解法2视角1_16E.jpg",
+                "file": "answers/straightedge-only-pzls/034.TripleRadius/解法2视角1_16E.jpg",
                 "star": "16E"
             },
             {
-                "file": "answers/straightedge-only-pzls/TripleRadius/解法2视角2_16E.jpg",
+                "file": "answers/straightedge-only-pzls/034.TripleRadius/解法2视角2_16E.jpg",
                 "star": "16E"
             },
             {
-                "file": "answers/straightedge-only-pzls/TripleRadius/2V.jpg",
+                "file": "answers/straightedge-only-pzls/034.TripleRadius/2V.jpg",
                 "star": "2V"
             },
             {
-                "file": "answers/straightedge-only-pzls/TripleRadius/03.jpeg",
+                "file": "answers/straightedge-only-pzls/034.TripleRadius/03.jpeg",
                 "star": "03"
             }
         ]
@@ -7025,18 +7268,18 @@
         "tools": "straightedge",
         "title": "重叠大小地图",
         "targetSteps": "10E",
-        "diagram": "diagrams/straightedge-only-pzls/OverlapMaps.png",
-        "file": "levels/straightedge-only-pzls/OverlapMaps.gmt",
+        "diagram": "diagrams/straightedge-only-pzls/035.OverlapMaps.png",
+        "file": "levels/straightedge-only-pzls/035.OverlapMaps.gmt",
         "keywords": [
             "Straightedge-only_Pzls"
         ],
         "solutions": [
             {
-                "file": "answers/straightedge-only-pzls/OverlapMaps/10E.png",
+                "file": "answers/straightedge-only-pzls/035.OverlapMaps/10E.png",
                 "star": "10E"
             },
             {
-                "file": "answers/straightedge-only-pzls/OverlapMaps/10.jpg",
+                "file": "answers/straightedge-only-pzls/035.OverlapMaps/10.jpg",
                 "star": "10"
             }
         ]
@@ -7047,250 +7290,22 @@
         "tools": "straightedge",
         "title": "过点共点内接四边形",
         "targetSteps": "9E",
-        "diagram": "diagrams/straightedge-only-pzls/InscQuadConcurrent.png",
-        "file": "levels/straightedge-only-pzls/InscQuadConcurrent.gmt",
+        "diagram": "diagrams/straightedge-only-pzls/036.InscQuadConcurrent.png",
+        "file": "levels/straightedge-only-pzls/036.InscQuadConcurrent.gmt",
         "keywords": [
             "Straightedge-only_Pzls",
             "四边形"
         ],
         "solutions": [
             {
-                "file": "answers/straightedge-only-pzls/InscQuadConcurrent/9E.png",
+                "file": "answers/straightedge-only-pzls/036.InscQuadConcurrent/9E.png",
                 "star": "9E"
             },
             {
-                "file": "answers/straightedge-only-pzls/InscQuadConcurrent/09.jpg",
+                "file": "answers/straightedge-only-pzls/036.InscQuadConcurrent/09.jpg",
                 "star": "09"
             }
         ]
-    },
-    {
-        "id": "lmidpoint",
-        "pack": "straightedge-only-pzls",
-        "tools": "straightedge",
-        "title": "01.平行作中点(9.5)",
-        "diagram": "diagrams/straightedge-only-pzls/lmidpoint.png",
-        "file": "levels/straightedge-only-pzls/lmidpoint.gmt",
-        "keywords": [
-            "Straightedge-only_Pzls",
-            "中点",
-            "平行线"
-        ],
-        "solutions": [
-            {
-                "file": "answers/straightedge-only-pzls/lmidpoint/05_6E.png",
-                "star": "6E"
-            }
-        ],
-        "targetSteps": "6E"
-    },
-    {
-        "id": "mparallel",
-        "pack": "straightedge-only-pzls",
-        "tools": "straightedge",
-        "title": "02.中点作平行",
-        "diagram": "diagrams/straightedge-only-pzls/mparallel.png",
-        "file": "levels/straightedge-only-pzls/mparallel.gmt",
-        "keywords": [
-            "Straightedge-only_Pzls",
-            "中点",
-            "平行线"
-        ],
-        "solutions": [
-            {
-                "file": "answers/straightedge-only-pzls/mparallel/05_6E.png",
-                "star": "6E"
-            }
-        ],
-        "targetSteps": "6E"
-    },
-    {
-        "id": "3dparallel",
-        "pack": "straightedge-only-pzls",
-        "tools": "straightedge",
-        "title": "03.平行作平行(11.5)",
-        "diagram": "diagrams/straightedge-only-pzls/3dparallel.png",
-        "file": "levels/straightedge-only-pzls/3dparallel.gmt",
-        "keywords": [
-            "Straightedge-only_Pzls",
-            "平行线"
-        ],
-        "solutions": [
-            {
-                "file": "answers/straightedge-only-pzls/3dparallel/05_6E.png",
-                "star": "6E"
-            }
-        ],
-        "targetSteps": "6E"
-    },
-    {
-        "id": "l-doubleseg",
-        "pack": "straightedge-only-pzls",
-        "tools": "straightedge",
-        "title": "04.平行作倍长",
-        "diagram": "diagrams/straightedge-only-pzls/l-doubleseg.png",
-        "file": "levels/straightedge-only-pzls/l-doubleseg.gmt",
-        "keywords": [
-            "Straightedge-only_Pzls",
-            "平行线"
-        ],
-        "solutions": [
-            {
-                "file": "answers/straightedge-only-pzls/l-doubleseg/05_6E.png",
-                "star": "6E"
-            }
-        ],
-        "targetSteps": "6E"
-    },
-    {
-        "id": "mmirror",
-        "pack": "straightedge-only-pzls",
-        "tools": "straightedge",
-        "title": "05.中点作对称",
-        "diagram": "diagrams/straightedge-only-pzls/mmirror.png",
-        "file": "levels/straightedge-only-pzls/mmirror.gmt",
-        "keywords": [
-            "Straightedge-only_Pzls",
-            "中点",
-            "对称"
-        ],
-        "solutions": [
-            {
-                "file": "answers/straightedge-only-pzls/mmirror/05_6E.png",
-                "star": "6E"
-            }
-        ],
-        "targetSteps": "6E"
-    },
-    {
-        "id": "perp-mirror",
-        "pack": "straightedge-only-pzls",
-        "tools": "straightedge",
-        "title": "06.垂线作对称(13.8)",
-        "diagram": "diagrams/straightedge-only-pzls/perp-mirror.png",
-        "file": "levels/straightedge-only-pzls/perp-mirror.gmt",
-        "keywords": [
-            "Straightedge-only_Pzls",
-            "垂线",
-            "对称"
-        ],
-        "solutions": [
-            {
-                "file": "answers/straightedge-only-pzls/perp-mirror/05_6E.png",
-                "star": "6E"
-            }
-        ],
-        "targetSteps": "6E"
-    },
-    {
-        "id": "abisect-perp",
-        "pack": "straightedge-only-pzls",
-        "tools": "straightedge",
-        "title": "07.角平分线作垂",
-        "diagram": "diagrams/straightedge-only-pzls/abisect-perp.png",
-        "file": "levels/straightedge-only-pzls/abisect-perp.gmt",
-        "keywords": [
-            "Straightedge-only_Pzls",
-            "角平分线"
-        ],
-        "solutions": [
-            {
-                "file": "answers/straightedge-only-pzls/abisect-perp/05_6E.png",
-                "star": "6E"
-            }
-        ],
-        "targetSteps": "6E"
-    },
-    {
-        "id": "ldropperp",
-        "pack": "straightedge-only-pzls",
-        "tools": "straightedge",
-        "title": "08.任意点作径垂(9.4改)",
-        "diagram": "diagrams/straightedge-only-pzls/ldropperp.png",
-        "file": "levels/straightedge-only-pzls/ldropperp.gmt",
-        "keywords": [
-            "Straightedge-only_Pzls"
-        ],
-        "solutions": [
-            {
-                "file": "answers/straightedge-only-pzls/ldropperp/05_6E.png",
-                "star": "6E"
-            }
-        ],
-        "targetSteps": "6E"
-    },
-    {
-        "id": "drop-perp-c",
-        "pack": "straightedge-only-pzls",
-        "tools": "straightedge",
-        "title": "09.圆上点作径垂",
-        "diagram": "diagrams/straightedge-only-pzls/drop-perp-c.png",
-        "file": "levels/straightedge-only-pzls/drop-perp-c.gmt",
-        "keywords": [
-            "Straightedge-only_Pzls"
-        ],
-        "solutions": [
-            {
-                "file": "answers/straightedge-only-pzls/drop-perp-c/05_6E.png",
-                "star": "6E"
-            }
-        ],
-        "targetSteps": "6E"
-    },
-    {
-        "id": "drop-perp-d",
-        "pack": "straightedge-only-pzls",
-        "tools": "straightedge",
-        "title": "10.径上点作径垂",
-        "diagram": "diagrams/straightedge-only-pzls/drop-perp-d.png",
-        "file": "levels/straightedge-only-pzls/drop-perp-d.gmt",
-        "keywords": [
-            "Straightedge-only_Pzls"
-        ],
-        "solutions": [
-            {
-                "file": "answers/straightedge-only-pzls/drop-perp-d/05_6E.png",
-                "star": "6E"
-            }
-        ],
-        "targetSteps": "6E"
-    },
-    {
-        "id": "tangent1",
-        "pack": "straightedge-only-pzls",
-        "tools": "straightedge",
-        "title": "11.圆上点作切(2.8改)",
-        "diagram": "diagrams/straightedge-only-pzls/tangent1.png",
-        "file": "levels/straightedge-only-pzls/tangent1.gmt",
-        "keywords": [
-            "Straightedge-only_Pzls"
-        ],
-        "solutions": [
-            {
-                "file": "answers/straightedge-only-pzls/tangent1/05_6E.png",
-                "star": "6E"
-            }
-        ],
-        "targetSteps": "6E"
-    },
-    {
-        "id": "Tangent2OnlyLine",
-        "pack": "straightedge-only-pzls",
-        "tools": "straightedge",
-        "title": "12.圆外点作切(15.5)",
-        "diagram": "diagrams/straightedge-only-pzls/Tangent2OnlyLine.png",
-        "file": "levels/straightedge-only-pzls/Tangent2OnlyLine.gmt",
-        "keywords": [
-            "Straightedge-only_Pzls",
-            "多解"
-        ],
-        "solutions": [
-            {
-                "file": "answers/straightedge-only-pzls/Tangent2OnlyLine/05_6E.png",
-                "star": "6E"
-            }
-        ],
-        "targetSteps": "6E"
     },
     {
         "id": "xewpc1",

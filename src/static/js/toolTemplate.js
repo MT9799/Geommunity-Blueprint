@@ -13,6 +13,58 @@ draw2Points +
 clear +
 */
 
+/**
+ * 过某个点的所有线 / 圆 过程函数
+ * 三条线交于一点时，那个点只有两个「基底」，但过它的图形有三个 ——
+ * 所以按几何位置找（点在线上 / 点在圆上），而不是只看它的基底
+ * @param {Object} point 点对象
+ * @returns {Object[]} 过这个点的线 / 圆
+ */
+function figuresThroughPoint(point) {
+    const coordinate = point.getCoordinate?.();
+    if (!coordinate) return [];
+    const [px, py] = coordinate;
+    const eps = 1e-6;
+    const hits = [];
+    geometryManager.getAllByOrder().forEach(item => {
+        const type = item.getType();
+        if (type !== 'line' && type !== 'circle') return;
+        if (item.getVisible && !item.getVisible()) return;
+        if (item.getValid && !item.getValid()) return;
+        const coord = item.getCoordinate?.();
+        if (!coord || !coord[0] || !coord[1]) return;
+        if (type === 'line') {
+            const flag = ToolsFunction.pointToLineDistance({x: coord[0][0], y: coord[0][1]}, {x: coord[1][0], y: coord[1][1]}, {x: px, y: py});
+            if (flag.flag && Math.abs(flag.value) < eps) hits.push(item);
+        }else{
+            const radius = Math.hypot(coord[1][0] - coord[0][0], coord[1][1] - coord[0][1]);
+            if (Math.abs(Math.hypot(px - coord[0][0], py - coord[0][1]) - radius) < eps) hits.push(item);
+        }
+    });
+    return hits;
+}
+
+/**
+ * 把「经过光标下这个点的全部图形」挂进工具缓存（只为高亮） 过程函数
+ * 按住拖动到某个点上、且有多于一个图形过这个点时，把这些图形一起点亮，
+ * 这样一眼能看出这个点是怎么来的；所有作图工具共用这一份
+ * @param {string} toolName 工具名
+ * @param {string} pointId 光标下的点（不在点上时只清掉上一次的高亮引用）
+ */
+function highlightFiguresThroughPoint(toolName, pointId) {
+    Object.keys(geometryManager.choice[toolName] || {})
+        .filter(key => key.startsWith('through'))
+        .forEach(key => geometryManager.deleteToolKey(toolName, key));
+    const point = pointId ? geometryManager.get(pointId) : null;
+    if (!point || (point.getType && point.getType() !== 'point')) return;
+    const hits = figuresThroughPoint(point);
+    // 只有一个图形过它时没什么可看的，不点亮
+    if (hits.length < 2) return;
+    hits.forEach((item, index) => {
+        geometryManager.addToolObject(toolName, `through${index + 1}`, "quote", item.getId());
+    });
+}
+
 class PointBaseToolTemplate {
     /**
      * 初始构造器
@@ -118,7 +170,7 @@ class PointBaseToolTemplate {
                 this.status++;
                 this.status++;
             }else if (this.status + 1 === this.maxStatus) {
-                this.createLastPoint();
+                this.createLastPoint(x, y);
                 this.status++;
             }
             if (this.status === this.maxStatus) this.create();
@@ -269,7 +321,7 @@ class PointBaseToolTemplate {
                 
                 value = ToolsFunction.onlineValueOf(item, p1, p2, p3);
                 if (!value) return;
-                const coord = ToolsFunction.scalePoint(p1, p2, value);
+                const coord = ToolsFunction.onlineCoordinateOf(p1, p2, p3);
                 goalX = coord.x;
                 goalY = coord.y;
                 
@@ -316,6 +368,9 @@ class PointBaseToolTemplate {
      */
     movePoint(x, y) {
         const [pointId] = geometryManager.near([x, y], ["point"]);
+        // 光标压在一个已标出的交点上：经过它的每条线 / 每个圆都一起高亮
+        // （按住拖动时每次移动都重算一次，离开交点自动撤掉）
+        if (typeof highlightFiguresThroughPoint === 'function') highlightFiguresThroughPoint(this.toolName, pointId);
         if (pointId) {
             // 已经点过的点：默认跳过（不把同一个点引用两次）；
             // 三点圆规的圆心（第三个点）允许重复，那时照常切成引用
@@ -463,7 +518,7 @@ class PointBaseToolTemplate {
                     
                     value = ToolsFunction.onlineValueOf(item, p1, p2, p3);
                     if (!value) return;
-                    const coord = ToolsFunction.scalePoint(p1, p2, value);
+                    const coord = ToolsFunction.onlineCoordinateOf(p1, p2, p3);
                     goalX = coord.x;
                     goalY = coord.y;
                     
@@ -523,9 +578,12 @@ class PointBaseToolTemplate {
     /**
      * 创建最后点
      */
-    createLastPoint() {
-        const [x, y] = this.startCoord;
-        geometryManager.addToolObject(this.toolName, `point${this.status + 1}`, "create", [x, y]);
+    createLastPoint(x, y) {
+        // 用当前指针位置建点，而不是按下位置（startCoord）：
+        // 拖动过程中 movePoint 里有若干 early-return（光标下是缓存里已有点、附近两图形没有有效交点等），
+        // 用按下位置建的点就会留在原地不动 —— 看上去「即将创建的点」离光标很远
+        const coord = Number.isFinite(x) && Number.isFinite(y) ? [x, y] : this.startCoord;
+        geometryManager.addToolObject(this.toolName, `point${this.status + 1}`, "create", coord);
     }
     
     /**
@@ -659,7 +717,7 @@ class PointBaseDialogToolTemplate {
                 this.status++;
                 this.status++;
             }else if (this.status + 1 === this.maxStatus) {
-                this.createLastPoint();
+                this.createLastPoint(x, y);
                 this.status++;
             }
             this.cacheFlag = true;
@@ -685,6 +743,21 @@ class PointBaseDialogToolTemplate {
         else if (this.type === "string") {
             dialogTitle = t('board.inputString');
         }
+        // 数字型输入（定值角）：空着或不是数字时「确定」按不动，与「带标签给定」的输入框一样
+        const options = {};
+        if (this.type === "number") {
+            options.valid = text => String(text).trim() !== '' && Number.isFinite(Number(String(text).trim()));
+        }
+        // 点「取消」就当作废这次作图：清掉工具缓存（含刚临时创建的点）与半成品状态，
+        // 否则画布上还留着那两个点，工具也还停在「已取点」的状态
+        options.onCancel = () => {
+            geometryManager.deleteTool(this.toolName);
+            this.status = 0;
+            this.cacheFlag = false;
+            if (typeof drawContent === 'function') drawContent();
+            if (typeof refreshToolFloating === 'function') refreshToolFloating();
+            if (typeof refreshStorageButton === 'function') refreshStorageButton();
+        };
         boardInput(dialogTitle, "", "", value => {
             let newValue = value;
             if (this.type === "number") {
@@ -694,6 +767,9 @@ class PointBaseDialogToolTemplate {
             this.create(newValue);
             this.status = 0;
             geometryManager.loadTool(this.toolName);
+            // 目标图形已经接线完成，这里必须立刻重绘：数字框是异步的，
+            // 点完两个点时那次 drawContent 早就跑完了，不补一次要等下次操作才看得到图形
+            if (typeof drawContent === 'function') drawContent();
             // 触发存储事件
             const event = new CustomEvent("storage", {
                 detail: {
@@ -701,7 +777,7 @@ class PointBaseDialogToolTemplate {
                 },
             });
             window.dispatchEvent(event);
-        });
+        }, options);
     }
     
     /**
@@ -827,7 +903,7 @@ class PointBaseDialogToolTemplate {
                 
                 value = ToolsFunction.onlineValueOf(item, p1, p2, p3);
                 if (!value) return;
-                const coord = ToolsFunction.scalePoint(p1, p2, value);
+                const coord = ToolsFunction.onlineCoordinateOf(p1, p2, p3);
                 goalX = coord.x;
                 goalY = coord.y;
                 
@@ -877,6 +953,9 @@ class PointBaseDialogToolTemplate {
      */
     movePoint(x, y) {
         const [pointId] = geometryManager.near([x, y], ["point"]);
+        // 光标压在一个已标出的交点上：经过它的每条线 / 每个圆都一起高亮
+        // （按住拖动时每次移动都重算一次，离开交点自动撤掉）
+        if (typeof highlightFiguresThroughPoint === 'function') highlightFiguresThroughPoint(this.toolName, pointId);
         if (pointId) {
             // 已经点过的点：默认跳过（不把同一个点引用两次）；
             // 三点圆规的圆心（第三个点）允许重复，那时照常切成引用
@@ -1023,7 +1102,7 @@ class PointBaseDialogToolTemplate {
                     
                     value = ToolsFunction.onlineValueOf(item, p1, p2, p3);
                     if (!value) return;
-                    const coord = ToolsFunction.scalePoint(p1, p2, value);
+                    const coord = ToolsFunction.onlineCoordinateOf(p1, p2, p3);
                     goalX = coord.x;
                     goalY = coord.y;
                     
@@ -1062,16 +1141,27 @@ class PointBaseDialogToolTemplate {
     }
     
     /**
+     * 定义点的排列顺序 过程函数
+     * 默认按取点顺序；定值角覆写成 [顶点, 边上点]（它取点是先边上点、后顶点，
+     * 但定义里第一个点必须是顶点 —— gmt 的 FixAngle[A,B,x] 里 A 是顶点）
+     * @returns {Object[]}
+     */
+    definePointList() {
+        const pointList = [];
+        for (let i = 1; i <= this.maxStatus; i++) {
+            pointList.push(geometryManager.getToolKey(this.toolName, `point${i}`));
+        }
+        return pointList;
+    }
+
+    /**
      * 配置定义点
      * @param {any} value 
      */
     setDefine(value) {
         if (this.status < this.maxStatus) return;
         
-        const pointList = [];
-        for (let i = 1; i <= this.maxStatus; i++) {
-            pointList.push(geometryManager.getToolKey(this.toolName, `point${i}`));
-        }
+        const pointList = this.definePointList();
         const goal = geometryManager.getToolKey(this.toolName, this.goal)
         if (goal.getType() === "point") {
             goal.modifyBase(this.define, pointList, value);
@@ -1083,9 +1173,12 @@ class PointBaseDialogToolTemplate {
     /**
      * 创建最后点
      */
-    createLastPoint() {
-        const [x, y] = this.startCoord;
-        geometryManager.addToolObject(this.toolName, `point${this.status + 1}`, "create", [x, y]);
+    createLastPoint(x, y) {
+        // 用当前指针位置建点，而不是按下位置（startCoord）：
+        // 拖动过程中 movePoint 里有若干 early-return（光标下是缓存里已有点、附近两图形没有有效交点等），
+        // 用按下位置建的点就会留在原地不动 —— 看上去「即将创建的点」离光标很远
+        const coord = Number.isFinite(x) && Number.isFinite(y) ? [x, y] : this.startCoord;
+        geometryManager.addToolObject(this.toolName, `point${this.status + 1}`, "create", coord);
     }
     
     /**
@@ -1217,7 +1310,7 @@ class ExceptPointBaseToolTemplate {
                 this.status++;
                 this.status++;
             }else if (this.status + 1 === this.maxStatus) {
-                this.createLastPoint();
+                this.createLastPoint(x, y);
                 this.status++;
             }
             this.cacheFlag = true;
@@ -1269,7 +1362,7 @@ class ExceptPointBaseToolTemplate {
                 
                 const value = ToolsFunction.onlineValueOf(item, p1, p2, p3);
                 if (!value) return;
-                const coord = ToolsFunction.scalePoint(p1, p2, value);
+                const coord = ToolsFunction.onlineCoordinateOf(p1, p2, p3);
                 goalX = coord.x;
                 goalY = coord.y;
                 
@@ -1309,9 +1402,10 @@ class ExceptPointBaseToolTemplate {
     /**
      * 创建最后标记点
      */
-    createLastPoint() {
-        const [x, y] = this.startCoord;
-        geometryManager.addToolObject(this.toolName, `choicePoint${this.maxStatus}`, 'create', [x, y]);
+    createLastPoint(x, y) {
+        // 同上：用当前指针位置，避免 movePoint 提前返回时留在按下处
+        const coord = Number.isFinite(x) && Number.isFinite(y) ? [x, y] : this.startCoord;
+        geometryManager.addToolObject(this.toolName, `choicePoint${this.maxStatus}`, 'create', coord);
     }
     
     /**
@@ -1447,9 +1541,11 @@ class MixPointBaseToolTemplate {
     draw(x, y) {
         if (!this.cacheFlag) {
             if (this.status === 'none') {
-                this.draw2Points();
+                // draw2Points 返回 false 表示「这一下只是选中了一条线，点还没造」：
+                // 这时不置 cacheFlag，等下一帧（指针真的动了）再造点
+                if (this.draw2Points() === false) return;
             }else if (this.status === 'point+' || this.status === '+point') {
-                this.createLastPoint();
+                this.createLastPoint(x, y);
             }
             this.cacheFlag = true;
         }
@@ -1651,7 +1747,7 @@ class MixPointBaseToolTemplate {
                 
                 value = ToolsFunction.onlineValueOf(item, p1, p2, p3);
                 if (!value) return;
-                const coord = ToolsFunction.scalePoint(p1, p2, value);
+                const coord = ToolsFunction.onlineCoordinateOf(p1, p2, p3);
                 goalX = coord.x;
                 goalY = coord.y;
                 
@@ -1703,16 +1799,7 @@ class MixPointBaseToolTemplate {
      * @param {string} pointId 光标下的点（不是交点时只清掉这组高亮引用）
      */
     highlightThroughFigures(pointId) {
-        Object.keys(geometryManager.choice[this.toolName] || {})
-            .filter(key => key.startsWith('through'))
-            .forEach(key => geometryManager.deleteToolKey(this.toolName, key));
-        const point = pointId ? geometryManager.get(pointId) : null;
-        const base = point && typeof point.getBase === 'function' ? point.getBase() : null;
-        if (!base || base.type !== 'intersection' || !Array.isArray(base.bases)) return;
-        base.bases.forEach((item, index) => {
-            if (!item) return;
-            geometryManager.addToolObject(this.toolName, `through${index + 1}`, "quote", item.getId());
-        });
+        if (typeof highlightFiguresThroughPoint === 'function') highlightFiguresThroughPoint(this.toolName, pointId);
     }
 
     /**
@@ -1732,6 +1819,9 @@ class MixPointBaseToolTemplate {
         let goalX = x, goalY = y;
         
         if (this.status === '+point') {
+            // 点还没造出来（刚选中那条线、指针还没动开）：先别作出目标图形，
+            // 否则会凭空冒出一条过按下点的垂线 / 平行线
+            if (!geometryManager.getToolKey(this.toolName, 'point')) return;
             // 目标点
             this.create();
             if (pointId) {
@@ -1874,7 +1964,7 @@ class MixPointBaseToolTemplate {
                         
                         value = ToolsFunction.onlineValueOf(item, p1, p2, p3);
                         if (!value) return;
-                        const coord = ToolsFunction.scalePoint(p1, p2, value);
+                        const coord = ToolsFunction.onlineCoordinateOf(p1, p2, p3);
                         goalX = coord.x;
                         goalY = coord.y;
                         
@@ -1930,7 +2020,7 @@ class MixPointBaseToolTemplate {
                     
                     value = ToolsFunction.onlineValueOf(item, p1, p2, p3);
                     if (!value) return;
-                    const coord = ToolsFunction.scalePoint(p1, p2, value);
+                    const coord = ToolsFunction.onlineCoordinateOf(p1, p2, p3);
                     goalX = coord.x;
                     goalY = coord.y;
                     
@@ -1972,12 +2062,13 @@ class MixPointBaseToolTemplate {
     /**
      * 创建第2点
      */
-    createLastPoint() {
-        const [x, y] = this.startCoord;
+    createLastPoint(x, y) {
+        // 同上：用当前指针位置，避免 movePoint 提前返回时留在按下处
+        const coord = Number.isFinite(x) && Number.isFinite(y) ? [x, y] : this.startCoord;
         if (this.status === "point+") {
-            geometryManager.addToolObject(this.toolName, "point2", "create", [x, y]);
+            geometryManager.addToolObject(this.toolName, "point2", "create", coord);
         }else if (this.status === "+point") {
-            geometryManager.addToolObject(this.toolName, "point", "create", [x, y]);
+            geometryManager.addToolObject(this.toolName, "point", "create", coord);
         }
     }
     
@@ -1986,7 +2077,14 @@ class MixPointBaseToolTemplate {
      */
     draw2Points() {
         const [x, y] = this.startCoord;
+        const before = this.status;
         this.clickPoint(x, y);
+        // 第一次按下就落在「垂线 / 平行线要选的那条线」上：这一下只当作「选中这条线」，
+        // 不在按下位置立刻造点。否则按下（哪怕只是想点一下）的瞬间目标图形就被 create() 出来，
+        // 会冒出一条过按下点的垂线预览，而且跟「指针移动过才给预览」的规则相矛盾。
+        // 这里返回 false：draw() 保留 cacheFlag = false，下一帧（指针真的移动过）
+        // 由 createLastPoint(x, y) 在光标处造点，再作出目标图形
+        if (before === "none" && this.status === "+point") return false;
         if (this.status === "point+") {
             geometryManager.addToolObject(this.toolName, "point2", "create", [x, y]);
         }else if (this.status === "+point") {

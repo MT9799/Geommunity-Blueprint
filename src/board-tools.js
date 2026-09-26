@@ -570,7 +570,13 @@
     sessionStorage.setItem('solverElements', JSON.stringify({elements: elements, lists: lists}));
     // from：求解器的「返回」据此回到本页并还原图形（关卡游玩 / 试玩由 savePlayBackup 存备份）
     const from = typeof savePlayBackup === 'function' ? savePlayBackup() : '';
-    location.href = './board.html?mode=solver&restore=1' + (from ? '&from=' + encodeURIComponent(from) : '');
+    // 本关限定了工具（单尺 / 单规）时，把对应的求解器模式一起带过去：
+    // 求解器面板的「可用工具」默认就选到同一种（2 尺规 / 1 单尺 / 0 单规）
+    const levelTool = typeof window.levelTools === 'string' ? window.levelTools : '';
+    const solverTool = levelTool === 'straightedge' ? '1' : levelTool === 'compass' ? '0' : '';
+    location.href = './board.html?mode=solver&restore=1'
+      + (solverTool ? '&solverTool=' + solverTool : '')
+      + (from ? '&from=' + encodeURIComponent(from) : '');
   };
   /**
    * 能否打开求解器 过程函数
@@ -716,8 +722,9 @@
    * @param {string} message 说明文字
    * @param {string} value 初始值
    * @param {(value: string) => void} onSubmit 点「确定」后执行
+   * @param {{valid?: (value: string) => boolean, onCancel?: () => void}} [options] valid 返回 false 时「确定」按不动（如非数字）；onCancel 在点「取消」/ 点遮罩关窗时执行
    */
-  const inputDialog = (title, message, value, onSubmit) => {
+  const inputDialog = (title, message, value, onSubmit, options = {}) => {
     const mask = document.createElement('div');
     mask.className = 'board-dialog-mask';
     mask.innerHTML = '<div class="board-dialog board-dialog-confirm"><strong></strong><p class="board-dialog-hint"></p><input class="board-dialog-input" type="text" spellcheck="false"><div class="board-dialog-actions"></div></div>';
@@ -726,7 +733,13 @@
     const input = mask.querySelector('.board-dialog-input');
     input.value = value || '';
     const actions = mask.querySelector('.board-dialog-actions');
-    const close = () => mask.remove();
+    // 记下有没有点过「确定」：取消（取消按钮 / 点遮罩关窗）时通知调用方收尾
+    // （例如定值角输角度时点取消，要把这次作图作废）
+    let submitted = false;
+    const close = () => {
+      mask.remove();
+      if (!submitted && typeof options.onCancel === 'function') options.onCancel();
+    };
     const cancelButton = document.createElement('button');
     cancelButton.type = 'button';
     cancelButton.textContent = t('common.cancel');
@@ -734,7 +747,21 @@
     const confirmButton = document.createElement('button');
     confirmButton.type = 'button';
     confirmButton.textContent = t('common.confirm');
-    confirmButton.addEventListener('click', () => { const text = input.value; close(); onSubmit(text); });
+    // 传了 valid 就按它实时开关「确定」：内容非法（空 / 非数字）时按钮点不动
+    const valid = typeof options.valid === 'function' ? options.valid : null;
+    const refreshConfirm = () => {
+      if (!valid) return;
+      confirmButton.disabled = !valid(input.value);
+    };
+    confirmButton.addEventListener('click', () => {
+      if (valid && !valid(input.value)) return;
+      submitted = true;
+      const text = input.value;
+      close();
+      onSubmit(text);
+    });
+    if (valid) input.addEventListener('input', refreshConfirm);
+    refreshConfirm();
     actions.appendChild(cancelButton);
     actions.appendChild(confirmButton);
     // 输入框可能在画布 mousedown 里弹出，正在进行的这次点击会落到遮罩上把窗口关掉，
@@ -1327,13 +1354,11 @@
    */
   const buildSolverRequest = () => {
     const goalIds = geometryElementLists.result || new Set();
-    // 已知条件只取「给定」三类标记（给定 / 带标签给定 / 可移动点）。
-    // 打开求解器时，关卡里隐藏 / 预绘制的图形也会被整份带过来并显示出来（例如某关隐藏的中点 D），
-    // 它们既没标给定也不是目标 —— 当条件用就会搜出「用了题面里没有的点」的假解（4E 那种）。
+    // 已知条件只取「给定」栏（initial）。打开求解器时，关卡里隐藏 / 预绘制的图形，
+    // 以及可移动点一类没被标成给定的对象都会被整份带过来并显示出来，
+    // 当条件用就会搜出「用了题面里没有的点」的假解（4E 那种）。
     const givenIds = new Set();
-    ['initial', 'named', 'movepoints'].forEach(key => {
-      (geometryElementLists[key] || new Set()).forEach(id => givenIds.add(id));
-    });
+    (geometryElementLists.initial || new Set()).forEach(id => givenIds.add(id));
     const useGivenMarks = givenIds.size > 0;
     // pointIds / lineIds / circleIds 与上面三个坐标数组一一对应：
     // 求解器返回的「构造计划」靠它们把已知点、已知元素映射回画布对象，于是拖动图形时能重算解法
@@ -1406,6 +1431,9 @@
 
   // 最近一次求解发出的请求：构造计划靠它把已知点 / 已知元素映射回画布对象
   let solverLastRequest = null;
+  // 点「开始求解」那一刻的图形状态与指纹：切换解法时把不是这个解法画出来的图形复位回去
+  let solverCanvasSnapshot = null;
+  let solverCanvasSignature = '';
 
   /**
    * 把某个解画到第几步 过程函数
@@ -1463,6 +1491,24 @@
     drawContent();
   };
 
+  /** 画布几何的指纹 过程函数（坐标 + 可见性，用来判断画布有没有被改过） */
+  const solverCanvasFingerprint = () => geometryManager.getAllByOrder().map(item => {
+    const coordinate = item.getCoordinate?.();
+    return item.getId() + (item.getVisible?.() ? '1' : '0') + (coordinate ? JSON.stringify(coordinate) : '');
+  }).join('|');
+
+  /**
+   * 把画布复位到「开始求解那一刻」 过程函数
+   * 求解期间可能拖过点 / 画过东西，切换解法时这些不属于解法的改动要收回去 ——
+   * 只有指纹变了才重建（重建会清掉选中与工具缓存，代价不小）
+   */
+  const resetSolverCanvas = () => {
+    if (!solverCanvasSnapshot || typeof loadStorageSnapshot !== 'function') return;
+    if (solverCanvasFingerprint() === solverCanvasSignature) return;
+    loadStorageSnapshot(solverCanvasSnapshot);
+    solverCanvasSignature = solverCanvasFingerprint();
+  };
+
   /** 清除画布上的解法覆盖层 过程函数 */
   const clearSolverSolution = () => {
     solverSolutionPlan = null;
@@ -1492,6 +1538,26 @@
   const sheetButtons = new Map();
 
   /**
+   * 收起上拉栏 过程函数
+   * 面板是「半展开 / 被拖到任意高度」时，高度来自 CSS 或 inline 值：
+   * 直接摘掉会让它先弹回自然高度再往下滑（看着像先跳一下），所以先把当前高度冻成固定值，
+   * 等滑出动画播完再清掉
+   * @param {Object} sheet 上拉栏
+   */
+  const collapseSheet = sheet => {
+    const fromHeight = sheet.classList.contains('peek') || sheet.style.height;
+    if (fromHeight) sheet.style.height = `${sheet.offsetHeight}px`;
+    sheet.classList.remove('open', 'peek');
+    if (!fromHeight) {
+      sheet.style.height = '';
+      return;
+    }
+    setTimeout(() => {
+      if (!sheet.classList.contains('open') && !sheet.classList.contains('peek')) sheet.style.height = '';
+    }, 280);
+  };
+
+  /**
    * 把设置面板包进底部上拉栏 过程函数
    * 画布上只留一个圆形按钮（见 addSideButton），点开才把面板从底部拉起来
    * @param {Object} panel 面板元素
@@ -1511,8 +1577,7 @@
     close.innerHTML = '&times;';
     close.setAttribute('aria-label', title);
     close.addEventListener('click', () => {
-      sheet.classList.remove('open', 'peek');
-      sheet.style.height = '';
+      collapseSheet(sheet);
       sheet.style.transform = '';
       const button = sheetButtons.get(sheet);
       if (button) button.classList.remove('active');
@@ -1557,8 +1622,7 @@
       const button = sheetButtons.get(sheet);
       if (shown <= 56) {
         // 拖到底：收起来
-        sheet.classList.remove('open', 'peek');
-        sheet.style.height = '';
+        collapseSheet(sheet);
         if (button) button.classList.remove('active');
       }else if (shown >= natural - 24) {
         // 拉到顶：完全展开
@@ -1618,8 +1682,7 @@
       // 同时只留一个上拉栏，免得两层叠在一起
       document.querySelectorAll('.panel-sheet.open, .panel-sheet.peek').forEach(item => {
         if (item !== sheet) {
-          item.classList.remove('open', 'peek');
-          item.style.height = '';
+          collapseSheet(item);
           item.style.transform = '';
         }
       });
@@ -1657,6 +1720,12 @@
       `<output id="geb-solver-status">${t('board.solverIdle')}</output>`,
       '<div id="geb-solver-list" class="solver-solution-list"></div>',
     ].join('');
+    // 从关卡打开求解器时带了 solverTool（那一关限定单尺 / 单规）：可用工具默认就选到同一种模式
+    const presetSolverTool = params.get('solverTool');
+    const solverToolSelect = panel.querySelector('#geb-solver-tool');
+    if (solverToolSelect && ['0', '1', '2'].includes(presetSolverTool)) {
+      solverToolSelect.value = presetSolverTool;
+    }
     // 收进底部上拉栏：画布上只留一个圆形按钮（见 addSideButton）
     addSideButton('solver-params', solverSideIcon(), t('board.solverParams'), wrapInSheet(panel, t('board.solverParams')));
 
@@ -1697,6 +1766,8 @@
     const playSolution = (index, animate) => {
       const solution = latest && latest.solutions[index];
       if (!solution) return;
+      // 换一个解法：先把画布复位到「开始求解那一刻」，再画这个解法
+      if (typeof resetSolverCanvas === 'function') resetSolverCanvas();
       const token = ++replayToken;
       showStep(index, 0);
       if (!animate || !solution.newElementCount) {
@@ -1776,6 +1847,9 @@
       }
       // 记下这次请求：解出来以后要用它的对象 id 组装「构造计划」
       solverLastRequest = request;
+      // 同时记下这一刻的图形状态：切换解法时把不是这个解法画出来的图形复位回来
+      solverCanvasSnapshot = typeof collectStorageSnapshot === 'function' ? collectStorageSnapshot() : null;
+      solverCanvasSignature = solverCanvasFingerprint();
       const limit = Math.max(1, Number(panel.querySelector('#geb-solver-limit').value) || 1);
       const toolType = Number(panel.querySelector('#geb-solver-tool').value);
       const timeLimitSeconds = Math.max(1, Number(panel.querySelector('#geb-solver-time').value) || 30);
@@ -1977,14 +2051,21 @@
   const promptMarkLabel = item => {
     if (!item) return;
     const id = item.getId();
+    // 只允许留空（用对象 ID 当标签）或单个字母 / 数字；
+    // 两个及以上的非字母数字字符（' 之类连着输两个）等非法输入直接把「确定」置灰，
+    // 不再让人点了没反应
+    const isValidLabel = text => {
+      const label = String(text || '').trim();
+      return label === '' || /^[A-Za-z0-9]$/.test(label);
+    };
     const ask = value => inputDialog(t('board.markNamed'), t('board.markLabelPrompt', {id: id}), value, raw => {
       const label = String(raw || '').trim();
-      // 只允许留空（用对象 ID 当标签）或单个字母 / 数字，输了别的就带着原输入再弹一次
+      // 校验与「确定」按钮的置灰规则保持一致（非法输入根本进不到这里）
       if (label && !/^[A-Za-z0-9]$/.test(label)) { ask(label); return; }
       item.modifyName(label || id);
       drawContent();
       if (typeof loadGeometryElements === 'function') loadGeometryElements();
-    });
+    }, {valid: isValidLabel});
     ask('');
   };
   // 标记手势状态：手指按在图形上时置位，松手复位（见下面的 swallowMarkingGesture）
@@ -2463,6 +2544,13 @@
     addSideButton('mark', markSideIcon(), t('board.markedTitle'), wrapInSheet(markPanel, t('board.markedTitle')));
     refreshMarks();
   }
+  // 求解器里「求解参数」按钮是先于「标记」按钮创建的，这里把顺序换过来：
+  // 上边是标记、下边是求解参数（与制题器一致）
+  if (mode === 'solver') {
+    const sideBox = document.getElementById('side-buttons');
+    const solverSideButton = document.getElementById('side-button-solver-params');
+    if (sideBox && solverSideButton) sideBox.appendChild(solverSideButton);
+  }
   // 关卡游玩：LE 计数器放在返回按钮下方（返回按钮此时已就位）
   if (typeof updateMovesCounterPosition === 'function') updateMovesCounterPosition();
   // 刷新页面上静态文案的语言
@@ -2582,8 +2670,8 @@
         const p3 = {x: logicalX, y: logicalY};
         let on = null;
         if (element.getType() === 'line') {
-          const value = ToolsFunction.nearPointOnLine(p1, p2, p3);
-          if (value || value === 0) on = ToolsFunction.scalePoint(p1, p2, value);
+          // 不夹紧的投影（nearPointOnLine 会把比例夹到 [0,1]，落在渲染段外的点会被拽回端点上）
+          on = ToolsFunction.onlineCoordinateOf(p1, p2, p3);
         }else{
           on = ToolsFunction.radianToCoordinate(p1, p2, ToolsFunction.nearPointOnCircle(p1, p3));
         }
@@ -2642,8 +2730,8 @@
           const p3 = {x: logicalX, y: logicalY};
           let on = null;
           if (element.getType() === 'line') {
-            const value = ToolsFunction.nearPointOnLine(p1, p2, p3);
-            if (value || value === 0) { const projected = ToolsFunction.scalePoint(p1, p2, value); on = {x: projected.x, y: projected.y}; }
+            const projected = ToolsFunction.onlineCoordinateOf(p1, p2, p3);
+            on = {x: projected.x, y: projected.y};
           }else{
             const value = ToolsFunction.nearPointOnCircle(p1, p3);
             const projected = ToolsFunction.radianToCoordinate(p1, p2, value);
@@ -2700,7 +2788,11 @@
           // 样式刷 / 隐藏刷 / 切换线类型：光标自己已经画成圆环（或隐藏刷的方块）了，
           // 再叠一个点预览只会互相干扰
           || tool === 'styleBrush'
-          || tool === 'lineType';
+          || tool === 'lineType'
+          // 刚点完一下、指针还没真的移动：点预览也等指针动过再出现，
+          // 免得「点完一条线」的瞬间就冒出「过该点的平行线 / 垂线」那一下的落点预览
+          // （与画布上半成品草稿图的规则一致，见 canvas.js 的 previewWaiting）
+          || (typeof previewWaiting === 'function' && previewWaiting());
       if (hidePreviewPoint) {
         context.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
         previewCanvas.hidden = true;

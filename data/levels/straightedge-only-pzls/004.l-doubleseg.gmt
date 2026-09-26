@@ -14,6 +14,6 @@ named=A,B
 
 movepoints=C
 
-result=S2,D:B,S2,D
+result=S2:B,S2,D
 
 explore=S2,D

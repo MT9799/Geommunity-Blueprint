@@ -4,23 +4,23 @@
 
 ## 1. 补全关卡信息
 
-### 1.1 缺答案图（3 关）
+### 1.1 缺答案图
 
 - `straightedge-only-pzls`：circumcenter-isosceles150、point-on-radical-axis、isosceles-double-circle
 
-### 1.3 缺步数 targetSteps（3 关）
+### 1.3 缺步数 targetSteps
 
 - `straightedge-only-pzls`：circumcenter-isosceles150、point-on-radical-axis、isosceles-double-circle
 
-### 1.4 缺说明 subtitle（221 关）
+### 1.4 缺说明 subtitle
 
-除 `ewp`（100）、`xmath`（25）之外的 7 个包整包都没有：`c-s-pzls-other`（59）、`xeuclidea-puzzle`（56）、`straightedge-only-pzls`（36）、`from-baidu-tieba`（34）、`mingjing-forum`（16）、`euc-addit`（10）、`sprfes`（10）。逐关的 id 清单需要时再列。
+除 `ewp`（99）、`xmath`（25）之外的 7 个包整包都没有：`c-s-pzls-other`（59）、`xeuclidea-puzzle`（56）、`straightedge-only-pzls`（36）、`from-baidu-tieba`（34）、`mingjing-forum`（16）、`euc-addit`（10）、`sprfes`（10）。逐关的 id 清单需要时再列。
 
 ### 1.5 其它
 
 - `keywords`：每关都有，但都只有最基本的关键词，需要补全。
-- `tools`（单尺 / 单规）：只有 47 关需要标，暂不算缺。
 - 由于关卡信息是ai批量自动读取的，可能有一部分关卡的信息有误（比如L/E数不对，题目/答案图片不对，等等），仍需要仔细检查一遍。
+- 有一部分关卡还能压缩步数。
 
 ## 2. 求解器
 
@@ -50,27 +50,19 @@
 
 ### 4.1 网页交互
 
-- 可能还存在一些bug，需要在使用过程中发现并修复。
+可能还存在一些bug，需要在使用过程中发现并修复。
 
 ### 4.2 网页样式
 
-- 网页样式需要进一步美化。手机版适配也需要优化。
+网页样式需要进一步美化。手机版适配也需要优化。
 
 ## 5. 其它
 
-近期TODO()：
-fixedangle支持绘制+导入导出
-补全信息
-gmt兼容性
-测bug（已发现3个）
-readme也加一套英文版
-把网页配套js语言标签改成html，solver的js仍然保持js
+### 近期TODO()：
+- 继续补全关卡信息
+- gmt兼容性和正确性检查
 
-BUG(3)：
-手机的上拉栏往下收一点时候点叉会先跳到默认位置再收起。
-选择非游玩模式下的构造工具栏里面的工具后构造工具栏按钮不会像其他按钮一样有一个变窄的动画而是直接突变窄。
-一部分手机设备看不到thumbnail展开态下的题目文字说明，会被图片部分挡住。
-
-远期：
-网格模式
-账号系统
+### 远期：
+- 网格模式
+- 账号系统
+- 锈规作图模式

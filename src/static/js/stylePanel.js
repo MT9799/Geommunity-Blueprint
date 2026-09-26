@@ -43,7 +43,17 @@ function pickStyleColor(current, callback, commit) {
     // 取色器在弹层之外，它自身的 click 不能冒泡，否则会被「点击别处收起弹层」的逻辑误判
     colorInput.onclick = event => event.stopPropagation();
     document.body.appendChild(colorInput);
-    colorInput.click();
+    // 优先用原生取色器接口：移动端对「移出视口、透明」的元素，程序化 click() 往往不弹取色器，
+    // 必须靠 showPicker()（仍要在这次用户手势的调用栈里），不支持时才退回 click()
+    if (typeof colorInput.showPicker === 'function') {
+        try {
+            colorInput.showPicker();
+        }catch (error) {
+            colorInput.click();
+        }
+    }else{
+        colorInput.click();
+    }
 }
 
 /**

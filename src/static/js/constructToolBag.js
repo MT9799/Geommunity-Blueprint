@@ -472,6 +472,12 @@ class FixedAngleConstructTool {
             this.dialogType,
             this.drawType,
             );
+        // 取点顺序是「先角的一条边上的点、再顶点」，但定义里第一个点必须是顶点
+        // （gmt 的 FixAngle[A,B,x] 里 A 是顶点、AB 是始边），所以这里把两个点倒过来
+        this.lineMode.definePointList = () => [
+            geometryManager.getToolKey(this.toolName, 'point2'),
+            geometryManager.getToolKey(this.toolName, 'point1'),
+        ];
     }
     
     /**

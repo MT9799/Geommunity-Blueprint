@@ -379,9 +379,10 @@ function refreshMenuTool() {
     // 分类按钮保持各自的图标（同 tool.js：不再把构造档的图标换成当前工具的图标）
     
     const menuToolbar = document.getElementById("menu_toolbar");
-    menuToolbar.style.display = 'none';
-    menuToolbar.offsetHeight;
-    menuToolbar.style.display = 'flex';
+    // 读一次布局属性就够强制回流了：不要做 display:none → flex 的往返 ——
+    // 那会把正在播放的宽度过渡打断（手机端点构造档工具时，分类按钮正在从 70px 缩回 45px），
+    // 表现就是「其他按钮有变窄动画、构造档按钮却直接突变窄」（见 index.js 的 toolbarChoice）
+    void menuToolbar.offsetHeight;
 }
 
 /**

@@ -406,8 +406,11 @@ function touchendEventFunction(e) {
             operateEventFunction("drawComplete", endX, endY);
         } else {
             // 点击（按住多久都算点击：手一直按着没挪地方，松手时不该按拖拽处理）
+            // 先记「先不画预览，等指针移动」再让工具处理这次点击：点击里会重绘一次，
+            // 顺序反了的话那一帧仍按旧状态画出半成品预览，画完又不再重绘，
+            // 那一帧的预览就留在屏幕上（看着像「点击的瞬间冒出垂线预览」）
+            if (typeof previewWaitForMove === 'function') previewWaitForMove(endX, endY);
             operateEventFunction("click", endX, endY);
-            if (typeof previewWaitForMove === 'function') previewWaitForMove();
         }
     }
     // 没有触点时还原
@@ -505,6 +508,8 @@ function touchmoveEventFunction(e) {
 
         pointerPosition.x = x;
         pointerPosition.y = y;
+        // 手指真的动了：解除「点完一下先不画预览」（用未吸附的原始坐标判断，见 canvas.js）
+        if (typeof previewPointerMoved === 'function') previewPointerMoved(x, y);
         // 手指还在移动：工具光标该显示（force = 触摸自己的动作，不受「刚抬手」的忽略窗口影响）
         if (typeof showPointerCursor === 'function') showPointerCursor(true);
         // 橡皮擦的方块光标、切换线类型 / 样式刷的圆环光标都跟着指针走，要重绘
@@ -558,6 +563,8 @@ function mouseMoveEventFunction(e) {
     const y = e.clientY - canvasTop;
     // 作图工具：光标先吸附到附近的点 / 交点 / 线圆上，草稿图跟着吸附点走（中键拖画布不吸附）
     const snapDraw = mouseType === 1 || typeof snapCursorPosition !== 'function' ? [x, y] : snapCursorPosition(x, y);
+    // 指针真的动了：解除「点完一下先不画预览」（用未吸附的原始坐标判断，见 canvas.js）
+    if (typeof previewPointerMoved === 'function') previewPointerMoved(x, y);
     pointerPosition.x = snapDraw[0];
     pointerPosition.y = snapDraw[1];
     // 鼠标动了：工具光标该显示（刚触摸抬手时的合成鼠标事件会被 showPointerCursor 忽略）
@@ -621,9 +628,12 @@ function mouseUpEventFunction(e) {
         if (dragged) {
             operateEventFunction("drawComplete", snapEnd[0], snapEnd[1]);
         } else {
+            // 先记「先不画预览，等指针移动」再让工具处理这次点击：点击里会重绘一次，
+            // 顺序反了的话那一帧仍按旧状态画出半成品预览，画完又不再重绘，
+            // 那一帧的预览就留在屏幕上（看着像「点击的瞬间冒出垂线预览」）
+            if (typeof previewWaitForMove === 'function') previewWaitForMove(endX, endY);
             operateEventFunction("click", snapEnd[0], snapEnd[1]);
             // 点完这一下先不画预览，等指针移动过再画（见 canvas.js previewWaitForMove）
-            if (typeof previewWaitForMove === 'function') previewWaitForMove();
         }
     }else if (mouseType === 1) {
         // 中键：结束平移（不管有没有真的移动过，都把抓手光标收掉）
@@ -1052,7 +1062,7 @@ const infDict = {
     "compass": {title: "圆规工具", context: "有3点式和复制式两种构造模式"},
     "middlePoint": {title: "中点工具", context: "构造两个点的中点，或构造圆心"},
     "threePointCircle": {title: "三点圆工具", context: "构造过三个点的圆"},
-    "fixedAngle": {title: "指定角工具", context: "构造角的顶点、角的一边，顺时针另一边为指定角度的射线"},
+    "fixedAngle": {title: "定值角工具", context: "构造角的一边、角的顶点，顺时针另一边为指定角度的射线"},
     "choiceDraw": {title: "选中拖拽模式", context: "可以选择几何对象，只能拖拽点"},
     "moveView": {title: "移动视图模式", context: "防误触几何对象"},
     "restoreTransform": {title: "还原画布变化量", context: "将画布的视图变换还原至初始值"},

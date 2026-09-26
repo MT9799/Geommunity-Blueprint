@@ -91,6 +91,14 @@ body.mode-level .moves-layout {
     justify-content: center;
     align-items: center;
     margin-bottom: 0;
+    /* 图片超出这个盒子时裁掉：不同设备上示意图比例不同，不裁会盖住下面的题目文字 */
+    overflow: hidden;
+}
+
+/* 说明文字要压在图片之上：图片区是定位元素，静态的文字块会被它盖住 */
+.thumbnail-body {
+    position: relative;
+    z-index: 1;
 }
 
 /* 缩略图收起时：目标步数做成小窗浮在图片左上角（未达成的黑、已达成的金色） */
@@ -530,7 +538,8 @@ textarea {
     background-color: #277f96;
 }
 
-/* 取色输入：藏在视口外但保留在文档中，避免取色过程中被移除导致 change 事件丢失 */
+/* 取色输入：藏在视口外但保留在文档中，避免取色过程中被移除导致 change 事件丢失。
+   不能加 pointer-events: none —— 手机端对不可交互的元素不会弹原生取色器 */
 .style-color-input {
     position: fixed;
     left: -9999px;
@@ -538,7 +547,6 @@ textarea {
     width: 1px;
     height: 1px;
     opacity: 0;
-    pointer-events: none;
 }
 
 /* gmt 代码窗口 */
@@ -730,6 +738,16 @@ textarea {
 
 .board-dialog-actions button:hover {
     background-color: #fef7e5;
+}
+
+/* 输入内容非法（空 / 非数字）时「确定」按不动：给个灰掉的提示 */
+.board-dialog-actions button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.board-dialog-actions button:disabled:hover {
+    background-color: rgb(240, 240, 240);
 }
 
 .solver-panel {
@@ -1857,6 +1875,7 @@ textarea {
     .thumbnail.open .thumbnail-middle {
         flex: 0 0 auto;
         max-height: 40%;
+        min-height: 0;
     }
     .thumbnail.open .thumbnail-body-container {
         min-height: 140px;
