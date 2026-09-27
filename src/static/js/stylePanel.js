@@ -30,7 +30,7 @@ function getSelectedElement() {
  * @param {Function} [commit] 取色确定后的回调（用于记入撤销/重做历史）
  */
 function pickStyleColor(current, callback, commit) {
-    console.log("flag1.1")
+    console.log("flag1.1");
     // 创建临时的input元素
     const colorInput = document.createElement('input');
     colorInput.type = 'color';
@@ -157,6 +157,7 @@ function openStylePopup(options) {
         popup.innerHTML = '';
 
         // 颜色（拖动取色时即时生效但不记历史，取色确定后才记一步）
+        console.log("flag1.3");
         const colorRow = addRow('颜色');
         const colorButton = document.createElement('button');
         colorButton.type = 'button';
@@ -164,6 +165,7 @@ function openStylePopup(options) {
         colorButton.style.backgroundColor = style.color;
         colorButton.setAttribute('aria-label', '选择颜色');
         colorButton.addEventListener('click', () => {
+            console.log("flag1.2");
             let picked = style.color;
             const applyColor = live => { apply({color: picked, colorChoice: 'color'}, live); draw(); };
             pickStyleColor(style.color, color => { picked = color; applyColor(true); }, () => applyColor(false));
@@ -350,6 +352,7 @@ function renderInlineStyleControls(container, element, onChange, readOnly) {
         }
 
         // 颜色
+        console.log("flag2.3");
         const colorRow = addRow('颜色');
         const colorButton = document.createElement('button');
         colorButton.type = 'button';
@@ -357,6 +360,7 @@ function renderInlineStyleControls(container, element, onChange, readOnly) {
         colorButton.style.backgroundColor = target.getColor();
         colorButton.setAttribute('aria-label', '选择颜色');
         colorButton.addEventListener('click', () => {
+            console.log("flag2.2");
             let picked = current().getColor();
             const applyColor = live => {
                 current().modifyColor(picked);
