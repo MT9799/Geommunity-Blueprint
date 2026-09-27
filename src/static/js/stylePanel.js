@@ -118,6 +118,7 @@ function closeObjectStylePopup() {
  *   - apply(patch) 应用样式变更
  */
 function openStylePopup(options) {
+    console.log("flag2.4");
     const {anchor, key, isPoint, get, apply} = options;
     const opened = document.querySelector('.style-popup.open');
     closeStylePopups();
@@ -299,6 +300,7 @@ function setElementVisible(element, visible) {
  * @returns {Function} 重画一次
  */
 function renderInlineStyleControls(container, element, onChange, readOnly) {
+    console.log("flag1.4");
     const done = () => { if (typeof onChange === 'function') onChange(); };
     // 撤销 / 重做会把图形整批重建（重新解析 gmt 文本），详情面板手里那个旧对象就脱离了画板，
     // 再调它的样式自然看不出变化 —— 所以一律按 id 现取当前对象，不缓存引用
@@ -325,6 +327,7 @@ function renderInlineStyleControls(container, element, onChange, readOnly) {
 
         // 只读展示（游玩界面不允许改样式）：色块 + 文字，控件不可点
         if (readOnly) {
+            console.log("flag3.3");
             const roColorRow = addRow('颜色');
             const swatch = document.createElement('span');
             swatch.className = 'style-popup-color';
