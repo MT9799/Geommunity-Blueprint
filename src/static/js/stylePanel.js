@@ -45,6 +45,8 @@ function pickStyleColor(current, callback, commit) {
     document.body.appendChild(colorInput);
     // 优先用原生取色器接口：移动端对「移出视口、透明」的元素，程序化 click() 往往不弹取色器，
     // 必须靠 showPicker()（仍要在这次用户手势的调用栈里），不支持时才退回 click()
+    colorInput.click();
+    /*
     if (typeof colorInput.showPicker === 'function') {
         try {
             colorInput.showPicker();
@@ -54,6 +56,7 @@ function pickStyleColor(current, callback, commit) {
     }else{
         colorInput.click();
     }
+        */
 }
 
 /**
