@@ -88,7 +88,7 @@
         "pack": "ewp",
         "title": "EWP19",
         "subtitle": "在圆内做出4个等大的互相相切的内切圆。",
-        "targetSteps": "8L / 13E",
+        "targetSteps": "8L / 12E",
         "diagram": "diagrams/ewp/ewp19.png",
         "file": "levels/ewp/ewp19.gmt",
         "keywords": [
@@ -105,8 +105,8 @@
                 "star": "8L"
             },
             {
-                "file": "answers/ewp/ewp19/13E.png",
-                "star": "13E"
+                "file": "answers/ewp/ewp19/12E.png",
+                "star": "12E"
             }
         ]
     },
@@ -240,7 +240,11 @@
         ],
         "solutions": [
             {
-                "file": "answers/ewp/ewp43/5L5E.png",
+                "file": "answers/ewp/ewp43/4L.png",
+                "star": "4L"
+            },
+            {
+                "file": "answers/ewp/ewp43/5E.png",
                 "star": "5E"
             }
         ]
@@ -596,8 +600,8 @@
                 "star": "4L"
             },
             {
-                "file": "answers/ewp/ewp97/6E.png",
-                "star": "6E"
+                "file": "answers/ewp/ewp97/5E.png",
+                "star": "5E"
             },
             {
                 "file": "answers/ewp/ewp97/4V.png",
@@ -754,7 +758,7 @@
         "pack": "ewp",
         "title": "EWP112",
         "subtitle": "在5步内在正三角形一边上找一点，与边所对顶点连接，将正三角形分成2个三角形，其分割的面积比为2:1。",
-        "targetSteps": "4L / 5E",
+        "targetSteps": "3L / 5E",
         "diagram": "diagrams/ewp/ewp112.png",
         "file": "levels/ewp/ewp112.gmt",
         "keywords": [
@@ -770,8 +774,8 @@
         ],
         "solutions": [
             {
-                "file": "answers/ewp/ewp112/4L.png",
-                "star": "4L"
+                "file": "answers/ewp/ewp112/3L.png",
+                "star": "3L"
             },
             {
                 "file": "answers/ewp/ewp112/5E.png",
@@ -818,7 +822,7 @@
         "pack": "ewp",
         "title": "EWP117",
         "subtitle": "构造一个正方形，使相邻的两个顶点在直线上，另两个在圆上。",
-        "targetSteps": "8L / 12E",
+        "targetSteps": "7L / 12E",
         "diagram": "diagrams/ewp/ewp117.png",
         "file": "levels/ewp/ewp117.gmt",
         "keywords": [
@@ -831,8 +835,8 @@
         ],
         "solutions": [
             {
-                "file": "answers/ewp/ewp117/8L.png",
-                "star": "8L"
+                "file": "answers/ewp/ewp117/7L.png",
+                "star": "7L"
             },
             {
                 "file": "answers/ewp/ewp117/12E.png",
@@ -849,7 +853,7 @@
         "pack": "ewp",
         "title": "EWP119",
         "subtitle": "已知圆内一点A，构造3折线ABC，点B和C都在圆上，直线AB在点B处关于圆反射，反射后的直线为直线BC，直线BC在点C处关于圆反射，反射后的直线为直线CA。",
-        "targetSteps": "11L / 13E",
+        "targetSteps": "10L / 13E",
         "diagram": "diagrams/ewp/ewp119.png",
         "file": "levels/ewp/ewp119.gmt",
         "keywords": [
@@ -869,8 +873,8 @@
                 "star": "10L"
             },
             {
-                "file": "answers/ewp/ewp119/12E(special).jpg",
-                "star": "12E"
+                "file": "answers/ewp/ewp119/9E(special).png",
+                "star": "9E"
             },
             {
                 "file": "answers/ewp/ewp119/13E(Robust).jpg",
@@ -1204,8 +1208,8 @@
                 "star": "7L 7E"
             },
             {
-                "file": "answers/ewp/ewp148/6E.jpg",
-                "star": "6E"
+                "file": "answers/ewp/ewp148/6L6E.jpg",
+                "star": "6L 6E"
             }
         ]
     },
@@ -1321,7 +1325,7 @@
         "pack": "ewp",
         "title": "EWP161",
         "subtitle": "用11步构造一个内接在圆中的星形八角形（两个差45°的正方形），且给定点为其一顶点。",
-        "targetSteps": "11L / 11E",
+        "targetSteps": "10L / 11E",
         "diagram": "diagrams/ewp/ewp161.png",
         "file": "levels/ewp/ewp161.gmt",
         "keywords": [
@@ -1337,8 +1341,12 @@
         ],
         "solutions": [
             {
-                "file": "answers/ewp/ewp161/11L11E.png",
-                "star": "11L 11E"
+                "file": "answers/ewp/ewp161/10L.png",
+                "star": "10L"
+            },
+            {
+                "file": "answers/ewp/ewp161/11E.png",
+                "star": "11E"
             }
         ]
     },
@@ -1537,7 +1545,7 @@
         "pack": "ewp",
         "title": "EWP180",
         "subtitle": "有心圆外有一点A，作一条过点A的线与圆交于BC两点，B靠近A，且使AB:BC=1:2。7步最佳。",
-        "targetSteps": "7L / 7E",
+        "targetSteps": "5L / 7E",
         "diagram": "diagrams/ewp/ewp180.png",
         "file": "levels/ewp/ewp180.gmt",
         "keywords": [
@@ -1552,8 +1560,8 @@
         ],
         "solutions": [
             {
-                "file": "answers/ewp/ewp180/7L7E.png",
-                "star": "7L 7E"
+                "file": "answers/ewp/ewp180/5L.png",
+                "star": "5L"
             },
             {
                 "file": "answers/ewp/ewp180/7E.jpg",
@@ -1561,6 +1569,10 @@
             },
             {
                 "file": "answers/ewp/ewp180/7E2.jpg",
+                "star": "7E"
+            },
+            {
+                "file": "answers/ewp/ewp180/7E3.png",
                 "star": "7E"
             },
             {
@@ -2315,7 +2327,7 @@
         "pack": "ewp",
         "title": "EWP242",
         "subtitle": "使用直尺和锈规作出线段的中点，线段长度大于4个单位长。",
-        "targetSteps": "5L / 9E",
+        "targetSteps": "5L / 5E",
         "diagram": "diagrams/ewp/ewp242.png",
         "file": "levels/ewp/ewp242.gmt",
         "keywords": [
@@ -2736,7 +2748,7 @@
         "pack": "ewp",
         "title": "EWP287",
         "subtitle": "构造过圆弦上一点的直线，与弦成15度。",
-        "targetSteps": "4L / 4E",
+        "targetSteps": "3L / 4E",
         "diagram": "diagrams/ewp/ewp287.jpg",
         "file": "levels/ewp/ewp287.gmt",
         "keywords": [
@@ -2750,6 +2762,10 @@
             "线"
         ],
         "solutions": [
+            {
+                "file": "answers/ewp/ewp287/3L.png",
+                "star": "3L"
+            },
             {
                 "file": "answers/ewp/ewp287/4E.jpg",
                 "star": "4E"
