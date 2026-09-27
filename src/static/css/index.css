@@ -1879,9 +1879,10 @@ textarea {
         max-height: 40%;
         min-height: 0;
     }
+    /*
     .thumbnail.open .thumbnail-body-container {
         min-height: 140px;
-    }
+    }*/
     /* vConsole 在手机端离菜单栏近一点（菜单栏比桌面矮），并且回到右上角 */
     #__vconsole .vc-switch {
         top: 62px !important;
