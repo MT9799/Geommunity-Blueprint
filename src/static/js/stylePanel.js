@@ -30,6 +30,27 @@ function getSelectedElement() {
  * @param {Function} [commit] 取色确定后的回调（用于记入撤销/重做历史）
  */
 function pickStyleColor(current, callback, commit) {
+    console.log("flag1.1")
+    // 创建临时的input元素
+    const colorInput = document.createElement('input');
+    colorInput.type = 'color';
+    colorInput.value = current;
+    
+    // 颜色变化
+    const finish = () => colorInput.remove();
+    colorInput.oninput = event => callback(event.target.value);
+    colorInput.onchange = event => { callback(event.target.value); if (commit) commit(); finish(); };
+    colorInput.oncancel = finish;
+    
+    // 触发颜色选择器
+    colorInput.click();
+    
+    // 可选：用完立即移除
+    setTimeout(() => {
+        colorInput.remove();
+    }, 100);
+
+    /*
     document.querySelectorAll('.style-color-input').forEach(item => item.remove());
     const colorInput = document.createElement('input');
     colorInput.type = 'color';
@@ -45,8 +66,6 @@ function pickStyleColor(current, callback, commit) {
     document.body.appendChild(colorInput);
     // 优先用原生取色器接口：移动端对「移出视口、透明」的元素，程序化 click() 往往不弹取色器，
     // 必须靠 showPicker()（仍要在这次用户手势的调用栈里），不支持时才退回 click()
-    colorInput.click();
-    /*
     if (typeof colorInput.showPicker === 'function') {
         try {
             colorInput.showPicker();
