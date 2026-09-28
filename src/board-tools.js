@@ -959,9 +959,11 @@
           return `${id}=[${gmtNumber(x)},${gmtNumber(y)}]`;
         }
         case 'intersection': {
-          // 第四个参数是「已知的那个交点」，导出时一并写回去
-          const exclude = base.excludeId ? `,${base.excludeId}` : '';
-          return `${id}=Intersect[${args[0]},${args[1]},${value}${exclude}]`;
+          // 第四个参数是「已知的那个交点」，导出时一并写回去；带已知点时编号写 `-`：
+          // 去掉那个点之后只剩一个候选，写不写编号结果一样，而 gmt 里就是 `Intersect[图形1,图形2,-,C]` 这种写法
+          const known = base.excludeId ? `,${base.excludeId}` : '';
+          const slot = base.excludeId ? '-' : value;
+          return `${id}=Intersect[${args[0]},${args[1]},${slot}${known}]`;
         }
         case 'online': return `${id}=Linepoint[${args[0]},${value}]`;
         case 'middlePoint': return `${id}=Midpoint[${args[0]},${args[1]}]`;
@@ -2645,16 +2647,23 @@
      * @param {number} logicalY 逻辑 y
      * @returns {{x: number, y: number, snapped: boolean}}
      */
-    const intersectionSnapOf = (logicalX, logicalY) => {
+    /**
+     * 交点工具当前状态下、光标附近的全部候选交点 过程函数（逻辑坐标）
+     * 选了一个图形后：取光标下最近的**另一个**图形，返回它与第一个图形的全部范围内交点。
+     * 预览要把它们都画出来 —— 工具点一下会把这几个交点都标出来，预览只画最近的一个
+     * 会让人以为只标一个（见 geometryToolBag.js 的 IntersectionTool.createIntersection）
+     * @param {number} logicalX
+     * @param {number} logicalY
+     * @returns {{x: number, y: number}[]}
+     */
+    const intersectionPreviewList = (logicalX, logicalY) => {
       const first = geometryManager.getToolKey('intersection', 'choice1');
       if (!first) {
         // 还没选图形：光标下确实是相交的位置才给预览
         const only = geometryManager.nearestIntersection(logicalX, logicalY);
-        return only
-          ? {x: only.x, y: only.y, snapped: true}
-          : {x: logicalX, y: logicalY, snapped: false};
+        return only ? [{x: only.x, y: only.y}] : [];
       }
-      // 已经选了一个图形：取光标下最近的**另一个**图形，预览落在它与第一个图形的交点上
+      // 已经选了一个图形：取光标下最近的**另一个**图形
       // （光标通常正压在刚选的那条线上，所以要跳过自身；near() 的返回顺序不是按距离排的，
       //  这里自己逐个算一次「光标投到它上面的距离」再挑最近的那个）
       const nearIds = geometryManager.near([logicalX, logicalY], ['line', 'circle'], 8)
@@ -2682,19 +2691,21 @@
           second = element;
         }
       });
-      if (second) {
-        const candidates = ToolsFunction.intersectionCandidates(first, second).filter(item =>
-          ToolsFunction.pointInElementRange(item.x, item.y, first) &&
-          ToolsFunction.pointInElementRange(item.x, item.y, second));
-        let best = null;
-        candidates.forEach(item => {
-          const distance = Math.hypot(item.x - logicalX, item.y - logicalY);
-          if (!best || distance < best.distance) best = {x: item.x, y: item.y, distance: distance};
-        });
-        if (best) return {x: best.x, y: best.y, snapped: true};
-      }
-      return {x: logicalX, y: logicalY, snapped: false};
+      if (!second) return [];
+      return ToolsFunction.intersectionCandidates(first, second).filter(item =>
+        ToolsFunction.pointInElementRange(item.x, item.y, first) &&
+        ToolsFunction.pointInElementRange(item.x, item.y, second));
     };
+    const intersectionSnapOf = (logicalX, logicalY) => {
+      let best = null;
+      intersectionPreviewList(logicalX, logicalY).forEach(item => {
+        const distance = Math.hypot(item.x - logicalX, item.y - logicalY);
+        if (!best || distance < best.distance) best = {x: item.x, y: item.y, distance: distance};
+      });
+      return best ? {x: best.x, y: best.y, snapped: true} : {x: logicalX, y: logicalY, snapped: false};
+    };
+    // 供调试 / 测试直接查「这一刻预览会画出哪几个交点」
+    window.intersectionPreviewList = (logicalX, logicalY) => intersectionPreviewList(logicalX, logicalY);
     /**
      * 预览吸附位置（逻辑坐标）过程函数
      * 光标的预览点、落点、以及 canvas.js 里那个半透明图形预览都用它 ——
@@ -2839,17 +2850,34 @@
         context.clearRect(0, 0, width, height);
         return;
       }
-      // 样式与点图形一致（外径 8px + 内径 4px 白芯），但整体半透明：
+      // 样式与点图形一致（外径 POINT_RADIUS_BASE + 一半大的白芯），但整体半透明：
       // 它只是「将要落在哪里」的预览，还没有真正落下
       context.globalAlpha = 0.5;
       context.beginPath();
-      context.arc(previewPoint.x, previewPoint.y, 8, 0, Math.PI * 2);
+      context.arc(previewPoint.x, previewPoint.y, POINT_RADIUS_BASE, 0, Math.PI * 2);
       context.fillStyle = 'rgb(25, 25, 25)';
       context.fill();
       context.beginPath();
-      context.arc(previewPoint.x, previewPoint.y, 4, 0, Math.PI * 2);
+      context.arc(previewPoint.x, previewPoint.y, POINT_RADIUS_BASE / 2, 0, Math.PI * 2);
       context.fillStyle = 'rgb(255, 255, 255)';
       context.fill();
+      // 交点工具：这一对图形的其他候选交点也画出来（点一下会全部标出，预览只画一个会让人以为只标一个）
+      if (tool === 'intersection' && typeof intersectionPreviewList === 'function') {
+        const logical = [(x - transform.x) / transform.scale, (y - transform.y) / transform.scale];
+        intersectionPreviewList(logical[0], logical[1]).forEach(item => {
+          const px = transform.x + item.x * transform.scale;
+          const py = transform.y + item.y * transform.scale;
+          if (Math.hypot(px - previewPoint.x, py - previewPoint.y) < 1) return;
+          context.beginPath();
+          context.arc(px, py, POINT_RADIUS_BASE, 0, Math.PI * 2);
+          context.fillStyle = 'rgb(25, 25, 25)';
+          context.fill();
+          context.beginPath();
+          context.arc(px, py, POINT_RADIUS_BASE / 2, 0, Math.PI * 2);
+          context.fillStyle = 'rgb(255, 255, 255)';
+          context.fill();
+        });
+      }
       context.globalAlpha = 1;
     };
     canvasElement.addEventListener('pointermove', event => {

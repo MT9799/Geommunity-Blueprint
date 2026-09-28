@@ -518,7 +518,9 @@ class GeometryElementManager {
         this.repository = new Object();
         this.counter = {"total": 0};
         this.choice = new Object();
-        // 上一次作图因为「图形画布上已经有了」而作废（loadTool 里置位，storage 监听里取走）
+        // 上一次作图没有产生任何新图形：图形画布上已经有了（loadTool 里置位），
+        // 或交点工具没标出交点（两图形不相交 / 候选全在范围外 / 相交处已经有点了，见 createIntersection）。
+        // storage 监听取走它，跳过撤销历史与步数（L / E）
         this.duplicatedFlag = false;
         this.transform = {x: 0, y: 0, scale: 1};
         this.geometryStyle = {point: {colorChoice: "auto", color: "#191919"}, 
@@ -1023,9 +1025,10 @@ class GeometryElementManager {
     }
 
     /**
-     * 取走「上一次作图作废」的标记 过程函数
-     * 落图形前先问一遍画布上有没有同一个图形，有就把这次作图整个作废；
-     * 游玩模式的 storage 监听靠这个标记跳过步数（L/E）计数
+     * 取走「上一次作图没有产生新图形」的标记 过程函数
+     * 两种来源：落图形前先问一遍画布上有没有同一个图形（有就把这次作图整个作废）；
+     * 或交点工具选完两个图形后没标出任何交点。
+     * storage 监听靠这个标记跳过撤销历史与步数（L/E）计数
      * @returns {boolean}
      */
     takeDuplicatedFlag() {

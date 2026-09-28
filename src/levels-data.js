@@ -6,8 +6,8 @@
  *
  * 两个文件各管一件事：
  *   data/levelpacks.json —— 关卡包：id / name / description / icon / source
- *   data/levels.json     —— 关卡：id / pack / number / title / subtitle / targetSteps / diagram / note / file
- * 显示用字段（name / description / icon / number / title / subtitle / note）都直接写在这两个文件里，
+ *   data/levels.json     —— 关卡：id / pack / file / title / subtitle / targetSteps / diagram / note
+ * 显示用字段（name / description / icon / title / subtitle / note）都直接写在这两个文件里，
  * 留空或不写就用页面默认值（序号自动生成、图标取该包第一个有示意图的关卡等）。
  */
 
@@ -121,7 +121,8 @@ document.addEventListener('click', event => {
  */
 function levelRowHTML(level, options) {
     const setting = options || {};
-    const number = level.number || String((setting.index || 0) + 1).padStart(3, '0');
+    // 序号一律按它在包里的位次生成，不从 levels.json 里取（那个字段已去掉）
+    const number = String((setting.index || 0) + 1).padStart(3, '0');
     const thumb = level.diagram ? `<img src="../data/${level.diagram}" alt="" loading="lazy">` : '◇';
     const steps = level.targetSteps || (typeof t === 'function' ? t('pack.stepsUnknown') : '步数未标注');
     const note = level.note ? ` title="${level.note}"` : '';

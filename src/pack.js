@@ -2,7 +2,7 @@
  * 关卡包详情（关卡列表）
  * 数据来自 levels-data.js（levels.json + levelpacks.json 合并结果）
  * 展示字段：pack.name 名称、pack.description 说明；
- * 每关：level.number 序号（留空按顺序生成）、level.title 标题、level.diagram 缩略图、
+ * 每关：level.title 标题、level.diagram 缩略图、
  * level.targetSteps 步数、level.note 悬停提示
  * 每页显示 LEVELS_PAGE_SIZE 关，页码写在地址栏的 page 参数里
  */

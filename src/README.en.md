@@ -100,7 +100,7 @@ A geometry-construction playground that runs entirely in the browser: solve the 
 - **Who gets picked when objects overlap**: points beat segments, segments beat rays, rays beat lines, and circles come last (intersections often sit on lines / circles, hence points first). Several points at the same spot: a **draggable free point** wins, the rest are taken in **reverse construction order** (the most recently drawn first); this only affects what the mouse picks, not drawing order.
 - **Delete button under the move tool**: once the move tool has selected an object the trash button in the switch bar lights up; tapping it deletes the object together with **all objects built from it**, and the deletion can be undone.
 - **The circle-centre tool** ignores the cursor position and previews the centre of the circle the cursor is near, styled like the point preview; it disappears when you leave the circle.
-- **Free points are never treated as special points**: a free point that happens to lie on (or very near) a line or circle is still an ordinary free point — judgements like "a circle's defining point" only accept points that were really constructed (point on an object, intersection …), so a coincidental position never changes which intersection is picked (otherwise an intersection would suddenly jump to the other side while dragging).
+- **Free points are never treated as special points**: a free point that happens to lie on (or very near) a line or circle is still an ordinary free point — the "coincides with the circle's radius endpoint" rule used for intersection numbering only looks at **that circle's own radius endpoint** (`B` in `Circle[A,B]`), so another free point being close by never changes which intersection is picked (otherwise an intersection would suddenly jump to the other side while dragging). A radius endpoint that is itself a free point (a point given by the level, or one you clicked) still counts as a defining point: it lies on the circle by definition, which is its construction identity, not a coincidence.
 - **Copy compass**: pick a circle first, then the centre follows the cursor and the radius is the picked circle's radius.
 - **The two-line angle bisector** never shows a preview point under the cursor; after picking the first line, both bisectors are previewed once you approach the second line.
 - Previews **vanish immediately when leaving the object**, leaving no ghost (the circle-centre tool redraws as soon as it leaves the circle, the bisector as soon as it leaves the second line).
@@ -165,7 +165,6 @@ Edit those two files directly — whatever you write there is what the page show
 | `title` | level title (list, level-page thumbnail title, page title) | — |
 | `subtitle` | description inside the level-page thumbnail | hidden; entering through the board's "Test play" defaults to "GMT loaded" |
 | `targetSteps` | steps (right of the list, bottom of the level page), e.g. `5L / 6E` | the list shows "steps not recorded" |
-| `number` | index in the list | generated as `001`… in order |
 | `diagram` | diagram path (relative to `data/`) | the list shows a ◇ placeholder and the card has no image |
 | `note` | hover hint on the level list row | none |
 | `tools` | tool restriction: `"straightedge"` or `"compass"` | unrestricted, all tools |
@@ -180,11 +179,13 @@ Example (one entry of `data/levels.json`):
 {
     "id": "ewp11",
     "pack": "ewp",
+    "file": "levels/ewp/ewp11.gmt",
     "title": "EWP11",
     "subtitle": "A point A lies inside the circle; draw a chord through A whose length equals the radius.",
     "targetSteps": "5L / 6E",
     "diagram": "diagrams/ewp/ewp11.png",
-    "file": "levels/ewp/ewp11.gmt",
+    "note": "",
+    "tools": "",
     "keywords": ["EWP", "chord", "radius", "multi-solution"],
     "solutions": [
         {"file": "answers/ewp/ewp11/5L.png", "star": "5L"},
@@ -194,11 +195,13 @@ Example (one entry of `data/levels.json`):
 }
 ```
 
-**Adding a pack / level**: put the `.gmt` and its diagram into `data/levels` and `data/diagrams`, then add a pack to `levelpacks.json` and a level to `levels.json`. If you generate them with a script, keep the display fields (`name` / `description` / `icon` / `title` / `subtitle` / `number` / `note`) instead of overwriting them.
+The field order is the order given in the two tables above; fields that don't apply are written as an empty string / empty array (the page treats them as "not written", i.e. the default) — except switch-like fields such as `tools`, which are simply left out instead of being written as an empty string. File and directory names never contain underscores — always a hyphen `-`.
+
+**Adding a pack / level**: put the `.gmt` and its diagram into `data/levels` and `data/diagrams`, then add a pack to `levelpacks.json` and a level to `levels.json`. If you generate them with a script, keep the display fields (`name` / `description` / `icon` / `title` / `subtitle` / `note`) instead of overwriting them.
 
 There are currently **47 levels** with a tool restriction (43 straightedge-only and 4 compass-only); the whole `extra-straightedge-only-pzls` pack (36 levels) is straightedge-only.
 
-> `data/diagrams/ewp/` still holds 5 old problem images that were never used (`EWP021__Def.png` / `EWP049__Def.png` / `EWP066__Def.png` / `EWP088__Def.png` / `EWP091__Def.png`; these levels are not in `levels.json`), they are referenced by nothing and were never renamed — delete them if you like.
+> `data/diagrams/ewp/` still holds 5 old problem images that were never used (`EWP021--Def.png` / `EWP049--Def.png` / `EWP066--Def.png` / `EWP088--Def.png` / `EWP091--Def.png`; these levels are not in `levels.json`), they are referenced by nothing and their underscores were turned into hyphens as well — delete them if you like.
 
 ### About the source material
 
@@ -260,22 +263,24 @@ Points on a circle use radians from the positive x axis (clockwise positive, mat
 
 Write `x` in gmt following that convention; points clicked on the board use the same conversion, so "what you draw" and "what a loaded level contains" agree.
 
-**Intersection indexing (`index`)**
+**Intersection arguments (`Intersect[object1,object2,x,known point]`)**
 
-The third argument of `Intersect` is the intersection's identity, and the board computes and stores it with the same convention (so an intersection never jumps to the other candidate when the figure moves):
+The third argument `x` of `Intersect` is the intersection's identity; the board computes and stores it with the same convention, so an intersection never jumps to the other candidate when the figure moves:
 
 * line and line: a single intersection, `x=0`;
-* line and circle: candidates are ordered along the **direction of the line** (first defining point → second defining point) and numbered as measured in the original game:
-  * **the first `Intersect` on the same pair of bases always takes the "non-defining" candidate** — writing `x` as 0 or 1 makes no difference (with `c1=Circle[A,B]`, `s1=Line[B,A]`, both `E=Intersect[c1,s1,0]` and `F=Intersect[c1,s1,1]` land on A);
-  * **the second and later ones** take `x` literally (same example with `s1=Line[A,B]`: `E=Intersect[c1,s1,0]` is A and `F=Intersect[c1,s1,1]` is B);
-  * "defining point" means **the radius endpoint of the circle** (`B` in `Circle[A,B]`); a line's own defining points don't count — so when a line is drawn through a point on the circle that known point is still an eligible candidate;
-* circle and circle: candidates are ordered counter-clockwise starting from **centre of object 1 → centre of object 2**, with the same numbering rules as line/circle (the first `Intersect` takes the non-defining candidate, later ones take `x`). With `a=Circle[A,B]`, `b=Circle[C,B]` (B is a defining point of both circles, hence one of the intersections): `D=Intersect[a,b,0]` and `E=Intersect[a,b,1]` give `D=not B, E=B` when B lies on one side of the centre line and `D=E=not B` on the other; writing the two lines the other way round (1 first, then 0) gives exactly the mirrored result. With only one line, both 0 and 1 give the "not B" point;
-* **the chosen candidate's identity is remembered** (it never jumps): once an intersection is computed, its identity — "the one coinciding with a defining point" or "the other one" — is recorded and preferred on every recomputation. So dragging a figure, or even dragging B across the centre line, never makes the intersection suddenly switch;
+* line and circle: candidates are numbered along the **direction of the line** (first defining point → second defining point); which one is picked follows the rules below (as measured in the original game):
+  * **the first `Intersect` on the same pair of bases always takes the "non-defining" candidate** — writing `x` as 0 or 1 makes no difference (with `c1=Circle[A,B]`, `s1=Line[B,A]`, both `E=Intersect[c1,s1,0]` and `F=Intersect[c1,s1,1]` pick the point on the circle that is not B);
+  * **the second and later ones** take `x` literally (same example with `s1=Line[A,B]`: number 0 is B and number 1 is the other point);
+  * the "defining point" is **the radius endpoint of the circle** (`B` in `Circle[A,B]`) — the point you clicked when drawing that circle, i.e. the point the circle already has on it;
+  * when a candidate position **already carries another point** (that radius endpoint being crossed by this line, a point `C` the circle already has, a defining point shared by two circles …) — in other words, **the intersection the pair already has** — it is best to write that point as the **fourth argument** (see below): without it the numbering can only be worked out from rules such as "the first one takes the non-defining candidate", which is easy to get wrong and may land on the other candidate;
+* circle and circle: candidates run counter-clockwise starting from **centre of object 1 → centre of object 2**, picked the same way as line/circle (the first takes the non-defining candidate, later ones take `x`). With `a=Circle[A,B]`, `b=Circle[C,B]` (B is the radius endpoint of both circles, hence one of the intersections): `D=Intersect[a,b,0]` and `E=Intersect[a,b,1]` give `D=not B, E=B` when B lies on one side of the centre line and `D=E=not B` on the other; writing the two lines the other way round (1 first, then 0) gives exactly the mirrored result; with a single line, both 0 and 1 give the "not B" point;
+* **the chosen candidate's identity is remembered (it never jumps)**: once an intersection is computed, its identity — "the one coinciding with a defining point" or "the other one" — is kept and preferred on every recomputation. So dragging a figure, or even dragging B across the centre line, never makes the intersection switch to the other point;
 * a line's own **direction** must match the table above, otherwise the numbering is inverted: lines / segments / rays use first defining point → second defining point; perpendiculars and perpendicular bisectors use "the reference line's direction rotated 90° clockwise"; angle bisectors use the opening direction of the angle; parallels share the direction of the line they are parallel to; tangents start from the tangent point;
-* **candidates are filtered by range before numbering**: an intersection on a segment / ray can only be the one inside its range, and candidates outside it must not consume an index (`Intersect[ray,circle,0]` means the intersection in the ray's direction). When no candidate is in range the original list is kept, the index is used as usual and the result is marked "invalid but not deleted", so an intersection that temporarily leaves the line while dragging doesn't jump to the other point;
-* the fourth argument (such as the `F` in `Intersect[s3,c2,1,F]`) is **the intersection already known**, excluded before applying `x` (it may be omitted or written as `-`); that exclusion survives undo and save/load.
+* **segments / rays are only range-filtered, never renumbered**: `x` still follows the candidate order of the underlying line, so a single in-range intersection is never treated as number 0. When no candidate is in range the original list is kept, the index is used as usual and the result is marked "invalid but not deleted" — an intersection that temporarily leaves the line while dragging never jumps to the other point;
 
-Once an `index` is configured the intersection is "remembered": when the range of a segment or ray changes so that the intersection leaves it (or the two objects stop intersecting) the point becomes **invalid but is not deleted** (not drawn, not used in constructions) and recovers automatically when they intersect again. Intersections created with the intersection tool pick the candidate nearest the click.
+The fourth argument of `Intersect` (such as the `F` in `Intersect[s3,c2,1,F]`) is **the intersection already known**: it is excluded before `x` is applied (it may be omitted or written as `-`), and that exclusion survives undo and save/load. When the intersection tool is used at a crossing — and likewise when the point tool snaps to an intersection, or a construction picks one up on the way — and one of the candidate positions already carries another point (a given point, a point on the circle, another intersection …), that point is recorded as the known one — so "the other intersection" gets a fixed identity and never slides onto the known point while dragging. Since the identity is settled, the third argument no longer matters, and the export writes `Intersect[figure1,figure2,-,known point]` (with a circle `AB` carrying `C` and a line `DC` through it, the other intersection comes out as `Intersect[s1,c1,-,C]`).
+
+Once the intersection arguments are set the intersection is "remembered": when the range of a segment or ray changes so that the intersection leaves it (or the two objects stop intersecting) the point becomes **invalid but not deleted** (not drawn, not used in constructions) and recovers automatically once they intersect again. 
 
 **Setting lines**
 

@@ -1024,8 +1024,43 @@ class ToolsFunction {
         if (!element2.getValid()) return {valid: false};
         
         const index = define.value || 0;
-        let candidates = ToolsFunction.intersectionCandidates(element1, element2);
-        if (!candidates.length) return {valid: false};
+        // 候选表只算一次：下面那份「编号用的原始候选表」也用它（重算一次纯属浪费，
+        // 交点解析在拖动时是热路径）
+        const rawList = ToolsFunction.intersectionCandidates(element1, element2);
+        if (!rawList.length) return {valid: false};
+        let candidates = rawList;
+        // 唯一在以前代码之上补的一处（**只碰范围判断**）：下面 `numberingBase` 是「编号用的原始候选表」
+        // （按 gmt 语义再把第四个参数那个已知交点排掉）。范围过滤**真的挡掉了候选**时（线段 / 射线缩短，
+        // 某个候选跑到范围外），编号会被重排，index 指向的已经不是原来那个候选了 —— 这个交点就会被顶到
+        // **另一个交点**的位置上（0 号点跑到 1 号候选处）。这时改成按「上一次选中是原始候选表里的第几个」
+        // 取，取到范围外就判失效（对象保留、不显示，重新相交后自动恢复）。
+        // 范围过滤没有挡掉候选时走不到这里，编号与身份规则与以前完全一致
+        const numberingBase = (() => {
+            let list = rawList;
+            const excludeCoord = define.exclude && typeof define.exclude.getCoordinate === 'function'
+                ? define.exclude.getCoordinate() : null;
+            if (excludeCoord && list.length > 1) {
+                const rest = list.filter(candidate => Math.hypot(candidate.x - excludeCoord[0], candidate.y - excludeCoord[1]) > 1e-6);
+                if (rest.length) list = rest;
+            }
+            return list;
+        })();
+        const rangeKept = numberingBase.filter(candidate => ToolsFunction.pointInElementRange(candidate.x, candidate.y, element1)
+            && ToolsFunction.pointInElementRange(candidate.x, candidate.y, element2));
+        // ① 编号定过之后的重算：以「记住的那个候选」为准，只判范围。
+        //    初次编号的规则（「第一个 Intersect 取非定义点」、范围过滤后的编号）只在最开始那一次说了算，
+        //    重算时若再让它们说话，就会出问题 ——
+        //    ・半径端点恰好在某一刻变成交点时，`distinguishable` 突然成立，交点会被拨到另一个候选上；
+        //    ・范围过滤把候选筛少时，`list[index] || list[0]` 的兜底也会落到另一个候选上（例如圆上已有的那个点）。
+        //    两种情况都表现为「交点在已知点上闪，而不是失效」。记住的那个候选跑到范围外时一律失效
+        //    （对象保留、不显示，重新相交后自动恢复）。
+        //    例外：有「身份」且这次范围过滤没挡掉候选时，交给下面的身份分支（README：身份优先，不跳变）
+        const rememberedIndex = Number.isInteger(define.rawIndex) ? numberingBase[define.rawIndex] : null;
+        if (rememberedIndex && (!define.candidateIdentity || rangeKept.length < numberingBase.length)) {
+            if (!ToolsFunction.pointInElementRange(rememberedIndex.x, rememberedIndex.y, element1)) return {valid: false};
+            if (!ToolsFunction.pointInElementRange(rememberedIndex.x, rememberedIndex.y, element2)) return {valid: false};
+            return {valid: true, coordinate: [rememberedIndex.x, rememberedIndex.y]};
+        }
         // 取编号之前先按「是否落在对象范围内」过一遍：线段 / 射线上的交点只可能是范围内的那个
         // （Intersect[射线,圆,0] 指的是射线方向上的交点，射线反方向的候选不该占编号——
         //  不过滤的话 0 号会取到反向那个，再被范围检查判成失效，整个图形就画不出来）
@@ -1044,7 +1079,6 @@ class ToolsFunction {
                 if (rest.length) candidates = rest.map((candidate, i) => ({index: i, x: candidate.x, y: candidate.y}));
             }
         }
-        
         // 线与圆 / 圆与圆：候选带「是不是与圆的定义点重合」的标记，
         // 编号按 原版游戏的实测规则（第一个 Intersect 取非定义点那个）来挑，见 pickIntersectionCandidate
         const type1 = element1.getType();
@@ -1069,6 +1103,9 @@ class ToolsFunction {
             }
             const chosen = ToolsFunction.pickIntersectionCandidate(define, list, index);
             if (!chosen) return {valid: false};
+            // 记下这个候选在原始候选表里的位置（供上面那处范围判断用）
+            const chosenSlot = numberingBase.findIndex(candidate => Math.hypot(candidate.x - chosen.x, candidate.y - chosen.y) < 1e-6);
+            if (chosenSlot >= 0) define.rawIndex = chosenSlot;
             if (!ToolsFunction.pointInElementRange(chosen.x, chosen.y, element1)) return {valid: false};
             if (!ToolsFunction.pointInElementRange(chosen.x, chosen.y, element2)) return {valid: false};
             return {valid: true, coordinate: [chosen.x, chosen.y]};
@@ -1076,6 +1113,9 @@ class ToolsFunction {
         
         // 只有一个交点时忽略编号，避免编号越界
         const target = candidates.length === 1 ? candidates[0] : (candidates[index] || candidates[0]);
+        // 记下这个候选在原始候选表里的位置（供上面那处范围判断用）
+        const targetSlot = numberingBase.findIndex(candidate => Math.hypot(candidate.x - target.x, candidate.y - target.y) < 1e-6);
+        if (targetSlot >= 0) define.rawIndex = targetSlot;
         // 相交于线段、射线之外时该交点失效：对象保留（不显示），重新相交后自动恢复
         if (!ToolsFunction.pointInElementRange(target.x, target.y, element1)) return {valid: false};
         if (!ToolsFunction.pointInElementRange(target.x, target.y, element2)) return {valid: false};
@@ -1192,11 +1232,12 @@ class ToolsFunction {
         if (base.type !== 'twoPoints') return null;
         const figure = base.figure || [];
         const item = figure[1];
-        // 半径端点本身是个**自由点**时不算定义点：它只是被点在那儿，与「这个圆是怎么作出来的」无关。
-        // 不排除的话，它一旦恰好落在（或落笔时被吸附到）别的图形上，交点编号就会翻到另一侧 ——
-        // 表现为「自由点离别的图形很近，交点跳到另一边」。永远不要因为自由点恰好在特殊位置就当它是特殊的点
-        // （本来就是「线上点 / 交点」这类构造出来的点，仍然算定义点）
-        if (item && typeof item.getBase === 'function' && item.getBase().type === 'none') return null;
+        // 半径端点是**自由点**（关卡给定的点、点出来的点）时同样算定义点：两点圆的半径端点按定义就在圆上，
+        // 这是它的构造身份，不是「碰巧落在这儿」。以前这里把自由点排掉，于是 `a=Circle[A,B]`、`b=Circle[C,B]`
+        // 这种 B 两圆共用的组合永远判不出「与定义点重合的那个」候选，身份记不下来 —— 把 B 拖到连心线另一侧时
+        // 编号跟着候选顺序翻转，那个交点就和 B 重合了（见 README「交点编号」：身份会被记住、不跳变）。
+        // 要排除的是「别的自由点碰巧落在图形上」那种巧合，而那种巧合根本不进这个判定：这里只看
+        // **这个圆自己的半径端点**，别的自由点离得再近也不会被当成定义点
         const coord = item && typeof item.getCoordinate === 'function' ? item.getCoordinate() : null;
         return Array.isArray(coord) && typeof coord[0] === 'number' ? coord : null;
     }

@@ -27,12 +27,33 @@ class PointTool {
     }
     
     /**
+     * 这个位置是否已经有个可见的点 过程函数
+     * 点工具不再往已经有点的位置造点：别的作图工具遇到已有点都是「引用」它，不新建
+     * （见 ExceptPointBaseToolTemplate.click），点工具以前不看已有点，于是在已经标出的交点
+     * 上点一下还会再叠一个点上去。口径与直线 / 圆的去重（findSameElement）、交点工具的
+     * 「不在已经有点的位置重复作点」一致：**隐藏的点不算**（near 本身就跳过隐藏与失效的对象）
+     * @param {number} x 逻辑坐标（已经过 snapCursorPosition 吸附）
+     * @param {number} y
+     * @returns {boolean}
+     */
+    pointExistsAt(x, y) {
+        return geometryManager.near([x, y], ["point"], 1).length > 0;
+    }
+    
+    /**
      * 点击 过程函数
      * @param {number} x
      * @param {number} y
      */
     clickEventFunctionPoint(x, y) {
-        this.createPoint(x, y);
+        // 落点已经有点（光标吸附到那个点上）：这次点一下什么也不作。
+        // 仍照常发存储事件 —— 置位后 storage 监听会跳过撤销历史与步数（L / E），
+        // 与「图形画布上已经有了」走同一条通道
+        if (this.pointExistsAt(x, y)) {
+            geometryManager.duplicatedFlag = true;
+        }else{
+            this.createPoint(x, y);
+        }
         // 触发存储事件
         const event = new CustomEvent("storage", {
             detail: {
@@ -61,8 +82,18 @@ class PointTool {
      * @param {number} y
      */
     drawCompleteEventFunctionPoint(x, y) {
-        geometryManager.loadTool("point");
-        this.cachePointFlag = false;
+        // 拖着点工具落到已经有点的位置：这次拖动作废（草稿擦掉，不记历史 / 步数），
+        // 位置取「即将落下的那个点」——拖动时它已经吸附过，见 moveCachePoint
+        const cache = geometryManager.getToolKey(this.toolName, "cache");
+        const coordinate = cache && typeof cache.getCoordinate === 'function' ? cache.getCoordinate() : null;
+        const dropped = Array.isArray(coordinate) && this.pointExistsAt(coordinate[0], coordinate[1]);
+        if (dropped) {
+            this.cancelEventFunctionPoint();
+            geometryManager.duplicatedFlag = true;
+        }else{
+            geometryManager.loadTool("point");
+            this.cachePointFlag = false;
+        }
         // 触发存储事件
         const event = new CustomEvent("storage", {
             detail: {
@@ -95,7 +126,7 @@ class PointTool {
         const snap = geometryManager.nearestIntersection(x, y);
         if (snap) {
             const snapPoint = geometryManager.createPoint(snap.x, snap.y);
-            snapPoint.modifyBase("intersection", [snap.element1, snap.element2], snap.index);
+            applyIntersectionBase(snapPoint, snap);
             snap.element1.addSuperstructure(snapPoint);
             snap.element2.addSuperstructure(snapPoint);
             geometryManager.addObject(snapPoint);
@@ -115,7 +146,7 @@ class PointTool {
                     goalY = coord.y;
                     
                     const pointObject = geometryManager.createPoint(goalX, goalY);
-                    pointObject.modifyBase("intersection", [element1, element2], 0);
+                    applyIntersectionBase(pointObject, {x: goalX, y: goalY, element1: element1, element2: element2, index: 0});
                     element1.addSuperstructure(pointObject);
                     element2.addSuperstructure(pointObject);
                     geometryManager.addObject(pointObject);
@@ -130,7 +161,7 @@ class PointTool {
                         goalY = coord.y;
                         
                         const pointObject = geometryManager.createPoint(goalX, goalY);
-                        pointObject.modifyBase("intersection", [element1, element2], index);
+                        applyIntersectionBase(pointObject, {x: goalX, y: goalY, element1: element1, element2: element2, index: index});
                         element1.addSuperstructure(pointObject);
                         element2.addSuperstructure(pointObject);
                         geometryManager.addObject(pointObject);
@@ -149,7 +180,7 @@ class PointTool {
                         goalY = coord.y;
                         
                         const pointObject = geometryManager.createPoint(goalX, goalY);
-                        pointObject.modifyBase("intersection", [element1, element2], index);
+                        applyIntersectionBase(pointObject, {x: goalX, y: goalY, element1: element1, element2: element2, index: index});
                         element1.addSuperstructure(pointObject);
                         element2.addSuperstructure(pointObject);
                         geometryManager.addObject(pointObject);
@@ -167,7 +198,7 @@ class PointTool {
                         goalY = coord.y;
                         
                         const pointObject = geometryManager.createPoint(goalX, goalY);
-                        pointObject.modifyBase("intersection", [element1, element2], index);
+                        applyIntersectionBase(pointObject, {x: goalX, y: goalY, element1: element1, element2: element2, index: index});
                         element1.addSuperstructure(pointObject);
                         element2.addSuperstructure(pointObject);
                         geometryManager.addObject(pointObject);
@@ -186,7 +217,7 @@ class PointTool {
                         goalY = coord.y;
                         
                         const pointObject = geometryManager.createPoint(goalX, goalY);
-                        pointObject.modifyBase("intersection", [element1, element2], index);
+                        applyIntersectionBase(pointObject, {x: goalX, y: goalY, element1: element1, element2: element2, index: index});
                         element1.addSuperstructure(pointObject);
                         element2.addSuperstructure(pointObject);
                         geometryManager.addObject(pointObject);
@@ -202,7 +233,7 @@ class PointTool {
                         goalY = coord.y;
                         
                         const pointObject = geometryManager.createPoint(goalX, goalY);
-                        pointObject.modifyBase("intersection", [element1, element2], index);
+                        applyIntersectionBase(pointObject, {x: goalX, y: goalY, element1: element1, element2: element2, index: index});
                         element1.addSuperstructure(pointObject);
                         element2.addSuperstructure(pointObject);
                         geometryManager.addObject(pointObject);
@@ -221,7 +252,7 @@ class PointTool {
                         goalY = coord.y;
                         
                         const pointObject = geometryManager.createPoint(goalX, goalY);
-                        pointObject.modifyBase("intersection", [element1, element2], index);
+                        applyIntersectionBase(pointObject, {x: goalX, y: goalY, element1: element1, element2: element2, index: index});
                         element1.addSuperstructure(pointObject);
                         element2.addSuperstructure(pointObject);
                         geometryManager.addObject(pointObject);
@@ -301,7 +332,7 @@ class PointTool {
         if (snap) {
             geometryManager.deleteToolKey(this.toolName, "adsorb");
             point.clearBase();
-            point.modifyBase("intersection", [snap.element1, snap.element2], snap.index);
+            applyIntersectionBase(point, snap);
             geometryManager.addToolObject(this.toolName, "inter1", "quote", snap.element1.getId());
             geometryManager.addToolObject(this.toolName, "inter2", "quote", snap.element2.getId());
             geometryManager.modifyToolObject(this.toolName, "cache", "create", [snap.x, snap.y]);
@@ -322,7 +353,7 @@ class PointTool {
                     goalX = coord.x;
                     goalY = coord.y;
                     
-                    point.modifyBase("intersection", [element1, element2], 0);
+                    applyIntersectionBase(point, {x: goalX, y: goalY, element1: element1, element2: element2, index: 0});
                     geometryManager.addToolObject(this.toolName, "inter1", "quote", exceptPoints[0]);
                     geometryManager.addToolObject(this.toolName, "inter2", "quote", exceptPoints[1]);
                 
@@ -335,7 +366,7 @@ class PointTool {
                         goalX = coord.x;
                         goalY = coord.y;
                         
-                        point.modifyBase("intersection", [element1, element2], 0);
+                        applyIntersectionBase(point, {x: goalX, y: goalY, element1: element1, element2: element2, index: 0});
                         geometryManager.addToolObject(this.toolName, "inter1", "quote", exceptPoints[0]);
                         geometryManager.addToolObject(this.toolName, "inter2", "quote", exceptPoints[1]);
                         
@@ -352,7 +383,7 @@ class PointTool {
                         goalX = coord.x;
                         goalY = coord.y;
                         
-                        point.modifyBase("intersection", [element1, element2], index);
+                        applyIntersectionBase(point, {x: goalX, y: goalY, element1: element1, element2: element2, index: index});
                         geometryManager.addToolObject(this.toolName, "inter1", "quote", exceptPoints[0]);
                         geometryManager.addToolObject(this.toolName, "inter2", "quote", exceptPoints[1]);
                         
@@ -368,7 +399,7 @@ class PointTool {
                         goalX = coord.x;
                         goalY = coord.y;
                         
-                        point.modifyBase("intersection", [element1, element2], 0);
+                        applyIntersectionBase(point, {x: goalX, y: goalY, element1: element1, element2: element2, index: 0});
                         geometryManager.addToolObject(this.toolName, "inter1", "quote", exceptPoints[0]);
                         geometryManager.addToolObject(this.toolName, "inter2", "quote", exceptPoints[1]);
                         
@@ -385,7 +416,7 @@ class PointTool {
                         goalX = coord.x;
                         goalY = coord.y;
                         
-                        point.modifyBase("intersection", [element1, element2], index);
+                        applyIntersectionBase(point, {x: goalX, y: goalY, element1: element1, element2: element2, index: index});
                         geometryManager.addToolObject(this.toolName, "inter1", "quote", exceptPoints[0]);
                         geometryManager.addToolObject(this.toolName, "inter2", "quote", exceptPoints[1]);
                         
@@ -399,7 +430,7 @@ class PointTool {
                         goalX = coord.x;
                         goalY = coord.y;
                         
-                        point.modifyBase("intersection", [element1, element2], 0);
+                        applyIntersectionBase(point, {x: goalX, y: goalY, element1: element1, element2: element2, index: 0});
                         geometryManager.addToolObject(this.toolName, "inter1", "quote", exceptPoints[0]);
                         geometryManager.addToolObject(this.toolName, "inter2", "quote", exceptPoints[1]);
                         
@@ -416,7 +447,7 @@ class PointTool {
                         goalX = coord.x;
                         goalY = coord.y;
                         
-                        point.modifyBase("intersection", [element1, element2], index);
+                        applyIntersectionBase(point, {x: goalX, y: goalY, element1: element1, element2: element2, index: index});
                         geometryManager.addToolObject(this.toolName, "inter1", "quote", exceptPoints[0]);
                         geometryManager.addToolObject(this.toolName, "inter2", "quote", exceptPoints[1]);
                         
@@ -672,6 +703,131 @@ class CircleTool {
     }
 }
 
+/**
+ * 这个位置是不是已经有点了 过程函数
+ * 交点工具的快捷路径（点交叉处直接取交点）与「选两个图形」两条路都调它：
+ * 相交处已经有点时（不论那是交点、线上点、中点还是给定的自由点）都不再重复造一个交点。
+ * **隐藏的点不算**：与线 / 圆的去重（findSameElement）口径一致 —— 那个位置只剩隐藏的点时，
+ * 交点照旧能作出来（隐藏＝不显示、不挡着新图形落在同一个位置；可见性变化不影响这里之外的编号逻辑）。
+ * 写成模块级函数而不是类方法：createIntersection 是作为回调传给模板的（未绑定），里面的 this 是模板
+ * @param {number} x 逻辑 x
+ * @param {number} y 逻辑 y
+ * @returns {boolean}
+ */
+function hasPointAtPosition(x, y) {
+    return geometryManager.getAllByOrder().some(item => {
+        if (item.getType() !== 'point') return false;
+        if (!item.getVisible()) return false;
+        const coord = item.getCoordinate?.();
+        if (!coord) return false;
+        return Math.hypot(coord[0] - x, coord[1] - y) < 1e-6;
+    });
+}
+
+/**
+ * 同一个位置上的点 过程函数
+ * 与 hasPointAtPosition 的区别：要把那个点本身拿出来 —— 导出 gmt 时
+ * `Intersect[图形1,图形2,x,已知点]` 的第四个参数要用它的 id 指代
+ * @param {number} x 逻辑 x
+ * @param {number} y 逻辑 y
+ * @returns {Object|null}
+ */
+function pointAtPosition(x, y) {
+    return geometryManager.getAllByOrder().find(item => {
+        if (item.getType() !== 'point') return false;
+        const coord = item.getCoordinate?.();
+        if (!coord) return false;
+        return Math.hypot(coord[0] - x, coord[1] - y) < 1e-6;
+    }) || null;
+}
+
+/**
+ * 图形的定义点 过程函数
+ * 「定义点」＝画这个图形时点出来的那些点：`Circle[A,B]` 是 A、B，`Line[D,C]` 是 D、C，
+ * 基底里是图形时（垂线、复制圆…）不再往里找 —— 与 `ToolsFunction.definingPointCoordinate` 的口径一致，
+ * 只认这一层「这个图形是用哪些点作出来的」
+ * @param {Object[]} elements
+ * @returns {Set<string>} 这些点自己的 id
+ */
+function definingPointIds(elements) {
+    const ids = new Set();
+    for (const element of elements) {
+        const base = element && typeof element.getBase === 'function' ? element.getBase() : null;
+        const figure = base && Array.isArray(base.figure) ? base.figure : [];
+        for (const item of figure) {
+            if (item && typeof item.getType === 'function' && item.getType() === 'point') ids.add(item.getId());
+        }
+    }
+    return ids;
+}
+
+/**
+ * 这一对图形上的「已知交点」 过程函数
+ * 某个候选位置上有个**定义点**时（如 `Circle[A,B]` 的半径端点 B 本身就是两圆的公共点、
+ * 或者直线就是过那个点作出来的），那个点就是已知交点：记到 define.exclude 上，
+ * **另一个交点因此有了固定身份** —— 拖动时不会滑到已知点上，导出 gmt 时也会写成
+ * `Intersect[图形1,图形2,-,已知点]`（如「圆 AB 上有 C、直线 DC」时 C 就是这个点）。
+ * 只有「画图形时就用到的点」（见 definingPointIds）才算：**用交点工具后来标出来的那个交点不算** ——
+ * 标记一对图形的两个交点时，第二个不会把第一个记成已知交点（否则导出 gmt 会写成
+ * `Intersect[图形1,图形2,-,刚标出来的交点]`，指代的是自己作出来的点，不是题面的已知条件）。
+ * 两个候选上都有定义点时不写（例如圆与圆的公共半径端点，写了指代不清）
+ * @param {Object[]} candidates 候选交点
+ * @param {Object} element1
+ * @param {Object} element2
+ * @returns {Object|null}
+ */
+function knownIntersectionPoint(candidates, element1, element2) {
+    // 线与线只有一个候选，没有「另一个交点」可言，不写第四个参数
+    if (!candidates || candidates.length < 2) return null;
+    const defining = definingPointIds([element1, element2]);
+    const found = candidates.map(candidate => pointAtPosition(candidate.x, candidate.y))
+        .filter(point => !!point && defining.has(point.getId()));
+    return found.length === 1 ? found[0] : null;
+}
+
+/**
+ * 给「吸附到交点上造出来的点」定基底 过程函数
+ * 点工具、以及各作图模板里「光标吸附到交点就顺手造一个交点」的地方都走它，与交点工具口径一致：
+ * 另一个候选位置上是**图形的定义点**时（见 knownIntersectionPoint），那个点记成已知交点（define.exclude），
+ * 于是这个交点有了固定身份（拖动时不会滑到那个点上），导出 gmt 写成 Intersect[图形1,图形2,-,已知点]
+ * @param {Object} point 要落基底的点对象
+ * @param {{x: number, y: number, element1: Object, element2: Object, index: number}} snap
+ *        交点的位置与所在的两个图形（点工具来自 nearestIntersection，模板里是自己算的）
+ */
+function applyIntersectionBase(point, snap) {
+    const candidates = ToolsFunction.intersectionCandidates(snap.element1, snap.element2);
+    const known = knownIntersectionPoint(candidates, snap.element1, snap.element2);
+    const numbering = candidatesWithoutKnown(candidates, known);
+    point.modifyBase("intersection", [snap.element1, snap.element2], candidateIndexOf(numbering, snap, snap.index), known);
+}
+
+/**
+ * 排除已知交点之后的候选表 过程函数
+ * 与 updateIntersectionCoordinate 的编号口径一致：编号是在**排除已知点之后**的表里数的
+ * @param {Object[]} candidates
+ * @param {Object|null} known
+ * @returns {Object[]}
+ */
+function candidatesWithoutKnown(candidates, known) {
+    if (!known || typeof known.getCoordinate !== 'function') return candidates;
+    const coord = known.getCoordinate();
+    if (!Array.isArray(coord) || typeof coord[0] !== 'number') return candidates;
+    const rest = candidates.filter(candidate => Math.hypot(candidate.x - coord[0], candidate.y - coord[1]) > 1e-6);
+    return rest.length ? rest : candidates;
+}
+
+/**
+ * 候选在某张表里的编号 过程函数
+ * @param {Object[]} list 编号用的表（已排除已知点的）
+ * @param {{x: number, y: number}} target
+ * @param {number} fallback 表里找不到时用原来的编号
+ * @returns {number}
+ */
+function candidateIndexOf(list, target, fallback) {
+    const index = list.findIndex(candidate => Math.hypot(candidate.x - target.x, candidate.y - target.y) < 1e-6);
+    return index >= 0 ? index : fallback;
+}
+
 class IntersectionTool {
     constructor() {
         this.toolName = 'intersection';
@@ -694,8 +850,11 @@ class IntersectionTool {
      */
     toolEvent(type, oriX, oriY) {
         // 直接点在「两个图形相交的位置」上时，不必先选两个图形：就地作出这个交点
-        // （euclidea 的手感：交点工具点交叉处＝取这个交点）。否则点一下只会选中其中一个图形
-        if (type === "click" && this.createIntersectionAtCursor(oriX, oriY)) return;
+        // （euclidea 的手感：交点工具点交叉处＝取这个交点）。否则点一下只会选中其中一个图形。
+        // 但**已经选了第一个图形（choice1）时不能走这条捷径**：那一下就是在选第二个图形，
+        // 走了捷径就只标出光标下最近的那一个，另一半交点永远标不出来（见 createIntersection）
+        const pending = geometryManager.ifToolInCache(this.toolName);
+        if (type === "click" && !pending && this.createIntersectionAtCursor(oriX, oriY)) return;
         this.intersectionMode.toolEvent(type, oriX, oriY);
     }
     
@@ -712,8 +871,13 @@ class IntersectionTool {
         if (!snap) return false;
         // 这一次点击就是「要这个交点」，先把选了一半的对象丢掉
         geometryManager.deleteTool(this.toolName);
+        // 这个位置已经有点了（交点 / 线上点 / 给定点都算）就不再重复作
+        //（这一下点击仍然算数，不改选中状态）
+        if (hasPointAtPosition(snap.x, snap.y)) return true;
         const point = geometryManager.createPoint(snap.x, snap.y);
-        point.modifyBase("intersection", [snap.element1, snap.element2], snap.index);
+        // 基底走统一入口：另一个候选上已经有点时（如圆上已有 C、直线过 C）自动记成已知交点，
+        // 这个交点于是有自己的身份（不会滑到 C 上），导出时写成 Intersect[图形1,图形2,-,C]
+        applyIntersectionBase(point, snap);
         snap.element1.addSuperstructure(point);
         snap.element2.addSuperstructure(point);
         geometryManager.addToolObject(this.toolName, "intersection", "append", point);
@@ -730,12 +894,21 @@ class IntersectionTool {
     
     /**
      * 创建交点 过程函数
-     * @param {number} [clickX] 选完两个对象时的点击位置（多个交点时用来确定取哪一个）
-     * @param {number} [clickY]
+     * 选完两个图形就把范围内存在的交点一次全部标出，所以用不到点击位置（模板仍会传进来，忽略即可）
      */
-    createIntersection(clickX, clickY) {
+    createIntersection() {
         const element1 = geometryManager.getToolKey(this.toolName, "choice1");
         const element2 = geometryManager.getToolKey(this.toolName, "choice2");
+        // 无论作不作出交点，这两下点击都算用完：缓存必须清掉，
+        // 否则点了两个不相交的图形会一直卡在「两个都选中」的状态
+        const clearChoice = () => geometryManager.deleteTool(this.toolName);
+        // 这一次没标出任何交点（两图形不相交 / 候选交点全在线段、射线的范围之外 /
+        // 相交处已经有别的点了）：与「图形画布上已经有了」同样处理 —— 置位这个标记，
+        // storage 监听会跳过撤销历史（游玩模式也不记步数，L / E 不变）。
+        // 模板在 create() 之后一定会发 storage 事件（见 ExceptPointBaseToolTemplate.click / check），
+        // 标记随即被 takeDuplicatedFlag() 取走，不会留到下一次作图
+        const markNothingCreated = () => { geometryManager.duplicatedFlag = true; };
+        if (!element1 || !element2) { clearChoice(); markNothingCreated(); return; }
         
         // 全部候选交点（编号与 gmt 的 Intersect[对象1,对象2,x] 一致）
         const candidates = ToolsFunction.intersectionCandidates(element1, element2);
@@ -743,28 +916,34 @@ class IntersectionTool {
         const valid = candidates.filter(item =>
             ToolsFunction.pointInElementRange(item.x, item.y, element1) &&
             ToolsFunction.pointInElementRange(item.x, item.y, element2));
-        if (!valid.length) return;
+        if (!valid.length) { clearChoice(); markNothingCreated(); return; }
         
-        // 多个交点时取离点击处最近的那一个，其编号（index）即该交点的身份
-        let target = valid[0];
-        if (valid.length > 1 && Number.isFinite(clickX) && Number.isFinite(clickY)) {
-            let minDistance = Infinity;
-            valid.forEach(item => {
-                const distance = Math.hypot(item.x - clickX, item.y - clickY);
-                if (distance < minDistance) {
-                    minDistance = distance;
-                    target = item;
-                }
-            });
-        }
+        // 圆 × 线 / 圆 × 圆 最多有 2 个交点：选完两个图形就一次把范围内存在的交点都标出来。
+        // 编号一定要用候选在**原始候选表**里的位置（item.index），不能重新数「范围内第几个」：
+        // 线段 / 射线缩短使某个候选跑到范围外时，它在原始表里仍占着自己的编号，这里写 0 的话
+        // 这个点就换到另一个交点上去了。用 item.index 也与「点交叉处直接取交点」那条捷径一致
+        //（nearestIntersection 返回的同样是 candidate.index，范围过滤只决定能不能取、不重编号）
+        const targets = valid;
         
-        const point = geometryManager.createPoint(target.x, target.y);
-        point.modifyBase("intersection", [element1, element2], target.index);
-        element1.addSuperstructure(point);
-        element2.addSuperstructure(point);
-        geometryManager.addToolObject(this.toolName, "intersection", "append", point);
-        
-        geometryManager.loadTool(this.toolName);
+        let created = 0;
+        targets.forEach(item => {
+            // 这个位置已经有点了（交点 / 线上点 / 中点 / 给定点都算）就不再重复作
+            if (hasPointAtPosition(item.x, item.y)) return;
+            const point = geometryManager.createPoint(item.x, item.y);
+            // 基底走统一入口：候选位置上已经有别的点（给定点 / 圆上的点 / 别的交点…）时
+            // 自动记成已知交点 —— 造出来的是「另一个交点」，身份因此固定、导出写成 `-,已知点`
+            applyIntersectionBase(point, {x: item.x, y: item.y, element1: element1, element2: element2, index: item.index});
+            element1.addSuperstructure(point);
+            element2.addSuperstructure(point);
+            // 直接落到画布，不走工具缓存：一次要造两个交点时，
+            // 缓存里同一个 id / 提交逻辑只会留下最后一个（实测无论换不换键都只出一个）
+            geometryManager.addObject(point);
+            created += 1;
+        });
+        // 所有候选处都已经有点了：同样不该占一格历史
+        if (!created) markNothingCreated();
+        // 选中缓存（choice1 / choice2）清掉，与走完一次作图后的状态一致
+        geometryManager.deleteTool(this.toolName);
     }
     
     /**

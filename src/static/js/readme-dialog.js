@@ -118,14 +118,22 @@ function renderMarkdown(text) {
 }
 
 /**
+ * 弹窗里的两份文档：标题用的 i18n 键、中文文件、英文文件（没有英文版就沿用中文那份）
+ */
+const README_DOCUMENTS = [
+    {key: 'readme', titleKey: 'index.readmeTitle', failedKey: 'index.readmeFailed', zh: './README.md', en: './src/README.en.md'},
+    {key: 'changelog', titleKey: 'index.changelogTitle', failedKey: 'index.changelogFailed', zh: './CHANGELOG.md', en: './CHANGELOG.md'},
+];
+
+/**
  * 打开项目说明弹窗 过程函数
+ * 头部是「项目说明 / 变更日志」两个可选项，切换时按需取回对应文档（取回过的会缓存，来回切不再请求）
  */
 async function openReadmeDialog() {
     if (document.querySelector('.readme-mask')) return;
     const mask = document.createElement('div');
     mask.className = 'readme-mask';
-    mask.innerHTML = '<div class="readme-dialog"><header><strong></strong><button type="button" class="readme-close"></button></header><div class="readme-body"><p class="readme-loading">…</p></div></div>';
-    mask.querySelector('strong').textContent = typeof t === 'function' ? t('index.readmeTitle') : '项目说明';
+    mask.innerHTML = '<div class="readme-dialog"><header><div class="readme-tabs"></div><button type="button" class="readme-close"></button></header><div class="readme-body"><p class="readme-loading">…</p></div></div>';
     const closeButton = mask.querySelector('.readme-close');
     closeButton.textContent = typeof t === 'function' ? t('common.close') : '关闭';
     closeButton.addEventListener('click', () => mask.remove());
@@ -135,18 +143,39 @@ async function openReadmeDialog() {
         mask.remove();
         document.removeEventListener('keydown', onKey);
     });
-    document.body.appendChild(mask);
+    const text = (key, fallback) => typeof t === 'function' ? t(key) : fallback;
     const body = mask.querySelector('.readme-body');
-    try {
-        // 说明文档按当前界面语言取：英文界面读英文版，其余读中文版
-        const readmeFile = typeof currentLang === 'function' && currentLang() === 'en' ? './src/README.en.md' : './README.md';
-        const response = await fetch(readmeFile);
-        if (!response.ok) throw new Error(String(response.status));
-        body.innerHTML = renderMarkdown(await response.text());
-    }catch (error) {
-        console.error(error);
-        body.innerHTML = `<p>${typeof t === 'function' ? t('index.readmeFailed') : '项目说明加载失败。'}</p>`;
-    }
+    const tabs = mask.querySelector('.readme-tabs');
+    const cache = {};
+    const show = async doc => {
+        tabs.querySelectorAll('.readme-tab').forEach(tab => tab.classList.toggle('is-active', tab.dataset.doc === doc.key));
+        if (!(doc.key in cache)) {
+            body.innerHTML = '<p class="readme-loading">…</p>';
+            try {
+                // 文档按当前界面语言取：英文界面读英文版，其余读中文版（没有英文版的沿用中文）
+                const isEnglish = typeof currentLang === 'function' && currentLang() === 'en';
+                const response = await fetch(isEnglish && doc.en ? doc.en : doc.zh);
+                if (!response.ok) throw new Error(String(response.status));
+                cache[doc.key] = renderMarkdown(await response.text());
+            }catch (error) {
+                console.error(error);
+                cache[doc.key] = `<p>${text(doc.failedKey, '文档加载失败。')}</p>`;
+            }
+        }
+        body.innerHTML = cache[doc.key];
+        body.scrollTop = 0;
+    };
+    README_DOCUMENTS.forEach(doc => {
+        const tab = document.createElement('button');
+        tab.type = 'button';
+        tab.className = 'readme-tab';
+        tab.dataset.doc = doc.key;
+        tab.textContent = text(doc.titleKey, doc.key);
+        tab.addEventListener('click', () => show(doc));
+        tabs.appendChild(tab);
+    });
+    document.body.appendChild(mask);
+    show(README_DOCUMENTS[0]);
 }
 
 document.addEventListener('DOMContentLoaded', () => {

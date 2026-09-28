@@ -35,6 +35,8 @@ const I18N_DICT = {
         'index.sourceLink': '项目说明',
         'index.readmeTitle': '项目说明',
         'index.readmeFailed': '项目说明加载失败。',
+        'index.changelogTitle': '变更日志',
+        'index.changelogFailed': '变更日志加载失败。',
         'index.footer': 'Geommunity Blueprint · GitHub Pages',
 
         // 关卡列表 / 关卡包 / 搜索
@@ -240,6 +242,8 @@ const I18N_DICT = {
         'index.sourceLink': 'README',
         'index.readmeTitle': 'README',
         'index.readmeFailed': 'Failed to load the README.',
+        'index.changelogTitle': 'Changelog',
+        'index.changelogFailed': 'Failed to load the changelog.',
         'index.footer': 'Geommunity Blueprint · GitHub Pages',
 
         // Level lists / packs / search

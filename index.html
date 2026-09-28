@@ -60,6 +60,10 @@
         .readme-dialog { display: flex; flex-direction: column; width: min(860px, 100%); max-height: min(86vh, 900px); border-radius: 12px; background: #fff; box-shadow: 0 24px 60px #26323833; overflow: hidden; }
         .readme-dialog header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 20px; border-bottom: 1px solid var(--line); background: var(--paper); }
         .readme-dialog header strong { font-size: 16px; }
+        .readme-tabs { display: flex; gap: 8px; }
+        .readme-tab { padding: 7px 14px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--muted); font: inherit; font-size: 14px; cursor: pointer; }
+        .readme-tab:hover { border-color: var(--blue); color: var(--blue); }
+        .readme-tab.is-active { border-color: var(--blue); background: var(--blue); color: #fff; }
         .readme-close { padding: 7px 14px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); font: inherit; font-size: 13px; cursor: pointer; }
         .readme-close:hover { border-color: var(--blue); color: var(--blue); }
         .readme-body { padding: 8px 24px 28px; overflow: auto; font-size: 14px; line-height: 1.75; }

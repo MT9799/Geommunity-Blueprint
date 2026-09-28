@@ -303,7 +303,7 @@ class PointBaseToolTemplate {
             }
             
             const pointObject = geometryManager.createPoint(goalX, goalY);
-            pointObject.modifyBase("intersection", [element1, element2], index);
+            applyIntersectionBase(pointObject, {x: goalX, y: goalY, element1: element1, element2: element2, index: index});
             element1.addSuperstructure(pointObject);
             element2.addSuperstructure(pointObject);
             geometryManager.addToolObject(this.toolName, `point${this.status + 1}`, "append", pointObject);
@@ -405,7 +405,7 @@ class PointBaseToolTemplate {
                         goalX = coord.x;
                         goalY = coord.y;
                         
-                        point.modifyBase("intersection", [element1, element2], 0);
+                        applyIntersectionBase(point, {x: goalX, y: goalY, element1: element1, element2: element2, index: 0});
                         geometryManager.addToolObject(this.toolName, "inter1", "quote", exceptPoints[0]);
                         geometryManager.addToolObject(this.toolName, "inter2", "quote", exceptPoints[1]);
                     
@@ -418,7 +418,7 @@ class PointBaseToolTemplate {
                             goalX = coord.x;
                             goalY = coord.y;
                             
-                            point.modifyBase("intersection", [element1, element2], 0);
+                            applyIntersectionBase(point, {x: goalX, y: goalY, element1: element1, element2: element2, index: 0});
                             geometryManager.addToolObject(this.toolName, "inter1", "quote", exceptPoints[0]);
                             geometryManager.addToolObject(this.toolName, "inter2", "quote", exceptPoints[1]);
                             
@@ -434,7 +434,7 @@ class PointBaseToolTemplate {
                             goalX = coord.x;
                             goalY = coord.y;
                             
-                            point.modifyBase("intersection", [element1, element2], index);
+                            applyIntersectionBase(point, {x: goalX, y: goalY, element1: element1, element2: element2, index: index});
                             geometryManager.addToolObject(this.toolName, "inter1", "quote", exceptPoints[0]);
                             geometryManager.addToolObject(this.toolName, "inter2", "quote", exceptPoints[1]);
                             
@@ -450,7 +450,7 @@ class PointBaseToolTemplate {
                             goalX = coord.x;
                             goalY = coord.y;
                             
-                            point.modifyBase("intersection", [element1, element2], 0);
+                            applyIntersectionBase(point, {x: goalX, y: goalY, element1: element1, element2: element2, index: 0});
                             geometryManager.addToolObject(this.toolName, "inter1", "quote", exceptPoints[0]);
                             geometryManager.addToolObject(this.toolName, "inter2", "quote", exceptPoints[1]);
                             
@@ -466,7 +466,7 @@ class PointBaseToolTemplate {
                             goalX = coord.x;
                             goalY = coord.y;
                             
-                            point.modifyBase("intersection", [element1, element2], index);
+                            applyIntersectionBase(point, {x: goalX, y: goalY, element1: element1, element2: element2, index: index});
                             geometryManager.addToolObject(this.toolName, "inter1", "quote", exceptPoints[0]);
                             geometryManager.addToolObject(this.toolName, "inter2", "quote", exceptPoints[1]);
                             
@@ -480,7 +480,7 @@ class PointBaseToolTemplate {
                             goalX = coord.x;
                             goalY = coord.y;
                             
-                            point.modifyBase("intersection", [element1, element2], 0);
+                            applyIntersectionBase(point, {x: goalX, y: goalY, element1: element1, element2: element2, index: 0});
                             geometryManager.addToolObject(this.toolName, "inter1", "quote", exceptPoints[0]);
                             geometryManager.addToolObject(this.toolName, "inter2", "quote", exceptPoints[1]);
                             
@@ -496,7 +496,7 @@ class PointBaseToolTemplate {
                             goalX = coord.x;
                             goalY = coord.y;
                             
-                            point.modifyBase("intersection", [element1, element2], index);
+                            applyIntersectionBase(point, {x: goalX, y: goalY, element1: element1, element2: element2, index: index});
                             geometryManager.addToolObject(this.toolName, "inter1", "quote", exceptPoints[0]);
                             geometryManager.addToolObject(this.toolName, "inter2", "quote", exceptPoints[1]);
                             
@@ -885,7 +885,7 @@ class PointBaseDialogToolTemplate {
             }
             
             const pointObject = geometryManager.createPoint(goalX, goalY);
-            pointObject.modifyBase("intersection", [element1, element2], index);
+            applyIntersectionBase(pointObject, {x: goalX, y: goalY, element1: element1, element2: element2, index: index});
             element1.addSuperstructure(pointObject);
             element2.addSuperstructure(pointObject);
             geometryManager.addToolObject(this.toolName, `point${this.status + 1}`, "append", pointObject);
@@ -989,7 +989,7 @@ class PointBaseDialogToolTemplate {
                         goalX = coord.x;
                         goalY = coord.y;
                         
-                        point.modifyBase("intersection", [element1, element2], 0);
+                        applyIntersectionBase(point, {x: goalX, y: goalY, element1: element1, element2: element2, index: 0});
                         geometryManager.addToolObject(this.toolName, "inter1", "quote", exceptPoints[0]);
                         geometryManager.addToolObject(this.toolName, "inter2", "quote", exceptPoints[1]);
                     
@@ -1002,7 +1002,7 @@ class PointBaseDialogToolTemplate {
                             goalX = coord.x;
                             goalY = coord.y;
                             
-                            point.modifyBase("intersection", [element1, element2], 0);
+                            applyIntersectionBase(point, {x: goalX, y: goalY, element1: element1, element2: element2, index: 0});
                             geometryManager.addToolObject(this.toolName, "inter1", "quote", exceptPoints[0]);
                             geometryManager.addToolObject(this.toolName, "inter2", "quote", exceptPoints[1]);
                             
@@ -1018,7 +1018,7 @@ class PointBaseDialogToolTemplate {
                             goalX = coord.x;
                             goalY = coord.y;
                             
-                            point.modifyBase("intersection", [element1, element2], index);
+                            applyIntersectionBase(point, {x: goalX, y: goalY, element1: element1, element2: element2, index: index});
                             geometryManager.addToolObject(this.toolName, "inter1", "quote", exceptPoints[0]);
                             geometryManager.addToolObject(this.toolName, "inter2", "quote", exceptPoints[1]);
                             
@@ -1034,7 +1034,7 @@ class PointBaseDialogToolTemplate {
                             goalX = coord.x;
                             goalY = coord.y;
                             
-                            point.modifyBase("intersection", [element1, element2], 0);
+                            applyIntersectionBase(point, {x: goalX, y: goalY, element1: element1, element2: element2, index: 0});
                             geometryManager.addToolObject(this.toolName, "inter1", "quote", exceptPoints[0]);
                             geometryManager.addToolObject(this.toolName, "inter2", "quote", exceptPoints[1]);
                             
@@ -1050,7 +1050,7 @@ class PointBaseDialogToolTemplate {
                             goalX = coord.x;
                             goalY = coord.y;
                             
-                            point.modifyBase("intersection", [element1, element2], index);
+                            applyIntersectionBase(point, {x: goalX, y: goalY, element1: element1, element2: element2, index: index});
                             geometryManager.addToolObject(this.toolName, "inter1", "quote", exceptPoints[0]);
                             geometryManager.addToolObject(this.toolName, "inter2", "quote", exceptPoints[1]);
                             
@@ -1064,7 +1064,7 @@ class PointBaseDialogToolTemplate {
                             goalX = coord.x;
                             goalY = coord.y;
                             
-                            point.modifyBase("intersection", [element1, element2], 0);
+                            applyIntersectionBase(point, {x: goalX, y: goalY, element1: element1, element2: element2, index: 0});
                             geometryManager.addToolObject(this.toolName, "inter1", "quote", exceptPoints[0]);
                             geometryManager.addToolObject(this.toolName, "inter2", "quote", exceptPoints[1]);
                             
@@ -1080,7 +1080,7 @@ class PointBaseDialogToolTemplate {
                             goalX = coord.x;
                             goalY = coord.y;
                             
-                            point.modifyBase("intersection", [element1, element2], index);
+                            applyIntersectionBase(point, {x: goalX, y: goalY, element1: element1, element2: element2, index: index});
                             geometryManager.addToolObject(this.toolName, "inter1", "quote", exceptPoints[0]);
                             geometryManager.addToolObject(this.toolName, "inter2", "quote", exceptPoints[1]);
                             
@@ -1270,7 +1270,16 @@ class ExceptPointBaseToolTemplate {
      * @param {number} y
      */
     click(x, y) {
-        const [id] = geometryManager.near([x, y], this.exceptPointList);
+        // 已经选过的图形要先排除：作图工具点图形之前，光标会被吸附到「交点位置」上，
+        // 而在交点处两个图形离光标一样近，near() 只能按「谁先画」的顺序挑 ——
+        // 于是第二次点击可能又挑回第一个图形，被当成「再点一次＝取消」，
+        // 结果什么都作不出来（这就是「先点先画的图形就标不出交点、反过来可以」的原因）
+        const pickedIds = [];
+        for (let index = 1; index <= this.status; index++) {
+            const picked = geometryManager.getToolKey(this.toolName, `choice${index}`);
+            if (picked) pickedIds.push(picked.getId());
+        }
+        const [id] = geometryManager.near([x, y], this.exceptPointList, 1, pickedIds);
         if (!id) {
             this.clear();
             return;
@@ -1286,7 +1295,7 @@ class ExceptPointBaseToolTemplate {
     
         if (this.status >= this.maxStatus) {
             this.status = 0;
-            // 传入点击位置：交点工具用它确定多个交点中取哪一个
+            // 点击位置一并传给 create：一般工具用不到，需要「按点击处挑一个」的工具可以取用
             this.create(x, y);
             // 触发存储事件
             const event = new CustomEvent("storage", {
@@ -1728,7 +1737,7 @@ class MixPointBaseToolTemplate {
             }
             
             const pointObject = geometryManager.createPoint(goalX, goalY);
-            pointObject.modifyBase("intersection", [element1, element2], index);
+            applyIntersectionBase(pointObject, {x: goalX, y: goalY, element1: element1, element2: element2, index: index});
             element1.addSuperstructure(pointObject);
             element2.addSuperstructure(pointObject);
             geometryManager.addToolObject(this.toolName, "point", "append", pointObject);
@@ -1942,7 +1951,7 @@ class MixPointBaseToolTemplate {
                         }
                     }
                     
-                    point.modifyBase("intersection", [element1, element2], index);
+                    applyIntersectionBase(point, {x: goalX, y: goalY, element1: element1, element2: element2, index: index});
                     geometryManager.addToolObject(this.toolName, "inter1", "quote", exceptPoints[0]);
                     geometryManager.addToolObject(this.toolName, "inter2", "quote", exceptPoints[1]);
                                 

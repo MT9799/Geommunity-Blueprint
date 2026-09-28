@@ -406,11 +406,8 @@ function touchendEventFunction(e) {
             operateEventFunction("drawComplete", endX, endY);
         } else {
             // 点击（按住多久都算点击：手一直按着没挪地方，松手时不该按拖拽处理）
-            // 先记「先不画预览，等指针移动」再让工具处理这次点击：点击里会重绘一次，
-            // 顺序反了的话那一帧仍按旧状态画出半成品预览，画完又不再重绘，
-            // 那一帧的预览就留在屏幕上（看着像「点击的瞬间冒出垂线预览」）
-            if (typeof previewWaitForMove === 'function') previewWaitForMove(endX, endY);
             operateEventFunction("click", endX, endY);
+            if (typeof previewWaitForMove === 'function') previewWaitForMove(endX, endY);
         }
     }
     // 没有触点时还原
@@ -628,12 +625,9 @@ function mouseUpEventFunction(e) {
         if (dragged) {
             operateEventFunction("drawComplete", snapEnd[0], snapEnd[1]);
         } else {
-            // 先记「先不画预览，等指针移动」再让工具处理这次点击：点击里会重绘一次，
-            // 顺序反了的话那一帧仍按旧状态画出半成品预览，画完又不再重绘，
-            // 那一帧的预览就留在屏幕上（看着像「点击的瞬间冒出垂线预览」）
-            if (typeof previewWaitForMove === 'function') previewWaitForMove(endX, endY);
             operateEventFunction("click", snapEnd[0], snapEnd[1]);
             // 点完这一下先不画预览，等指针移动过再画（见 canvas.js previewWaitForMove）
+            if (typeof previewWaitForMove === 'function') previewWaitForMove(endX, endY);
         }
     }else if (mouseType === 1) {
         // 中键：结束平移（不管有没有真的移动过，都把抓手光标收掉）
@@ -1062,7 +1056,7 @@ const infDict = {
     "compass": {title: "圆规工具", context: "有3点式和复制式两种构造模式"},
     "middlePoint": {title: "中点工具", context: "构造两个点的中点，或构造圆心"},
     "threePointCircle": {title: "三点圆工具", context: "构造过三个点的圆"},
-    "fixedAngle": {title: "定值角工具", context: "构造角一边上的点、角的顶点，逆时针另一边为指定角度的射线"},
+    "fixedAngle": {title: "定值角工具", context: "构造角的一边、角的顶点，顺时针另一边为指定角度的射线"},
     "choiceDraw": {title: "选中拖拽模式", context: "可以选择几何对象，只能拖拽点"},
     "moveView": {title: "移动视图模式", context: "防误触几何对象"},
     "restoreTransform": {title: "还原画布变化量", context: "将画布的视图变换还原至初始值"},

@@ -4,7 +4,7 @@ const toolMenus = {
     'standard': [
         'move', 'point', 'line', 'circle', 'intersection', 
         'parallelLine', 'perpendicularLine', 'perpendicularBisector', 'angleBisector',
-        'compass', 'middlePoint', 'threePointCircle'
+        'compass', 'threePointCircle'
     ],
 }
 const toolMenuDefaultValue = {
@@ -653,9 +653,14 @@ function clickToolFloatingButton(action, event) {
         if (choice && typeof isProtectedElement === 'function' && isProtectedElement(choice.getId())) {
             if (typeof boardToast === 'function') boardToast('这是关卡给定的图形，不能删除');
         }else if (choice) {
-            geometryManager.deleteObject(choice.getId());
+            // 删掉这一笔就该把它当初记的步数与消耗退回来：先算出退回量（删除会连带删掉子对象，
+            // 所以要在删之前把仓库里的对象记下来，删完比对差异），再连着 storage 事件一起发出去，
+            // 计数器就能跟着更新
+            const refund = typeof constructionRefundOfDelete === 'function'
+                ? constructionRefundOfDelete(choice.getId())
+                : null;
             geometryManager.deleteTool(tool);
-            window.dispatchEvent(new CustomEvent('storage', {detail: {type: 'delete'}}));
+            window.dispatchEvent(new CustomEvent('storage', {detail: {type: 'delete', refund: refund}}));
         }
     }
     drawContent();

@@ -117,6 +117,60 @@ const movesCounter = {
 const movesCounterDE = document.getElementById("moves");
 movesCounterDE.innerText = '0L 0E';
 
+/**
+ * 一个图形当初记了多少步数与消耗 过程函数
+ * 与 refreshMovesCounterByTool 的加权表一致（那边按工具记，这里反查图形）：
+ * 认不出来的图形一律算 0，保证只退当初真正记过的那部分
+ * @param {Object} item 几何对象
+ * @returns {{e: number, l: number}}
+ */
+function constructionCostOfElement(item) {
+    const type = item?.getType?.();
+    const baseType = item?.getBase?.()?.type;
+    if (type === 'point') {
+        if (baseType === 'middlePoint') return {e: 4, l: 1};
+        if (baseType === 'center') return {e: 5, l: 1};
+        return {e: 0, l: 0};
+    }
+    if (type === 'circle') {
+        if (baseType === 'threePointCircle') return {e: 7, l: 1};
+        if (baseType === 'compass') return {e: 5, l: 1};
+        if (baseType === 'twoPoints') return {e: 1, l: 1};
+        return {e: 0, l: 0};
+    }
+    if (type === 'line') {
+        if (baseType === 'twoPoints') return {e: 1, l: 1};
+        if (baseType === 'perpendicular' || baseType === 'perpendicularBisector') return {e: 3, l: 1};
+        if (baseType === 'parallel') return {e: 4, l: 1};
+        if (baseType === 'threePointAngleBisector' || baseType === 'twoLineAngleBisector') return {e: 4, l: 1};
+        return {e: 0, l: 0};
+    }
+    return {e: 0, l: 0};
+}
+
+/**
+ * 删除一个图形并给出该退回的步数与消耗 过程函数
+ * 删除会连带删掉由它作出来的子对象，所以要在删之前把仓库里的对象记下来，删完比对差异：
+ * 被删掉的那些各自该退多少，累加起来就是这一删要退的总量
+ * @param {string} id 要删除的对象 id
+ * @returns {{e: number, l: number, count: number}}
+ */
+function constructionRefundOfDelete(id) {
+    const before = Object.keys(geometryManager.repository || {})
+        .map(key => geometryManager.get(key))
+        .filter(item => item);
+    geometryManager.deleteObject(id);
+    const refund = {e: 0, l: 0, count: 0};
+    before.forEach(item => {
+        if (geometryManager.repository[item.getId()]) return;
+        const cost = constructionCostOfElement(item);
+        refund.e += cost.e;
+        refund.l += cost.l;
+        refund.count++;
+    });
+    return refund;
+}
+
 /* 刷新步数 */
 function refreshMovesCounterByTool(event) {
     const type = event.detail.type;
@@ -154,6 +208,12 @@ function refreshMovesCounterByTool(event) {
     }else if (type === "threePointCircle") {
         movesE += 7;
         movesL++;
+    }else if (type === "delete") {
+        // 删除图形：把这一笔当初记的步数与消耗退回来，计数器才会跟着更新
+        // （退回量由 constructionRefundOfDelete 按下面的加权表反着算）
+        const refund = (event.detail && event.detail.refund) || {e: 0, l: 0};
+        movesE = Math.max(0, movesE - (refund.e || 0));
+        movesL = Math.max(0, movesL - (refund.l || 0));
     }
     
     movesCounter.e = movesE;
@@ -936,19 +996,75 @@ function limitLoad(currentX, currentY, currentScale) {
 }
 
 /**
+ * 载入关卡时的图形快照 过程函数
+ * 撤销/重做历史的第 0 格是关卡载入完成时的图形（见 board-tools.js 的 resetStorageHistory），
+ * 玩家之后的拖动不会改动它，正好当「初始位置」用
+ * @returns {any[]|null}
+ */
+function initialStorageElements() {
+    const manager = typeof storageManager !== 'undefined' && storageManager ? storageManager : null;
+    const snapshot = manager && manager.repository ? manager.repository[0] : null;
+    if (!snapshot) return null;
+    return Array.isArray(snapshot) ? snapshot : (snapshot.elements || null);
+}
+
+/**
+ * 把给定图形里可拖动的点放回初始位置 过程函数
+ * 给定图形（含可移动点）里的自由点（base.type === 'none'）和落在对象上的点（base.type === 'online'）
+ * 都能被玩家拖走 —— 「还原画布变化量」时连同视图一起复位
+ */
+function resetGivenPointPositions() {
+    const elements = initialStorageElements();
+    if (!elements) return;
+    const byId = new Map(elements.map(item => [item.id, item]));
+    const ids = [...givenFreePointIds(), ...(geometryElementLists.movepoints || [])];
+    const points = ids.map(id => geometryManager.get(id)).filter(item => item && item.getType() === 'point');
+    // 先自由点、后线上点：线上点的位置是从基底推算的，基底（可能是自由点）先回到初始位置才落得准
+    points.sort((a, b) => (a.getBase()?.type === 'online' ? 1 : 0) - (b.getBase()?.type === 'online' ? 1 : 0));
+    points.forEach(point => {
+        const initial = byId.get(point.getId());
+        if (!initial) return;
+        const base = initial.base || {};
+        if (point.getBase()?.type === 'online') {
+            // 线上点存的参数与线型有关（垂线是比例 + 1 …），用回初始参数最准，不受基底当前位置影响
+            const element = geometryManager.get((base.basesId || [])[0]);
+            if (!element || base.value === undefined) return;
+            point.modifyBase('online', [element], base.value);
+            if (typeof point.updateCoordinate === 'function') point.updateCoordinate();
+        }else{
+            geometryManager.modifyPointCoordinate(point.getId(), initial.x, initial.y);
+        }
+    });
+}
+
+/**
+ * 关卡载入时适配出来的初始视图（逻辑中心 + 比例） 过程函数（见上面 loadLevelView 里赋值处）
+ */
+let levelInitialView = null;
+
+/**
  * 变换量还原 过程函数
+ * 视图变换复位的同时，把关卡给定图形里被玩家拖走的点也放回初始位置
  */
 function resetTransform() {
     // 原地改，不要换成新对象：管理器持有的是同一个 transform 引用，
     // 换成新对象之后 near() 里的 15px 吸附阈值会一直用旧的 scale（缩放后命中范围全错）
-    transform.x = canvasWidth / 2;
-    transform.y = canvasHeight / 2;
-    transform.scale = initialScale;
+    if (levelInitialView) {
+        // 回到关卡载入时那个适配视图（小图形会被放大到 2 倍），不是通用初始值
+        transform.scale = levelInitialView.scale;
+        transform.x = canvasWidth / 2 - levelInitialView.centerX * levelInitialView.scale;
+        transform.y = canvasHeight / 2 - levelInitialView.centerY * levelInitialView.scale;
+    }else{
+        transform.x = canvasWidth / 2;
+        transform.y = canvasHeight / 2;
+        transform.scale = initialScale;
+    }
     [typeof geometryManager !== 'undefined' ? geometryManager : null,
      typeof geometryManagerResult !== 'undefined' ? geometryManagerResult : null,
      typeof geometryManagerExplore !== 'undefined' ? geometryManagerExplore : null].forEach(manager => {
         if (manager) manager.transform = transform;
     });
+    resetGivenPointPositions();
     drawContent();
 }
 
@@ -1769,6 +1885,10 @@ function fitInitialView() {
     transform.scale = scale;
     transform.x = canvasWidth / 2 - ((minX + maxX) / 2) * scale;
     transform.y = canvasHeight / 2 - ((minY + maxY) / 2) * scale;
+    // 记下关卡载入时的视图：这就是「初始视图」，还原画布变化量要回到它，
+    // 而不是通用的 initialScale（那是 0.5，小图形会被适配放大，还原时会看着缩小一圈）。
+    // 记的是逻辑中心 + 比例，还原时按当时的画布尺寸重算，窗口大小变了也不会偏
+    levelInitialView = {centerX: (minX + maxX) / 2, centerY: (minY + maxY) / 2, scale: scale};
     drawContent();
 }
 

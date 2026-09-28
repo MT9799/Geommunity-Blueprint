@@ -21,6 +21,10 @@ const maxMoveX = 500, // max是负的
     // 初始 / 「还原视角」的缩放倍数。
     // 放在这里而不是各页脚本里：画板（index.js）与关卡游玩（playPage.js）共用一个值。
     initialScale = (Math.random() - 0.5) * 0.01 + 0.5;
+// 图形尺寸基准（宽度倍率为 1 时的像素值）：点的外径半径与线的粗细。
+// 预览（半成品草稿图、光标下的点预览）与选中圈都跟着这两个值走，改这里就一起变
+const POINT_RADIUS_BASE = 6;
+const LINE_WIDTH_BASE = 3;
 // 点完一下之后先不画预览，等指针真的移动过再画：
 // 点完一条线时光标还停在那条线上，这时立刻画出「过该点的平行线 / 垂线」会让人以为点已经取好了
 // 记的是**未吸附的原始指针坐标**：用吸附后的坐标比较时，吸附候选会随亚像素抖动在两个图形之间跳，
@@ -610,7 +614,7 @@ function previewCircumcenter(a, b, c) {
 
 /**
  * 绘制点的预览 过程函数
- * 与真实点一致：外径 8、内径 4 白芯，且是屏幕上的固定大小（除以 scale，跟 drawPoint 一样）；
+ * 与真实点一致：外径 POINT_RADIUS_BASE、白芯是它的一半，且是屏幕上的固定大小（除以 scale，跟 drawPoint 一样）；
  * 透明度也用光标下那个点预览的 0.5 —— 否则在 0.35 的半透明里会显得又小又淡
  * @param {number[]} coord 逻辑坐标
  */
@@ -618,11 +622,11 @@ function drawPreviewPoint(coord) {
     const [x, y] = coord;
     ct.globalAlpha = 0.5;
     ct.beginPath();
-    ct.arc(x, y, 8 / transform.scale, 0, Math.PI * 2);
+    ct.arc(x, y, POINT_RADIUS_BASE / transform.scale, 0, Math.PI * 2);
     ct.fillStyle = 'rgb(25, 25, 25)';
     ct.fill();
     ct.beginPath();
-    ct.arc(x, y, 4 / transform.scale, 0, Math.PI * 2);
+    ct.arc(x, y, POINT_RADIUS_BASE / 2 / transform.scale, 0, Math.PI * 2);
     ct.fillStyle = 'rgb(255, 255, 255)';
     ct.fill();
 }
@@ -639,7 +643,7 @@ function drawToolPreview() {
     ct.globalAlpha = 0.35;
     ct.strokeStyle = 'rgb(25, 25, 25)';
     ct.fillStyle = 'rgb(25, 25, 25)';
-    ct.lineWidth = 4 / transform.scale;
+    ct.lineWidth = LINE_WIDTH_BASE / transform.scale;
 
     if (state.shape === 'lineSegment') {
         ct.beginPath();
@@ -981,10 +985,10 @@ function drawPoint(element) {
     const [x, y] = element.getCoordinate();
     const color = element.getColor();
     const backgroundColor = autoBackgroundColor(color);
-    // 点的大小：默认 1，可在样式面板中调整
+    // 点的大小：默认 1，可在样式面板中调整（外径基准见 POINT_RADIUS_BASE，白芯是它的一半）
     const width = element.getWidth() || 1;
-    const outRadius = 8 * width,
-        inRadius = 4 * width;
+    const outRadius = POINT_RADIUS_BASE * width,
+        inRadius = outRadius / 2;
 
     ct.fillStyle = color;
     ct.beginPath();
@@ -1003,7 +1007,7 @@ function drawPoint(element) {
  */
 function drawChoicePoint(point) {
     // 正好压在点的边缘上，看着就像没有选中效果
-    const bigRadius = 8 * Math.max(point.getWidth() || 1, 1) + 4;
+    const bigRadius = POINT_RADIUS_BASE * Math.max(point.getWidth() || 1, 1) + 4;
     const [x, y] = point.getCoordinate();
     const color = point.getColor();
 
@@ -1058,7 +1062,7 @@ function drawInfiniteLine(element) {
     } = ToolsFunction.getLineBounds(bag, transform);
 
     const drawType = element.getDrawType();
-    const lineWidth = (4 * width) / transform.scale;
+    const lineWidth = (LINE_WIDTH_BASE * width) / transform.scale;
     // 画一段（alpha < 1 时半透明）
     const stroke = (x1, y1, x2, y2, alpha) => {
         ct.globalAlpha = alpha;
@@ -1203,7 +1207,7 @@ function drawCircle(element) {
     ct.beginPath();
     ct.strokeStyle = color;
     ct.arc(x1, y1, distance, 0, 2 * Math.PI)
-    ct.lineWidth = (4 * width) / transform.scale;
+    ct.lineWidth = (LINE_WIDTH_BASE * width) / transform.scale;
     ct.stroke();
 }
 
