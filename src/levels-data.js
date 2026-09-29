@@ -113,6 +113,25 @@ document.addEventListener('click', event => {
 }, true);
 
 /**
+ * 目标步数 HTML 过程函数
+ * 本机记录里这一关已经达标的那个（L / E）标金，不用打开关卡就知道达标了；
+ * 上色沿用关卡页缩略图那套 .goal-part.active
+ * @param {string} steps 形如 "5L / 6E"
+ * @param {Object} level
+ * @returns {string}
+ */
+function markTargetSteps(steps, level) {
+    const text = String(steps || '');
+    if (typeof recordStore === 'undefined' || !level || !level.id) return text;
+    const reached = recordStore.reachedTargetOf(level.id, recordStore.targetStepsFromText(text));
+    if (!reached.done) return text;
+    // 作出了所求就带上 .reached（正文色，与「没作出」的灰区分开），其中达标的那一项再加 .active 标金
+    return text
+        .replace(/(\d+\s*L)/i, match => `<span class="goal-part reached${reached.l ? ' active' : ''}">${match}</span>`)
+        .replace(/(\d+\s*E)/i, match => `<span class="goal-part reached${reached.e ? ' active' : ''}">${match}</span>`);
+}
+
+/**
  * 关卡行 HTML 过程函数
  * 关卡包页与搜索页共用；搜索页传入 packName 以标注关卡来自哪个包
  * @param {Object} level 关卡数据
@@ -124,7 +143,7 @@ function levelRowHTML(level, options) {
     // 序号一律按它在包里的位次生成，不从 levels.json 里取（那个字段已去掉）
     const number = String((setting.index || 0) + 1).padStart(3, '0');
     const thumb = level.diagram ? `<img src="../data/${level.diagram}" alt="" loading="lazy">` : '◇';
-    const steps = level.targetSteps || (typeof t === 'function' ? t('pack.stepsUnknown') : '步数未标注');
+    const steps = markTargetSteps(level.targetSteps || (typeof t === 'function' ? t('pack.stepsUnknown') : '步数未标注'), level);
     const note = level.note ? ` title="${level.note}"` : '';
     const packTag = setting.packName ? `<em class="level-pack">${setting.packName}</em>` : '';
     // page：带上关卡包里的页码，关卡页的「返回关卡包」据此回到这一页而不是第一页

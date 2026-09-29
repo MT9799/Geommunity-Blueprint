@@ -30,6 +30,26 @@ function getSelectedElement() {
  * @param {Function} [commit] 取色确定后的回调（用于记入撤销/重做历史）
  */
 function pickStyleColor(current, callback, commit) {
+    // 创建临时的input元素
+    const colorInput = document.createElement('input');
+    colorInput.type = 'color';
+    colorInput.value = current;
+    
+    // 颜色变化
+    const finish = () => colorInput.remove();
+    colorInput.oninput = event => callback(event.target.value);
+    colorInput.onchange = event => { callback(event.target.value); if (commit) commit(); finish(); };
+    colorInput.oncancel = finish;
+    
+    // 触发颜色选择器
+    colorInput.click();
+    
+    // 可选：用完立即移除
+    setTimeout(() => {
+        colorInput.remove();
+    }, 100);
+
+    /*
     document.querySelectorAll('.style-color-input').forEach(item => item.remove());
     const colorInput = document.createElement('input');
     colorInput.type = 'color';
@@ -54,6 +74,7 @@ function pickStyleColor(current, callback, commit) {
     }else{
         colorInput.click();
     }
+        */
 }
 
 /**

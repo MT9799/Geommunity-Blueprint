@@ -68,6 +68,11 @@
         if (typeof resetThumbnailTicks === 'function') resetThumbnailTicks();
       }
       if (typeof refreshLevelStatus === 'function') refreshLevelStatus();
+      // 记下这一刻的对象集合：游玩模式下画布上只有关卡自带的这些对象时不算「作了图形」，
+      // 加号（保存记录）不该亮（见 recordPanel.js 的 markBaseline / hasFigures）
+      if (typeof window.recordPanelMarkBaseline === 'function') window.recordPanelMarkBaseline();
+      // 本关以前有达到目标的记录：缩略图的目标也标金（要放在 resetThumbnailTicks / refreshLevelStatus 之后）
+      if (typeof applyRecordTargets === 'function') applyRecordTargets();
       // 工具栏按本关的工具限制重建（探索模式不受限）
       if (typeof refreshToolLimit === 'function') refreshToolLimit();
     }

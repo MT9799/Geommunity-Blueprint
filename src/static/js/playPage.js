@@ -250,389 +250,6 @@ function refreshMovesCounter() {
 
 
 
-let recordStorage = []; // recordId:string[]
-// record: dict{id, name, geometryElement, storage, thumbnail, geometryElementLists}
-/**
- * 加载存储记录
- */
-function loadRecordStorage() {
-    const recordStorageJSON = localStorage.getItem('recordStorage-play');
-    if (!recordStorageJSON) return;
-    recordStorage = JSON.parse(recordStorageJSON);
-    
-    loadRecordStorageDE();
-}
-
-function loadRecordStorageDE() {
-    // 加载存储记录DE
-    const container = document.getElementById("storage-item-list");
-    container.innerHTML = "";
-    for (const [index, id] of recordStorage.entries()) {
-        const dict = JSON.parse(localStorage.getItem(id));
-        const recordItemDE = document.createElement("div");
-        recordItemDE.setAttribute("class", "record-item");
-        recordItemDE.setAttribute('data-action', `choice`);
-        recordItemDE.setAttribute('data-id', dict.id);
-        
-        const indexTextDE = document.createElement("div");
-        indexTextDE.innerText = index;
-        indexTextDE.setAttribute("id", `record-${dict.id}-index`);
-        indexTextDE.setAttribute('data-action', `choice`);
-        indexTextDE.setAttribute('data-id', dict.id);
-        recordItemDE.appendChild(indexTextDE);
-        
-        const nameTextDE = document.createElement("div");
-        nameTextDE.innerText = dict.name;
-        nameTextDE.setAttribute("id", `record-${dict.id}-name`);
-        nameTextDE.setAttribute('data-action', `choice`);
-        nameTextDE.setAttribute('data-id', dict.id);
-        recordItemDE.appendChild(nameTextDE);
-        
-        const renameButtonDE = document.createElement('div');
-        renameButtonDE.setAttribute("class", 'storage-panel-button');
-        renameButtonDE.setAttribute('data-action', 'rename-record');
-        renameButtonDE.setAttribute('data-id', dict.id);
-        const template = document.getElementById(`svg-edit`);
-        if (template) {
-            renameButtonDE.innerHTML = template.innerHTML;
-        }
-        recordItemDE.appendChild(renameButtonDE);
-        
-        container.appendChild(recordItemDE);
-    }
-}
-
-/**
- * 获取日期和时间
- * returns {{date: string, time: string}}
- */
-function getDateTime() {
-    const now = new Date();
-    
-    // 获取日期和时间组件
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0'); // 月份从0开始，需+1
-    const day = String(now.getDate()).padStart(2, '0');
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    const seconds = String(now.getSeconds()).padStart(2, '0');
-    
-    // 格式化显示
-    const dateString = `${year}-${month}-${day}`;
-    const timeString = `${hours}:${minutes}:${seconds}`;
-    
-    return {date: dateString, time: timeString};
-}
-
-let recordStatus = "none";
-let saveStatus = true;
-// 存储记录面板
-function recordPanel(event) {
-    const action = event.target?.dataset.action;
-    if (action === "add-record") {
-        // 添加记录
-        saveStatus = true;
-        const len = recordStorage.length;
-        let recordId;
-        for (let i = 0; i <= len; i++) {
-            if (!recordStorage.includes(`record-${i}-play`)) {
-                recordId = `record-${i}-play`;
-                break;
-            }
-        }
-        recordStorage.push(recordId);
-        localStorage.setItem('recordStorage-play', JSON.stringify(recordStorage));
-        
-        const recordDict = {
-            id: recordId, 
-            name: `${getDateTime().date} ${getDateTime().time}`,
-            geometryElement: geometryManager.toStorage(), 
-            storage: {
-                construct: storageManager.serialization(), 
-                moves: movesStorageManager.serialization()
-            }
-        };
-        
-        // 缩略图
-        const thumbnail = {};
-        const title_inf = document.getElementById("title_inf")?.textContent;
-        if (title_inf) {
-            thumbnail.title_input = title_inf;
-        }else{
-            thumbnail.title_input = null;
-        }
-        const body_inf = document.getElementById("body_inf")?.textContent;
-        if (body_inf) {
-            thumbnail.body_input = body_inf;
-        }else{
-            thumbnail.body_input = null;
-        }
-        const bottom_inf = document.getElementById("bottom_inf")?.textContent;
-        if (bottom_inf) {
-            thumbnail.bottom_input = bottom_inf;
-        }else{
-            thumbnail.bottom_input = null;
-        }
-        const thumbnailSrc = document.getElementById("thumbnail-picture")?.src;
-        if (thumbnailSrc) {
-            thumbnail.thumbnailSrc = thumbnailSrc;
-        }else{
-            thumbnail.thumbnailSrc = null;
-        }
-        recordDict.thumbnail = thumbnail;
-        
-        // 配置表
-        const lists = {};
-        for (const [key, value] of Object.entries(geometryElementLists)) {
-            const list = [...value];
-            lists[key] = list;
-        }
-        recordDict.geometryElementLists = lists;
-        
-        localStorage.setItem(recordId, JSON.stringify(recordDict));
-        
-        // 回显
-        loadRecordStorageDE();
-        
-    }else if (action === "delete-record") {
-        // 按删除按钮
-        const buttonListDE = document.getElementsByClassName("storage-panel-button");
-        for (const itemDE of buttonListDE) {
-            itemDE.classList.remove("active");
-        }
-        if (recordStatus === "delete") {
-            recordStatus = "none";
-        }else{
-            recordStatus = "delete";
-            document.getElementById("storage-panel-button-delete")?.classList.add("active");
-        }
-    }else if (action === "cover-record") {
-        // 按复写按钮
-        const buttonListDE = document.getElementsByClassName("storage-panel-button");
-        for (const itemDE of buttonListDE) {
-            itemDE.classList.remove("active");
-        }
-        if (recordStatus === "cover") {
-            recordStatus = "none";
-        }else{
-            recordStatus = "cover";
-            document.getElementById("storage-panel-button-cover")?.classList.add("active");
-        }
-    }else if (action === "rename-record") {
-        // 按重命名按钮（内部样式输入框，确认后再改名）
-        const recordId = event.target.dataset.id;
-        boardInput(t('board.recordRename'), '', '', name => {
-            if (!name) return;
-            const recordNameDE = document.getElementById(`record-${recordId}-name`);
-            recordNameDE.innerText = name;
-            const recordDict = JSON.parse(localStorage.getItem(recordId));
-            recordDict.name = name;
-            localStorage.setItem(recordId, JSON.stringify(recordDict));
-        });
-        
-    }else if (action === "choice") {
-        // 选中记录（先取到 id，弹层确认时 event 已经过去了）
-        const recordId = event.target.dataset.id;
-        if (recordStatus === "none") {
-            if (!saveStatus) {
-                boardConfirm(t('board.recordUnsaved'), '', () => {
-                    saveStatus = true;
-                    loadRecord(recordId);
-                });
-                return;
-            }
-            saveStatus = true;
-            loadRecord(recordId);
-        }else if (recordStatus === "delete") {
-            boardConfirm(t('board.recordDeleteAsk'), '', () => {
-                recordStorage.splice(recordStorage.indexOf(recordId), 1);
-                localStorage.removeItem(recordId);
-                
-                // 回显
-                loadRecordStorageDE();
-            });
-            
-        }else if (recordStatus === "cover") {
-            // 覆盖前先确认（内部样式弹层）
-            boardConfirm(t('board.recordCoverAsk'), '', () => {
-            saveStatus = true;
-            const id = recordId;
-            const oriRecordDict = JSON.parse(localStorage.getItem(id));
-            const recordDict = {
-                id: id, 
-                name: oriRecordDict.name,
-                geometryElement: geometryManager.toStorage(), 
-                storage: {
-                    construct: storageManager.serialization(), 
-                    moves: movesStorageManager.serialization()
-                }
-            };
-            
-            // 缩略图
-            const thumbnail = {};
-            const title_inf = document.getElementById("title_inf")?.textContent;
-            if (title_inf) {
-                thumbnail.title_input = title_inf;
-            }else{
-                thumbnail.title_input = null;
-            }
-            const body_inf = document.getElementById("body_inf")?.textContent;
-            if (body_inf) {
-                thumbnail.body_input = body_inf;
-            }else{
-                thumbnail.body_input = null;
-            }
-            const bottom_inf = document.getElementById("bottom_inf")?.textContent;
-            if (bottom_inf) {
-                thumbnail.bottom_input = bottom_inf;
-            }else{
-                thumbnail.bottom_input = null;
-            }
-            const thumbnailSrc = document.getElementById("thumbnail-picture")?.src;
-            if (thumbnailSrc) {
-                thumbnail.thumbnailSrc = thumbnailSrc;
-            }else{
-                thumbnail.thumbnailSrc = null;
-            }
-            recordDict.thumbnail = thumbnail;
-            
-            // 配置表
-            const lists = {};
-            for (const [key, value] of Object.entries(geometryElementLists)) {
-                const list = [...value];
-                lists[key] = list;
-            }
-            recordDict.geometryElementLists = lists;
-            
-            localStorage.setItem(id, JSON.stringify(recordDict));
-            });
-        }
-    }
-    
-    function loadRecord(id) {
-        const dict = JSON.parse(localStorage.getItem(id));
-        // 缩略图
-        const thumbnail = dict.thumbnail;
-        document.getElementById("title_inf").textContent = thumbnail.title_input;
-        document.getElementById("body_inf").textContent = thumbnail.body_input;
-        document.getElementById("bottom_inf").textContent = thumbnail.bottom_input;
-        // 载入记录后页面标题也跟着这条记录
-        refreshPageTitle(thumbnail.title_input);
-
-        const oriPictureDE = document.getElementById("thumbnail-picture");
-        if (oriPictureDE) oriPictureDE.remove();
-        if (thumbnail.thumbnailSrc) {
-            const pictureDE = document.createElement('img');
-            pictureDE.id = 'thumbnail-picture';
-            pictureDE.src = thumbnail.thumbnailSrc;
-            pictureDE.alt = "此处放置缩略图";
-            const container = document.getElementById('thumbnail-middle');
-            container.appendChild(pictureDE);
-        }
-        
-        // 选定栏
-        const geometryElementListsLoad = dict.geometryElementLists;
-        for (const [key, value] of Object.entries(geometryElementListsLoad)) {
-            geometryElementLists[key] = new Set(value);
-        }
-    
-        // 几何对象
-        loadGeometryElementsRecord(dict);
-        
-        // 历史记录
-        const tempStorage = dict.storage;
-        storageManager.deserialization(tempStorage.construct);
-        refreshStorageButton();
-        movesStorageManager.deserialization(tempStorage.moves);
-    }
-    
-    function loadGeometryElementsRecord(dict) {
-        geometryManager.deleteAll();
-        const elements = dict.geometryElement;
-
-        // 1.反序列化为元素
-        elements.forEach((item) => {
-            const element = deserialization(item);
-            geometryManagerResult.addObject(element);
-            geometryManagerExplore.addObject(element);
-            if (geometryElementLists.initial.has(item.id) || (geometryElementLists.named || new Set()).has(item.id)) {
-                element.modifyColor("#191919");
-            }else if (geometryElementLists.movepoints.has(item.id)) {
-                element.modifyColor('#0099ff');
-            }else if (isResultJudgedOfPage(item.id)) {
-                // 「所求显示」不在这里上色：它们多数是隐藏的，作出解之后由 setResultGroupsVisible 点亮；
-                // 「所求显示」不在这里上色：给定了的对象（如既在 named 又列在冒号后的点）保持黑色
-                element.modifyColor('#ffd700');
-            }else if (geometryElementLists.explore.has(item.id)) {
-                element.modifyColor('#ffd700');
-            }else{
-                element.modifyColor(item.color);
-            }
-        });
-
-        // 2.添加元素间连接
-        for (const item of elements) {
-            const bases = item.base;
-            const basesType = bases.type;
-
-            if (basesType === 'none') continue;
-            const id = item.id;
-            const currentElement = geometryManager.get(id);
-            const currentElementType = item.type;
-            const objectList = [];
-            bases.basesId.forEach((id) => {
-                objectList.push(geometryManager.get(id));
-            });
-            if (currentElementType === 'point') {
-                // 第四个参数指定的「已知交点」也一并还原，编号时用它排掉重合的那个
-                currentElement.modifyBase(basesType, objectList, bases.value, bases.excludeId ? geometryManager.get(bases.excludeId) : null);
-                objectList.forEach((item) => {
-                    item.addSuperstructure(currentElement);
-                });
-            }else if (currentElementType === 'line' || currentElementType === 'circle') {
-                currentElement.modifyDefine(basesType, objectList, bases.value);
-            }
-        }
-
-        drawContent();
-        
-        function deserialization(elementDict) {
-            const type = elementDict.type;
-            const id = elementDict.id;
-            const name = elementDict.name;
-            const valid = elementDict.valid;
-            const color = elementDict.color;
-            
-            let element;
-            if (type === 'point') {
-                const x = elementDict.x;
-                const y = elementDict.y;
-                element = new Point(id, x, y);
-            }else if (type === 'line') {
-                element = new Line(id);
-                element.modifyDrawType(elementDict.drawType);
-            }else if (type === 'circle') {
-                element = new Circle(id);
-            }
-    
-            if (geometryElementLists.initial.has(id)) {
-                element.modifyVisible(true);
-            }else{
-                element.modifyVisible(false);
-            }
-            if (geometryElementLists.name.has(id)) {
-                element.modifyShowName(true);
-            }else{
-                element.modifyShowName(false);
-            }
-            element.modifyName(name);
-            element.modifyValid(valid);
-            element.modifyColor(color);
-            element.modifyWidth(elementDict.width || 1);
-            return element;
-        }
-    }
-}
 
 
 
@@ -1126,9 +743,13 @@ function switchPanel(panel) {
         Object.values(tools).forEach((item) => item.clear?.());
         refreshToolFloating();
         
+        // 记下打开记录面板之前用的工具：载入记录后要还回去，
+        // 否则「非移动工具下打开记录 → 载入一条」会莫名其妙停在「移动」上（见 recordPanel.js 的 loadRecord）
+        if (tool !== "move") window.toolBeforeRecordPanel = tool;
         tool = "move";
         drawContent();
-        loadRecordStorageDE();
+        // 打开记录面板时重建列表（recordPanel.js）
+        window.recordPanelRefresh?.();
     }else if (panel === "overviewPanel") {
         Object.values(tools).forEach((item) => item.clear?.());
         refreshToolFloating();
@@ -1202,7 +823,6 @@ function menuChoice(action) {
             drawContent();
             // 重开后以初始图形为新的历史起点（步数历史也回到 0）
             resetStorageHistory();
-            saveStatus = true;
             // 步数归零并同步到界面，否则残留的步数会让 L / E 判定出错
             refreshMovesCounter();
             // L / E 的达成记录与通关提示记录也清零（缩略图的勾不清，点亮过就一直亮着）
@@ -1317,6 +937,10 @@ function exploreMode() {
         refreshExploreButton();
         // 几何对象隐藏
         setExploreVisibility(false);
+        // 可移动点的可见性按**当前工具**再定一次：进探索视图时它们被临时藏起了，
+        // 退出时会被 setExploreVisibility 一并放回来 —— 若期间已经切到别的工具
+        // （移动工具 → 探索 → 切其它工具 → 退出），那些蓝点不该跟着冒出来
+        if (typeof showMovePoints === 'function') showMovePoints(tool === "move" && subTool === "choiceDraw");
         // 退出探索模式：工具栏恢复本关的工具限制
         if (typeof refreshToolLimit === 'function') refreshToolLimit();
         drawContent();
@@ -1565,6 +1189,16 @@ function refreshMovePointColors() {
 }
 
 /**
+ * 撤回 / 重做之后的收尾 过程函数
+ * 两件事：按最近载入的那条记录的样式表补一次色（撤销清单不带样式，见 recordPanel.js 的
+ * recordPanelAfterRestore）；刷新记录面板（画布变了，加号该不该亮要重算）
+ */
+function afterHistoryMove() {
+    if (typeof window.recordPanelAfterRestore === 'function') window.recordPanelAfterRestore();
+    window.recordPanelRefresh?.();
+}
+
+/**
  * 撤回
  */
 function restoreStorage() {
@@ -1577,6 +1211,8 @@ function restoreStorage() {
     const snapshot = storageManager.restore();
     if (snapshot) loadStorageSnapshot(snapshot);
     refreshStorageButton();
+    // 顺序：先按记录的样式表补色、再补可动点的临时蓝（反了蓝色会被样式表盖掉）
+    afterHistoryMove();
     drawContent();
     refreshMovePointColors();
     const moves = movesStorageManager.restore();
@@ -1596,6 +1232,7 @@ function redoStorage() {
     const snapshot = storageManager.redo();
     if (snapshot) loadStorageSnapshot(snapshot);
     refreshStorageButton();
+    afterHistoryMove();
     drawContent();
     refreshMovePointColors();
     const moves = movesStorageManager.redo();
@@ -1611,7 +1248,6 @@ window.addEventListener("storage", (event) => {
     storage();
     refreshMovesCounterByTool(event);
     resultVerify();
-    saveStatus = false;
 });
 function storage() {
     // 存储：几何对象 + 选定栏（标记等改动也能撤销）
@@ -2492,6 +2128,9 @@ function success() {
     // 通关界面：完成 / L / E / V 勾
     showCompleteLayout();
 
+    // 作出所求：历史记录里还没有一致的构造时自动存一条（recordPanel.js，试玩模式不存）
+    window.recordPanelAutoSave?.();
+
     // 重绘
     drawContent();
 }
@@ -2510,6 +2149,10 @@ function unsuccess() {
     // 撤销掉所求后不该还亮着（再作出所求时会重新评定）
     // 缩略图的勾不在此列，它点亮过就一直亮着，见 recordProgress / resetThumbnailTicks
     resetLevelProgress();
+
+    // 所求已经不在画布上（撤掉 / 清空 / 重新画）：下一轮作出所求时重新允许自动保存
+    // （recordPanel.js：一次「作出所求」只自动存一条，之后接着画图不再存）
+    window.recordPanelAutoReset?.();
 
     // 隐藏所有 result 冒号后的图形
     setResultGroupsVisible(resultGroupsOfPage(), false);
@@ -2545,7 +2188,7 @@ function DOMLoaded() {
     document.getElementById("geometry-item").addEventListener("click", geometryItemClick);
     // 详情面板里的名称 / 坐标 / 基底值输入框（与制题器同一套处理）
     document.getElementById("geometry-item").addEventListener("change", geometryItemChange);
-    document.getElementById("recordPanel").addEventListener("click", recordPanel);
+    // 记录面板的点击由 recordPanel.js 自己按事件委托绑定
     // 初始化
     updateLayout();
     resizeCanvas();
@@ -2565,5 +2208,25 @@ function DOMLoaded() {
     }
     refreshStorageButton();
     playStartDataLoad();
-    loadRecordStorage();
+    // 关卡游玩的那一份在 level-loader 里调（要等关卡图形与缩略图都就位再标，见那边的 applyRecordTargets）：
+    // 这里先跑的话会被随后的 resetThumbnailTicks 清掉
+}
+
+/**
+ * 打开关卡时读历史记录 过程函数
+ * 本关有「作出过所求、且步数达到目标」的记录时，缩略图的目标步数也标成金色
+ * 试玩模式没有记录功能（关卡 id 为空时直接跳过）
+ */
+function applyRecordTargets() {
+    if (typeof recordStore === 'undefined') return;
+    const levelId = new URLSearchParams(location.search).get('id');
+    if (!levelId) return;
+    // 记录里这一关有没有达标过（作出过所求 + 步数不超过目标，见 recordStore.reachedTargetOf）
+    const reached = recordStore.reachedTargetOf(levelId, targetStepsOfPage());
+    if (!reached.done) return;
+    // 完成过就一直亮（与 recordProgress 点亮的勾同一套口径）
+    thumbnailTicks.done = true;
+    if (reached.l) thumbnailTicks.l = true;
+    if (reached.e) thumbnailTicks.e = true;
+    refreshLevelStatus();
 }

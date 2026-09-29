@@ -14,6 +14,16 @@ function refreshOpenedGeometryItem() {
     if (typeof window.showGeometryItemDetail === 'function') window.showGeometryItemDetail(openedGeometryItemId);
 }
 overviewPanelSelector.addEventListener('change', overviewPanelSelectorChanged);
+// 一览面板右上角的关闭按钮：回到构造面板（与记录面板的 ✕ 一个意思）
+const overviewCloseButton = document.getElementById("overview-close");
+if (overviewCloseButton) {
+    const closeTemplate = document.getElementById("svg-menuClose");
+    if (closeTemplate) overviewCloseButton.innerHTML = closeTemplate.innerHTML;
+    overviewCloseButton.title = typeof t === 'function' ? t('common.close') : '关闭';
+    overviewCloseButton.addEventListener('click', () => {
+        if (typeof switchPanel === 'function') switchPanel('toolbarPanel');
+    });
+}
 /**
  * 「所求」档要显示的所有解判定集合 过程函数
  * 解 1 的键是 result，解 k 是 resultK（与标记工具一致）；
@@ -45,6 +55,10 @@ function loadGeometryElements() {
     const geometryElements = geometryManager.getAllByOrder();
     let count = 0;
     overview.innerHTML = "";
+    // 「隐藏」档以外（初始 / 可动点 / 所求 / 探索…）看的是标记：被标出的格子换成红框，
+    // 而且点一下不再把标记点掉（见 select）；「全部」档没有标出，不算 mark-mode
+    overview.classList.toggle('mark-mode',
+        !!overviewPanelSelect && overviewPanelSelect !== 'all' && overviewPanelSelect !== 'hidden');
     
     geometryElements.forEach((element) => {
         // 生成
@@ -716,6 +730,9 @@ function selectElementByOverview(event) {
         // 「隐藏」档：以元素实际的显示状态为准来切换，并把 hidden 集合一起同步，
         // 这样撤销 / 存读档、重新导入之后列表与画布仍然对得上
         if (overviewPanelSelect === 'hidden') {
+            // 试玩（mode-maker-play）里也只当「看」用：点不动（与关卡游玩一致），
+            // 制题器 / 求解器里照旧点一下切换显示 / 隐藏
+            if (document.body.classList.contains('mode-maker-play')) return;
             const geometryElement = geometryManager.get(id);
             const wasHidden = !geometryElement.getVisible();
             geometryElement.modifyVisible(wasHidden);
@@ -725,14 +742,12 @@ function selectElementByOverview(event) {
             drawContent();
             return;
         }
-        if (set.has(id)) {
-            set.delete(id);
-            target.classList.remove('select');
-        }else{
-            set.add(id);
-            target.classList.add('select');
-        }
-        // 标记集合变了，画布上的金 / 蓝高亮跟着重画（例如在「所求」档取消一个判定）
+        // 这些档位是「看看有哪些标好的」：已经标上的不再点掉（免得误触取消标记、把画布上的高亮弄没），
+        // 只有还没标的才补上。要取消标记请用画布上的标记工具
+        if (set.has(id)) return;
+        set.add(id);
+        target.classList.add('select');
+        // 标记集合变了，画布上的金 / 蓝高亮跟着重画（例如在「所求」档补一个判定）
         drawContent();
     }
 }

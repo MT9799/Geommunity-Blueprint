@@ -128,234 +128,6 @@ let panelState;
 
 
 
-let recordStorage = []; // recordId:string[]
-// record: dict{id, name, geometryElement, storage, thumbnail, geometryElementLists}
-/**
- * 加载存储记录
- */
-function loadRecordStorage() {
-    const recordStorageJSON = localStorage.getItem('recordStorage');
-    if (!recordStorageJSON) return;
-    recordStorage = JSON.parse(recordStorageJSON);
-    
-    loadRecordStorageDE();
-}
-
-function loadRecordStorageDE() {
-    // 加载存储记录DE
-    const container = document.getElementById("storage-item-list");
-    container.innerHTML = "";
-    for (const [index, id] of recordStorage.entries()) {
-        const dict = JSON.parse(localStorage.getItem(id));
-        const recordItemDE = document.createElement("div");
-        recordItemDE.setAttribute("class", "record-item");
-        recordItemDE.setAttribute('data-action', `choice`);
-        recordItemDE.setAttribute('data-id', dict.id);
-        
-        const indexTextDE = document.createElement("div");
-        indexTextDE.innerText = index;
-        indexTextDE.setAttribute("id", `record-${dict.id}-index`);
-        indexTextDE.setAttribute('data-action', `choice`);
-        indexTextDE.setAttribute('data-id', dict.id);
-        recordItemDE.appendChild(indexTextDE);
-        
-        const nameTextDE = document.createElement("div");
-        nameTextDE.innerText = dict.name;
-        nameTextDE.setAttribute("id", `record-${dict.id}-name`);
-        nameTextDE.setAttribute('data-action', `choice`);
-        nameTextDE.setAttribute('data-id', dict.id);
-        recordItemDE.appendChild(nameTextDE);
-        
-        const renameButtonDE = document.createElement('div');
-        renameButtonDE.setAttribute("class", 'storage-panel-button');
-        renameButtonDE.setAttribute('data-action', 'rename-record');
-        renameButtonDE.setAttribute('data-id', dict.id);
-        const template = document.getElementById(`svg-edit`);
-        if (template) {
-            renameButtonDE.innerHTML = template.innerHTML;
-        }
-        recordItemDE.appendChild(renameButtonDE);
-        
-        container.appendChild(recordItemDE);
-    }
-}
-
-/**
- * 获取日期和时间
- * returns {{date: string, time: string}}
- */
-function getDateTime() {
-    const now = new Date();
-    
-    // 获取日期和时间组件
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0'); // 月份从0开始，需+1
-    const day = String(now.getDate()).padStart(2, '0');
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    const seconds = String(now.getSeconds()).padStart(2, '0');
-    
-    // 格式化显示
-    const dateString = `${year}-${month}-${day}`;
-    const timeString = `${hours}:${minutes}:${seconds}`;
-    
-    return {date: dateString, time: timeString};
-}
-
-let recordStatus = "none";
-let saveStatus = true;
-// 存储记录面板
-function recordPanel(event) {
-    const action = event.target?.dataset.action;
-    if (action === "add-record") {
-        // 添加记录
-        saveStatus = true;
-        const len = recordStorage.length;
-        let recordId;
-        for (let i = 0; i <= len; i++) {
-            if (!recordStorage.includes(`record-${i}`)) {
-                recordId = `record-${i}`;
-                break;
-            }
-        }
-        recordStorage.push(recordId);
-        localStorage.setItem('recordStorage', JSON.stringify(recordStorage));
-        
-        const recordDict = {
-            id: recordId, 
-            name: `${getDateTime().date} ${getDateTime().time}`,
-            geometryElement: geometryManager.toStorage(), 
-            storage: {
-                construct: storageManager.serialization(), 
-            }
-        };
-        
-        // 配置表
-        const lists = {};
-        for (const [key, value] of Object.entries(geometryElementLists)) {
-            const list = [...value];
-            lists[key] = list;
-        }
-        recordDict.geometryElementLists = lists;
-        
-        localStorage.setItem(recordId, JSON.stringify(recordDict));
-        
-        // 回显
-        loadRecordStorageDE();
-        
-    }else if (action === "delete-record") {
-        // 按删除按钮
-        const buttonListDE = document.getElementsByClassName("storage-panel-button");
-        for (const itemDE of buttonListDE) {
-            itemDE.classList.remove("active");
-        }
-        if (recordStatus === "delete") {
-            recordStatus = "none";
-        }else{
-            recordStatus = "delete";
-            document.getElementById("storage-panel-button-delete")?.classList.add("active");
-        }
-    }else if (action === "cover-record") {
-        // 按复写按钮
-        const buttonListDE = document.getElementsByClassName("storage-panel-button");
-        for (const itemDE of buttonListDE) {
-            itemDE.classList.remove("active");
-        }
-        if (recordStatus === "cover") {
-            recordStatus = "none";
-        }else{
-            recordStatus = "cover";
-            document.getElementById("storage-panel-button-cover")?.classList.add("active");
-        }
-    }else if (action === "rename-record") {
-        // 按重命名按钮（内部样式输入框，确认后再改名）
-        const recordId = event.target.dataset.id;
-        boardInput(t('board.recordRename'), '', '', name => {
-            if (!name) return;
-            const recordNameDE = document.getElementById(`record-${recordId}-name`);
-            recordNameDE.innerText = name;
-            const recordDict = JSON.parse(localStorage.getItem(recordId));
-            recordDict.name = name;
-            localStorage.setItem(recordId, JSON.stringify(recordDict));
-        });
-        
-    }else if (action === "choice") {
-        // 选中记录（先取到 id，弹层确认时 event 已经过去了）
-        const recordId = event.target.dataset.id;
-        if (recordStatus === "none") {
-            if (!saveStatus) {
-                boardConfirm(t('board.recordUnsaved'), '', () => {
-                    saveStatus = true;
-                    loadRecord(recordId);
-                });
-                return;
-            }
-            saveStatus = true;
-            loadRecord(recordId);
-        }else if (recordStatus === "delete") {
-            boardConfirm(t('board.recordDeleteAsk'), '', () => {
-                recordStorage.splice(recordStorage.indexOf(recordId), 1);
-                localStorage.setItem("recordStorage", JSON.stringify(recordStorage));
-                localStorage.removeItem(recordId);
-                
-                // 回显
-                loadRecordStorageDE();
-            });
-            
-        }else if (recordStatus === "cover") {
-            boardConfirm(t('board.recordCoverAsk'), '', () => {
-            saveStatus = true;
-            const id = recordId;
-            const oriRecordDict = JSON.parse(localStorage.getItem(id));
-            const recordDict = {
-                id: id, 
-                name: oriRecordDict.name,
-                geometryElement: geometryManager.toStorage(), 
-                storage: {
-                    construct: storageManager.serialization(), 
-                }
-            };
-            
-            // 配置表
-            const lists = {};
-            for (const [key, value] of Object.entries(geometryElementLists)) {
-                const list = [...value];
-                lists[key] = list;
-            }
-            recordDict.geometryElementLists = lists;
-            
-            localStorage.setItem(id, JSON.stringify(recordDict));
-            });
-        }
-    }
-    
-    function loadRecord(id) {
-        const dict = JSON.parse(localStorage.getItem(id));
-        
-        // 选定栏
-        const geometryElementListsLoad = dict.geometryElementLists;
-        for (const [key, value] of Object.entries(geometryElementListsLoad)) {
-            geometryElementLists[key] = new Set(value);
-        }
-    
-        // 几何对象：走 loadStorageSnapshot —— loadStorage 会按当前绘制样式（求解器里是自动配色）
-        // 把对象重新涂成红 / 灰，存档里带的金色「所求判定」就没了；
-        // 快照这条路会按存档还原各自颜色，再补一次 refreshElementListColors（给定黑、所求金）
-        if (typeof loadStorageSnapshot === 'function') {
-            loadStorageSnapshot(dict.geometryElement);
-        } else {
-            geometryManager.loadStorage(dict.geometryElement);
-        }
-        // 无论走哪条路，最后都按标记重上一次色：给定黑、所求（多解每一组）金
-        if (typeof refreshElementListColors === 'function') refreshElementListColors();
-        drawContent();
-        
-        // 历史记录
-        const tempStorage = dict.storage;
-        storageManager.deserialization(tempStorage.construct);
-        refreshStorageButton();
-    }
-}
 
 
 
@@ -779,9 +551,12 @@ function switchPanel(panel) {
         Object.values(tools).forEach((item) => item.clear?.());
         refreshToolFloating();
         
+        // 记下打开记录面板之前用的工具：载入记录 / 关掉面板时还回去（见 recordPanel.js 的 restoreTool）
+        if (tool !== "move") window.toolBeforeRecordPanel = tool;
         tool = "move";
         drawContent();
-        loadRecordStorageDE();
+        // 打开记录面板时重建列表（recordPanel.js）
+        window.recordPanelRefresh?.();
     }else if (panel === "overviewPanel") {
         Object.values(tools).forEach((item) => item?.clear?.());
         refreshToolFloating();
@@ -946,6 +721,17 @@ function hasPendingToolDraw() {
 }
 
 /**
+ * 撤回 / 重做之后的收尾 过程函数
+ * 两件事：按最近载入的那条记录的样式表补一次色（撤销清单不带样式，见 recordPanel.js 的
+ * recordPanelAfterRestore）；刷新记录面板（画布变了，加号该不该亮要重算）
+ */
+function afterHistoryMove() {
+    // 在 drawContent 之前调用：补回来的颜色这一次绘制就生效
+    if (typeof window.recordPanelAfterRestore === 'function') window.recordPanelAfterRestore();
+    window.recordPanelRefresh?.();
+}
+
+/**
  * 撤回
  */
 function restoreStorage() {
@@ -958,6 +744,7 @@ function restoreStorage() {
     const snapshot = storageManager.restore();
     if (snapshot) loadStorageSnapshot(snapshot);
     refreshStorageButton();
+    afterHistoryMove();
     drawContent();
 }
 
@@ -974,6 +761,7 @@ function redoStorage() {
     const snapshot = storageManager.redo();
     if (snapshot) loadStorageSnapshot(snapshot);
     refreshStorageButton();
+    afterHistoryMove();
     drawContent();
 }
 
@@ -1262,7 +1050,7 @@ function DOMLoaded() {
     document.getElementById("container_overview").addEventListener("click", selectElementByOverview);
     document.getElementById("geometry-item").addEventListener("click", geometryItemClick);
     document.getElementById("geometry-item").addEventListener("change", geometryItemChange);
-    document.getElementById("recordPanel").addEventListener("click", recordPanel);
+    // 记录面板的点击由 recordPanel.js 自己按事件委托绑定
     // 初始化
     updateLayout();
     resizeCanvas();
@@ -1271,5 +1059,4 @@ function DOMLoaded() {
     refreshMenuTool();
     refreshStorageButton();
     dataLoad();
-    loadRecordStorage();
 }

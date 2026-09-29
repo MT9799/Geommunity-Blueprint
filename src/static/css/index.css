@@ -631,7 +631,8 @@ textarea {
 
 /* 确认框 */
 .board-dialog-confirm {
-    width: min(380px, 88vw);
+    /* 记录面板的导出选项里有「查看 gmt 代码 / 导出为 gmt 文件」这种长按钮，留宽一点免得折行 */
+    width: min(460px, 90vw);
 }
 
 .board-dialog-confirm .board-dialog-actions {
@@ -699,6 +700,8 @@ textarea {
     cursor: zoom-out;
 }
 
+/* gmt 代码框（制题器「查看 / 导入 gmt 代码」、记录面板导出 / 导入的代码）：
+   滚动条与求解参数 / 标记面板同款 —— 细的占位式经典滚动条（见上面的 .mark-panel / .solver-panel） */
 .board-dialog-code {
     width: 100%;
     height: min(50vh, 360px);
@@ -709,6 +712,20 @@ textarea {
     background-color: rgb(248, 248, 248);
     color: #191919;
     font: 13px/1.6 Consolas, "Courier New", monospace;
+    scrollbar-gutter: stable;
+}
+
+.board-dialog-code::-webkit-scrollbar {
+    width: 8px;
+}
+
+.board-dialog-code::-webkit-scrollbar-thumb {
+    background-color: rgb(165, 165, 175);
+    border-radius: 4px;
+}
+
+.board-dialog-code::-webkit-scrollbar-track {
+    background-color: transparent;
 }
 
 .board-dialog-hint {
@@ -732,6 +749,8 @@ textarea {
     background-color: rgb(240, 240, 240);
     color: #191919;
     font: inherit;
+    /* 按钮文字不折行（「查看 gmt 代码」这类长选项原来会被挤成两行） */
+    white-space: nowrap;
     cursor: pointer;
     transition: background-color 0.5s ease;
 }
@@ -759,7 +778,7 @@ textarea {
     gap: 10px;
     width: 210px;
     /* 解多时面板会很长，限高后自己滚，免得出画面 */
-    max-height: calc(100vh - 330px);
+    max-height: calc(100vh - 400px);
     overflow-y: auto;
     /* 给滚动条常驻预留一条槽位：滚动条出现 / 消失时内容宽度不再变，也就不会压住内容 */
     scrollbar-gutter: stable;
@@ -1159,22 +1178,72 @@ textarea {
 
 
 
+/* 一览里的一格：一行 20 个（见 #container_overview 的网格），宽度交给格子 */
 .overview-item {
-    width: 70px;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
     background-color: rgb(240, 240, 240);
-    border-radius: 10px;
+    border-radius: 7px;
     cursor: pointer;
-    padding: 0; /* 默认值陷阱！ */
+    padding: 1px 0 0;
 }
 
 .overview-item.select {
-    border: 3px solid;
+    border: 2px solid;
+}
+
+/* 非「隐藏」档（初始 / 可动点 / 所求 / 探索…）看的是标记：被标出的那几格用红框，
+   「隐藏」档仍是黑框（「全部」档没有任何标出）。点这些档里的格子也不会把标记点掉（见 geometryItem.js） */
+#container_overview.mark-mode .overview-item.select {
+    border-color: #e53935;
 }
 
 .overview-item-text {
     display: flex;
-    gap: 5px;
+    gap: 3px;
+    font-size: 11px;
+    line-height: 1.3;
     pointer-events: none;
+}
+
+/* 格子小，名字太长就省略 */
+.overview-item-text > span:not(:first-child) {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* 一览面板的标题行：标题在左，关闭（✕）在右上角 */
+.panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.panel-close-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    background-color: rgb(232, 232, 236);
+    cursor: pointer;
+}
+
+.panel-close-button:hover {
+    background-color: rgb(224, 224, 229);
+}
+
+.panel-close-button .svg-icon {
+    width: 70%;
+    height: 70%;
 }
 
 .panel {
@@ -1186,6 +1255,14 @@ textarea {
     flex-direction: column-reverse;
     gap: 10px;
     pointer-events: none;
+}
+
+/* 记录 / 元素一览这两个面板要压在求解器参数面板（.solver-panel，z-index: 4）之上：
+   求解器页里它们在屏幕右侧会重叠，翻记录或看图例时不该被参数面板盖住
+   （仍低于弹出的菜单 .board-popup 与更多栏 #container_more） */
+#overviewPanel,
+#recordPanel {
+    z-index: 5;
 }
 
 .panel-container {
@@ -1256,11 +1333,38 @@ textarea {
 
 #container_overview {
     display: grid;
-    gap: 5px;
-    grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); /* 关键修改 */
+    gap: 3px;
+    /* 每行 15 个（手机上仍按宽度自适应，见下面的媒体查询） */
+    grid-template-columns: repeat(15, minmax(0, 1fr));
     width: 100%;
-    max-height: 30vh;
+    /* 面板贴着屏幕下沿，这个高度决定它的上沿能长到哪：22vh 时上沿正好落在求解器参数面板
+       的下沿再往下一点点（记录面板用 27vh 对齐同一个下沿，见 #storage-item-list） */
+    max-height: 22vh;
     overflow-y: auto;       /* 垂直滚动 */
+    /* 只纵向滚（横向滚动条会盖住最后一行），并给滚动条留常驻槽位 */
+    overflow-x: hidden;
+    scrollbar-gutter: stable;
+    padding-right: 6px;
+}
+
+/* 滚动条与求解参数 / 标记面板一致（见上面的 .mark-panel / .solver-panel）：
+   给 ::-webkit-scrollbar 上了样式，浏览器就不再画成浮在内容上的覆盖式滚动条 ——
+   它变成占位的经典细滚动条，最右边那一列格子也就不会被压住。
+   注意不要再写标准的 scrollbar-width：在 Chromium 里它会盖掉下面的自定义样式，看着又像默认的 */
+#container_overview::-webkit-scrollbar,
+#storage-item-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+#container_overview::-webkit-scrollbar-thumb,
+#storage-item-list::-webkit-scrollbar-thumb {
+    background-color: rgb(165, 165, 175);
+    border-radius: 4px;
+}
+
+#container_overview::-webkit-scrollbar-track,
+#storage-item-list::-webkit-scrollbar-track {
+    background-color: transparent;
 }
 
 
@@ -1468,8 +1572,122 @@ textarea {
     display: flex;
     flex-direction: column;
     gap: 5px;
-    max-height: 40vh;
+    /* 与顶栏留一点空隙（顶栏是 sticky 的，贴太紧会看着像一坨） */
+    margin-top: 8px;
+    /* 面板贴着屏幕下沿（.panel 的 bottom），所以这个高度决定它的**上沿**能长到哪：
+       取 27vh，长满时上沿正好落在求解器参数面板的下沿再往下一点点（见 #container_overview 同一条说明） */
+    max-height: 27vh;
     overflow-y: auto;
+    /* 与一览一样：只纵向滚，并给滚动条留常驻槽位（样式见 #container_overview 那一段） */
+    overflow-x: hidden;
+    scrollbar-gutter: stable;
+}
+
+/* 记录一览：形如元素一览，一条记录一张卡片（序号 / 名称 / 步数 + 三个按钮） */
+.record-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    /* 多选时条目的按钮会收起来，定个最小高度（普通态的实际高度），条目不会跟着缩一截 */
+    min-height: 46px;
+    box-sizing: border-box;
+    padding: 4px 6px;
+    background-color: rgb(240, 240, 240);
+    border: 3px solid transparent;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+/* 多选里被勾上的那几条 */
+.record-item.select {
+    border-color: #0fd869;
+}
+
+.record-item-thumb {
+    width: 54px;
+    height: 54px;
+    object-fit: contain;
+    border-radius: 6px;
+    background-color: #ffffff;
+    flex-shrink: 0;
+}
+
+.record-item-text {
+    display: flex;
+    flex: 1;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
+    pointer-events: none;
+}
+
+.record-item-index {
+    background-color: rgb(200, 200, 200);
+    border-radius: 6px;
+    padding: 1px 7px;
+    flex-shrink: 0;
+}
+
+.record-item-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* 步数：没作出所求的是灰的，作出所求的转黑（其中达标的那个 L / E 仍是金色，见 .goal-part.active） */
+.record-item-steps {
+    flex-shrink: 0;
+    color: #808080;
+    font-weight: 500;
+}
+
+.record-item-steps.reached {
+    color: #191919;
+}
+
+.record-item-actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.record-button {
+    width: 32px;
+    height: 32px;
+    background-color: rgb(228, 228, 228);
+    border-radius: 6px;
+    cursor: pointer;
+    border: none; /* 去边框 */
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0; /* 默认值陷阱！ */
+}
+
+.record-checkbox {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    margin: 0;
+    accent-color: #0fd869;
+    pointer-events: none; /* 勾选交给整条记录（点哪都行） */
+}
+
+/* 多选状态：每条的按钮收起来、复选框出场（批量按钮的显隐由 recordPanel.js 管） */
+.record-checkbox {
+    display: none;
+}
+
+#recordPanel.multi .record-checkbox {
+    display: block;
+}
+
+#recordPanel.multi .record-item-actions {
+    display: none;
 }
 
 .head-item {
@@ -1481,12 +1699,9 @@ textarea {
     width: 100%;
 }
 
-.record-item {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    width: 100%;
-    background-color: rgb(230, 230, 230);
+/* 顶栏左侧（保存 / 导入 / 导出）与右侧（多选 / 批量）之间撑开 */
+.head-space {
+    flex: 1;
 }
 
 .storage-panel-button {
@@ -1505,6 +1720,25 @@ textarea {
 
 .storage-panel-button.active .svg-icon {
     stroke: #0fd869;
+}
+
+.storage-panel-button:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+/* 作者样式里的 display 会盖掉浏览器默认的 [hidden]，这里补回来：
+   记录面板靠 hidden 收起「导入」「删除所选」这些按钮 */
+.storage-panel-button[hidden],
+.record-button[hidden] {
+    display: none;
+}
+
+/* 图标缩进按钮里：面板用的都是页面里现成的 svg 模板（按工具栏尺寸画的） */
+.storage-panel-button .svg-icon,
+.record-button .svg-icon {
+    width: 62%;
+    height: 62%;
 }
 
 .record-item-index-style {
@@ -1672,9 +1906,11 @@ textarea {
     z-index: 5 !important;
 }
 
+/*
 #__vconsole .vc-panel {
     z-index: 5 !important;
 }
+*/
 
 /* 响应式设计：手机端调整 */
 @media (max-width: 768px) {
@@ -1713,13 +1949,15 @@ textarea {
         bottom: 2vh;
         gap: 5px;
     }
-    #container_overview {
-        max-height: 25vh;
-        grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
-        gap: 0;
+    /* 手机端那两个面板同样要压过底部上拉栏（.panel-sheet，z-index: 12） */
+    #overviewPanel,
+    #recordPanel {
+        z-index: 13;
     }
-    .overview-item {
-        width: 50px;
+    #container_overview {
+        max-height: 18vh;
+        grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+        gap: 3px;
     }
     #thumbnail-title-switch {
         width: 40px;
@@ -1877,9 +2115,11 @@ textarea {
         max-height: 40%;
         min-height: 0;
     }
+    /*
     .thumbnail.open .thumbnail-body-container {
         min-height: 140px;
     }
+    */
     /* vConsole 在手机端离菜单栏近一点（菜单栏比桌面矮），并且回到右上角 */
     #__vconsole .vc-switch {
         top: 62px !important;

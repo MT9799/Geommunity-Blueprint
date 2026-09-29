@@ -29,6 +29,16 @@ function geometryItemChange(event) {
     notifyStorageChange(type);
 }
 overviewPanelSelector.addEventListener('change', overviewPanelSelectorChanged);
+// 一览面板右上角的关闭按钮：回到构造面板（与记录面板的 ✕ 一个意思）
+const overviewCloseButton = document.getElementById("overview-close");
+if (overviewCloseButton) {
+    const closeTemplate = document.getElementById("svg-menuClose");
+    if (closeTemplate) overviewCloseButton.innerHTML = closeTemplate.innerHTML;
+    overviewCloseButton.title = typeof t === 'function' ? t('common.close') : '关闭';
+    overviewCloseButton.addEventListener('click', () => {
+        if (typeof switchPanel === 'function') switchPanel('toolbarPanel');
+    });
+}
 /**
  * 几何元素列表选择器变化
  */
@@ -45,6 +55,10 @@ function loadGeometryElements() {
     const geometryElements = geometryManager.getAllByOrder();
     let count = 0;
     overview.innerHTML = "";
+    // 「隐藏」档以外（初始 / 可动点 / 所求 / 探索…）看的是标记：被标出的格子换成红框，
+    // 而且点一下不再把标记点掉（见 select）；「全部」档没有标出，不算 mark-mode
+    overview.classList.toggle('mark-mode',
+        !!overviewPanelSelect && overviewPanelSelect !== 'all' && overviewPanelSelect !== 'hidden');
     
     geometryElements.forEach((element) => {
         // 生成
@@ -706,25 +720,14 @@ function selectElementByOverview(event) {
         return dataItem;
     }
     function select(target, id, set) {
-        // 「隐藏」档：以元素实际的显示状态为准来切换，并把 hidden 集合一起同步，
-        // 这样撤销 / 存读档、重新载入之后列表与画布仍然对得上
-        if (overviewPanelSelect === 'hidden') {
-            const geometryElement = geometryManager.get(id);
-            const wasHidden = !geometryElement.getVisible();
-            geometryElement.modifyVisible(wasHidden);
-            if (wasHidden) set.delete(id);
-            else set.add(id);
-            target.classList.toggle('select', !geometryElement.getVisible());
-            drawContent();
-            return;
-        }
-        if (set.has(id)) {
-            set.delete(id);
-            target.classList.remove('select');
-        }else{
-            set.add(id);
-            target.classList.add('select');
-        }
+        // 游玩模式里「隐藏」也只是看（哪些图形现在看不见），点不动：与看标记的那几档一致。
+        // 隐藏 / 显示请用菜单或工具（这里点一下就把给定图形藏起来太容易误触）
+        if (overviewPanelSelect === 'hidden') return;
+        // 这些档位是「看看有哪些标好的」：已经标上的不再点掉（免得误触取消标记），
+        // 只有还没标的才补上
+        if (set.has(id)) return;
+        set.add(id);
+        target.classList.add('select');
     }
 }
 

@@ -136,7 +136,10 @@ fill="transparent" stroke-width="10"  stroke-linejoin="round"/>
     <!-- 浏览面板 -->
     <div id="overviewPanel" class="panel">
         <div class="panel-container" id="geometry-item-list">
-            <p>几何元素一览</p>
+            <div class="panel-head">
+                <p>几何元素一览</p>
+                <button type="button" class="panel-close-button" id="overview-close" data-action="close-overview"></button>
+            </div>
             <select id="overview-select">
                 <option value="all" data-i18n="level.all">全部</option>
                 <option value="hidden" data-i18n="level.hidden">隐藏</option>
@@ -148,33 +151,17 @@ fill="transparent" stroke-width="10"  stroke-linejoin="round"/>
     </div>
     <!-- 记录面板 -->
     <div id="recordPanel" class="panel">
-        <div class="panel-container" id="storage-item-list">
-            <div class="head-item">
-                <button class="storage-panel-button" id="storage-panel-button-add" data-action="add-record">
-<svg class="svg-icon" viewBox="0 0 200 200">
-<line x1="30" y1="100" x2="170" y2="100" stroke-width="10" fill="transparent" stroke-linecap="round"/>
-<line x1="100" y1="30" x2="100" y2="170" stroke-width="10" fill="transparent" stroke-linecap="round"/>
-</svg>
-                </button>
-                <button class="storage-panel-button" id="storage-panel-button-delete" data-action="delete-record">
-<svg class="svg-icon" viewBox="0 0 200 200">
-<line x1="30" y1="60" x2="170" y2="60" fill="transparent" stroke-width="10" stroke-linecap="round"/>
-<line x1="60" y1="40" x2="140" y2="40" fill="transparent" stroke-width="10" stroke-linecap="round"/>
-<line x1="75" y1="80" x2="80" y2="150" fill="transparent" stroke-width="10" stroke-linecap="round"/>
-<line x1="125" y1="80" x2="120" y2="150" fill="transparent" stroke-width="10" stroke-linecap="round"/>
-<polyline points="50 60, 60 170, 140 170, 150 60" fill="transparent" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>
-                </button>
-                <button class="storage-panel-button" id="storage-panel-button-cover" data-action="cover-record">
-<svg class="svg-icon" viewBox="0 0 200 200">
-<polyline points="30 50, 120 50, 120 130" fill="transparent" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
-<line x1="120" y1="130" x2="100" y2="100" fill="transparent" stroke-width="10" stroke-linecap="round"/>
-<line x1="120" y1="130" x2="140" y2="100" fill="transparent" stroke-width="10" stroke-linecap="round"/>
-<polyline points="70 100, 70 170, 170 170, 170 100" fill="transparent" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
-<line x1="70" y1="150" x2="170" y2="150" fill="transparent" stroke-width="10"/>
-</svg>
-                </button>
+        <div class="panel-container" id="record-panel-container">
+            <div class="head-item" id="record-head">
+                <button class="storage-panel-button" id="record-button-add" data-action="add-record"></button>
+                <button class="storage-panel-button" id="record-button-import" data-action="import-record"></button>
+                <span class="head-space"></span>
+                <button class="storage-panel-button" id="record-button-batch-export" data-action="batch-export"></button>
+                <button class="storage-panel-button" id="record-button-batch-delete" data-action="batch-delete"></button>
+                <button class="storage-panel-button" id="record-button-multi" data-action="multi-select"></button>
+                <button class="storage-panel-button" id="record-button-close" data-action="close-panel"></button>
             </div>
+            <div class="record-list" id="storage-item-list"></div>
         </div>
     </div>
     <!-- 预定义所有SVG -->
@@ -639,7 +626,21 @@ fill="transparent" stroke-width="10"  stroke-linejoin="round"/>
 <line x1="30" y1="130" x2="170" y2="130" fill="transparent" stroke-width="10"/>
 </svg>
         </template>
-        <template id="svg-menuRecord">
+        <template id="svg-exportGmt">
+<svg class="svg-icon" viewBox="0 0 200 200">
+<line x1="100" y1="110" x2="100" y2="30" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+<polyline points="65 65, 100 30, 135 65" fill="transparent" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="40 120, 40 170, 160 170, 160 120" fill="transparent" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+        </template>
+<template id="svg-importGmt">
+<svg class="svg-icon" viewBox="0 0 200 200">
+<line x1="100" y1="30" x2="100" y2="110" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+<polyline points="65 75, 100 110, 135 75" fill="transparent" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="40 120, 40 170, 160 170, 160 120" fill="transparent" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+        </template>
+<template id="svg-menuRecord">
 <svg class="svg-icon" viewBox="0 0 200 200">
 <path d="M 100 150 Q 100 120, 160 130" stroke-width="10" fill="transparent" stroke-linecap="round"/>
 <path d="M 100 150 Q 100 120, 40 130" stroke-width="10" fill="transparent" stroke-linecap="round"/>
@@ -728,5 +729,8 @@ fill="transparent" stroke-width="10" stroke-linejoin="round"/>
     <script src="./levels-data.js"></script>
     <script src="./level-loader.js"></script>
     <script src="./board-tools.js"></script>
+    <!-- 历史记录：数据层 + 面板（要排在 playPage.js / board-tools.js 之后） -->
+    <script src="./static/js/recordStore.js"></script>
+    <script src="./static/js/recordPanel.js"></script>
 </body>
 </html>

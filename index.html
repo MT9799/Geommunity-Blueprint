@@ -53,7 +53,7 @@
         .footer-readme-item { display: none; }
         .footer-readme { padding: 0; border: 0; background: none; color: var(--muted); font: inherit; cursor: pointer; }
         .footer-readme:hover { color: var(--blue); text-decoration: underline; }
-        @media (max-width: 760px) { .site-header { align-items: flex-start; } .source-link { display: none; } .hero { padding: 22px 0 18px; } .entry-grid { grid-template-columns: repeat(2, 1fr); } .notes { grid-template-columns: 1fr; margin-top: 28px; } .footer-links { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; } .footer-readme-item { display: block; grid-column: 1 / -1; text-align: center; } }
+        @media (max-width: 760px) { .site-header { align-items: flex-start; } .source-link { display: none; } .hero { padding: 22px 0 18px; } .entry-grid { grid-template-columns: repeat(2, 1fr); } .notes { grid-template-columns: 1fr; margin-top: 28px; } .footer-links { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; } .footer-readme-item { display: block; grid-column: 1 / -1; text-align: center; } .footer-clear-item { grid-column: 1 / -1; text-align: center; } }
         @media (max-width: 420px) { .page { width: min(100% - 28px, 1080px); } .brand span { font-size: 16px; } .entry { min-height: 138px; padding: 16px; } .entry h3 { font-size: 18px; } }
         /* 项目说明弹窗 */
         .readme-mask { position: fixed; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(38, 50, 56, .45); }
@@ -84,6 +84,46 @@
         .readme-body a { color: var(--blue); }
         .readme-body hr { margin: 20px 0; border: 0; border-top: 1px solid var(--line); }
         .readme-loading { color: var(--muted); }
+        /* 「清除缓存」弹窗（本机保存的作图记录 / 历史记录） */
+        .rec-mask, .rec-dialog-mask { position: fixed; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(38, 50, 56, .45); }
+        .rec-dialog-main { display: flex; flex-direction: column; width: min(760px, 100%); max-height: min(86vh, 900px); border-radius: 12px; background: #fff; box-shadow: 0 24px 60px #26323833; overflow: hidden; }
+        .rec-dialog-main header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 18px; border-bottom: 1px solid var(--line); background: var(--paper); }
+        .rec-dialog-main header strong { font-size: 16px; }
+        .rec-tools { display: flex; gap: 6px; }
+        .rec-icon-button { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; padding: 0; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); cursor: pointer; }
+        .rec-icon-button svg { width: 18px; height: 18px; stroke: currentColor; fill: none; }
+        .rec-icon-button:hover:enabled { border-color: var(--blue); color: var(--blue); }
+        .rec-icon-button:disabled { opacity: .35; cursor: default; }
+        /* 作者样式里的 display 会盖掉 [hidden]，多选时条目的按钮靠 hidden 收起 */
+        .rec-icon-button[hidden] { display: none; }
+        .rec-main-body { padding: 12px 18px 20px; overflow: auto; }
+        .rec-note { margin: 0 0 10px; color: var(--muted); font-size: 13px; }
+        .rec-group-title { margin: 14px 0 8px; font-size: 14px; }
+        .rec-sub-title { margin: 10px 0 4px; color: var(--muted); font-size: 13px; }
+        .rec-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; margin-bottom: 6px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+        .rec-row.select { border-color: var(--blue); }
+        .rec-row-index { min-width: 22px; padding: 1px 6px; border-radius: 6px; background: #f0f1f2; color: var(--muted); font-size: 12px; text-align: center; }
+        .rec-row-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+        /* 步数：没作出所求的是灰的，作出所求的转正文色（其中达标的那个 L / E 仍是金色） */
+        .rec-row-steps { color: var(--muted); font-size: 13px; }
+        .rec-row-steps.reached { color: var(--ink); }
+        .rec-row-steps .gold { color: #d4a900; font-weight: 600; }
+        .rec-row-actions { display: flex; gap: 4px; }
+        .rec-row-actions .rec-icon-button { width: 28px; height: 28px; }
+        .rec-check { width: 16px; height: 16px; margin: 0; accent-color: var(--blue); }
+        .rec-empty { color: var(--muted); font-size: 14px; }
+        .rec-dialog { display: flex; flex-direction: column; gap: 10px; width: min(560px, 100%); max-height: min(80vh, 780px); padding: 16px 18px; border-radius: 12px; background: #fff; box-shadow: 0 24px 60px #26323833; }
+        .rec-dialog strong { font-size: 15px; }
+        .rec-dialog-hint { margin: 0; color: var(--muted); font-size: 13px; }
+        .rec-dialog-input { width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; font: inherit; font-size: 14px; }
+        .rec-dialog-code { margin: 0; padding: 12px; border-radius: 8px; background: #263238; color: #e8f0f2; font: 12px Consolas, monospace; white-space: pre-wrap; overflow: auto; max-height: 50vh; scrollbar-gutter: stable; }
+        /* 「查看 gmt 代码」的滚动条与画板里的求解参数 / 标记面板同款（细的占位式经典滚动条） */
+        .rec-dialog-code::-webkit-scrollbar { width: 8px; }
+        .rec-dialog-code::-webkit-scrollbar-thumb { background-color: rgb(165, 165, 175); border-radius: 4px; }
+        .rec-dialog-code::-webkit-scrollbar-track { background-color: transparent; }
+        .rec-dialog-actions { display: flex; justify-content: flex-end; gap: 8px; }
+        .rec-dialog-actions button { padding: 7px 14px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); font: inherit; font-size: 13px; cursor: pointer; }
+        .rec-dialog-actions button:hover { border-color: var(--blue); color: var(--blue); }
     </style>
 </head>
 <body>
@@ -126,6 +166,7 @@
                 <li><a href="https://www.euclidea.xyz/" target="_blank" rel="noreferrer" data-i18n="index.euclidea">Euclidea 官网</a></li>
                 <li><a href="https://www.geogebra.org/" target="_blank" rel="noreferrer" data-i18n="index.ggb">GeoGebra 官网</a></li>
                 <li class="footer-readme-item"><button type="button" class="footer-readme" data-readme-button data-i18n="index.sourceLink">项目说明</button></li>
+                <li class="footer-clear-item"><button type="button" class="footer-readme" data-clear-cache-button data-i18n="index.clearCache">清除缓存</button></li>
             </ul>
             <p class="footer-note" data-i18n="index.footer">Geommunity Blueprint · GitHub Page</p>
         </footer>
@@ -135,6 +176,9 @@
     <!-- 首页是站点最上一层：载入它才会执行「退回上一层就清掉下一层记录」的那段逻辑
          （这个模块只在被调用时才会去读 data/ 下的 json，首页不调用，所以没有额外请求） -->
     <script src="./src/levels-data.js"></script>
+    <!-- 「清除缓存」：本机保存的作图记录（历史记录） -->
+    <script src="./src/static/js/recordStore.js"></script>
+    <script src="./src/static/js/record-manager.js"></script>
     <script>
         // 首页：按当前语言刷新文案，并标出选中的语言
         document.title = t('index.title');

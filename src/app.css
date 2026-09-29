@@ -330,7 +330,18 @@
  .level-row span,
  .level-row small {
      font: 500 15px;
-     color: #65716c
+     color: #65716c;
+     font-weight: 600;
+ }
+
+ /* 目标步数按本机记录区分：作出过所求的转正文色（.reached），其中达标的那一项标金（.active）。
+    上面那条 `.level-row span` 会把颜色压成灰，所以这两条必须写在它后面（见 levels-data.js 的 markTargetSteps） */
+ .level-row .goal-part.reached {
+     color: #000
+ }
+
+ .level-row .goal-part.active {
+     color: #FFD200
  }
 
  .level-row strong {

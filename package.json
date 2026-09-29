@@ -1,6 +1,6 @@
 {
   "name": "geommunity-blueprint",
-  "version": "1.1.2",
+  "version": "1.1.3",
   "private": true,
   "description": "Geommunity Blueprint —— 欧几里得仿真的关卡库与在线作图板",
   "homepage": "https://github.com/MT9799/Geommunity-Blueprint",
@@ -8,7 +8,7 @@
   "scripts": {
     "start": "python -m http.server 8000",
     "serve": "npx --yes serve -l 8000 .",
-    "check": "node --check src/board-tools.js && node --check src/level-loader.js && node --check src/static/js/index.js && node --check src/static/js/playPage.js && node --check src/static/js/canvas.js && node --check src/static/js/geometry.js && node --check src/static/js/i18n.js && node --check src/static/js/toolPlayPage.js"
+    "check": "node --check src/board-tools.js && node --check src/level-loader.js && node --check src/static/js/index.js && node --check src/static/js/playPage.js && node --check src/static/js/canvas.js && node --check src/static/js/geometry.js && node --check src/static/js/i18n.js && node --check src/static/js/toolPlayPage.js && node --check src/static/js/recordStore.js && node --check src/static/js/recordPanel.js && node --check src/static/js/record-manager.js"
   },
   "keywords": [
     "euclidea",

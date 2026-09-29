@@ -115,6 +115,8 @@ function resizeCanvas() {
 let solverSolutionOverlay = null;
 /** 解法覆盖层的颜色（品红），与求解器面板用的一致 */
 const SOLVER_SOLUTION_COLOR = '#ff00ff';
+/** 解法覆盖层的透明度：点 / 线 / 圆都半透明画，免得盖住下面的给定图形与自己的作图 */
+const SOLVER_SOLUTION_ALPHA = 0.5;
 /**
  * 求解器的「可动构造计划」 状态
  * 面板选中某个解时写入 {solution, result, dag, step, pointIds, elementIds}；
@@ -254,6 +256,10 @@ function evaluateSolverSolutionPlan(job) {
     }
 
     const overlay = {points: [], lines: [], circles: []};
+    // 解法用到的「给定」元素（下标 < initialElementCount）里，画布上画成线段 / 射线的那些：
+    // 解法把它们当**直线**用（「延长给定线段」是常见的一步），所以下面要补画它所在的整条直线 ——
+    // 否则画布上只有那一小段，看上去就像解法里的延长线没画出来
+    const extendedGivens = new Set();
     for (let s = 1; s <= shown; s++) {
         const elementIndex = initialElementCount + s - 1;
         if (elementIndex >= elementCount) break;
@@ -280,6 +286,7 @@ function evaluateSolverSolutionPlan(job) {
                 pointValid[pi] = false;
                 continue;
             }
+            origin.forEach(index => { if (index < initialElementCount) extendedGivens.add(index); });
             const candidates = solverPlanIntersections(elements[origin[0]], elements[origin[1]]);
             if (!candidates.length) {
                 pointValid[pi] = false;
@@ -314,18 +321,28 @@ function evaluateSolverSolutionPlan(job) {
             if (solution.pointBirth[pi] === s && pointValid[pi]) overlay.points.push(points[pi]);
         }
     }
+    // 补画「被解法用到、而画布上只是线段 / 射线」的给定元素所在的整条直线
+    extendedGivens.forEach(index => {
+        const item = geometryManager.get((elementIds || [])[index] || '');
+        if (!item || item.getType() !== 'line' || item.drawType === 'line') return;
+        if (!elementValid[index] || !elements[index]) return;
+        overlay.lines.push(solverLineFromEquation(elements[index]));
+    });
     return overlay;
 }
 
 /**
  * 绘制求解器给出的解法 过程函数
  * 有可动计划就按计划现算（拖动图形时跟着变形），否则画面板给的快照；
- * 圆 → 弧，直线 → 裁到可视范围，点 → 实心圆
+ * 圆 → 弧，直线 → 裁到可视范围，点 → 实心圆。
+ * 点 / 线 / 圆一律半透明（见 SOLVER_SOLUTION_ALPHA）：解法压在给定图形与自己的作图之上，
+ * 全不透明时容易看不清下面的原图
  */
 function drawSolverSolutionOverlay() {
     const overlay = solverSolutionPlan ? evaluateSolverSolutionPlan(solverSolutionPlan) : solverSolutionOverlay;
     if (!overlay) return;
     ct.save();
+    ct.globalAlpha = SOLVER_SOLUTION_ALPHA;
     ct.strokeStyle = SOLVER_SOLUTION_COLOR;
     ct.fillStyle = SOLVER_SOLUTION_COLOR;
     ct.lineWidth = 3 / transform.scale;

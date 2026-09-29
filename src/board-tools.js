@@ -269,6 +269,10 @@
       if (dict?.color) GeometryElement.prototype.modifyColor.call(item, dict.color);
     });
     if (!isList && snapshot?.lists) {
+      // 先把所有标记表清空再按快照填：瘦身过的撤销清单会省掉**空的**标记表（见 recordStore 的
+      // slimUndolist），只填不清理的话，上一步的标记会留在原地 —— 表现为撤销后「对象已经不在
+      // 画布上了，标记面板里还挂着它」
+      Object.keys(geometryElementLists).forEach(key => { geometryElementLists[key] = new Set(); });
       Object.entries(snapshot.lists).forEach(([key, value]) => { geometryElementLists[key] = new Set(value); });
       // 快照重建了对象，清理不再处于标记状态的样式记录（含多解）
       const markedIds = allMarkIds();
@@ -1348,6 +1352,44 @@
     input.addEventListener('change', () => { const file = input.files?.[0]; if (file) file.text().then(loadGmt); });
     input.click();
   };
+  // 历史记录面板（recordPanel.js，画板与关卡游玩共用）要用到的 gmt 桥：
+  // 上面这些实现都在本文件的作用域里，页面脚本只能通过这里调用
+  window.boardGmt = {
+    text: () => gmtText(),
+    load: text => loadGmt(text),
+    /**
+     * 这个对象**自己**的样式（不是标记期间的显示色） 过程函数
+     * 给定 / 所求这些被标记的对象画布上是黑 / 金，但记录里要存的是它原本的样式色 ——
+     * 标记载回来时再按标记重新上色（见 recordPanel 的 stylesOfCanvas / loadedStyles）。
+     * 返回 null 表示「不在任何标记里，按画布上的颜色存就行」
+     * @param {string} id
+     * @returns {{color: string, showName: boolean}|null}
+     */
+    ownStyleOf: id => {
+      if (!allMarkIds().has(id)) return null;
+      const item = typeof geometryManager !== 'undefined' ? geometryManager.get(id) : null;
+      if (!item) return null;
+      // 制题器 / 求解器里 markedStyles 记着标记前的原色；游玩模式没这套，按自动配色算
+      const sealed = markedStyles.get(id);
+      return {
+        color: sealed ? sealed.color : autoPlayModeColor(item),
+        showName: !!(sealed ? sealed.showName : item.getShowName()),
+      };
+    },
+    codeDialog: (title, text, onConfirm) => codeDialog(title, text, onConfirm),
+    download: (name, text) => download(name, text, 'text/plain'),
+    // 选一个 gmt 文件并把文本交给回调（导入记录用；与上面的「导入 gmt 文件」不同，它不改画布）
+    pickFile: callback => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.gmt,.txt,text/plain';
+      input.addEventListener('change', () => {
+        const file = input.files?.[0];
+        if (file) file.text().then(text => callback(text));
+      });
+      input.click();
+    },
+  };
   /**
    * 求解器：把画布图形整理成搜索请求 过程函数
    * 已知条件 = 画布上除「所求判定」以外的对象（目标对象不能同时算作已知，否则一搜就「0 步找到」）；
@@ -1487,6 +1529,27 @@
       const element = solution.elements[i];
       if (element.type === 0) overlay.circles.push(solverOverlayCircle(element));
       else overlay.lines.push(solverOverlayLine(element));
+    }
+    // 与 canvas.js 的计划路径同一口径：解法用到、而画布上只是线段 / 射线的给定元素，
+    // 补一条整直线的覆盖线（「延长给定线段 / 射线」是常见的一步）
+    if (solution.plan && solverLastRequest) {
+      const elementIds = solverLastRequest.lineIds.concat(solverLastRequest.circleIds);
+      const referenced = new Set();
+      for (let s = 1; s <= shown; s++) {
+        const index = result.initialElementCount + s - 1;
+        if (index >= solution.elements.length) break;
+        (solution.plan.definitions?.[index] || []).forEach(pointIndex => {
+          (solution.plan.origins?.[pointIndex] || []).forEach(elementIndex => {
+            if (elementIndex < result.initialElementCount) referenced.add(elementIndex);
+          });
+        });
+      }
+      referenced.forEach(index => {
+        const item = geometryManager.get(elementIds[index] || '');
+        if (!item || item.getType() !== 'line' || item.drawType === 'line' || !item.getVisible()) return;
+        const equation = solverPlanEquationOf(item);
+        if (equation) overlay.lines.push(solverOverlayLine(equation));
+      });
     }
     solverSolutionPlan = null;
     solverSolutionOverlay = overlay;
@@ -2471,10 +2534,14 @@
   const menuItems = [
     { label: t('board.construct'), templateId: 'menuConstruct', actionKey: 'switch-construct', action: () => menuChoice('switch-construct') },
     { label: t('board.overview'), templateId: 'menuOverview', actionKey: 'switch-overview', action: () => menuChoice('switch-overview') },
-    { label: t('board.record'), templateId: 'menuRecord', actionKey: 'switch-record', action: () => menuChoice('switch-record') },
     { label: t('board.clearCanvas'), templateId: 'menuClearCanvas', actionKey: 'clear-canvas', action: () => menuChoice('clear-canvas') },
     { label: t('board.help'), templateId: 'help', actionKey: 'help', action: helpDialog },
   ];
+  // 历史记录：试玩模式（maker-play）不进菜单 —— 试玩只是预览自己做的关卡，
+  // 记录该由关卡游玩那份负责（两者共用同一份记录清单，见 recordStore.js）
+  if (mode !== 'maker-play') {
+    menuItems.splice(2, 0, { label: t('board.record'), templateId: 'menuRecord', actionKey: 'switch-record', action: () => menuChoice('switch-record') });
+  }
   if (mode === 'level' && typeof designMode === 'function') menuItems.push({ label: t('board.designMode'), templateId: 'menuDesign', actionKey: 'design-mode', action: () => menuChoice('design-mode') });
   if (mode === 'level') {
     // 提前把答案索引读进来，没有收录答案图的关卡直接把菜单项置灰
@@ -2515,9 +2582,50 @@
         { label: '导入 gmt 代码', templateId: 'gmtPaste', actionKey: 'gmt-paste', action: () => codeDialog('导入 gmt 代码', '', loadGmt) },
         { label: '导入 gmt 文件', templateId: 'gmtRead', actionKey: 'gmt-read', action: readGmtFile },
       ],
-    });
+    });    /**
+     * 试玩前的数据传输 过程函数
+     * 正常走页面里的 dataTransfer（图形 + 标记 + 撤销历史 + 一份备份）。复杂关卡的撤销历史动辄
+     * 几 MB（几百个对象的关卡能到 4~5MB），sessionStorage 放不下会抛 QuotaExceededError ——
+     * 现象就是「点了试玩没反应」。这时逐级退让：
+     *   ① 历史只留最后 12 步  ② 连历史都不带（图形与标记照旧带过去）
+     * 退让之后试玩页会以带过去的图形为历史起点，少撤几步，但题目照旧能玩
+     * @returns {boolean} 图形是否带过去了
+     */
+    const transferToTestPlay = () => {
+      try {
+        dataTransfer();
+        return true;
+      } catch (error) {
+        // sessionStorage 满了：往下退让
+      }
+      const write = (key, value) => {
+        try {
+          sessionStorage.setItem(key, value);
+          return true;
+        } catch (error) {
+          return false;
+        }
+      };
+      const lists = {};
+      for (const [key, value] of Object.entries(geometryElementLists)) lists[key] = [...value];
+      const elements = JSON.stringify(geometryManager.toStorage());
+      const repository = (typeof storageManager !== 'undefined' && Array.isArray(storageManager.repository))
+        ? storageManager.repository.slice(-12) : [];
+      const history = repository.length
+        ? JSON.stringify({repository: repository, pointer: repository.length - 1, status: false}) : null;
+      // 先让位：备份（另外几份的翻倍）与旧的历史都清掉，图形与标记优先
+      sessionStorage.removeItem('makerBackup');
+      sessionStorage.removeItem('constructRecord');
+      if (!write('geometryElementLists', JSON.stringify(lists))) return false;
+      if (!write('elements', elements)) return false;
+      if (history && !write('constructRecord', history)) sessionStorage.removeItem('constructRecord');
+      return true;
+    };
     add(t('board.testPlay'), () => {
-      if (typeof dataTransfer === 'function') dataTransfer();
+      if (typeof dataTransfer === 'function' && !transferToTestPlay()) {
+        boardToast(t('board.testPlayFailed'));
+        return;
+      }
       // 把自己这条历史记录改写成带 restore=1 的地址：这样点「返回」或浏览器后退都能还原编辑状态。
       // from 要一起带上：试玩返回制题器后，返回按钮还得知道最初是从哪个界面进来的（否则会退回首页）
       const keepFrom = params.get('from') ? '&from=' + encodeURIComponent(params.get('from')) : '';
