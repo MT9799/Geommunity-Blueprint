@@ -530,11 +530,13 @@
      * @param {string} text
      */
     function importRecordText(text) {
-        if (typeof parseGmt !== 'function') return;
+        // 返回值＝这次导入成没成：gmt 代码框的确认按钮按它决定关框还是留着报错
+        // （不返回就是 undefined，会被当成失败 —— 明明收进去了还提示「未能识别 gmt 内容」）
+        if (typeof parseGmt !== 'function') return false;
         const blocks = store.parseImportText(text).filter(block => parseGmt(block.gmt).elements.length);
         if (!blocks.length) {
             global.boardToast?.(t('board.recordImportFailed'));
-            return;
+            return false;
         }
         blocks.forEach(block => {
             const info = Object.assign({
@@ -555,6 +557,7 @@
         });
         refresh();
         global.boardToast?.(t('board.recordImported'));
+        return true;
     }
 
     /**

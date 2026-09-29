@@ -213,11 +213,20 @@ class Point extends GeometryElement {
      * @param {number} [value=0] 
      */
     modifyBase(type, geometryElements, value = 0, exclude = null) {
+        // 基底换了就要换上层引用：新基底登记「本点依赖它」，旧基底撤掉登记。
+        // 与 Line / Circle.modifyDefine 同一口径 —— 少了这步，拖动基底时本点不在更新链里，
+        // 位置就不会实时刷新（各工具原先只能各自手写 addSuperstructure，漏一个就漏一处）
+        if (Array.isArray(this.base.bases)) {
+            for (const item of this.base.bases) item.deleteSuperstructure(this.id);
+        }
         this.base.type = type;
         this.base.bases = geometryElements;
         this.base.value = value;
         // 交点编号时要排除的已知点（gmt 里 Intersect[a,b,x,已知点] 的第四个参数）
         this.base.exclude = exclude || null;
+        if (Array.isArray(geometryElements)) {
+            for (const item of geometryElements) item.addSuperstructure(this);
+        }
         
         // 更新坐标
         this.updateCoordinate();
@@ -271,6 +280,10 @@ class Point extends GeometryElement {
      * 清空基底
      */
     clearBase() {
+        // 变回自由点：先把旧基底上的上层引用撤掉，免得拖动旧基底时还来更新这个已经独立的点
+        if (Array.isArray(this.base.bases)) {
+            for (const item of this.base.bases) item.deleteSuperstructure(this.id);
+        }
         this.base = {type: 'none'};
     }
     
@@ -1057,23 +1070,7 @@ class GeometryElementManager {
         for (const element of elements) {
             // 缓存对象为ID形式，说明是引用已存在的对象，跳过
             if (element.type === 'create') {
-                if (element.create.getType() === "point") {
-                    if (element.create.getBase().type === "online") {
-                        const bases = element.create.getBase().bases;
-                        bases[0].addSuperstructure(element.create);
-                    }else if (element.create.getBase().type === "intersection") {
-                        const bases = element.create.getBase().bases;
-                        bases[0].addSuperstructure(element.create);
-                        bases[1].addSuperstructure(element.create);
-                    }else if (element.create.getBase().type === "center") {
-                        const bases = element.create.getBase().bases;
-                        bases[0].addSuperstructure(element.create);
-                    }else if (element.create.getBase().type === "middlePoint") {
-                        const bases = element.create.getBase().bases;
-                        bases[0].addSuperstructure(element.create);
-                        bases[1].addSuperstructure(element.create);
-                    }
-                }
+                // 「谁依赖谁」由 Point.modifyBase / Line·Circle.modifyDefine 自己登记，这里只把对象收进仓库
                 this.addObject(element.create);
             }
         }
@@ -1453,27 +1450,29 @@ class GeometryElementManager {
             // 修改当前对象
             const type = currentElement.getType();
             if (type === "point") {
-                // 更新点坐标和有效性
-                if (currentElement.getBase().type === 'intersection') {
-                    const [base1, base2] = currentElement.getBase().bases;
-                    // 延迟更新
-                    let delay = false, delay1 = false, delay2 = false;
-                    if (rangeId.has(base1.getId())) {
-                        processedId.has(base1.getId()) ? delay1 = false : delay1 = true;
-                    }
-                    if (rangeId.has(base2.getId())) {
-                        processedId.has(base2.getId()) ? delay2 = false : delay2 = true;
-                    }
-                    if (delay1 || delay2) delay = true;
-                    if (delay) {
+                const base = currentElement.getBase();
+                // 延迟更新：基底在本次范围内、却还没重算完的点先让位（与线 / 圆同一套守卫）。
+                // 交点、线上点、中点、圆心、无穷远点、极点的基底都可能是链条上游，
+                // 不排队就会拿旧坐标算出新位置
+                if (base.type !== 'none' && Array.isArray(base.bases)) {
+                    const basePending = base.bases.some(item => {
+                        const id = item && typeof item.getId === 'function' ? item.getId() : null;
+                        return !!id && rangeId.has(id) && !processedId.has(id);
+                    });
+                    if (basePending) {
                         queue.unshift(currentElement);
                         continue;
                     }
-                    
+                }
+                // 更新点坐标和有效性
+                if (base.type === 'none') {
+                    // 自由点：坐标由调用方（拖动 / 详情面板）直接改写，这里不用管
+                }else if (base.type === 'intersection') {
+                    const [base1, base2] = base.bases;
                     // 更新
                     let valid1 = false, valid2 = false;
                     
-                    const validCoord = ToolsFunction.updateIntersectionCoordinate(currentElement.getBase());
+                    const validCoord = ToolsFunction.updateIntersectionCoordinate(base);
                     valid1 = validCoord.valid;
                     if (valid1) {
                         const [x, y] = validCoord.coordinate;
@@ -1486,24 +1485,20 @@ class GeometryElementManager {
                     }else{
                         currentElement.modifyValid(false);
                     }
-                }else if (currentElement.getBase().type === 'online') {
-                    const [base] = currentElement.getBase().bases;
-                    const coord = ToolsFunction.updateOnlineCoordinate(currentElement.getBase());
-                    // 基底算不出来时该点失效（对象保留，基底恢复后自动回来）
-                    if (coord) {
-                        currentElement.modifyCoordinate(coord[0], coord[1]);
-                        currentElement.modifyValid(base.getValid());
-                    }else{
-                        currentElement.modifyValid(false);
-                    }
-                }else if (currentElement.getBase().type === 'middlePoint' || currentElement.getBase().type === 'center') {
-                    const [base] = currentElement.getBase().bases;
-                    const typeCoordinate = ToolsFunction.updatePointCoordinate(currentElement.getBase());
-                    if (typeCoordinate && typeCoordinate.coordinate) {
-                        currentElement.modifyCoordinate(typeCoordinate.coordinate[0], typeCoordinate.coordinate[1]);
-                        currentElement.modifyValid(base.getValid());
-                    }else{
-                        currentElement.modifyValid(false);
+                }else{
+                    // 其余基底（线上点 / 中点 / 圆心 / 无穷远点 / 极点…）统一走 updatePointCoordinate：
+                    // 它本来就认全部点基底，不必在这里逐个类型抄一遍 —— 原先只列了四种，
+                    // 无穷远点与极点进了链也不重算，于是「一部分图形不随动点更新」
+                    const result = ToolsFunction.updatePointCoordinate(base);
+                    if (result) {
+                        // 基底有一个失效（或算不出来）就整个失效，坐标保留原位，基底恢复后自动回来
+                        const basesValid = (base.bases || []).every(item => item.getValid());
+                        if (result.type === 'update' && basesValid) {
+                            currentElement.modifyCoordinate(result.coordinate[0], result.coordinate[1]);
+                            currentElement.modifyValid(true);
+                        }else{
+                            currentElement.modifyValid(false);
+                        }
                     }
                 }
             }else if (type === "line" || type === "circle") {
@@ -1646,10 +1641,8 @@ class GeometryElementManager {
             });
             if (currentElementType === 'point') {
                 // 第四个参数指定的「已知交点」也一并还原，编号时用它排掉重合的那个
+                // （依赖登记在 modifyBase 里做，见 Point.modifyBase）
                 currentElement.modifyBase(basesType, objectList, bases.value, bases.excludeId ? this.get(bases.excludeId) : null);
-                objectList.forEach((item) => {
-                    item.addSuperstructure(currentElement);
-                });
             }else if (currentElementType === 'line' || currentElementType === 'circle') {
                 currentElement.modifyDefine(basesType, objectList, bases.value);
             }

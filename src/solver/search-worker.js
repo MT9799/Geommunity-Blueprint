@@ -33,6 +33,21 @@ self.onmessage = function (event) {
                 error: (error && error.message) ? error.message : String(error),
             });
         }
+    } else if (type === 'frontier') {
+        // 并行第一步：切前缀任务（对应 C++ 版 bs_v8 的 ProduceFrontierTasks）
+        try {
+            runFrontier(data || {}, id);
+        } catch (error) {
+            self.postMessage({type: 'error', id, error: (error && error.message) ? error.message : String(error)});
+        }
+    } else if (type === 'prefix') {
+        // 并行第二步：搜一个独占前缀（对应 C++ 版 bs_v8 的 SearchPrefixTask）
+        try {
+            const payload = data || {};
+            runPrefix(payload, id, payload.prefix, payload.taskIndex);
+        } catch (error) {
+            self.postMessage({type: 'error', id, error: (error && error.message) ? error.message : String(error)});
+        }
     } else if (type === 'stop') {
         self.postMessage({type: 'stopped', id});
     }
@@ -154,16 +169,26 @@ function dumpPoints(points) {
     return points.map(p => ({x: p.x, y: p.y}));
 }
 
-/** 把图里的元素转成页面侧的元素表 过程函数（type 与原版一致：0 圆 / 1 直线 / 2 射线 / 3 线段） */
+/**
+ * 把图里的元素转成页面侧的元素表 过程函数（type 与原版一致：0 圆 / 1 直线 / 2 射线 / 3 线段）
+ * 射线 / 线段还要带上 bound（范围索引）：页面据此把它们的交点限制在范围内，
+ * 拖动图形重算解法时不会冒出「延长线上」的点（见 board-tools.js 的 buildSolverRequest）
+ */
 function dumpElements(elements) {
-    return elements.map(e => ({type: e.type, a: e.a, b: e.b, c: e.c}));
+    return elements.map(e => ({type: e.type, a: e.a, b: e.b, c: e.c, bound: e.bound}));
 }
 
-/** 跑一次搜索并组织返回值 过程函数 */
-function runSearch(request) {
-    if (typeof request.eps === 'number' && request.eps > 0) EPS = request.eps;
+/** 把图里的范围表转成页面侧的写法 过程函数（与请求里的 x1,y1,x2,y2 一致） */
+function dumpBounds(bounds) {
+    return (bounds || []).map(bound => ({
+        x1: bound.p1.x, y1: bound.p1.y,
+        x2: bound.p2.x, y2: bound.p2.y,
+    }));
+}
 
-    const settings = {
+/** 请求 → 求解器设置 过程函数（各条路径共用；默认值＝内核默认） */
+function makeSettings(request) {
+    return {
         symmetry: request.symmetry !== false,
         goalFirst: request.goalFirst !== false,
         lowMemory: request.lowMemory !== false,
@@ -173,6 +198,12 @@ function runSearch(request) {
             ? request.timeLimitSeconds : 30,
         requestedSolutions: Math.max(1, Math.trunc(request.solutions || 1)),
     };
+}
+
+/** 按请求装好图与求解器 过程函数（并行任务各自装一份，互不共享状态） */
+function createSolver(request) {
+    const settings = makeSettings(request);
+    if (typeof request.eps === 'number' && request.eps > 0) EPS = request.eps;
 
     const limit = Math.max(0, Math.trunc(request.limit || 0));
     const {graph, toolType, givenPointCount} = buildGraph(request);
@@ -180,23 +211,25 @@ function runSearch(request) {
         throw new Error('没有给出任何目标（直线 / 圆 / 点）');
     }
 
-    const stats = makeSearchStats();
     const collector = new SolutionCollector(settings.requestedSolutions);
     const solver = new Solver(
         toolType, settings.symmetry, settings.goalFirst, settings.lowMemory,
         settings.streamDedupEntries, settings.ttBytes, settings.timeLimitSeconds);
     solver.setSolutionCollector(collector);
+    return {settings: settings, limit: limit, graph: graph, toolType: toolType,
+        givenPointCount: givenPointCount, collector: collector, solver: solver};
+}
 
-    const startedAt = WORKER_NOW();
-    solver.search(graph, limit, stats);
-    const seconds = (WORKER_NOW() - startedAt) / 1000;
-
-    const solutions = collector.entries.map(entry => {
+/** 收集器里的解 → 页面侧的解表 过程函数（并行任务也用它） */
+function collectSolutions(collector, givenPointCount) {
+    return collector.entries.map(entry => {
         // 中文步骤报告 + 构造计划（计划让页面在拖动图形时重算品红解法，见 bs-report.js）
         const built = buildSolutionReportAndPlan(entry.graph, givenPointCount);
         return {
             points: dumpPoints(entry.graph.points),
             elements: dumpElements(entry.graph.elements),
+            // 射线 / 线段的端点表：elements 里的 bound 是它的下标
+            bounds: dumpBounds(entry.graph.bounds),
             // 每个点是在第几步被作出来的（0 = 给定），页面据此按步逐步显示
             pointBirth: entry.graph.pointBirth.slice(),
             newElementCount: entry.graph.elements.length - entry.graph.initialElementCount,
@@ -205,6 +238,81 @@ function runSearch(request) {
             plan: built.plan,
         };
     });
+}
+
+/**
+ * 并行：把搜索树切成一串前缀任务流式发回页面 过程函数
+ * 对应 C++ 版 bs_v8 的 ProduceFrontierTasks：走到 splitDepth 层，每到一个前缀就取走
+ * 「initialElementCount 之后新作的那些元素」当成一个任务。这一趟不收集解。
+ */
+function runFrontier(request, id) {
+    const {limit, graph, givenPointCount, solver} = createSolver(request);
+    solver.setSolutionCollector(null);
+    // 与 C++ 版的 FrontierProbeMode 一致：这一趟只切任务，不提交解
+    solver.frontierProbeMode = true;
+    const splitDepth = Math.max(1, Math.trunc(request.splitDepth || 3));
+    const stats = makeSearchStats();
+    const initialElementCount = graph.initialElementCount;
+    // 任务太多也要收手（页面侧还排着队）：留一个很宽的上限，避免极端题把内存吃光
+    const TASK_LIMIT = 50000;
+    const batch = [];
+    let count = 0;
+    const flush = () => {
+        if (!batch.length) return;
+        self.postMessage({type: 'prefix-batch', id: id, tasks: batch.splice(0, batch.length)});
+    };
+    solver.produceFrontierTasks(graph, limit, stats, current => {
+        // 前缀里的元素要能跨线程传：只留几何字段（点由重放时重新求交得到）
+        batch.push(current.elements.slice(initialElementCount).map(element => ({
+            a: element.a, b: element.b, c: element.c, type: element.type, bound: element.bound,
+        })));
+        count++;
+        if (batch.length >= 16) flush();
+        return count < TASK_LIMIT;      // 一直产到穷尽（时间上限由求解器自己盯着）
+    }, splitDepth);
+    flush();
+    self.postMessage({
+        type: 'prefix-done',
+        id: id,
+        count: count,
+        timedOut: solver.isTimedOut(),
+        initialElementCount: initialElementCount,
+        initialPointCount: givenPointCount,
+        stats: stats,
+    });
+}
+
+/**
+ * 并行：搜一个前缀 过程函数
+ * 对应 C++ 版 bs_v8 的 SearchPrefixTask：重放前缀（还原点的新生步数与上一步操作键）后再 DFS
+ */
+function runPrefix(request, id, prefix, taskIndex) {
+    const {limit, graph, givenPointCount, collector, solver} = createSolver(request);
+    const startedAt = WORKER_NOW();
+    solver.searchPrefixTask(graph, limit, prefix || [], makeSearchStats());
+    self.postMessage({
+        type: 'prefix-result',
+        id: id,
+        taskIndex: taskIndex,
+        seconds: ((WORKER_NOW() - startedAt) / 1000).toFixed(3),
+        solutions: collectSolutions(collector, givenPointCount),
+        timedOut: solver.isTimedOut(),
+        initialElementCount: graph.initialElementCount,
+        initialPointCount: givenPointCount,
+    });
+}
+
+/** 跑一次搜索并组织返回值 过程函数 */
+function runSearch(request) {
+    const {limit, graph, givenPointCount, collector, solver} = createSolver(request);
+    const stats = makeSearchStats();
+
+    const startedAt = WORKER_NOW();
+    solver.search(graph, limit, stats);
+    const seconds = (WORKER_NOW() - startedAt) / 1000;
+
+    const solutions = collectSolutions(collector, givenPointCount);
+    const settings = makeSettings(request);
 
     // 旧协议：points / elements 是「给定 + 新作」的整表，页面自己跳过头几个
     const first = solutions.length ? solutions[0] : null;
@@ -215,6 +323,7 @@ function runSearch(request) {
         steps: first ? first.newElementCount : 0,
         points: first ? first.points : dumpPoints(graph.points),
         elements: first ? first.elements : dumpElements(graph.elements),
+        bounds: first ? (first.bounds || []) : dumpBounds(graph.bounds),
         // 扩展字段：页面不用也不影响
         solutions,
         solutionCount: solutions.length,

@@ -211,15 +211,46 @@ function solverPlanEquationOf(item) {
     return null;
 }
 
+/** 范围判据的容差（求解器用 request.eps，页面按同一口径） */
+const SOLVER_PLAN_RANGE_EPS = 1e-9;
+
+/**
+ * 交点是否落在这个元素的范围内 过程函数
+ * 射线 / 线段在求解器里是带范围的一等类型（见 solver/bs-core.js 的 isInRange），
+ * 范围外的交点求解器根本不会作出来（同 C++ 版 bs_v8 的 IsInRange：射线按起点一侧的点积、
+ * 线段按两端点同侧）。拖动图形重算解法时按同一口径夹取，才不会冒出解法里没有的点
+ * @param {Object} element 元素（type 2 射线 / 3 线段 时看 bound）
+ * @param {{x: number, y: number}} point
+ * @param {Object[]|null} bounds 端点表（与请求里的 x1,y1,x2,y2 同形）
+ * @param {number} [eps]
+ * @returns {boolean}
+ */
+function solverPlanInRange(element, point, bounds, eps) {
+    if (!element || (element.type !== 2 && element.type !== 3)) return true;
+    const bound = bounds && element.bound !== undefined && element.bound !== null ? bounds[element.bound] : null;
+    if (!bound) return true;
+    const tolerance = typeof eps === 'number' && eps > 0 ? eps : SOLVER_PLAN_RANGE_EPS;
+    if (element.type === 2) {
+        // 射线：点要在起点「往后」那一侧
+        const dx = (bound.x1 - point.x) * (bound.x1 - bound.x2);
+        const dy = (bound.y1 - point.y) * (bound.y1 - bound.y2);
+        return dx + dy > -tolerance;
+    }
+    // 线段：点要在两端点之间（两端点同侧判据）
+    const dx = (bound.x1 - point.x) * (bound.x2 - point.x);
+    const dy = (bound.y1 - point.y) * (bound.y2 - point.y);
+    return dx + dy < tolerance;
+}
+
 /**
  * 按计划算出「当前画布上的解法」 过程函数
  * 给定点 / 给定元素读画布对象的实时位置，新元素与新交点按计划重算；
  * 计划里没记到的（或对象已被删）就沿用记录值 —— 于是解法永远贴着图形
- * @param {Object} job {solution, result, dag, step, pointIds, elementIds}
+ * @param {Object} job {solution, result, dag, step, pointIds, elementIds, bounds, eps}
  * @returns {{points: Array, lines: Array, circles: Array}}
  */
 function evaluateSolverSolutionPlan(job) {
-    const {solution, result, dag, step, pointIds, elementIds} = job;
+    const {solution, result, dag, step, pointIds, elementIds, bounds, eps} = job;
     const shown = Math.max(0, Math.min(solution.newElementCount, step));
     const initialPointCount = result.initialPointCount;
     const initialElementCount = result.initialElementCount;
@@ -245,21 +276,19 @@ function evaluateSolverSolutionPlan(job) {
         }
         points[i] = {x: item.x, y: item.y};
     }
-    // 给定元素用对象当前的方程（于是给定直线会跟着它的端点转）
+    // 给定元素用对象当前的方程（于是给定直线会跟着它的端点转）；
+    // 线段 / 射线还要带上类型与范围，下面跟它们的交点按范围夹取
     for (let i = 0; i < initialElementCount && i < elementIds.length; i++) {
         const equation = solverPlanEquationOf(geometryManager.get(elementIds[i]));
         if (!equation) {
             elementValid[i] = false;
             continue;
         }
-        elements[i] = equation;
+        const recorded = solution.elements[i] || {};
+        elements[i] = Object.assign(equation, {type: recorded.type, bound: recorded.bound});
     }
 
     const overlay = {points: [], lines: [], circles: []};
-    // 解法用到的「给定」元素（下标 < initialElementCount）里，画布上画成线段 / 射线的那些：
-    // 解法把它们当**直线**用（「延长给定线段」是常见的一步），所以下面要补画它所在的整条直线 ——
-    // 否则画布上只有那一小段，看上去就像解法里的延长线没画出来
-    const extendedGivens = new Set();
     for (let s = 1; s <= shown; s++) {
         const elementIndex = initialElementCount + s - 1;
         if (elementIndex >= elementCount) break;
@@ -286,8 +315,10 @@ function evaluateSolverSolutionPlan(job) {
                 pointValid[pi] = false;
                 continue;
             }
-            origin.forEach(index => { if (index < initialElementCount) extendedGivens.add(index); });
-            const candidates = solverPlanIntersections(elements[origin[0]], elements[origin[1]]);
+            // 交点还要落在两个元素各自的范围内：给定线段 / 射线的延长线上不会有点
+            const candidates = solverPlanIntersections(elements[origin[0]], elements[origin[1]])
+                .filter(candidate => solverPlanInRange(elements[origin[0]], candidate, bounds, eps)
+                    && solverPlanInRange(elements[origin[1]], candidate, bounds, eps));
             if (!candidates.length) {
                 pointValid[pi] = false;
                 continue;
@@ -321,13 +352,9 @@ function evaluateSolverSolutionPlan(job) {
             if (solution.pointBirth[pi] === s && pointValid[pi]) overlay.points.push(points[pi]);
         }
     }
-    // 补画「被解法用到、而画布上只是线段 / 射线」的给定元素所在的整条直线
-    extendedGivens.forEach(index => {
-        const item = geometryManager.get((elementIds || [])[index] || '');
-        if (!item || item.getType() !== 'line' || item.drawType === 'line') return;
-        if (!elementValid[index] || !elements[index]) return;
-        overlay.lines.push(solverLineFromEquation(elements[index]));
-    });
+    // 给定线段 / 射线**不再补画整条直线**：求解器已经按它们的范围夹取交点
+    // （见 board-tools.js 的 buildSolverRequest），解法用到的每一段都在范围内，
+    // 画布上本来就有那些图形，覆盖层不必再画
     return overlay;
 }
 

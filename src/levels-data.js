@@ -142,7 +142,10 @@ function levelRowHTML(level, options) {
     const setting = options || {};
     // 序号一律按它在包里的位次生成，不从 levels.json 里取（那个字段已去掉）
     const number = String((setting.index || 0) + 1).padStart(3, '0');
-    const thumb = level.diagram ? `<img src="../data/${level.diagram}" alt="" loading="lazy">` : '◇';
+    // 缩略图只写 data-src：快滚到跟前时才由 observeLevelThumbs 设上 src（见那边的说明）
+    const thumb = level.diagram
+        ? `<span class="level-thumb" data-src="../data/${level.diagram}">◇</span>`
+        : '<span class="level-thumb">◇</span>';
     const steps = markTargetSteps(level.targetSteps || (typeof t === 'function' ? t('pack.stepsUnknown') : '步数未标注'), level);
     const note = level.note ? ` title="${level.note}"` : '';
     const packTag = setting.packName ? `<em class="level-pack">${setting.packName}</em>` : '';
@@ -152,8 +155,69 @@ function levelRowHTML(level, options) {
     const fromParam = setting.levelFrom ? `&from=${encodeURIComponent(setting.levelFrom)}` : '';
     const href = `./level.html?pack=${encodeURIComponent(level.pack)}&id=${encodeURIComponent(level.id)}${pageParam}${fromParam}`;
     // 标题与步数放同一格（.level-main）：窄屏时步数排在标题下面，不会被挤到新的一行
-    return `<a class="level-row" href="${href}"${note}><span>${number}</span><span class="level-thumb">${thumb}</span>` +
+    return `<a class="level-row" href="${href}"${note}><span>${number}</span>${thumb}` +
         `<span class="level-main"><strong>${level.title}${packTag}</strong><small>${steps}　→</small></span></a>`;
+}
+
+/** 缩略图格子：带 data-src 的关卡行缩略图与关卡包图标 */
+const LEVEL_THUMB_SELECTOR = '.level-thumb[data-src], .pack-icon[data-src]';
+// 要不要预取：视口下方留一点余量，滚起来不会一格一格地「变出来」
+const LEVEL_THUMB_MARGIN = 160;
+let levelThumbQueued = false;
+// 滚动监听只挂一次（列表页可能反复重渲）
+let levelThumbBound = false;
+
+/**
+ * 把一张缩略图真的取回来 过程函数
+ * 取回来之前格子里一直摆着占位符（◇ / ⌁），加载失败也退回占位符
+ * @param {HTMLElement} cell
+ */
+function loadLevelThumb(cell) {
+    const src = cell.dataset.src;
+    if (!src) return;
+    cell.removeAttribute('data-src');
+    const image = document.createElement('img');
+    image.alt = '';
+    image.decoding = 'async';
+    image.addEventListener('load', () => {
+        cell.textContent = '';
+        cell.appendChild(image);
+    });
+    image.addEventListener('error', () => { cell.textContent = '◇'; });
+    image.src = src;
+}
+
+/**
+ * 把「已经到眼前或已经被滚过去」的缩略图取回来 过程函数
+ * 判据是「格子顶边在视口下方留一点余量之内」—— 已经在视口上方的当然也算，
+ * 这样跳到列表底部 / 从关卡返回时定位到中间，中间那些行不会一直空着
+ */
+function loadLevelThumbsInView() {
+    levelThumbQueued = false;
+    document.querySelectorAll(LEVEL_THUMB_SELECTOR).forEach(cell => {
+        if (cell.getBoundingClientRect().top >= innerHeight + LEVEL_THUMB_MARGIN) return;
+        loadLevelThumb(cell);
+    });
+}
+
+/**
+ * 缩略图按需加载 过程函数
+ * 只给**快进入视口**的格子设 src，剩下的滚到跟前再取。
+ * 不能靠 img 的 loading="lazy"：Chrome 会把视口外一千多像素内的图片也先下下来 ——
+ * 实测关卡列表一屏只显示 3 行，却已经下了 15 张 4.16 MB（示意图平均 168 KB，ewp 包 267 KB）。
+ * 每次渲染列表后调一次（搜索页会反复重渲），滚动 / 改窗口大小时自己再补
+ */
+function observeLevelThumbs() {
+    loadLevelThumbsInView();
+    if (levelThumbBound) return;
+    levelThumbBound = true;
+    const queue = () => {
+        if (levelThumbQueued) return;
+        levelThumbQueued = true;
+        requestAnimationFrame(loadLevelThumbsInView);
+    };
+    addEventListener('scroll', queue, {passive: true});
+    addEventListener('resize', queue);
 }
 
 /**

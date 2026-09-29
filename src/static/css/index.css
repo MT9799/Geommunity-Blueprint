@@ -795,6 +795,49 @@ textarea {
 .solver-panel button { cursor: pointer; }
 .solver-panel output { color: rgb(128, 128, 255); font-size: 14px; }
 
+/* 高级选项：平时收起（<details>），展开后与面板其它控件同款。
+   值都对应搜索内核本来就支持的参数（见 solver/search-worker.js），默认值＝内核默认 */
+.solver-advanced {
+    border-top: 1px solid rgb(200, 200, 206);
+    padding-top: 8px;
+}
+
+.solver-advanced > summary {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #5a5a60;
+    cursor: pointer;
+    list-style: none;
+}
+
+.solver-advanced > summary::-webkit-details-marker { display: none; }
+
+/* 收起时 ▸、展开时 ▾ */
+.solver-advanced > summary::before { content: '▶'; font-size: 12px; }
+.solver-advanced[open] > summary::before { content: '▼'; }
+.solver-advanced[open] > summary { margin-bottom: 8px; }
+.solver-advanced .solver-field-row { margin-top: 10px; }
+
+/* 勾选项：一行「框 + 文字」，别跟着面板的 width: 100% 撑开 */
+.solver-advanced .solver-check {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-top: 8px;
+    font-size: 13px;
+}
+
+.solver-panel .solver-check input[type="checkbox"] {
+    width: 15px;
+    height: 15px;
+    min-height: 0;
+    flex: none;
+    margin: 0;
+    padding: 0;
+}
+
 /* 两个侧面板的滚动条做细一点（顺带把浮动的覆盖式滚动条换成占位的经典滚动条） */
 .mark-panel::-webkit-scrollbar,
 .solver-panel::-webkit-scrollbar {
@@ -827,6 +870,40 @@ textarea {
 .solver-step-row span { flex: 1 1 auto; text-align: center; font-size: 12px; color: #191919; }
 /* 文字步骤弹框：等宽字体、可滚动 */
 .board-dialog-report { margin: 0; max-height: 60vh; overflow: auto; padding: 10px; border-radius: 8px; background-color: rgb(240, 240, 240); font-family: ui-monospace, Consolas, monospace; font-size: 13px; line-height: 1.6; white-space: pre-wrap; }
+
+/* 「文字步骤」弹层、帮助 / 查看答案弹层、关卡卡片正文的滚动条：
+   与画板其它面板同款（细的占位式经典滚动条，拇指 rgb(165,165,175)）。
+   给 ::-webkit-scrollbar 上了样式，浏览器就不再画成浮在内容上的覆盖式滚动条 */
+.board-dialog-report::-webkit-scrollbar,
+.help-dialog::-webkit-scrollbar,
+.answer-dialog::-webkit-scrollbar,
+.thumbnail-body-container::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.board-dialog-report::-webkit-scrollbar-thumb,
+.help-dialog::-webkit-scrollbar-thumb,
+.answer-dialog::-webkit-scrollbar-thumb,
+.thumbnail-body-container::-webkit-scrollbar-thumb {
+    background-color: rgb(165, 165, 175);
+    border-radius: 4px;
+}
+
+.board-dialog-report::-webkit-scrollbar-track,
+.help-dialog::-webkit-scrollbar-track,
+.answer-dialog::-webkit-scrollbar-track,
+.thumbnail-body-container::-webkit-scrollbar-track {
+    background-color: transparent;
+}
+
+/* 同上：给滚动条常驻一条槽位，滚动条出现 / 消失时内容宽度不再变 */
+.board-dialog-report,
+.help-dialog,
+.answer-dialog,
+.thumbnail-body-container {
+    scrollbar-gutter: stable;
+}
 
 /* 文字步骤弹层：要压在上拉栏（手机端 z-index:12）之上 */
 .board-dialog-mask.board-dialog-report-mask {

@@ -27,9 +27,13 @@ loadLevelsData().then(async ({ packs }) => {
         const icon = covers[index];
         const description = pack.description || t('pack.lede', {count: pack.levels.length});
         const href = `./pack.html?pack=${encodeURIComponent(pack.id)}`;
-        const iconHTML = icon ? `<img src="../data/${icon}" alt="">` : '<span>⌁</span>';
-        return `<a class="pack-card" href="${href}"><div class="pack-icon">${iconHTML}</div><div class="pack-info"><h2>${pack.name}</h2><strong>${t('pack.levels', {count: pack.levels.length})}</strong><p>${description}</p></div><span class="card-action">→</span></a>`;
+        // 封面只写 data-src：滚到跟前才取（封面常常回落到某关的示意图，动辄上百 KB）
+        const iconHTML = icon
+            ? `<div class="pack-icon" data-src="../data/${icon}"><span>⌁</span></div>`
+            : '<div class="pack-icon"><span>⌁</span></div>';
+        return `<a class="pack-card" href="${href}">${iconHTML}<div class="pack-info"><h2>${pack.name}</h2><strong>${t('pack.levels', {count: pack.levels.length})}</strong><p>${description}</p></div><span class="card-action">→</span></a>`;
     }).join('');
+    observeLevelThumbs();
     // 从关卡包返回时停在第几行就是第几行，而不是回到顶部
     restoreListScroll();
 }).catch(error => {

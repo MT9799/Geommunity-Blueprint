@@ -1440,9 +1440,9 @@
     // pointIds / lineIds / circleIds 与上面三个坐标数组一一对应：
     // 求解器返回的「构造计划」靠它们把已知点、已知元素映射回画布对象，于是拖动图形时能重算解法
     const request = {
-      points: [], lines: [], circles: [],
+      points: [], lines: [], rays: [], segments: [], circles: [],
       goalPoints: [], goalLines: [], goalCircles: [],
-      pointIds: [], lineIds: [], circleIds: [],
+      pointIds: [], lineIds: [], rayIds: [], segmentIds: [], circleIds: [],
     };
     geometryManager.getAllByOrder().forEach(item => {
       if (item.getValid && !item.getValid()) return;
@@ -1466,8 +1466,24 @@
       if (type === 'line') {
         // a·x + b·y = c，两个定义点算一遍（与画板自己的换算一致）
         const coefficients = [second[1] - first[1], first[0] - second[0], first[0] * second[1] - first[1] * second[0]];
-        if (isGoal) request.goalLines.push(...coefficients);
-        else {
+        // 目标只支持无限直线（内核的目标就是直线 / 圆 / 点）：所求标在线段 / 射线上时按它所在直线算
+        if (isGoal) {
+          request.goalLines.push(...coefficients);
+          return;
+        }
+        // 线段 / 射线按「所在直线 + 范围」送：内核是 C++ 版 bs_v8 的移植，射线 / 线段是一等类型
+        // （元素存 a/b/c + bound 索引，范围外的交点直接丢弃，见 solver/bs-core.js 的 isInRange），
+        // 所以不能再当成无限直线 —— 那样会搜出「用了线段延长线」的假解，步数还少算一步
+        const drawType = typeof item.getDrawType === 'function' ? item.getDrawType() : 'line';
+        if (drawType === 'ray') {
+          // 射线：起点 + 经过点
+          request.rays.push(first[0], first[1], second[0], second[1]);
+          request.rayIds.push(id);
+        } else if (drawType === 'lineSegment') {
+          // 线段：两端点（顺序无关）
+          request.segments.push(first[0], first[1], second[0], second[1]);
+          request.segmentIds.push(id);
+        } else {
           request.lines.push(...coefficients);
           request.lineIds.push(id);
         }
@@ -1487,7 +1503,8 @@
     // 在这个量级上比 1 ulp 还小，等于要求位级完全相同 —— 大坐标的题会出现「明明作出来了却匹配不上」。
     // 放大后仍远小于状态去重 / 网格判定用的阈值（0.5），不会把不同状态并到一起
     let extent = 1;
-    [request.points, request.lines, request.circles, request.goalPoints, request.goalLines, request.goalCircles]
+    [request.points, request.lines, request.rays, request.segments, request.circles,
+      request.goalPoints, request.goalLines, request.goalCircles]
       .forEach(list => (list || []).forEach(value => { extent = Math.max(extent, Math.abs(value)); }));
     request.eps = 1e-11 * extent;
     return request;
@@ -1531,7 +1548,9 @@
       if (!item || item.getType() !== 'point') return false;
       if (Math.abs(item.x - recorded.x) > 1e-9 || Math.abs(item.y - recorded.y) > 1e-9) return false;
     }
-    const sentElements = solverLastRequest.lines.length / 3 + solverLastRequest.circles.length / 3;
+    const sentElements = solverLastRequest.lines.length / 3
+      + solverLastRequest.rays.length / 4 + solverLastRequest.segments.length / 4
+      + solverLastRequest.circles.length / 3;
     return sentElements === result.initialElementCount;
   };
 
@@ -1544,8 +1563,12 @@
         dag: solution.plan,
         step: shown,
         pointIds: solverLastRequest.pointIds,
-        // 顺序要与 Worker 装图的顺序一致：直线 → 射线 → 线段 → 圆（后两类求解器面板不发）
-        elementIds: solverLastRequest.lineIds.concat(solverLastRequest.circleIds),
+        // 顺序要与 Worker 装图的顺序一致：直线 → 射线 → 线段 → 圆
+        elementIds: solverLastRequest.lineIds
+          .concat(solverLastRequest.rayIds || [], solverLastRequest.segmentIds || [], solverLastRequest.circleIds),
+        // 射线 / 线段的端点表：解法里与它们的交点必须落在范围内（见 canvas.js 的 solverPlanInRange）
+        bounds: solution.bounds || null,
+        eps: solverLastRequest.eps,
       };
       solverSolutionOverlay = null;
       drawContent();
@@ -1563,27 +1586,8 @@
       if (element.type === 0) overlay.circles.push(solverOverlayCircle(element));
       else overlay.lines.push(solverOverlayLine(element));
     }
-    // 与 canvas.js 的计划路径同一口径：解法用到、而画布上只是线段 / 射线的给定元素，
-    // 补一条整直线的覆盖线（「延长给定线段 / 射线」是常见的一步）
-    if (solution.plan && solverLastRequest) {
-      const elementIds = solverLastRequest.lineIds.concat(solverLastRequest.circleIds);
-      const referenced = new Set();
-      for (let s = 1; s <= shown; s++) {
-        const index = result.initialElementCount + s - 1;
-        if (index >= solution.elements.length) break;
-        (solution.plan.definitions?.[index] || []).forEach(pointIndex => {
-          (solution.plan.origins?.[pointIndex] || []).forEach(elementIndex => {
-            if (elementIndex < result.initialElementCount) referenced.add(elementIndex);
-          });
-        });
-      }
-      referenced.forEach(index => {
-        const item = geometryManager.get(elementIds[index] || '');
-        if (!item || item.getType() !== 'line' || item.drawType === 'line' || !item.getVisible()) return;
-        const equation = solverPlanEquationOf(item);
-        if (equation) overlay.lines.push(solverOverlayLine(equation));
-      });
-    }
+    // 给定线段 / 射线**不再补画整条直线**：求解器已经按它们的范围夹取交点（见 buildSolverRequest），
+    // 解法用到的每一段都在范围内，画布上本来就有它们，覆盖层不必再画
     solverSolutionPlan = null;
     solverSolutionOverlay = overlay;
     drawContent();
@@ -1810,6 +1814,20 @@
         `<label>${t('board.solverTime')}<input id="geb-solver-time" type="number" min="1" max="600" value="60"></label>` +
         `<label>${t('board.solverCount')}<input id="geb-solver-solutions" type="number" min="1" max="20" value="20"></label>` +
       '</div>',
+      // 高级选项：平时收起（<details>），里面的值都对应搜索内核本来就支持的参数（见 search-worker.js）
+      `<details class="solver-advanced" id="geb-solver-advanced"><summary>${t('board.solverAdvanced')}</summary>` +
+        `<label class="solver-check" title="${t('board.solverSymmetryHint')}"><input id="geb-solver-symmetry" type="checkbox" checked><span>${t('board.solverSymmetry')}</span></label>` +
+        `<label class="solver-check" title="${t('board.solverGoalFirstHint')}"><input id="geb-solver-goal-first" type="checkbox" checked><span>${t('board.solverGoalFirst')}</span></label>` +
+        `<label class="solver-check" title="${t('board.solverLowMemoryHint')}"><input id="geb-solver-low-memory" type="checkbox" checked><span>${t('board.solverLowMemory')}</span></label>` +
+        '<div class="solver-field-row">' +
+          `<label title="${t('board.solverTtMbHint')}">${t('board.solverTtMb')}<input id="geb-solver-tt" type="number" min="0" max="512" value="8"></label>` +
+          `<label title="${t('board.solverDedupHint')}">${t('board.solverDedup')}<input id="geb-solver-dedup" type="number" min="0" max="65536" value="2048"></label>` +
+        '</div>' +
+        '<div class="solver-field-row">' +
+          `<label title="${t('board.solverThreadsHint')}">${t('board.solverThreads')}<input id="geb-solver-threads" type="number" min="1" max="16" value="1"></label>` +
+          `<label title="${t('board.solverEpsHint')}">${t('board.solverEps')}<input id="geb-solver-eps" type="number" min="0" step="any" placeholder="${t('board.solverEpsAuto')}"></label>` +
+        '</div>' +
+      '</details>' +
       `<button id="geb-solver-run">${t('board.solverRun')}</button>`,
       `<div class="solver-step-row"><button id="geb-solver-prev">${t('board.solverPrevStep')}</button>` +
         `<span id="geb-solver-stepinfo">—</span>` +
@@ -1914,6 +1932,10 @@
 
     // 正在跑的搜索 Worker（null 表示当前没有在搜索）
     let activeWorker = null;
+    // 正在跑的搜索的「取消」句柄：并行搜索另有一个总时长计时器（到点写超时），停下时得一并掐掉
+    let activeSearchCancel = null;
+    // 每次搜索的编号：停掉之后迟到的 worker 消息就不要再往面板上写了
+    let searchToken = 0;
 
     /** 切换按钮的「开始求解 / 停止求解」状态 过程函数 */
     const setSearching = searching => {
@@ -1924,11 +1946,326 @@
 
     /** 停掉正在跑的搜索 过程函数（返回是否真的停掉了一个） */
     const stopSearch = () => {
-      if (!activeWorker) return false;
-      activeWorker.terminate();
+      if (!activeWorker && !activePool.length) return false;
+      // 先把这次搜索判死：并行搜索的总时长计时器到点会写「超时（n 秒），还没有找到解法」，
+      // 只 terminate worker 掐不掉它 —— 停下之后到点仍会冒出那句超时（单线程则可能收到迟到的结果）
+      searchToken++;
+      if (activeSearchCancel) activeSearchCancel();
+      activeSearchCancel = null;
+      activePool.forEach(worker => worker.terminate());
+      activePool = [];
+      if (activeWorker && !activePool.includes(activeWorker)) activeWorker.terminate();
       activeWorker = null;
       setSearching(false);
       return true;
+    };
+
+    // 高级选项：值都对应搜索内核本来就支持的参数（见 solver/search-worker.js 的 runSearch 设置段），
+    // 改了之后记住，下次打开面板还是这次的选择
+    const ADVANCED_KEY = 'solverAdvanced';
+    const advancedFields = {
+      symmetry: panel.querySelector('#geb-solver-symmetry'),
+      goalFirst: panel.querySelector('#geb-solver-goal-first'),
+      lowMemory: panel.querySelector('#geb-solver-low-memory'),
+      ttMB: panel.querySelector('#geb-solver-tt'),
+      streamDedup: panel.querySelector('#geb-solver-dedup'),
+      threads: panel.querySelector('#geb-solver-threads'),
+      eps: panel.querySelector('#geb-solver-eps'),
+    };
+    /** 读一遍高级选项 过程函数 */
+    const readAdvanced = () => {
+      const options = {
+        symmetry: advancedFields.symmetry.checked,
+        goalFirst: advancedFields.goalFirst.checked,
+        lowMemory: advancedFields.lowMemory.checked,
+        ttMB: Math.max(0, Number(advancedFields.ttMB.value) || 0),
+        streamDedup: Math.max(0, Number(advancedFields.streamDedup.value) || 0),
+        threads: Math.max(1, Math.min(16, Number(advancedFields.threads.value) || 1)),
+        // 留空 = 自动（按图幅算，见 buildSolverRequest 里的 eps）
+        eps: Number(advancedFields.eps.value) > 0 ? Number(advancedFields.eps.value) : null,
+      };
+      try { localStorage.setItem(ADVANCED_KEY, JSON.stringify(options)); } catch (error) { /* 隐私模式等忽略 */ }
+      return options;
+    };
+    /** 恢复上次的高级选项 过程函数 */
+    const restoreAdvanced = () => {
+      let saved = null;
+      try { saved = JSON.parse(localStorage.getItem(ADVANCED_KEY) || 'null'); } catch (error) { saved = null; }
+      if (!saved) return;
+      advancedFields.symmetry.checked = saved.symmetry !== false;
+      advancedFields.goalFirst.checked = saved.goalFirst !== false;
+      advancedFields.lowMemory.checked = saved.lowMemory !== false;
+      if (typeof saved.ttMB === 'number') advancedFields.ttMB.value = saved.ttMB;
+      if (typeof saved.streamDedup === 'number') advancedFields.streamDedup.value = saved.streamDedup;
+      if (typeof saved.threads === 'number') advancedFields.threads.value = saved.threads;
+      if (saved.open) panel.querySelector('#geb-solver-advanced').open = true;
+    };
+    restoreAdvanced();
+    // 展开 / 收起、改动任何一项都记一下：不必等跑一次搜索才生效
+    const advancedBox = panel.querySelector('#geb-solver-advanced');
+    advancedBox.addEventListener('toggle', event => {
+      try {
+        const saved = JSON.parse(localStorage.getItem(ADVANCED_KEY) || '{}') || {};
+        saved.open = event.target.open;
+        localStorage.setItem(ADVANCED_KEY, JSON.stringify(saved));
+      } catch (error) { /* 忽略 */ }
+    });
+    advancedBox.addEventListener('change', () => readAdvanced());
+    const advancedOptions = () => readAdvanced();
+
+    // 并行搜索用到的 worker 池（单线程路径不用，见下面的 startParallelSearch）
+    let activePool = [];
+
+    /**
+     * 把一次搜索的结果画进面板 过程函数
+     * 单线程与并行两条路都从这里收尾（形状与 worker 的返回值一致）
+     */
+    const showSearchResult = (result, seconds, timeLimitSeconds, limit) => {
+      if (!result.found) {
+        status.textContent = result.timedOut
+          ? t('board.solverTimeoutNoSolution', {seconds: timeLimitSeconds})
+          : t('board.solverNoSolution', {limit: limit, seconds: seconds});
+        return;
+      }
+      latest = result;
+      status.textContent = result.timedOut
+        ? t('board.solverTimeoutPartial', {
+          seconds: timeLimitSeconds,
+          found: result.solutionCount,
+          requested: result.requestedSolutions,
+        })
+        : t('board.solverFound', {count: result.solutionCount, seconds: seconds});
+      result.solutions.forEach((solution, index) => {
+        const row = document.createElement('div');
+        row.className = 'solver-solution-row';
+        // 「解法 n」选了就画出来，「文字步骤」看中文步骤说明
+        const pick = document.createElement('button');
+        pick.type = 'button';
+        pick.className = 'solver-solution-pick';
+        pick.textContent = t('board.solverSolutionIndex', {index: index + 1, steps: solution.newElementCount});
+        pick.addEventListener('click', () => playSolution(index, false));
+        const text = document.createElement('button');
+        text.type = 'button';
+        text.className = 'solver-solution-text';
+        text.textContent = t('board.solverReportButton');
+        text.addEventListener('click', () => showReport(index));
+        row.appendChild(pick);
+        row.appendChild(text);
+        list.appendChild(row);
+      });
+      playSolution(0, true);
+    };
+
+    /**
+     * 组装给 worker 的请求体 过程函数（单线程与并行共用）
+     * 默认值＝内核原本的默认，所以高级选项不动时行为与以前完全一致
+     */
+    const workerPayload = (settings, request, advanced) => Object.assign({
+      limit: settings.limit,
+      toolType: settings.toolType,
+      P: request.points.length / 2,
+      L: request.lines.length / 3,
+      // 射线 / 线段各占 4 个数字（起点与经过点 / 两端点）
+      R: request.rays.length / 4,
+      S: request.segments.length / 4,
+      C: request.circles.length / 3,
+      rays: request.rays,
+      segments: request.segments,
+      solutions: settings.solutions,
+      timeLimitSeconds: settings.timeLimitSeconds,
+      symmetry: advanced.symmetry,
+      goalFirst: advanced.goalFirst,
+      lowMemory: advanced.lowMemory,
+      ttMB: advanced.ttMB,
+      streamDedup: advanced.streamDedup,
+    }, request);
+
+    /**
+     * 并行搜索 过程函数
+     * 照着 C++ 版 bs_v8 的分工：1 号 worker 把搜索树按固定深度切成一串「前缀任务」流式发回来，
+     * 每个 worker 领一个前缀**独占**地搜（重放前缀 + DFS；任务内部不用置换表，与 C++ 一致），
+     * 页面上汇总去重、按步数排序。与单线程一样：收够解数就收工，超时/停止随时能掐掉。
+     * @param {Object} settings {request, limit, toolType, timeLimitSeconds, solutions, advanced, threads}
+     */
+    const startParallelSearch = settings => {
+      // 本次搜索的编号：被 stopSearch 作废（编号变了）之后，这次的一切回调都不再收尾
+      const token = ++searchToken;
+      const threads = Math.max(2, settings.threads | 0);
+      const payload = workerPayload(settings, settings.request, settings.advanced);
+      // 切分深度：线程越多就切深一层（深度 3 通常有几十上百个前缀，够分了）
+      const splitDepth = threads > 2 ? 3 : 2;
+      const startedAt = performance.now();
+      const deadline = startedAt + settings.timeLimitSeconds * 1000;
+      const collected = [];
+      const signatures = new Set();
+      const queue = [];
+      const state = new Map();
+      const workers = [];
+      let frontierDone = false;
+      let finished = false;
+      let frontierWorker = null;
+      let meta = {initialElementCount: 0, initialPointCount: 0};
+      let timer = null;
+
+      const initialElementCountOf = () => meta.initialElementCount;
+
+      // 同一条解法（同步骤同几何）可能被不同前缀各搜一遍，这里按几何签名去重
+      const signatureOf = solution => solution.newElementCount + '|' + solution.elements
+        .slice(initialElementCountOf())
+        .map(element => [element.type, element.a, element.b, element.c].join(',')).join(';');
+
+      const collect = solution => {
+        const signature = signatureOf(solution);
+        if (signatures.has(signature)) return;
+        signatures.add(signature);
+        collected.push(solution);
+      };
+
+      const teardown = () => {
+        if (timer) clearTimeout(timer);
+        timer = null;
+        workers.forEach(worker => worker.terminate());
+        workers.length = 0;
+        activePool = [];
+        activeWorker = null;
+        activeSearchCancel = null;
+        setSearching(false);
+      };
+
+      const finish = timedOut => {
+        // 已经被 stopSearch 作废（编号变了）就什么都不做：停下的搜索不该再往面板上写结论
+        if (finished || token !== searchToken) return;
+        finished = true;
+        teardown();
+        // 并行时各前缀出解的先后是乱的：按步数排一下，短的在前
+        collected.sort((one, two) => one.newElementCount - two.newElementCount);
+        // 多个 worker 可能各带着解一起回来，超过「解数」就只留前面这些（与单线程的口径一致）
+        if (collected.length > settings.solutions) collected.length = settings.solutions;
+        const seconds = ((performance.now() - startedAt) / 1000).toFixed(2);
+        showSearchResult({
+          found: collected.length > 0,
+          time: seconds,
+          steps: collected.length ? collected[0].newElementCount : 0,
+          points: collected.length ? collected[0].points : [],
+          elements: collected.length ? collected[0].elements : [],
+          bounds: collected.length ? (collected[0].bounds || []) : [],
+          solutions: collected,
+          solutionCount: collected.length,
+          requestedSolutions: settings.solutions,
+          quotaReached: collected.length >= settings.solutions,
+          timedOut: !!timedOut,
+          initialElementCount: meta.initialElementCount,
+          initialPointCount: meta.initialPointCount,
+          newElementCount: collected.length ? collected[0].newElementCount : 0,
+          engine: 'bs v8 (JS, ' + threads + ' workers)',
+        }, seconds, settings.timeLimitSeconds, settings.limit);
+      };
+
+      const maybeFinish = () => {
+        if (finished) return;
+        if (collected.length >= settings.solutions) {
+          finish(false);
+          return;
+        }
+        const busy = [...state.values()].some(value => value === 'busy' || value === 'frontier');
+        if (!busy && frontierDone && !queue.length) finish(false);
+      };
+
+      /** 给某个 worker 派活：有任务就派，没任务先记成空闲 过程函数 */
+      const dispatch = worker => {
+        if (finished) return;
+        if (state.get(worker) === 'busy' || state.get(worker) === 'frontier') return;
+        const task = queue.shift();
+        if (!task) {
+          state.set(worker, 'idle');
+          maybeFinish();
+          return;
+        }
+        state.set(worker, 'busy');
+        worker.postMessage({type: 'prefix', id: Date.now(), data: Object.assign({}, payload, {prefix: task})});
+      };
+
+      const dispatchIdle = () => {
+        workers.forEach(worker => { if (state.get(worker) === 'idle') dispatch(worker); });
+      };
+
+      for (let index = 0; index < threads; index++) {
+        const worker = new Worker('./solver/search-worker.js');
+        workers.push(worker);
+        state.set(worker, 'idle');
+        // 一号 worker 兼做「切前缀任务」这一趟
+        if (index === 0) {
+          frontierWorker = worker;
+          state.set(worker, 'frontier');
+          worker.postMessage({
+            type: 'frontier',
+            id: Date.now(),
+            data: Object.assign({}, payload, {
+              splitDepth,
+              // 切分这一趟只给一小段时间：整棵搜索的预算要留给真正的搜索
+              timeLimitSeconds: Math.max(1, Math.min(3, settings.timeLimitSeconds / 5)),
+            }),
+          });
+        }
+        worker.onmessage = event => {
+          const message = event.data || {};
+          if (finished) return;
+          if (message.type === 'prefix-batch') {
+            queue.push(...(message.tasks || []));
+            dispatchIdle();
+            return;
+          }
+          if (message.type === 'prefix-done') {
+            frontierDone = true;
+            if (message.initialElementCount) meta = {
+              initialElementCount: message.initialElementCount,
+              initialPointCount: message.initialPointCount,
+            };
+            state.set(worker, 'idle');
+            dispatch(worker);
+            maybeFinish();
+            return;
+          }
+          if (message.type === 'prefix-result') {
+            if (message.initialElementCount) meta = {
+              initialElementCount: message.initialElementCount,
+              initialPointCount: message.initialPointCount,
+            };
+            (message.solutions || []).forEach(collect);
+            state.set(worker, 'idle');
+            dispatch(worker);
+            if (collected.length >= settings.solutions) finish(false);
+            return;
+          }
+          if (message.type === 'error') {
+            // 单个任务出错就让这个 worker 歇着，别把整次搜索带塌
+            console.error('solver worker error', message.error);
+            state.set(worker, 'idle');
+            maybeFinish();
+          }
+        };
+        worker.onerror = () => {
+          state.set(worker, 'idle');
+          maybeFinish();
+        };
+      }
+
+      activeWorker = workers[0];
+      activePool = workers;
+      // 这个总时长计时器归本次搜索所有：停下时由 activeSearchCancel 一并掐掉（见 stopSearch），
+      // 否则停止之后它到点照样会 finish(true)，弹一句「超时（n 秒），还没有找到解法」
+      activeSearchCancel = () => {
+        finished = true;
+        if (timer) clearInterval(timer);
+        timer = null;
+      };
+      // 总时长自己看着：到点就收（worker 各自的 deadline 只管自己那个任务）
+      timer = setInterval(() => {
+        if (finished) return;
+        if (performance.now() >= deadline) finish(true);
+        else maybeFinish();
+      }, 400);
+      setSearching(true);
     };
 
     panel.querySelector('#geb-solver-run').addEventListener('click', () => {
@@ -1938,6 +2275,9 @@
         return;
       }
       const request = buildSolverRequest();
+      // 高级选项（高级选项栏里的值）：容差留空就用 buildSolverRequest 按图幅自动算的那个
+      const advanced = advancedOptions();
+      if (advanced.eps) request.eps = advanced.eps;
       const goalCount = request.goalPoints.length / 2 + request.goalLines.length / 3 + request.goalCircles.length / 3;
       if (!goalCount) {
         status.textContent = t('board.solverNeedGoal');
@@ -1963,7 +2303,16 @@
       drawContent();
       status.textContent = t('board.solverSearching');
 
+      const settings = {request, limit, toolType, timeLimitSeconds, solutions, advanced, threads: advanced.threads};
+      // 并行：多个 worker 按前缀分头搜（见 startParallelSearch）；线程数 1 时走原来的单 worker
+      if (settings.threads > 1) {
+        startParallelSearch(settings);
+        return;
+      }
+
       const worker = new Worker('./solver/search-worker.js');
+      // 本次搜索的编号：被 stopSearch 作废后，迟到的结果不再往面板上写
+      const token = ++searchToken;
       activeWorker = worker;
       setSearching(true);
       const startedAt = performance.now();
@@ -1972,6 +2321,7 @@
         worker.terminate();
         activeWorker = null;
         setSearching(false);
+        if (token !== searchToken) return;
         const message = event.data;
         if (!message || !message.success) {
           status.textContent = t('board.solverFailed', {
@@ -1979,64 +2329,16 @@
           });
           return;
         }
-        const result = message.data;
-        if (!result.found) {
-          status.textContent = result.timedOut
-            ? t('board.solverTimeoutNoSolution', {seconds: timeLimitSeconds})
-            : t('board.solverNoSolution', {limit: limit, seconds: seconds()});
-          return;
-        }
-        latest = result;
-        status.textContent = result.timedOut
-          ? t('board.solverTimeoutPartial', {
-            seconds: timeLimitSeconds,
-            found: result.solutionCount,
-            requested: result.requestedSolutions,
-          })
-          : t('board.solverFound', {count: result.solutionCount, seconds: seconds()});
-        result.solutions.forEach((solution, index) => {
-          const row = document.createElement('div');
-          row.className = 'solver-solution-row';
-          // 「解法 n」选了就画出来，「文字步骤」看中文步骤说明
-          const pick = document.createElement('button');
-          pick.type = 'button';
-          pick.className = 'solver-solution-pick';
-          pick.textContent = t('board.solverSolutionIndex', {index: index + 1, steps: solution.newElementCount});
-          pick.addEventListener('click', () => playSolution(index, false));
-          const text = document.createElement('button');
-          text.type = 'button';
-          text.className = 'solver-solution-text';
-          text.textContent = t('board.solverReportButton');
-          text.addEventListener('click', () => showReport(index));
-          row.appendChild(pick);
-          row.appendChild(text);
-          list.appendChild(row);
-        });
-        playSolution(0, true);
+        showSearchResult(message.data, seconds(), timeLimitSeconds, limit);
       };
       worker.onerror = () => {
-        status.textContent = t('board.solverLoadFailed');
         worker.terminate();
         activeWorker = null;
         setSearching(false);
+        if (token !== searchToken) return;
+        status.textContent = t('board.solverLoadFailed');
       };
-      worker.postMessage({
-        type: 'search',
-        id: Date.now(),
-        data: Object.assign({
-          limit,
-          toolType,
-          P: request.points.length / 2,
-          L: request.lines.length / 3,
-          R: 0,
-          S: 0,
-          C: request.circles.length / 3,
-          rays: [],
-          segments: [],
-          solutions,
-          timeLimitSeconds,
-        }, request),
-      });
+      worker.postMessage({type: 'search', id: Date.now(), data: workerPayload(settings, request, advanced)});
     });
 
     // 上一步 / 下一步：手动逐步看解法（正在播放时按一下即打断播放）

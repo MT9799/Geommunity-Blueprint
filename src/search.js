@@ -53,6 +53,7 @@ loadLevelsData().then(({ packs, levels }) => {
             .join('');
         pager.innerHTML = pagerHTML(page, matched.length, target =>
             searchURL({q: input.value.trim(), pack: packScope, page: target}));
+        observeLevelThumbs();
         if (terms.length || packScope) summary.textContent = t('search.found', {count: matched.length});
         else summary.textContent = t('search.all', {count: levels.length});
         // 搜索条件写进地址栏

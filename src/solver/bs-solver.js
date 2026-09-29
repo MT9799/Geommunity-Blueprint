@@ -1048,6 +1048,90 @@ class Solver {
         return this.dfs(graph, limit, 0, null, stats);
     }
 
+    /**
+     * 产出搜索树的前缀任务 过程函数（并行用，对应 C++ 版 bs_v8 的 ProduceFrontierTasks）
+     * 按普通 DFS 顺序走到 splitDepth 层，每到一个前缀就把当前图交给 sink（sink 里取走
+     * 「initialElementCount 之后新作的那些元素」就是任务的前缀）。
+     * sink 返回 false 表示够了（sink 里自己收住），遍历随即停下。
+     * 与 C++ 版一致：这一趟不收集解、不用置换表（并行任务之间不共享失败状态）
+     * @param {Graph} graph
+     * @param {number} limit
+     * @param {Object} stats
+     * @param {(graph: Graph) => boolean} sink
+     * @param {number} splitDepth
+     * @returns {boolean}
+     */
+    produceFrontierTasks(graph, limit, stats, sink, splitDepth) {
+        this.timedOut = false;
+        this.timeoutPollCounter = 1023;
+        this.parallelControl = null;
+        this.frontierTaskSink = sink;
+        this.frontierDepth = Math.max(1, splitDepth | 0);
+        this.frontierStopped = false;
+        this.frontierProbeMode = false;
+        this.deadline = SOLVER_NOW() + this.timeLimitSeconds * 1000;
+
+        this.streamSeen = new Array(limit + 1);
+        for (let i = 0; i <= limit; i++) this.streamSeen[i] = new BoundedElementSet();
+        if (graph.gridMode && graph.gridFast) {
+            this.gridSeen = new Array(limit + 1);
+            for (let i = 0; i <= limit; i++) this.gridSeen[i] = new ExactGridLineCache();
+        }
+        if (this.lowMemory) this.streamSeen.forEach(set => set.configure(this.streamDedupEntries));
+        if (graph.goalPoints.length) this.oneStepSeen.configure(Math.max(this.streamDedupEntries, 4096));
+
+        this.transposition.configure(0);
+        graph.setStateHashingEnabled(false);
+        const found = this.dfs(graph, limit, 0, null, stats);
+        this.frontierTaskSink = null;
+        return found;
+    }
+
+    /**
+     * 搜索一个独占的前缀 过程函数（并行用，对应 C++ 版 bs_v8 的 SearchPrefixTask）
+     * 把前缀里的元素依次重放上去（点的新生步数、上一步的操作键都靠重放还原），再从那里 DFS。
+     * 与 C++ 版一致：并行任务不用置换表，去重表是本任务私有的（避免跨任务共享失败状态）
+     * @param {Graph} graph
+     * @param {number} limit
+     * @param {Object[]} prefixElements 前缀里新作的那些元素
+     * @param {Object} stats
+     * @returns {boolean}
+     */
+    searchPrefixTask(graph, limit, prefixElements, stats) {
+        this.timedOut = false;
+        this.timeoutPollCounter = 1023;
+        this.parallelControl = null;
+        this.frontierTaskSink = null;
+        this.frontierStopped = false;
+        this.frontierProbeMode = false;
+        this.deadline = SOLVER_NOW() + this.timeLimitSeconds * 1000;
+
+        if (this.streamSeen.length !== limit + 1) {
+            this.streamSeen = new Array(limit + 1);
+            for (let i = 0; i <= limit; i++) this.streamSeen[i] = new BoundedElementSet();
+            if (graph.gridMode && graph.gridFast) {
+                this.gridSeen = new Array(limit + 1);
+                for (let i = 0; i <= limit; i++) this.gridSeen[i] = new ExactGridLineCache();
+            }
+            if (this.lowMemory) this.streamSeen.forEach(set => set.configure(this.streamDedupEntries));
+            if (graph.goalPoints.length) this.oneStepSeen.configure(Math.max(this.streamDedupEntries, 4096));
+        }
+        this.transposition.configure(0);
+        graph.setStateHashingEnabled(false);
+
+        let previous = null;
+        let depth = 0;
+        for (const element of prefixElements || []) {
+            if (this.checkTimeout()) return false;
+            // 防御：合法的重放前缀不会撞上已存元素
+            if (graph.hasElement(element)) return false;
+            graph.applyKnownNew(element, depth + 1);
+            previous = makeOperationKey(element);
+            depth++;
+        }
+        return this.dfs(graph, Math.max(0, limit - depth), depth, previous, stats);
+    }
+
     transpositionBytes() {
         return this.transposition.bytes();
     }

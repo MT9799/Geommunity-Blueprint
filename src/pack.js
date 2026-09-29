@@ -34,6 +34,7 @@ loadLevelsData().then(({ packs }) => {
         .join('');
     pager.innerHTML = pagerHTML(page, levels.length, target =>
         `./pack.html?pack=${encodeURIComponent(packId)}&page=${target}`);
+    observeLevelThumbs();
     // 从关卡返回时停在原来那一屏，而不是回到列表顶部
     restoreListScroll();
     // 搜索：点击搜索框进入搜索页，默认只搜这个包
