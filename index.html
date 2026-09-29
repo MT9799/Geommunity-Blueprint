@@ -139,6 +139,7 @@
         .rec-dialog-actions { display: flex; justify-content: flex-end; gap: 8px; }
         .rec-dialog-actions button { padding: 7px 14px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); font: inherit; font-size: 13px; cursor: pointer; }
         .rec-dialog-actions button:hover { border-color: var(--blue); color: var(--blue); }
+        @media (max-width: 760px) { .rec-dialog-actions { flex-direction: column; align-items: stretch; } .rec-dialog-actions button { width: 100%; }}
     </style>
 </head>
 <body>

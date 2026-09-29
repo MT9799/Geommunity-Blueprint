@@ -553,7 +553,7 @@ textarea {
 .board-dialog-mask {
     position: fixed;
     inset: 0;
-    z-index: 8;
+    z-index: 13;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1991,6 +1991,17 @@ textarea {
 
 /* 响应式设计：手机端调整 */
 @media (max-width: 768px) {
+    /* 弹层里的按钮：手机上横排（还靠右对齐）会把最左边那个挤出屏幕 ——
+       记录导入那三个（导入 gmt 代码 / 导入 gmt 文件 / 取消）尤其明显。竖着排、各占一行 */
+    .board-dialog-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .board-dialog-actions button {
+        width: 100%;
+    }
+
     .moves-layout {
         top: 50px;
         left: 50%;
