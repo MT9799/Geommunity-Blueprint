@@ -24,7 +24,7 @@
         .lang-switch { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; background: #fff; }
         .lang-switch button { padding: 6px 14px; border: 0; background: transparent; color: var(--muted); font-size: 13px; cursor: pointer; }
         .lang-switch button.active { background: var(--blue); color: #fff; }
-        .hero { padding: 24px 0 20px; text-align: center; }
+        .hero { padding: 12px 0 20px; text-align: center; }
         /* 图片按宽度定尺寸、高度自适应（原来固定在 280×150 的框里 contain，四周留一大片空白） */
         .hero img { width: min(320px, 68vw); height: auto; max-height: 190px; object-fit: contain; margin-bottom: 5px; }
         .hero h1 { margin: 0; font-size: clamp(34px, 6vw, 58px); font-weight: 700; letter-spacing: .02em; }
@@ -66,7 +66,9 @@
         .readme-tab.is-active { border-color: var(--blue); background: var(--blue); color: #fff; }
         .readme-close { padding: 7px 14px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); font: inherit; font-size: 13px; cursor: pointer; }
         .readme-close:hover { border-color: var(--blue); color: var(--blue); }
-        .readme-body { padding: 8px 24px 28px; overflow: auto; font-size: 14px; line-height: 1.75; }
+        /* overflow-wrap: anywhere 不只是「长词换行」，它还会把最小内容宽度压到能断行的程度 ——
+           表格里单元格的长词（链接、代码）不然会顶住 min-content，窄屏上整张表格就撑破弹窗右边界 */
+        .readme-body { padding: 8px 24px 28px; overflow: auto; scrollbar-gutter: stable; font-size: 14px; line-height: 1.75; overflow-wrap: anywhere; }
         .readme-body h1 { font-size: 24px; margin: 20px 0 10px; }
         .readme-body h2 { font-size: 19px; margin: 24px 0 10px; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
         .readme-body h3 { font-size: 16px; margin: 20px 0 8px; }
@@ -96,7 +98,7 @@
         .rec-icon-button:disabled { opacity: .35; cursor: default; }
         /* 作者样式里的 display 会盖掉 [hidden]，多选时条目的按钮靠 hidden 收起 */
         .rec-icon-button[hidden] { display: none; }
-        .rec-main-body { padding: 12px 18px 20px; overflow: auto; }
+        .rec-main-body { padding: 12px 18px 20px; overflow: auto; scrollbar-gutter: stable; }
         .rec-note { margin: 0 0 10px; color: var(--muted); font-size: 13px; }
         .rec-group-title { margin: 14px 0 8px; font-size: 14px; }
         .rec-sub-title { margin: 10px 0 4px; color: var(--muted); font-size: 13px; }
@@ -117,10 +119,23 @@
         .rec-dialog-hint { margin: 0; color: var(--muted); font-size: 13px; }
         .rec-dialog-input { width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; font: inherit; font-size: 14px; }
         .rec-dialog-code { margin: 0; padding: 12px; border-radius: 8px; background: #263238; color: #e8f0f2; font: 12px Consolas, monospace; white-space: pre-wrap; overflow: auto; max-height: 50vh; scrollbar-gutter: stable; }
-        /* 「查看 gmt 代码」的滚动条与画板里的求解参数 / 标记面板同款（细的占位式经典滚动条） */
-        .rec-dialog-code::-webkit-scrollbar { width: 8px; }
-        .rec-dialog-code::-webkit-scrollbar-thumb { background-color: rgb(165, 165, 175); border-radius: 4px; }
-        .rec-dialog-code::-webkit-scrollbar-track { background-color: transparent; }
+        /* 首页几个弹层的滚动条与画板里的求解参数 / 标记面板同款（细的占位式经典滚动条）：
+           项目说明的正文与其中的代码块、清除缓存的列表、查看 / 导入 gmt 的代码框。
+           给 ::-webkit-scrollbar 上了样式，浏览器就不再画成浮在内容上的覆盖式滚动条 */
+        .readme-body::-webkit-scrollbar,
+        .rec-main-body::-webkit-scrollbar,
+        .rec-dialog-code::-webkit-scrollbar,
+        .readme-body pre::-webkit-scrollbar { width: 8px; height: 8px; }
+
+        .readme-body::-webkit-scrollbar-thumb,
+        .rec-main-body::-webkit-scrollbar-thumb,
+        .rec-dialog-code::-webkit-scrollbar-thumb,
+        .readme-body pre::-webkit-scrollbar-thumb { background-color: rgb(165, 165, 175); border-radius: 4px; }
+
+        .readme-body::-webkit-scrollbar-track,
+        .rec-main-body::-webkit-scrollbar-track,
+        .rec-dialog-code::-webkit-scrollbar-track,
+        .readme-body pre::-webkit-scrollbar-track { background-color: transparent; }
         .rec-dialog-actions { display: flex; justify-content: flex-end; gap: 8px; }
         .rec-dialog-actions button { padding: 7px 14px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); font: inherit; font-size: 13px; cursor: pointer; }
         .rec-dialog-actions button:hover { border-color: var(--blue); color: var(--blue); }

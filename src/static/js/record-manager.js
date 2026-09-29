@@ -239,7 +239,7 @@
         row.appendChild(indexText);
         row.appendChild(name);
 
-        const summary = store.stepsSummary(dict);
+        const summary = store.stepsSummary(dict, targetOfRecord(dict));
         if (summary) {
             const steps = document.createElement('span');
             // 没作出所求：灰；作出所求：正文色；其中达标的那个 L / E 由 .gold 标金
@@ -301,6 +301,30 @@
         return (level && level.title) || fallback || levelId || '—';
     }
 
+    /**
+     * 记录对应的关卡数据 过程函数
+     * 记录里不存关卡名 / 目标步数 / 关卡包（按 levelId 反查，见 recordStore.js 的格式说明）
+     */
+    function levelOfRecord(dict) {
+        const data = levelTitles;
+        const levelId = store.infoOf(dict).levelId;
+        if (!data || !data.levels || !levelId) return null;
+        return data.levels.find(item => item.id === levelId) || null;
+    }
+
+    function targetOfRecord(dict) {
+        const level = levelOfRecord(dict);
+        if (!level || typeof store.targetStepsFromText !== 'function') return null;
+        return store.targetStepsFromText(level.targetSteps);
+    }
+
+    function packOfRecord(dict) {
+        const info = store.infoOf(dict);
+        if (info.pack) return info.pack;
+        const level = levelOfRecord(dict);
+        return level ? (level.pack || '') : '';
+    }
+
     function packLabel(pack) {
         const data = levelTitles;
         const found = data && data.packs ? data.packs.find(item => item.id === pack) : null;
@@ -338,9 +362,9 @@
                 body.appendChild(title);
 
                 if (mode === 'level') {
-                    const packs = [...new Set(group.map(dict => store.infoOf(dict).pack || ''))];
+                    const packs = [...new Set(group.map(dict => packOfRecord(dict)))];
                     packs.forEach(pack => {
-                        const inPack = group.filter(dict => (store.infoOf(dict).pack || '') === pack);
+                        const inPack = group.filter(dict => packOfRecord(dict) === pack);
                         const packTitle = document.createElement('h4');
                         packTitle.className = 'rec-sub-title';
                         packTitle.textContent = packLabel(pack);

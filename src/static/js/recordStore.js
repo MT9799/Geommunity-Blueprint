@@ -5,16 +5,45 @@
  * 一条记录由几块拼成，每块都只放必要的东西：
  *
  *   id / name / time          —— 清单用的最基本项（name 默认就是保存时间，可重命名）
- *   info                      —— 存档基本信息表：mode（哪个模式）、pack / levelId / levelName（哪一关）、
- *                                reached（保存时作出所求没有）、steps（保存时的步数）、target（本关目标步数）
+ *   info                      —— 存档基本信息表：mode（哪个模式）、pack / levelId（哪一关）、
+ *                                reached（保存时作出所求没有）、steps（保存时的步数）。
+ *                                关卡名与目标步数都按 levelId 反查，不再另存
  *   gmt                       —— 作图本身（gmt 文本）
- *   undolist                  —— 撤销清单：{construct, moves}，每格快照只留必要字段（见 slimUndolist）
+ *   undolist                  —— 可撤回的图形：**gmt 里对象行的序号**（1 起数，只数对象行，
+ *                                与 geometryManager.getAllByOrder() 一一对应）。
+ *                                游玩模式只列玩家自己画的，其它模式列全部
  *   styles                    —— 各图形的样式表：{id: {color, width, showName, visible}}，只记与默认不同的项
- *   thumbnail                 —— 关卡游玩的题目文本与缩略图（只有游玩模式有）
+ *   thumbnail                 —— 关卡游玩的题目文本与缩略图（只有游玩模式有，不写进导出文本）
  *
- * 导出格式就是 **gmt 文本 + 末尾的 `# undolist=`、`# styles=`、`# info=` 三行注释**
- * （gmt 解析会把 `#` 行当注释跳过），导入时按这三种注释还原；批量导出会把多条拼在一份里，
- * 每条前面加一行 `# ===== 记录 N：名称 =====` 分隔 —— 导入时按这行拆回多条。
+ * 导出格式 = **gmt 文本**（对象行 + 标记行）+ 空一行 + 一段 `key=value` 的附加信息：
+ *
+ *   recordname=2026-09-29 12:00:00     记录名（默认就是保存时间）
+ *   time=1759123456789                 保存时间戳
+ *   saved=auto                         自动 / 手动 / 导入
+ *   mode=level                         记录来自哪个模式
+ *   pack=ewp / levelid=ewp11           哪一关（自由作图时 levelid 写 null）
+ *   reached=1                          作出所求没有（非游玩模式留空）
+ *   steps=5:6                          5L 6E（非游玩模式留空）
+ *   undolist=3,5,7                     可撤回的图形：gmt 里对象行的序号
+ *   styles=a#ff0000,a~1,a$             非默认样式，见下面的符号表
+ *
+ * 附加信息段会和对象行撞名字（玩家完全可以把图形叫 mode），所以解析时**只认末尾空行之后那一段**，
+ * 而且那一段的每一行都得是 META_KEYS 里的键，否则当没有附加信息（裸 gmt）。
+ *
+ * styles 的符号（一个图形有多项就逐个写，用逗号隔开）：
+ *   a#ff0000 颜色；a~1 / a~3 点线径（1 小、3 大）；
+ *   a$ 显示标签 / a^ 不显示；a@ 隐藏 / a! 可见
+ * 默认样式不写，另有两条例外：
+ *   · 自由模式导出时，点默认就显示标签也要写 a$（导入到别的模式也保持一样的外观）
+ *   · 游玩模式与制题器导出时，所有非给定对象都要写出 a@ / a!（显式记下显隐）
+ *
+ * 标记行（initial / named / movepoints / hidden / result / explore）就是 gmt 原本那几行，
+ * 载入时一并读出来（游玩模式与制题器读全部，求解器只读给定 / 带标签给定 / 第一个所求的判定部分，
+ * 自由模式忽略）—— 于是切换样式、标记图形、移动图形、删除图形、改参数这些**都不进记录**，
+ * 它们的结果随对应图形的撤回一起消失（要留就自己再调一次）。
+ *
+ * 批量导出会把多条拼在一份里，每条前面加一行 `# ===== 记录 N =====` 分隔（老文件那行还带名称，
+ * 也照样能读）；v1.1.3 及以前的老格式（`# undolist=` / `# styles=` / `# info=` 三行 JSON）仍能读。
  */
 (function (global) {
     // 记录 id 清单（按保存顺序）
@@ -22,14 +51,26 @@
     // v1.1.2 以前关卡游玩另用一份清单，第一次读到就并进主清单
     const KEY_LEGACY_MANIFEST = 'recordStorage-play';
     const KEY_MERGED = 'recordStorage-merged';
-    // 导出时携带附加信息的注释行
+    // 导出时携带附加信息的注释行（v1.1.3 及以前的老格式，仍能读）
     const COMMENT = {
         undolist: '# undolist=',
         styles: '# styles=',
         info: '# info=',
     };
-    // 批量导出的分隔行：# ===== 记录 1：2026-09-29 12:00:00 =====
-    const SPLIT_PATTERN = /^#\s*=+\s*记录\s*(\d+)\s*[：:]\s*(.*?)\s*=+\s*$/;
+    // 现在这套附加信息（导出文本末尾那一段）的键
+    const META_KEYS = ['recordname', 'time', 'saved', 'mode', 'pack', 'levelid', 'reached', 'steps', 'undolist', 'styles'];
+    // styles 的符号表
+    const STYLE_MARKS = {
+        color: '#',
+        width: '~',
+        showNameOn: '$',
+        showNameOff: '^',
+        hidden: '@',
+        visible: '!',
+    };
+    const STYLE_MARK_PATTERN = /[#~$^@!]/;
+    // 批量导出的分隔行：# ===== 记录 1 =====（老文件是 `# ===== 记录 1：名称 =====`，都认）
+    const SPLIT_PATTERN = /^#\s*=+\s*记录\s*(\d+)\s*(?:[：:]\s*(.*?))?\s*=+\s*$/;
 
     /**
      * 读 JSON 过程函数
@@ -500,28 +541,154 @@
     }
 
     /**
+     * 样式表 → 紧凑文本 过程函数
+     * 只写传进来的键 —— 哪些算「非默认」由调用方定（见 recordPanel 的 stylesOfCanvas）
+     * @param {Object} styles {id: {color, width, showName, visible}}
+     * @returns {string} 形如 a#ff0000,a~1,a$,b@
+     */
+    function stylesToText(styles) {
+        const parts = [];
+        Object.keys(styles || {}).forEach(id => {
+            const entry = styles[id] || {};
+            // 颜色按 `a#ff0000` 写：值里的 `#` 省掉（画布上的颜色本来就是 # 开头的十六进制）
+            if (entry.color) parts.push(id + STYLE_MARKS.color + String(entry.color).replace(/^#/, ''));
+            if (typeof entry.width === 'number') parts.push(id + STYLE_MARKS.width + entry.width);
+            if (entry.showName === true) parts.push(id + STYLE_MARKS.showNameOn);
+            if (entry.showName === false) parts.push(id + STYLE_MARKS.showNameOff);
+            if (entry.visible === false) parts.push(id + STYLE_MARKS.hidden);
+            if (entry.visible === true) parts.push(id + STYLE_MARKS.visible);
+        });
+        return parts.join(',');
+    }
+
+    /**
+     * 紧凑文本 → 样式表 过程函数
+     * @param {string} text 形如 a#ff0000,a~1,a$
+     * @returns {Object} {id: {color?, width?, showName?, visible?}}
+     */
+    function stylesFromText(text) {
+        const styles = {};
+        String(text || '').split(',').map(item => item.trim()).filter(Boolean).forEach(item => {
+            const at = item.search(STYLE_MARK_PATTERN);
+            // 名字后面必须跟一个符号：`a` 这种只有名字的项直接跳过
+            if (at <= 0) return;
+            const id = item.slice(0, at);
+            const mark = item[at];
+            const value = item.slice(at + 1).trim();
+            const entry = styles[id] || (styles[id] = {});
+            if (mark === STYLE_MARKS.color) {
+                // `a#ff0000` 里的值是省掉 `#` 的十六进制，读回来补上；其它写法（如颜色名）原样留着
+                if (!value) entry.color = null;
+                else entry.color = /^[0-9a-f]{3,8}$/i.test(value) ? '#' + value : value;
+            }
+            else if (mark === STYLE_MARKS.width) {
+                const width = Number(value);
+                if (Number.isFinite(width)) entry.width = width;
+            }
+            else if (mark === STYLE_MARKS.showNameOn) entry.showName = true;
+            else if (mark === STYLE_MARKS.showNameOff) entry.showName = false;
+            else if (mark === STYLE_MARKS.hidden) entry.visible = false;
+            else if (mark === STYLE_MARKS.visible) entry.visible = true;
+        });
+        Object.keys(styles).forEach(id => { if (!Object.keys(styles[id]).length) delete styles[id]; });
+        return styles;
+    }
+
+    /**
+     * 步数 → 文本 过程函数
+     * @param {{l?: number, e?: number}|null} steps
+     * @returns {string} 形如 "5:6"（就是 5L 6E）
+     */
+    function stepsToText(steps) {
+        if (!steps) return '';
+        const stepsL = typeof steps.l === 'number' ? steps.l : null;
+        const stepsE = typeof steps.e === 'number' ? steps.e : null;
+        if (stepsL === null && stepsE === null) return '';
+        return `${stepsL || 0}:${stepsE || 0}`;
+    }
+
+    /**
+     * 文本 → 步数 过程函数
+     * @param {string} text
+     * @returns {{l: number, e: number}|null}
+     */
+    function stepsFromText(text) {
+        if (!String(text || '').trim()) return null;
+        const [l, e] = String(text).split(':');
+        const stepsL = Number(l);
+        const stepsE = Number(e);
+        if (!Number.isFinite(stepsL) && !Number.isFinite(stepsE)) return null;
+        return {l: Number.isFinite(stepsL) ? stepsL : 0, e: Number.isFinite(stepsE) ? stepsE : 0};
+    }
+
+    /**
+     * 附加信息 → 若干行 过程函数
+     * @param {Object} dict
+     * @returns {string[]}
+     */
+    function metaLinesOf(dict) {
+        const info = infoOf(dict);
+        const oneLine = value => String(value === null || value === undefined ? '' : value).replace(/[\r\n]+/g, ' ').trim();
+        return [
+            `recordname=${oneLine(dict.name)}`,
+            `time=${typeof dict.time === 'number' ? dict.time : ''}`,
+            `saved=${oneLine(dict.saved)}`,
+            `mode=${oneLine(info.mode)}`,
+            `pack=${oneLine(info.pack)}`,
+            `levelid=${oneLine(info.levelId) || 'null'}`,
+            // 达到目标与步数只有游玩模式才谈得上，别的模式留空
+            `reached=${info.mode === 'level' ? (info.reached ? '1' : '0') : ''}`,
+            `steps=${info.mode === 'level' ? stepsToText(info.steps) : ''}`,
+            `undolist=${(Array.isArray(dict.undolist) ? dict.undolist : []).join(',')}`,
+            `styles=${stylesToText(dict.styles)}`,
+        ];
+    }
+
+    /**
      * 一条记录的导出文本 过程函数
-     * gmt 文本 + 末尾三行注释（撤销清单 / 样式表 / 基本信息），随文件一起走
+     * gmt 文本 + 空一行 + 一段附加信息（名称 / 时间 / 模式 / 关卡 / 步数 / 可撤回的图形 / 样式）
      * @param {Object} dict
      * @returns {string}
      */
     function exportTextOf(dict) {
-        const lines = [gmtOf(dict)];
-        if (dict && dict.undolist) lines.push(COMMENT.undolist + JSON.stringify(dict.undolist));
-        if (dict && dict.styles && Object.keys(dict.styles).length) lines.push(COMMENT.styles + JSON.stringify(dict.styles));
-        if (dict && dict.info) lines.push(COMMENT.info + JSON.stringify(dict.info));
-        return lines.join('\n');
+        return [gmtOf(dict), '', metaLinesOf(dict).join('\n')].join('\n');
     }
 
     /**
      * 批量导出：多条记录合并成一份文本 过程函数
+     * 分隔行不带名称：记录名里可能有 `=====`，带上去会把拆分弄乱
      * @param {Object[]} records
      * @returns {string}
      */
     function mergedExportText(records) {
         return (records || []).map((dict, index) => {
-            return `# ===== 记录 ${index + 1}：${dict.name || dict.id} =====\n` + exportTextOf(dict);
+            return `# ===== 记录 ${index + 1} =====\n` + exportTextOf(dict);
         }).join('\n\n');
+    }
+
+    /**
+     * 把一段文本拆成「gmt + 附加信息」过程函数
+     * 附加信息只认末尾空行之后那一段，且要求那一段每一行都是 META_KEYS 里的键 ——
+     * 否则当没有附加信息（裸 gmt：末尾那一段是 initial / explore 这些标记行）
+     * @param {string[]} lines
+     * @returns {{gmt: string, meta: Object|null}}
+     */
+    function splitMeta(lines) {
+        let start = 0;
+        for (let index = lines.length - 1; index >= 0; index--) {
+            start = index;
+            if (!lines[index].trim()) { start = index + 1; break; }
+        }
+        const tail = lines.slice(start).filter(line => line.trim());
+        const meta = {};
+        const allMeta = tail.length > 0 && tail.every(line => {
+            const match = line.match(/^\s*([A-Za-z]+)\s*=\s?([\s\S]*)$/);
+            if (!match || !META_KEYS.includes(match[1].toLowerCase())) return false;
+            meta[match[1].toLowerCase()] = match[2].trim();
+            return true;
+        });
+        if (!allMeta) return {gmt: lines.join('\n').trim(), meta: null};
+        return {gmt: lines.slice(0, start).join('\n').trim(), meta: meta};
     }
 
     /**
@@ -568,12 +735,39 @@
         push();
         return blocks.map(block => {
             const content = block.lines.join('\n');
+            const split = splitMeta(block.lines);
+            if (split.meta) {
+                const meta = split.meta;
+                return {
+                    name: meta.recordname || block.name,
+                    time: meta.time ? Number(meta.time) : null,
+                    saved: meta.saved || null,
+                    gmt: split.gmt,
+                    // 可撤回的图形：gmt 里对象行的序号
+                    undolist: String(meta.undolist || '').split(',')
+                        .map(item => Number(item.trim()))
+                        .filter(value => Number.isFinite(value) && value > 0),
+                    styles: stylesFromText(meta.styles || ''),
+                    info: {
+                        mode: meta.mode || null,
+                        pack: meta.pack || null,
+                        levelId: meta.levelid && meta.levelid !== 'null' ? meta.levelid : null,
+                        levelName: null,
+                        reached: meta.reached === '1',
+                        steps: stepsFromText(meta.steps),
+                        target: null,
+                    },
+                };
+            }
+            // 老格式（v1.1.3 及以前）：附加信息在 `# undolist=` / `# styles=` / `# info=` 三行注释里
             const gmt = content.split(/\r?\n/)
                 .filter(line => !Object.values(COMMENT).some(prefix => line.trim().startsWith(prefix)))
                 .join('\n')
                 .trim();
             return {
                 name: block.name,
+                time: null,
+                saved: null,
                 gmt: gmt,
                 undolist: commentValue(content, COMMENT.undolist),
                 styles: commentValue(content, COMMENT.styles),
@@ -584,26 +778,28 @@
 
     /**
      * 记录的一条摘要（列表里显示步数用） 过程函数
+     * （记录里不再有目标步数，target 由调用方按 levelId 反查后传进来）
      * 只有**作出过所求**的记录才谈得上「达到目标」，没作出的不标金。
      * reached 交给列表决定底色：没作出所求 → 灰、作出所求 → 黑、其中达标的那个 L / E → 金
      * @param {Object} dict
+     * @param {{l?: number, e?: number}|null} [target] 本关目标步数（记录里不再存，由调用方按 levelId 反查）
      * @returns {{parts: {text: string, gold: boolean}[], gold: boolean, reached: boolean}|null}
      */
-    function stepsSummary(dict) {
+    function stepsSummary(dict, target) {
         const info = infoOf(dict);
         const steps = info.steps;
         if (!steps || (typeof steps.l !== 'number' && typeof steps.e !== 'number')) return null;
-        const target = info.target || {};
+        const limits = target || info.target || {};
         const reached = !!info.reached;
         const parts = [];
         let gold = false;
         if (typeof steps.l === 'number') {
-            const ok = reached && typeof target.l === 'number' && steps.l <= target.l;
+            const ok = reached && typeof limits.l === 'number' && steps.l <= limits.l;
             gold = gold || ok;
             parts.push({text: `${steps.l}L`, gold: ok});
         }
         if (typeof steps.e === 'number') {
-            const ok = reached && typeof target.e === 'number' && steps.e <= target.e;
+            const ok = reached && typeof limits.e === 'number' && steps.e <= limits.e;
             gold = gold || ok;
             parts.push({text: `${steps.e}E`, gold: ok});
         }
@@ -664,6 +860,10 @@
         exportTextOf: exportTextOf,
         mergedExportText: mergedExportText,
         parseImportText: parseImportText,
+        stylesToText: stylesToText,
+        stylesFromText: stylesFromText,
+        stepsToText: stepsToText,
+        stepsFromText: stepsFromText,
         stepsSummary: stepsSummary,
         targetStepsFromText: targetStepsFromText,
         reachedTargetOf: reachedTargetOf,

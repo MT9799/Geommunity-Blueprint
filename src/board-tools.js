@@ -349,7 +349,40 @@
       });
     }
     refreshStorageButton();
-  };
+    };
+    /**
+    * 按名单铺撤销/重做历史 过程函数
+    * 记录里的 undolist 是一串「gmt 对象行序号」（与 getAllByOrder 一一对应）：
+    * 第 0 格是名单外的对象（游玩模式＝关卡自带的图形），之后每加一个名单里的对象记一格 ——
+    * 于是载入记录后只能逐一撤回名单里的图形，跟在关卡里一步步作图的手感一致。
+    * listed 传 null 表示名单就是全部对象（把游玩模式导出的记录导入画板时用）
+    * @param {number[]|null} listed 对象行序号（1 起数，只数对象行）
+    * @returns {number} 铺出来的格数
+    */
+    window.buildStorageHistoryFromList = listed => {
+    const full = collectStorageSnapshot();
+    const nodes = full.elements;
+    const order = nodes.map((item, at) => at + 1);
+    const indexList = Array.isArray(listed) ? order.filter(index => listed.includes(index)) : order.slice();
+    const baseline = order.filter(index => !indexList.includes(index));
+    const snapshotOf = indices => {
+      const sorted = indices.slice().sort((one, two) => one - two);
+      const ids = new Set(sorted.map(index => nodes[index - 1].id));
+      const lists = {};
+      Object.entries(full.lists).forEach(([key, value]) => { lists[key] = value.filter(id => ids.has(id)); });
+      return {elements: sorted.map(index => nodes[index - 1]), lists: lists};
+    };
+    const steps = [snapshotOf(baseline)];
+    indexList.forEach((index, at) => { steps.push(snapshotOf(baseline.concat(indexList.slice(0, at + 1)))); });
+    [storageManager, typeof storageManagerResult !== 'undefined' ? storageManagerResult : null, typeof storageManagerExplore !== 'undefined' ? storageManagerExplore : null].forEach(manager => {
+      if (!manager) return;
+      manager.clear();
+      steps.forEach(step => manager.append(step));
+    });
+    refreshStorageButton();
+    return steps.length;
+    };
+
   if (mode === 'maker' && sessionStorage.getItem('elements')) {
     document.addEventListener('DOMContentLoaded', () => {
       const elements = JSON.parse(sessionStorage.getItem('elements'));

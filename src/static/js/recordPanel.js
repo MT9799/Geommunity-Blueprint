@@ -2,13 +2,13 @@
 /**
  * 历史记录面板 模块（画板 / 制题器 / 求解器 / 关卡游玩共用）
  *
- * 记录的数据怎么存见 recordStore.js（gmt + undolist + styles + info）。
+ * 记录的数据怎么存见 recordStore.js（gmt + undolist（一串对象行序号）+ styles + info）。
  * 这一层只管界面与「与当前作图之间的动作」：
  *   · 只显示**当前上下文**的记录：哪个模式、哪一关就只看哪里的（统一分类浏览在首页「清除缓存」）
  *   · 手动保存（左上角加号）——作了图形、且记录里没有一致的构造时才可按
  *   · 游玩模式作出所求时自动保存（recordPanelAutoSave，由 playPage 的 success 调用）——
  *     一次「作出所求」只存一条，之后再画图不再存（所求消失时由 unsuccess 调 recordPanelAutoReset 放开）
- *   · 点一条记录＝载入它（作图 + 样式表 + 撤销清单 + 步数清单）
+ *   · 点一条记录＝载入它（作图 + 样式表 + 按名单重建的撤销历史与步数历史）
  *   · 每条记录：序号 / 名称（保存时间，可重命名）/ 步数（达标才标金）/ 重命名 / 导出 / 删除
  *   · 左上角：加号、导入（游玩模式没有）；右上角：多选（再点变成退出多选）、关闭面板
  *   · 多选：每条前面出复选框，加号变全选，导出所选与删除所选出现
@@ -158,26 +158,50 @@
     }
 
     /**
-     * 画布：撤销清单 过程函数
-     * @returns {Object}
+     * 画布：可撤回的图形 过程函数
+     * 记的是 **gmt 里对象行的序号**（1 起数，只数对象行，与 geometryManager.getAllByOrder() 一一对应）：
+     * 游玩模式只列玩家自己画的（关卡载入时就在的那些不算），其它模式列全部
+     * @returns {number[]}
      */
     function undolistOf() {
-        const undolist = {construct: storageManager.serialization()};
-        if (isPlay && typeof movesStorageManager !== 'undefined') undolist.moves = movesStorageManager.serialization();
-        return store.slimUndolist(undolist);
+        if (typeof geometryManager === 'undefined') return [];
+        let known = mode === 'level' ? levelObjectIds() : null;
+        // 还没记下关卡对象时退回标记表兜底：至少别把关卡的给定图形算成玩家画的
+        if (mode === 'level' && !known) known = givenIds();
+        const list = [];
+        geometryManager.getAllByOrder().forEach((item, index) => {
+            if (known && known.has(item.getId())) return;
+            list.push(index + 1);
+        });
+        return list;
     }
 
     /**
      * 画布：各图形的样式表 过程函数
-     * 只记与默认（黑、宽 1、不显示标签、可见）不同的项，免得每条记录都写一大片。
+     * 只记与默认（黑 #191919、宽 1、点默认显示标签 / 线圆默认不显示、可见）不同的项。
+     * 另两条例外（见 recordStore.js 的格式说明）：
+     *   · 自由模式导出时，点默认就显示标签也要写 `$`（导入到别的模式也保持一样的外观）
+     *   · 游玩模式与制题器导出时，所有非给定对象都写出 `@` / `!`（显式记下显隐）
      * **标记中的对象存它自己的样式**（见 boardGmt.ownStyleOf）：给定 / 所求在画布上是黑 / 金，
      * 那是标记的显示色，载入时标记会重新读出来上色，记录里不该把它当成图形的样式存下来
+     * @param {number[]} [listed] 可撤回的图形（游玩模式用它认出哪些是玩家自己画的）
      * @returns {Object}
      */
-    function stylesOfCanvas() {
+    function stylesOfCanvas(listed) {
         const styles = {};
         if (typeof geometryManager === 'undefined') return styles;
-        geometryManager.getAllByOrder().forEach(item => {
+        const all = geometryManager.getAllByOrder();
+        // 游玩模式：名单里的就是玩家自己画的（非给定）；制题器的非给定走标记表
+        const listedIds = new Set((listed || []).map(index => all[index - 1]).filter(Boolean).map(item => item.getId()));
+        const given = mode === 'maker' ? givenIds() : null;
+        const writesVisibility = id => {
+            if (mode === 'level') return listedIds.has(id);
+            if (mode === 'maker') return !given.has(id);
+            return false;
+        };
+        // 点默认显示标签的场景（画板 / 游玩页），线 / 圆默认不显示
+        const labelShownByDefault = typeof geometryStyle !== 'undefined' && geometryStyle.point && geometryStyle.point.showName !== false;
+        all.forEach(item => {
             const entry = {};
             const id = item.getId();
             const own = global.boardGmt?.ownStyleOf?.(id) || null;
@@ -185,9 +209,12 @@
             if (color && String(color).toLowerCase() !== '#191919') entry.color = color;
             const width = typeof item.getWidth === 'function' ? item.getWidth() : null;
             if (typeof width === 'number' && width !== 1) entry.width = width;
-            const showName = own ? own.showName : (typeof item.getShowName === 'function' && item.getShowName());
-            if (showName) entry.showName = true;
+            const showName = !!own ? own.showName : (typeof item.getShowName === 'function' && item.getShowName());
+            const shownByDefault = typeof item.getType === 'function' && item.getType() === 'point' && labelShownByDefault;
+            if (!!showName !== !!shownByDefault) entry.showName = !!showName;
+            else if (showName && mode === 'normal') entry.showName = true;
             if (typeof item.getVisible === 'function' && !item.getVisible()) entry.visible = false;
+            else if (writesVisibility(id)) entry.visible = true;
             if (Object.keys(entry).length) styles[id] = entry;
         });
         return styles;
@@ -230,6 +257,7 @@
      */
     function buildRecord(options) {
         const now = store.now();
+        // 关卡名与目标步数都按 levelId 反查，不再另存（见 recordStore.js 的格式说明）
         const info = Object.assign({
             mode: mode,
             pack: null,
@@ -237,16 +265,18 @@
             levelName: null,
             reached: reachedGoal(),
             steps: currentSteps(),
-            target: currentTarget(),
+            target: null,
         }, isPlay ? levelInfo() : {}, options.info || {});
+        const undolist = options.undolist !== undefined ? options.undolist : undolistOf();
         return {
             id: store.nextRecordId(),
             name: options.name || now.name,
-            time: now.time,
+            time: options.time || now.time,
             info: info,
             gmt: options.gmt !== undefined ? options.gmt : canvasGmt(),
-            undolist: options.undolist !== undefined ? options.undolist : undolistOf(),
-            styles: options.styles !== undefined ? options.styles : stylesOfCanvas(),
+            undolist: undolist,
+            // 样式表要看「哪些是玩家画的」才能决定要不要写显隐，所以把名单一起给它
+            styles: options.styles !== undefined ? options.styles : stylesOfCanvas(Array.isArray(undolist) ? undolist : null),
             thumbnail: isPlay ? thumbnailOf() : null,
         };
     }
@@ -302,13 +332,18 @@
      */
     function applyStyles(styles) {
         if (!styles || typeof geometryManager === 'undefined') return;
+        // 标记行里的 `named=`（带标签给定）优先于样式：有 named 就按 named 显示标签，
+        // 没有才看样式里的 $ / ^（见 recordStore.js 的格式说明）
+        const named = typeof geometryElementLists !== 'undefined' && geometryElementLists.named ? geometryElementLists.named : null;
         Object.keys(styles).forEach(id => {
             const item = geometryManager.get(id);
             if (!item) return;
             const entry = styles[id] || {};
             if (entry.color && typeof item.modifyColor === 'function') item.modifyColor(entry.color);
             if (typeof entry.width === 'number' && typeof item.modifyWidth === 'function') item.modifyWidth(entry.width);
-            if (entry.showName !== undefined && typeof item.modifyShowName === 'function') item.modifyShowName(!!entry.showName);
+            if (entry.showName !== undefined && !(named && named.has(id)) && typeof item.modifyShowName === 'function') {
+                item.modifyShowName(!!entry.showName);
+            }
             if (entry.visible !== undefined && typeof item.modifyVisible === 'function') item.modifyVisible(!!entry.visible);
         });
     }
@@ -380,34 +415,50 @@
         // 撤回 / 重做重建对象之后要按这张表再补一次色（见 recordPanelAfterRestore）
         loadedStyles = dict.styles || null;
         const undolist = dict.undolist || (dict.storage ? {construct: dict.storage.construct, moves: dict.storage.moves} : null);
-        // 记录里的撤销清单是紧凑格式，先展开成存储类认的 JSON 字符串；
-        // 清单读不出来（空 / 坏掉的旧记录）就保持导入时的历史，别把撤销功能弄坏
-        const lists = store.expandUndolist(undolist);
-        const restoreList = (manager, json) => {
-            if (!json) return false;
-            try {
-                const parsed = JSON.parse(json);
-                if (!parsed || !Array.isArray(parsed.repository) || !parsed.repository.length) return false;
-                manager.deserialization(json);
-                return true;
-            } catch (error) {
-                return false;
+        if (Array.isArray(undolist)) {
+            // 新格式：名单就是「可撤回的图形」那一串对象行序号。
+            // 游玩模式按名单铺撤销历史（只能逐一撤回名单里的图形）；其它模式忽略名单 ——
+            // 把游玩模式导出的记录导入画板，依然可以逐一撤回所有图形
+            const listed = mode === 'level' ? undolist : null;
+            if (typeof global.buildStorageHistoryFromList === 'function') global.buildStorageHistoryFromList(listed);
+            if (isPlay && typeof global.rebuildMovesHistoryForRecord === 'function') {
+                global.rebuildMovesHistoryForRecord(listed, store.infoOf(dict).steps);
             }
-        };
-        if (restoreList(storageManager, lists.construct)) {
-            if (typeof refreshStorageButton === 'function') refreshStorageButton();
-        }
-        if (isPlay && typeof movesStorageManager !== 'undefined' && restoreList(movesStorageManager, lists.moves)) {
-            if (typeof refreshMovesCounter === 'function') refreshMovesCounter();
+        }else{
+            // 老格式（v1.1.3 及以前）：撤销清单是紧凑的快照栈，先展开成存储类认的 JSON 字符串；
+            // 清单读不出来（空 / 坏掉的旧记录）就保持导入时的历史，别把撤销功能弄坏
+            const lists = store.expandUndolist(undolist);
+            const restoreList = (manager, json) => {
+                if (!json) return false;
+                try {
+                    const parsed = JSON.parse(json);
+                    if (!parsed || !Array.isArray(parsed.repository) || !parsed.repository.length) return false;
+                    manager.deserialization(json);
+                    return true;
+                } catch (error) {
+                    return false;
+                }
+            };
+            if (restoreList(storageManager, lists.construct)) {
+                if (typeof refreshStorageButton === 'function') refreshStorageButton();
+            }
+            if (isPlay && typeof movesStorageManager !== 'undefined' && restoreList(movesStorageManager, lists.moves)) {
+                if (typeof refreshMovesCounter === 'function') refreshMovesCounter();
+            }
         }
         if (isPlay) restoreThumbnail(dict);
         if (typeof drawContent === 'function') drawContent();
-        // 旧格式（v1.1.2）的记录顺手补成新格式：作图 + 样式表 + 撤销清单
-        if (!dict.gmt && canvasGmt()) {
+        // 老记录（v1.1.2 的整份快照 / v1.1.3 的快照栈）顺手转成新格式：
+        // 作图与样式一样，只是把那份撤销清单换成「一串对象行序号」，省掉大块 JSON；
+        // 下次载入就走新路径（那份快照栈里的移动 / 样式步骤本来也不再保留）
+        if (canvasGmt() && (!dict.gmt || !Array.isArray(dict.undolist))) {
             dict.gmt = canvasGmt();
             dict.undolist = undolistOf();
-            dict.styles = stylesOfCanvas();
+            dict.styles = stylesOfCanvas(dict.undolist);
             if (!dict.info) dict.info = store.infoOf(dict);
+            delete dict.geometryElement;
+            delete dict.geometryElementLists;
+            delete dict.storage;
             store.putRecord(dict);
         }
         if (isPlay && typeof resultVerify === 'function') resultVerify();
@@ -493,13 +544,13 @@
             }, block.info || {}, isPlay ? levelInfo() : {pack: null, levelId: null, levelName: null}, {mode: mode});
             const dict = buildRecord({
                 name: block.name || null,
+                time: block.time || null,
                 gmt: block.gmt,
                 undolist: block.undolist || null,
                 styles: block.styles || null,
                 info: info,
             });
             dict.saved = 'import';
-            dict.name = block.name || dict.name;
             store.putRecord(dict);
         });
         refresh();
@@ -579,7 +630,8 @@
         nameText.title = nameText.textContent;
         text.appendChild(indexText);
         text.appendChild(nameText);
-        const summary = store.stepsSummary(dict);
+        // 本关目标步数不在记录里（按 levelId 反查），列表标金要现取
+        const summary = store.stepsSummary(dict, currentTarget());
         if (summary) {
             const steps = document.createElement('span');
             // 没作出所求：灰；作出所求：黑；其中达标的那个 L / E 由 .goal-part.active 标金

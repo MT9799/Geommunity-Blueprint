@@ -248,6 +248,51 @@ function refreshMovesCounter() {
     if (typeof refreshLevelStatus === 'function') refreshLevelStatus();
 }
 
+/**
+ * 载入记录后重建步数历史 过程函数
+ * 记录里只存了步数**终值**（steps=5:6）与可撤回的图形名单，没有逐步的步数，于是按每个图形的成本
+ * 从终值往回退：第 k 格 = 终值 − 名单里第 k 个之后那些图形的成本（见 constructionCostOfElement）。
+ * 这样最后一格正好是记录里那个步数，往前撤一步就把那一步的消耗退回去，L / E 勾也跟着重算。
+ * 与 buildStorageHistoryFromList 铺出来的几何历史格数一一对应（第 0 格 = 关卡自带图形，计 0 步）
+ * @param {number[]|null} listed 可撤回的图形（gmt 对象行序号；null 表示名单就是全部对象）
+ * @param {{l: number, e: number}|null} finalSteps 记录里的步数终值
+ * @returns {boolean}
+ */
+window.rebuildMovesHistoryForRecord = (listed, finalSteps) => {
+    if (typeof movesStorageManager === 'undefined') return false;
+    const nodes = geometryManager.getAllByOrder();
+    const order = nodes.map((item, at) => at + 1);
+    const indexList = Array.isArray(listed) ? order.filter(index => listed.includes(index)) : order.slice();
+    const costs = indexList.map(index => constructionCostOfElement(nodes[index - 1]));
+    const total = costs.reduce((sum, cost) => ({e: sum.e + cost.e, l: sum.l + cost.l}), {e: 0, l: 0});
+    // 终值优先用记录里存的：那才是玩家当时真正用掉的 L / E（按图形反推只是估算，只用来定每一格的退量）
+    const end = {
+        e: finalSteps && typeof finalSteps.e === 'number' ? finalSteps.e : total.e,
+        l: finalSteps && typeof finalSteps.l === 'number' ? finalSteps.l : total.l,
+    };
+    // tail[k] = 名单里第 k 个之后还要画的那些的成本
+    const tail = new Array(costs.length + 1).fill(null).map(() => ({e: 0, l: 0}));
+    for (let at = costs.length - 1; at >= 0; at--) {
+        tail[at] = {e: tail[at + 1].e + costs[at].e, l: tail[at + 1].l + costs[at].l};
+    }
+    const steps = [{e: 0, l: 0}];
+    for (let at = 0; at < costs.length; at++) {
+        steps.push({
+            e: Math.max(0, end.e - tail[at + 1].e),
+            l: Math.max(0, end.l - tail[at + 1].l),
+        });
+    }
+    [movesStorageManager,
+        typeof movesStorageManagerResult !== 'undefined' ? movesStorageManagerResult : null,
+        typeof movesStorageManagerExplore !== 'undefined' ? movesStorageManagerExplore : null].forEach(manager => {
+        if (!manager) return;
+        manager.clear();
+        steps.forEach(step => manager.append(step));
+    });
+    refreshMovesCounter();
+    return true;
+};
+
 
 
 
@@ -820,6 +865,9 @@ function menuChoice(action) {
             // 画到一半的工具状态也丢掉，否则之后作图会点击错位
             if (typeof resetToolState === 'function') resetToolState();
             loadGeometryElementsStorage();
+            // 重载进来的图形带的是快照里的样式色，移动工具下那几个蓝点要重新染一次
+            // （不然后自由点会「变黑」，见 refreshMovePointColors）
+            refreshMovePointColors();
             drawContent();
             // 重开后以初始图形为新的历史起点（步数历史也回到 0）
             resetStorageHistory();
@@ -1180,12 +1228,14 @@ function cancelPendingToolDraw() {
 }
 
 /**
- * 撤回 / 重做之后补回可动点的临时蓝色
- * 快照里存的是载入时的颜色（黑），移动工具下的蓝色是 showMovePoints 临时染上去的，
- * 而撤回会按快照重建对象，蓝色随之丢掉（表现为「蓝点变黑」），所以在移动工具下补染一次
+ * 按当前工具重新定一次可动点与「给定自由点」的临时蓝色
+ * 移动工具下的蓝色是 showMovePoints 临时染上去的，凡是会按快照 / 关卡图形重建对象的操作
+ * （撤回、重做、清空画布 / 重开）之后都要补染一次，否则那些点会变回快照里的黑色
+ * （表现为「点突然变黑」）。判据与 choiceToolSwitch 一致：只在移动工具的拖动档下显示
  */
 function refreshMovePointColors() {
-    if (typeof showMovePoints === 'function' && tool === 'move') showMovePoints(true);
+    if (typeof showMovePoints !== 'function') return;
+    showMovePoints(tool === 'move' && subTool === 'choiceDraw');
 }
 
 /**
