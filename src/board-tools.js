@@ -179,6 +179,16 @@
     ['named', 'board.markNamed'],
     ['movepoints', 'board.markMovepoints'],
   ].filter(([key]) => !solverMode || key === 'initial');
+  /**
+   * 「给定」一栏要显示的对象 过程函数
+   * 求解器里那栏只有一种，而带标签给定（named）也是给定 —— 不并到一起的话，
+   * 载入带 named 的 gmt / 记录时那些对象会按给定染黑，却不在给定栏里露面
+   */
+  const givenColumnIds = () => {
+    const ids = new Set(markSetOf('initial'));
+    if (solverMode) markSetOf('named').forEach(id => ids.add(id));
+    return ids;
+  };
   // 制题器 / 求解器里点默认不显示标签（可在「配置点样式」里打开；带标签给定的对象仍显示自己的标签）
   if ((mode === 'maker' || mode === 'solver') && typeof geometryStyle !== 'undefined') geometryStyle.point.showName = false;
   /**
@@ -1040,10 +1050,15 @@
   const gmtText = () => {
     const content = [];
     geometryManager.getAllByOrder().forEach(item => { content.push(gmtLineOf(item)); });
-    // named：带标签的对象，标签名与对象 ID 不同时写成「ID.标签名」
-    const named = geometryManager.getAllByOrder().filter(item => item.getShowName()).map(item => {
+    // named：标成「带标签给定」的对象（标签名与对象 ID 不同时写成「ID.标签名」）。
+    // 只看标记表 —— 光是显示标签、或改了个名字而没标成带标签给定的不算：
+    // 那两种是样式方向的事（记录里记在 styles，见 recordStore.js），
+    // 混进 named 的话读回来会被当成给定（强制显示标签 + 按给定上色）
+    const namedSet = geometryElementLists?.named || new Set();
+    const named = geometryManager.getAllByOrder().filter(item => namedSet.has(item.getId())).map(item => {
+      const id = item.getId();
       const name = item.getName();
-      return name && name !== item.getId() ? `${item.getId()}.${name}` : item.getId();
+      return name && name !== id ? `${id}.${name}` : id;
     });
     // 设定行：无论有没有标记都写出来，没有标记的留空，方便对照与手动编辑
     const listOf = key => [...(geometryElementLists?.[key] || [])];
@@ -1431,11 +1446,13 @@
    */
   const buildSolverRequest = () => {
     const goalIds = geometryElementLists.result || new Set();
-    // 已知条件只取「给定」栏（initial）。打开求解器时，关卡里隐藏 / 预绘制的图形，
-    // 以及可移动点一类没被标成给定的对象都会被整份带过来并显示出来，
-    // 当条件用就会搜出「用了题面里没有的点」的假解（4E 那种）。
+    // 已知条件取「给定」栏：initial 与 named（带标签给定）都算给定 —— 记录 / 关卡 gmt 里
+    // 带标签给定就是「题目自带、还额外显示了标签」的对象，不当条件用会漏掉题面。
+    // 打开求解器时，关卡里隐藏 / 预绘制的图形，以及可移动点一类没被标成给定的对象
+    // 都会被整份带过来并显示出来，当条件用就会搜出「用了题面里没有的点」的假解（4E 那种）。
     const givenIds = new Set();
     (geometryElementLists.initial || new Set()).forEach(id => givenIds.add(id));
+    (geometryElementLists.named || new Set()).forEach(id => givenIds.add(id));
     const useGivenMarks = givenIds.size > 0;
     // pointIds / lineIds / circleIds 与上面三个坐标数组一一对应：
     // 求解器返回的「构造计划」靠它们把已知点、已知元素映射回画布对象，于是拖动图形时能重算解法
@@ -2643,7 +2660,7 @@
    * 结构本身不动，所以开销只有几个 <li> 的文本
    */
   window.refreshMarkEquations = () => {
-    givenMarkItems.forEach(([key]) => markListOf(key, markSetOf(key)));
+    givenMarkItems.forEach(([key]) => markListOf(key, key === 'initial' ? givenColumnIds() : markSetOf(key)));
     for (let index = 1; index <= resultGroupCount(); index++) {
       markListOf(`result-${index}`, resultSetOf(index, 'judged'));
       markListOf(`resultShown-${index}`, resultSetOf(index, 'shown'));

@@ -195,52 +195,36 @@ class ToolsFunction {
     }
     
     /**
-     * ID转数值 工具函数
-     * @param {string} id
-     * @return {number} ID计数
+     * 下一个可用的默认 ID 工具函数
+     * 与 gmt 同一套写法：
+     *   点        A..Z、A1..Z1、A2..Z2…（跳过 S1 / S2…，那串留给线段；S 本身照旧）
+     *   直线 / 射线 s1、s2…；线段 S1、S2…；圆 c1、c2…
+     * 已经占着的名字就跳过去 —— 改过名字的对象、载入的 gmt 里已有的、工具缓存里刚作出的都算
+     * @param {'point' | 'line' | 'ray' | 'segment' | 'circle'} kind
+     * @param {Set<string>} taken 已经占着的名字
+     * @returns {string} ID
      */
-    static idToInt(id) {
-        const tempId = id.toLowerCase();
-        const lowercaseLetters = ToolsFunction.generateLowercaseLetters();
-        
-        const length = tempId.length;
-        if (length === 1) {
-            const index = lowercaseLetters.indexOf(tempId);
-            return index + 1;
-            
-        }else if (length > 1) {
-            const index = lowercaseLetters.indexOf(tempId.slice(0, 1));
-            const number = Number(tempId.slice(1));
-            return index + 1 + 26 * number;
+    static nextIdOf(kind, taken) {
+        const used = taken instanceof Set ? taken : new Set(Array.isArray(taken) ? taken : []);
+        const letters = ToolsFunction.generateLowercaseLetters();
+        if (kind === 'point') {
+            for (let round = 0; round < 2000; round++) {
+                for (let index = 0; index < 26; index++) {
+                    const letter = letters[index].toUpperCase();
+                    if (round > 0 && letter === 'S') continue;
+                    const name = round === 0 ? letter : `${letter}${round}`;
+                    if (!used.has(name)) return name;
+                }
+            }
+            return null;
         }
-    }
-    
-    /**
-     * 数值转ID 工具函数
-     * @param {number} int
-     * @param {boolean} lowerCase
-     * @return {string} ID
-     */
-    static intToId(int, lowerCase) {
-        // 转换
-        let letter;
-        const count = Math.floor((int - 1) / 26);
-        const less = int % 26;
-        const lowercaseLetters = ToolsFunction.generateLowercaseLetters();
-        
-        if (less === 0) {
-            letter = "z";
-        }else{
-            letter = lowercaseLetters[less - 1];
+        // 直线 / 射线都是 s 开头；线段 S；圆 c
+        const prefix = kind === 'segment' ? 'S' : kind === 'circle' ? 'c' : 's';
+        for (let index = 1; index < 100000; index++) {
+            const name = `${prefix}${index}`;
+            if (!used.has(name)) return name;
         }
-        
-        if (!lowerCase) letter = letter.toUpperCase();
-        
-        if (!count) {
-            return `${letter}`;
-        }else{
-            return `${letter}${count}`;
-        }
+        return null;
     }
     
     /**
@@ -464,32 +448,6 @@ class ToolsFunction {
         }
     }
 
-    /**
-     * ID排序
-     * @param {Object[]} list 实体对象列表
-     * @returns {Object[]}
-     */
-    static idOrder(list) {
-        const orderList = new Array();
-        for (const item of list) {
-            const id = item.getId();
-            const idNumber = ToolsFunction.idToInt(id);
-            let length = orderList.length - 1;
-            if (length < 0) orderList.push(item)
-
-            for (let i = 0; length - i >= 0; i++) {
-                const element = orderList[length - i];
-                const idNumber2 = ToolsFunction.idToInt(element.getId());
-                if (idNumber > idNumber2) {
-                    orderList.splice(length - i + 1, 0, item);
-                    break;
-                }
-                if (length - i === 0) orderList.unshift(item);
-            }
-        }
-        return orderList;
-    }
-    
     /**
      * 复制线段
      * 根据点p1, p2, p3，返回点p4满足p1p4与p2p3方向相同且相等

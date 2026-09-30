@@ -132,6 +132,20 @@ function markTargetSteps(steps, level) {
 }
 
 /**
+ * 本关限定工具的小标签 过程函数
+ * levels.json 的 tools 字段：straightedge = 单尺、compass = 单规；尺规不限的关卡不挂标签
+ * @param {Object} level 关卡数据
+ * @returns {string}
+ */
+function toolTagHTML(level) {
+    const kind = {straightedge: 'line', compass: 'circle'}[String(level?.tools || '')];
+    const key = {straightedge: 'pack.toolStraightedge', compass: 'pack.toolCompass'}[String(level?.tools || '')];
+    if (!kind || !key || typeof t !== 'function') return '';
+    // 单尺橙色、单规黄色（见 app.css 的 .level-tool-line / .level-tool-circle）
+    return `<i class="level-tool level-tool-${kind}">${t(key)}</i>`;
+}
+
+/**
  * 关卡行 HTML 过程函数
  * 关卡包页与搜索页共用；搜索页传入 packName 以标注关卡来自哪个包
  * @param {Object} level 关卡数据
@@ -156,7 +170,7 @@ function levelRowHTML(level, options) {
     const href = `./level.html?pack=${encodeURIComponent(level.pack)}&id=${encodeURIComponent(level.id)}${pageParam}${fromParam}`;
     // 标题与步数放同一格（.level-main）：窄屏时步数排在标题下面，不会被挤到新的一行
     return `<a class="level-row" href="${href}"${note}><span>${number}</span>${thumb}` +
-        `<span class="level-main"><strong>${level.title}${packTag}</strong><small>${steps}　→</small></span></a>`;
+        `<span class="level-main"><strong>${level.title}${packTag}${toolTagHTML(level)}</strong><small>${steps}　→</small></span></a>`;
 }
 
 /** 缩略图格子：带 data-src 的关卡行缩略图与关卡包图标 */

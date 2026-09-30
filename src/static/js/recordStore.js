@@ -30,9 +30,12 @@
  * 附加信息段会和对象行撞名字（玩家完全可以把图形叫 mode），所以解析时**只认末尾空行之后那一段**，
  * 而且那一段的每一行都得是 META_KEYS 里的键，否则当没有附加信息（裸 gmt）。
  *
- * styles 的符号（一个图形有多项就逐个写，用逗号隔开）：
+ * styles 的符号（一个图形有多项就逐个写，用逗号隔开；值里有逗号就写成 `\,`）：
+ *   a%名称 显示名（与 id 不同的那个；改名是样式方向的事，不是标记）；
  *   a#ff0000 颜色；a~1 / a~3 点线径（1 小、3 大）；
  *   a$ 显示标签 / a^ 不显示；a@ 隐藏 / a! 可见
+ * 显示名和 `named=` 是两套规则：named= 只表示「带标签给定」那个标记（读了它会强制显示标签、
+ * 按给定上色），改了名字但没标成带标签给定的对象归 styles 这边。
  * 默认样式不写，另有两条例外：
  *   · 自由模式导出时，点默认就显示标签也要写 a$（导入到别的模式也保持一样的外观）
  *   · 游玩模式与制题器导出时，所有非给定对象都要写出 a@ / a!（显式记下显隐）
@@ -59,8 +62,10 @@
     };
     // 现在这套附加信息（导出文本末尾那一段）的键
     const META_KEYS = ['recordname', 'time', 'saved', 'mode', 'pack', 'levelid', 'reached', 'steps', 'undolist', 'styles'];
-    // styles 的符号表
+    // styles 的符号表（% 是显示名：改了名字的图形靠它记，与 gmt 的 named= 行是两回事 ——
+    // named= 只表示「带标签给定」那个标记，显示名归样式这边）
     const STYLE_MARKS = {
+        name: '%',
         color: '#',
         width: '~',
         showNameOn: '$',
@@ -68,7 +73,11 @@
         hidden: '@',
         visible: '!',
     };
-    const STYLE_MARK_PATTERN = /[#~$^@!]/;
+    const STYLE_MARK_PATTERN = /[%#~$^@!]/;
+    // styles 一行里各项用逗号隔开，显示名里可能有逗号：转义后再写，读回来按未转义的逗号切
+    const escapeStyleValue = value => String(value).replace(/\\/g, '\\\\').replace(/,/g, '\\,');
+    const unescapeStyleValue = value => String(value).replace(/\\(.)/g, '$1');
+    const splitStyleItems = text => (String(text || '').match(/(?:\\.|[^,])+/g) || []);
     // 批量导出的分隔行：# ===== 记录 1 =====（老文件是 `# ===== 记录 1：名称 =====`，都认）
     const SPLIT_PATTERN = /^#\s*=+\s*记录\s*(\d+)\s*(?:[：:]\s*(.*?))?\s*=+\s*$/;
 
@@ -550,6 +559,7 @@
         const parts = [];
         Object.keys(styles || {}).forEach(id => {
             const entry = styles[id] || {};
+            if (entry.name) parts.push(id + STYLE_MARKS.name + escapeStyleValue(entry.name));
             // 颜色按 `a#ff0000` 写：值里的 `#` 省掉（画布上的颜色本来就是 # 开头的十六进制）
             if (entry.color) parts.push(id + STYLE_MARKS.color + String(entry.color).replace(/^#/, ''));
             if (typeof entry.width === 'number') parts.push(id + STYLE_MARKS.width + entry.width);
@@ -568,7 +578,7 @@
      */
     function stylesFromText(text) {
         const styles = {};
-        String(text || '').split(',').map(item => item.trim()).filter(Boolean).forEach(item => {
+        splitStyleItems(text).map(item => item.trim()).filter(Boolean).forEach(item => {
             const at = item.search(STYLE_MARK_PATTERN);
             // 名字后面必须跟一个符号：`a` 这种只有名字的项直接跳过
             if (at <= 0) return;
@@ -576,7 +586,8 @@
             const mark = item[at];
             const value = item.slice(at + 1).trim();
             const entry = styles[id] || (styles[id] = {});
-            if (mark === STYLE_MARKS.color) {
+            if (mark === STYLE_MARKS.name) entry.name = unescapeStyleValue(value);
+            else if (mark === STYLE_MARKS.color) {
                 // `a#ff0000` 里的值是省掉 `#` 的十六进制，读回来补上；其它写法（如颜色名）原样留着
                 if (!value) entry.color = null;
                 else entry.color = /^[0-9a-f]{3,8}$/i.test(value) ? '#' + value : value;

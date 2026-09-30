@@ -356,7 +356,8 @@ class PointBaseToolTemplate {
      * 创建目标图形
      */
     create() {
-        geometryManager.createGeometryElementInputTool(this.goalType, this.toolName, this.goal);
+        // 这一笔画的是直线 / 射线 / 线段一并传进去：取名时要知道（线段是 S1、S2…，直线是 s1、s2…）
+        geometryManager.createGeometryElementInputTool(this.goalType, this.toolName, this.goal, this.drawType);
         if (this.drawType) geometryManager.getToolKey(this.toolName, this.goal).modifyDrawType(this.drawType);
         this.setDefine();
     }
@@ -941,7 +942,8 @@ class PointBaseDialogToolTemplate {
     create(value) {
         if (typeof value !== this.type) throw new Error("exception.pointBaseDialogToolTemplateTypeException");
 
-        geometryManager.createGeometryElementInputTool(this.goalType, this.toolName, this.goal);
+        // 这一笔画的是直线 / 射线 / 线段一并传进去：取名时要知道（线段是 S1、S2…，直线是 s1、s2…）
+        geometryManager.createGeometryElementInputTool(this.goalType, this.toolName, this.goal, this.drawType);
         if (this.drawType) geometryManager.getToolKey(this.toolName, this.goal).modifyDrawType(this.drawType);
         this.setDefine(value);
     }

@@ -737,8 +737,9 @@ class GeometryElementManager {
         
         // id查重
         if (Object.keys(this.repository).includes(id)) {
-            // 存在重复id，需要变更
-            type === "point" ? id = this.getId("point") : id = this.getId("other");
+            // 存在重复id，需要变更（按它自己的类型接着往下取名：线段就是 S 开头那种）
+            id = type === "point" ? this.getId("point")
+                : this.getId(type, "none", object.getDrawType ? object.getDrawType() : null);
             object.modifyId(id);
             object.modifyName(id);
         }
@@ -909,7 +910,8 @@ class GeometryElementManager {
         }else if (type === 'append'){
             if (this.ifIdInCache(tool, value.getId())) {
                 let id;
-                value.getType() === "point" ? id = this.getId("point", tool) : id = this.getId("other", tool);
+                id = value.getType() === "point" ? this.getId("point", tool)
+                    : this.getId(value.getType(), tool, value.getDrawType ? value.getDrawType() : null);
                 value.modifyId(id);
                 value.modifyName(id);
             }
@@ -1244,65 +1246,26 @@ class GeometryElementManager {
     
     /**
      * ID生成器
-     * @param {"point" | "other"} type
-     * @param {string} tool 
+     * 名字按 gmt 的写法来：点 A..Z / A1..Z1…，直线与射线 s1、s2…，线段 S1、S2…，圆 c1、c2…；
+     * 已经占着的名字（画布上的、工具缓存里这次刚作出的）一律跳过去（见 ToolsFunction.nextIdOf）
+     * @param {"point" | "line" | "circle" | "other"} type other 是老写法，按直线处理
+     * @param {string} tool
+     * @param {"line" | "ray" | "lineSegment"} [drawType] 直线的绘制类型（线段要 S 开头的名字）
      * @return {string} ID
      */
-    getId(type, tool = "none") {
-        let front = 0;
-        let behind = 0;
-        const pointsList = new Array();
-        const exceptPointsList = new Array();
-        Object.values(this.repository).forEach((element) => {
-            if (element.getType() === "point") {
-                pointsList.push(element);
-            }else{
-                exceptPointsList.push(element);
-            }
-        });
+    getId(type, tool = "none", drawType = null) {
+        // 已经占着的名字：画布上的对象 + 这次作图缓存里刚作出的（同一个作图里不能重名）
+        const taken = new Set(Object.keys(this.repository));
         if (Object.keys(this.choice).includes(tool)) {
             for (const item of Object.values(this.choice[tool])) {
-                if (item.type === "create") {
-                    const type = item.create.getType();
-                    if (type === "point") {
-                        pointsList.push(item.create);
-                    }else{
-                        exceptPointsList.push(item.create);
-                    }
-                }
+                if (item.type === "create" && item.create) taken.add(item.create.getId());
             }
         }
-        
-        if (type === "point") {
-            if (pointsList === 0) return "A";
-            
-            let list = ToolsFunction.idOrder(pointsList);
-            for (const point of list) {
-                if (point.getType() !== "point") continue;
-                behind = ToolsFunction.idToInt(point.getId());
-                if (front + 1 < behind) {
-                    break;
-                }
-                front = behind;
-            }
-        }else{
-            if (exceptPointsList.length === 0) return "a";
-            
-            let list = ToolsFunction.idOrder(exceptPointsList);
-            for (const element of list) {
-                if (element.getType() === "point") continue;
-                behind = ToolsFunction.idToInt(element.getId());
-                if (front + 1 < behind) {
-                    break;
-                }
-                front = behind;
-            }
-        }
-        
-        const number = front + 1;
-        let flag = false;
-        if (type !== "point") flag = true;
-        return ToolsFunction.intToId(number, flag);
+        let kind = "line";
+        if (type === "point") kind = "point";
+        else if (type === "circle") kind = "circle";
+        else if (drawType === "lineSegment") kind = "segment";
+        return ToolsFunction.nextIdOf(kind, taken) || (type === "point" ? "A" : "s1");
     }
     
     /**
@@ -1332,8 +1295,8 @@ class GeometryElementManager {
      * @param {number} [value=0] 
      * @return {Object} 返回直线对象
      */
-    createLine(type, define, value = 0) {
-        const id = this.getId("other");
+    createLine(type, define, value = 0, drawType = null) {
+        const id = this.getId("line", "none", drawType);
         const lineObject = new Line(id);
         lineObject.modifyDefine(type, define, value);
         const lineStyle = this.geometryStyle.line;
@@ -1353,7 +1316,7 @@ class GeometryElementManager {
      * @return {Object} 返回圆对象
      */
     createCircle(type, define, value = 0) {
-        const id = this.getId("other");
+        const id = this.getId("circle");
         const circleObject = new Circle(id);
         circleObject.modifyDefine(type, define, value);
         const circleStyle = this.geometryStyle.circle;
@@ -1371,9 +1334,9 @@ class GeometryElementManager {
      * @param {string} tool
      * @param {string} key
      */
-    createGeometryElementInputTool(type, tool, key) {
+    createGeometryElementInputTool(type, tool, key, drawType = null) {
         if (type === "point") {
-            const id = this.getId("point");
+            const id = this.getId("point", tool);
             const pointObject = new Point(id, 0, 0);
             const style = this.geometryStyle.point;
             if (style.colorChoice === "color") {
@@ -1385,8 +1348,10 @@ class GeometryElementManager {
             if (style.showName) pointObject.modifyShowName(true);
             this.addToolObject(tool, key, "append", pointObject);
         }else if (type === "line") {
-            const id = this.getId("other");
+            // 线段的名字是 S1、S2…，直线 / 射线是 s1、s2…：要看这一笔画的是哪一种
+            const id = this.getId("line", tool, drawType);
             const lineObject = new Line(id);
+            if (drawType) lineObject.modifyDrawType(drawType);
             const style = this.geometryStyle.line;
             if (style.colorChoice === "color") {
                 lineObject.modifyColor(style.color);
@@ -1397,7 +1362,7 @@ class GeometryElementManager {
             if (style.showName) lineObject.modifyShowName(true);
             this.addToolObject(tool, key, "append", lineObject);
         }else if (type === "circle") {
-            const id = this.getId("other");
+            const id = this.getId("circle", tool);
             const circleObject = new Circle(id);
             const style = this.geometryStyle.circle;
             if (style.colorChoice === "color") {

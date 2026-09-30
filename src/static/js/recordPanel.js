@@ -201,10 +201,18 @@
         };
         // 点默认显示标签的场景（画板 / 游玩页），线 / 圆默认不显示
         const labelShownByDefault = typeof geometryStyle !== 'undefined' && geometryStyle.point && geometryStyle.point.showName !== false;
+        // 标成「带标签给定」的对象，它的显示名由 gmt 的 named= 行带（named=ID.标签名），
+        // 不要再记一份进 styles：那两套规则会打架（读了 named 就被当成给定）
+        const namedMark = typeof geometryElementLists !== 'undefined' && geometryElementLists.named ? geometryElementLists.named : null;
         all.forEach(item => {
             const entry = {};
             const id = item.getId();
             const own = global.boardGmt?.ownStyleOf?.(id) || null;
+            // 显示名与 id 不同就记下来：改名归样式，不归 named 标记
+            if (!(namedMark && namedMark.has(id)) && typeof item.getName === 'function') {
+                const name = item.getName();
+                if (name && name !== id) entry.name = name;
+            }
             const color = own ? own.color : (typeof item.getColor === 'function' ? item.getColor() : null);
             if (color && String(color).toLowerCase() !== '#191919') entry.color = color;
             const width = typeof item.getWidth === 'function' ? item.getWidth() : null;
@@ -339,6 +347,7 @@
             const item = geometryManager.get(id);
             if (!item) return;
             const entry = styles[id] || {};
+            if (entry.name && typeof item.modifyName === 'function') item.modifyName(entry.name);
             if (entry.color && typeof item.modifyColor === 'function') item.modifyColor(entry.color);
             if (typeof entry.width === 'number' && typeof item.modifyWidth === 'function') item.modifyWidth(entry.width);
             if (entry.showName !== undefined && !(named && named.has(id)) && typeof item.modifyShowName === 'function') {

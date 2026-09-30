@@ -464,6 +464,31 @@
      font-style: normal
  }
 
+ /* 本关限定了工具（levels.json 的 tools）：单尺 / 单规，标签跟在关卡名后面。
+    单尺橙色、单规黄色，都是「同色细边 + 浅底 + 同色字」—— 字比边深一档，11px 才看得清 */
+ .level-tool {
+    margin-left: 8px;
+    padding: 1px 8px;
+    border: 1px solid;
+    border-radius: 999px;
+    display: inline-block;
+    white-space: nowrap;
+    font: 600 12px 'DM Mono', monospace;
+    font-style: normal
+}
+
+ .level-tool-line {
+     border-color: #f8a34a;
+     background: #fff4e8;
+     color: #c65c00
+ }
+
+ .level-tool-circle {
+     border-color: #f0c53c;
+     background: #fffbe0;
+     color: #8a6a00
+ }
+
  /* 分页 */
  .level-pager {
      display: flex;

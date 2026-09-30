@@ -930,7 +930,7 @@ textarea {
 }
 .mark-panel strong { font-size: 15px; }
 .mark-panel b { color: rgb(128, 128, 255); }
-.mark-panel ul { margin: 4px 0 0; padding-left: 20px; }
+.mark-panel ul { margin: 4px 0 0; padding-left: 10px; }
 .mark-panel li.empty { color: rgb(128, 128, 128); list-style: none; }
 /* 已标记对象：分组可折叠，所求里每个解再嵌一层（判定 / 显示） */
 .mark-panel .mark-fold { margin: 2px 0; }
