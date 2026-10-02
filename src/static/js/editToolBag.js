@@ -65,7 +65,19 @@ class MoveTool {
             if (geometryManager.ifIdInCache(elementId)) {
                 geometryManager.deleteToolQuote(elementId);
             }else{
-                geometryManager.addToolObject(this.toolName, "choice", "quote", elementId);
+                // 网格当作一整块：点到任意一条格线就把整块都选上（样式一次改一整块）
+                const gridIds = (typeof window.isGridObjectId === 'function' && window.isGridObjectId(elementId)
+                    && typeof geometryElementLists !== 'undefined' && geometryElementLists.grid)
+                    ? [...geometryElementLists.grid].filter(id => /^gS[XY]\d+$/.test(id))
+                    : [];
+                if (gridIds.length) {
+                    // 选中栏是一张 map：键不同就能并存（第一条用 choice，其余 choice2、choice3…）
+                    gridIds.forEach((id, index) => {
+                        geometryManager.addToolObject(this.toolName, index === 0 ? "choice" : `choice${index + 1}`, "quote", id);
+                    });
+                }else{
+                    geometryManager.addToolObject(this.toolName, "choice", "quote", elementId);
+                }
             }
         }
     }

@@ -1,19 +1,22 @@
 /* playPage.js */
 
 // 浏览器视口变化
+// 手机那套布局（底部上拉栏）的判定：**窄屏或矮屏**都算 —— 手机横屏宽度过了 768，
+// 可高度只有 390～430，这时用电脑版工具栏会吃掉半屏。阈值与 index.css 末尾的
+// @media (max-width: 960px), (max-height: 500px) 保持一致
 const EQUIPMENT_WIDTH = {
-    MOBILE: 768,
+    MOBILE: 960,
     TABLET: 1024,
     DESKTOP: 1200,
 }
+const EQUIPMENT_HEIGHT = {
+    MOBILE: 500,
+}
 let widthTypeEquipment;
 function updateLayout() {
-    const width = window.innerWidth;
-    if (width < EQUIPMENT_WIDTH.MOBILE) {
-        widthTypeEquipment = 'mobile';
-    }else{
-        widthTypeEquipment = 'tablet';
-    }
+    const mobile = window.innerWidth <= EQUIPMENT_WIDTH.MOBILE
+        || window.innerHeight <= EQUIPMENT_HEIGHT.MOBILE;
+    widthTypeEquipment = mobile ? 'mobile' : 'tablet';
 }
 window.addEventListener('resize', updateLayout);
 
@@ -46,8 +49,8 @@ let transform = {
 // width：点的大小 / 线圆的粗细（1 为默认）；showName：是否显示标签（未设置时沿用自动配色模式的默认标签策略）
 let geometryStyle = {
     point: {colorChoice: "autoPlayMode", color: "#191919", width: 1}, 
-    line: {colorChoice: "autoPlayMode", color: "#191919", width: 1}, 
-    circle: {colorChoice: "autoPlayMode", color: "#191919", width: 1}
+    line: {colorChoice: "autoPlayMode", color: "#191919", width: 1, dashed: false}, 
+    circle: {colorChoice: "autoPlayMode", color: "#191919", width: 1, dashed: false}
 };
 
 // 几何对象管理器
@@ -908,6 +911,9 @@ let playBackupHistoryRestored = false;
 const limitedToolSets = {
     straightedge: ['move', 'point', 'line', 'intersection'],
     compass: ['move', 'point', 'circle', 'intersection'],
+    // 网格作图（模式 3「网格直尺」）：只给直尺那几样 —— 网格本身是免费铺好的，
+    // 能作的就是「连两点」「求交」，圆规用不上（与内核里 mode 3 只允许直尺一致）
+    grid: ['move', 'point', 'line', 'intersection'],
 };
 /**
  * 本关允许的工具 过程函数
@@ -1117,6 +1123,8 @@ function designMode() {
         elements: sessionStorage.getItem('elements'),
         geometryElementLists: sessionStorage.getItem('geometryElementLists'),
         thumbnail: sessionStorage.getItem('thumbnail'),
+        // 网格元信息也带回去：制题器按 restore 还原编辑状态时网格同样要还原成一整块
+        gridMeta: sessionStorage.getItem('gridMeta'),
         // 不作图记录：游玩页自己没有历史，sessionStorage 里的 constructRecord 只可能是
         // 上一次制题器留下的（对不上的图形）。带过去会让制题器套用别人的历史，
         // 一动再撤回就把图形退回那张陌生快照，所以这里一律不带。
@@ -1300,6 +1308,8 @@ window.addEventListener("storage", (event) => {
     resultVerify();
 });
 function storage() {
+    // 删掉的图形如果还挂在标记里（游玩里主要是「隐藏」集合），一并清掉
+    if (typeof window.pruneMarks === 'function') window.pruneMarks();
     // 存储：几何对象 + 选定栏（标记等改动也能撤销）
     storageManager.append(collectStorageSnapshot());
     refreshStorageButton();
@@ -1363,13 +1373,13 @@ const infDict = {
     "restoreTransform": {title: "还原画布变化量", context: "将画布的视图变换还原至初始值"},
     "clear": {title: "清空选择", context: "清空当前工具的选中栏"},
     "pointStyle": {title: "配置点样式", context: "设置后续绘制的点的颜色、大小与标签显示"},
-    "objectStyle": {title: "调整对象样式", context: "用移动工具选中对象后，可修改它的颜色、粗细与标签显示"},
+    "objectStyle": {title: "调整对象样式", context: "用移动工具选中对象后，可修改它的颜色、粗细、标签显示，直线与圆还可切成虚线"},
     "deleteObject": {title: "删除选中对象", context: "删除移动工具选中的对象，连同由它作出来的所有子对象"},
     "any": {title: "任意对象", context: "可选中任意几何对象"},
     "choicePoint": {title: "点对象", context: "仅选中点对象"},
     "style": {title: "样式刷", context: "拖拽以配置直线的样式为当前线工具样式"},
-    "lineStyle": {title: "配置直线样式", context: "设置后续绘制的直线的颜色、粗细与标签显示"},
-    "circleStyle": {title: "配置圆样式", context: "设置后续绘制的圆的颜色、粗细与标签显示"},
+    "lineStyle": {title: "配置直线样式", context: "设置后续绘制的直线的颜色、粗细、标签显示与是否虚线"},
+    "circleStyle": {title: "配置圆样式", context: "设置后续绘制的圆的颜色、粗细、标签显示与是否虚线"},
     "threePointAngleBisector": {title: "三点角平分线", context: "第二点为角的顶点"},
     "twoLineAngleBisector": {title: "角平分线", context: "构造两条直线的两条角平分线。⚠ 制题器慎用：gmt 无法导出"},
     "threePointCompass": {title: "三点圆规", context: "两点距离为半径，第三点为圆心作圆"},
@@ -1524,6 +1534,30 @@ function playStartDataLoad() {
 
     // 几何对象
     loadGeometryElementsStorage();
+    // 网格：制题器带过来的网格元信息（没生成过网格时是 null）——
+    // 按它把网格还原成一整块（辅助对象藏起来、格线按 #gridstyle 上样式），
+    // 与关卡页走 #grid= 那一套同一个函数
+    const gridMetaJSON = sessionStorage.getItem('gridMeta');
+    let hasGrid = false;
+    if (gridMetaJSON) {
+        try {
+            const grid = JSON.parse(gridMetaJSON);
+            if (grid && typeof window.boardGmt?.setGridFromGmt === 'function') {
+                window.boardGmt.setGridFromGmt(grid);
+                hasGrid = true;
+            }
+        } catch (error) { /* 数据坏了就当没有网格 */ }
+    }
+    // 试玩（?mode=maker-play）里带网格的题目按「网格直尺」限制工具：关卡那边是 levels.json 的
+    // tools: "grid" 说了算（见 level-loader），试玩没有关卡文件，就按「题目里有没有网格」判 ——
+    // 与求解器「看到网格就切网格模式」同一口径。工具栏这时已经建好（见 DOMLoaded 末尾），
+    // 重建一次即可；关卡游玩不受影响（那边 window.levelTools 已由 level-loader 设过）
+    // levelTools 是 level-loader 挂到 window 上的，这里不能直接写成裸变量（会 ReferenceError）
+    const limitedByLevel = typeof window.levelTools === 'string' && window.levelTools;
+    if (hasGrid && !limitedByLevel && new URLSearchParams(location.search).get('mode') === 'maker-play') {
+        window.levelTools = 'grid';
+        if (typeof refreshToolLimit === 'function') refreshToolLimit();
+    }
     // 与关卡游玩一致：只显示初始条件，解法先藏起来等玩家自己作
     // （从制题器 / 求解器返回时按备份原样还原，自己画的图形不会被藏掉）
     if (!playBackupRestored) showInitialOnly();
@@ -1566,11 +1600,18 @@ function fitInitialView() {
     // 画布内部尺寸是物理像素，这里要的是逻辑（CSS）尺寸
     const canvasWidth = canvasDE?.clientWidth || 1280;
     const canvasHeight = canvasDE?.clientHeight || 720;
+    // 网格关卡（gmt 头部有 #grid= / 试玩带过来网格）：顶部菜单栏与工具面板浮在画布上，
+    // 适配时把被它们盖住的高度扣掉，网格才不会有一部分压在栏下面
+    const gridActive = typeof window.boardGmt?.grid === 'function' && !!window.boardGmt.grid();
+    const insets = gridActive && typeof window.gridFitInsets === 'function'
+        ? window.gridFitInsets() : {top: 0, bottom: 0, left: 0, right: 0};
+    const usableWidth = Math.max(120, canvasWidth - insets.left - insets.right);
+    const usableHeight = Math.max(120, canvasHeight - insets.top - insets.bottom);
     // 留出边距，最多放大 2 倍，避免小图形被放得过大
-    const scale = Math.min(canvasWidth / (width * 1.6), canvasHeight / (height * 1.6), 2);
+    const scale = Math.min(usableWidth / (width * 1.6), usableHeight / (height * 1.6), 2);
     transform.scale = scale;
-    transform.x = canvasWidth / 2 - ((minX + maxX) / 2) * scale;
-    transform.y = canvasHeight / 2 - ((minY + maxY) / 2) * scale;
+    transform.x = insets.left + usableWidth / 2 - ((minX + maxX) / 2) * scale;
+    transform.y = insets.top + usableHeight / 2 - ((minY + maxY) / 2) * scale;
     // 记下关卡载入时的视图：这就是「初始视图」，还原画布变化量要回到它，
     // 而不是通用的 initialScale（那是 0.5，小图形会被适配放大，还原时会看着缩小一圈）。
     // 记的是逻辑中心 + 比例，还原时按当时的画布尺寸重算，窗口大小变了也不会偏

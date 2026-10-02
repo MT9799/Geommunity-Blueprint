@@ -24,7 +24,7 @@
         .lang-switch { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; background: #fff; }
         .lang-switch button { padding: 6px 14px; border: 0; background: transparent; color: var(--muted); font-size: 13px; cursor: pointer; }
         .lang-switch button.active { background: var(--blue); color: #fff; }
-        .hero { padding: 12px 0 20px; text-align: center; }
+        .hero { padding: 24px 0 20px; text-align: center; }
         /* 图片按宽度定尺寸、高度自适应（原来固定在 280×150 的框里 contain，四周留一大片空白） */
         .hero img { width: min(320px, 68vw); height: auto; max-height: 190px; object-fit: contain; margin-bottom: 5px; }
         .hero h1 { margin: 0; font-size: clamp(34px, 6vw, 58px); font-weight: 700; letter-spacing: .02em; }
@@ -139,7 +139,6 @@
         .rec-dialog-actions { display: flex; justify-content: flex-end; gap: 8px; }
         .rec-dialog-actions button { padding: 7px 14px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); font: inherit; font-size: 13px; cursor: pointer; }
         .rec-dialog-actions button:hover { border-color: var(--blue); color: var(--blue); }
-        @media (max-width: 760px) { .rec-dialog-actions { flex-direction: column; align-items: stretch; } .rec-dialog-actions button { width: 100%; }}
     </style>
 </head>
 <body>
@@ -148,8 +147,8 @@
             <a class="brand" href="./index.html"><img src="./src/static/images/logo.png" alt="Geommunity Blueprint"><span>Geommunity Blueprint</span></a>
             <div class="header-actions">
                 <div class="lang-switch" id="lang-switch">
-                    <button type="button" data-lang="zh" data-i18n="index.langZh">中</button>
-                    <button type="button" data-lang="en" data-i18n="index.langEn">En</button>
+                    <button type="button" data-lang="zh" data-i18n="index.langZh">中文</button>
+                    <button type="button" data-lang="en" data-i18n="index.langEn">English</button>
                 </div>
                 <button type="button" class="source-link" id="readme-button" data-i18n="index.sourceLink">项目说明</button>
             </div>

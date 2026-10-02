@@ -4,6 +4,62 @@ const overviewPanelSelector = document.getElementById("overview-select");
 let overviewPanelSelect = 'all';
 // 当前正在查看详情的元素 id：撤销 / 重做后按它把详情面板重画一遍
 let openedGeometryItemId = null;
+// 「一览」与「详情」共用的最小高度：两边撑到一样高，切来切去面板不会跳（见 primeOverviewListHeight）
+let overviewListMinHeight = 0;
+/**
+ * 把量好的最小高度写到一览与详情两个容器上 过程函数
+ */
+function applyOverviewMinHeight() {
+    if (overviewListMinHeight <= 0) return;
+    const height = `${overviewListMinHeight}px`;
+    const listMode = document.getElementById("geometry-item-list");
+    const viewerMode = document.getElementById("geometry-item");
+    if (listMode) listMode.style.minHeight = height;
+    if (viewerMode) viewerMode.style.minHeight = height;
+}
+/**
+ * 记下刚画好的详情有多高 过程函数
+ * 详情（三列那块）画完之后量一次，取见过的最高那个，写回两个容器的 min-height
+ */
+function syncOverviewListHeight(viewerMode) {
+    if (!viewerMode) return;
+    const height = Math.round(viewerMode.getBoundingClientRect().height);
+    if (height <= 0) return;
+    overviewListMinHeight = Math.max(overviewListMinHeight, height);
+    applyOverviewMinHeight();
+}
+/**
+ * 刚打开一览（还没点过任何图形）时先把每个图形的详情都量一遍 过程函数
+ * 详情高度跟图形有关，不画出来量不到 —— 那就把一览里的图形逐个偷偷点一下
+ * （只走「画详情」那条路，量完立刻退回列表），连同列表自己有多高，取最大的当共同的最小高度。
+ * 于是「刚点进一览」「点进最矮的详情」和「最高的详情」面板一样高，不会来回跳
+ */
+function primeOverviewListHeight() {
+    if (overviewListMinHeight > 0) return;
+    const overview = document.getElementById("container_overview");
+    const listMode = document.getElementById("geometry-item-list");
+    const viewerMode = document.getElementById("geometry-item");
+    if (!overview || !listMode || !viewerMode) return;
+    const items = [...overview.querySelectorAll('[data-action]')];
+    if (!items.length || typeof selectElementByOverview !== 'function') return;
+    // 列表自己现在多高（那 15 格网格 + 下拉框）也要算进来：不然后来退回列表会被详情的高度压矮
+    const listHeight = Math.round(listMode.getBoundingClientRect().height);
+    // 量的时候别让人看见闪一下（visibility 不影响布局，量到的还是真高度）
+    viewerMode.style.visibility = "hidden";
+    // 「全部」档点一下才是看详情，别的档点一下改的是标记 —— 这里借道走一次，借完就还
+    const selectBefore = overviewPanelSelect;
+    overviewPanelSelect = "all";
+    items.forEach(item => {
+        // 逐个按自己的内容量（上一条记下的最小高度先撤掉，不然量到的都是它）
+        viewerMode.style.minHeight = "";
+        selectElementByOverview({target: item});
+    });
+    overviewPanelSelect = selectBefore;
+    overviewListMinHeight = Math.max(overviewListMinHeight, listHeight);
+    applyOverviewMinHeight();
+    closeItem();
+    viewerMode.style.visibility = "";
+}
 /**
  * 重画当前正在查看的元素详情 过程函数
  * 撤销 / 重做会重建图形（面板里的旧对象、控件状态都会失效），这时整块重画一次
@@ -52,7 +108,27 @@ function overviewPanelSelectorChanged() {
  */
 function loadGeometryElements() {
     const overview = document.getElementById("container_overview");
-    const geometryElements = geometryManager.getAllByOrder();
+    // 已经量过就按那个高度撑住列表与详情（见 syncOverviewListHeight）：面板高度不变
+    applyOverviewMinHeight();
+    // 网格当作一整块：只列「格线」一行（放在第一位），模板里的辅助对象不列
+    const allElements = geometryManager.getAllByOrder();
+    const gridIds = (typeof window.isGridObjectId === 'function'
+        && typeof geometryElementLists !== 'undefined' && geometryElementLists.grid)
+        ? [...geometryElementLists.grid] : [];
+    const gridSegments = gridIds.filter(id => /^gS[XY]\d+$/.test(id))
+        .map(id => geometryManager.get(id)).filter(Boolean);
+    const geometryElements = [];
+    if (gridSegments.length) {
+        // 拿第一条格线当原型（其余方法照旧转发），只把名字换成「格线」
+        const row = Object.create(gridSegments[0]);
+        row.getName = () => (typeof t === 'function' ? t('board.gridLabel') : '格线');
+        row.getShowName = () => false;
+        geometryElements.push(row);
+    }
+    allElements.forEach(element => {
+        if (gridIds.includes(element.getId())) return;
+        geometryElements.push(element);
+    });
     let count = 0;
     overview.innerHTML = "";
     // 「隐藏」档以外（初始 / 可动点 / 所求 / 探索…）看的是标记：被标出的格子换成红框，
@@ -78,6 +154,41 @@ function loadGeometryElements() {
             const svg = document.createElementNS(svgNS, "svg");
             svg.setAttribute("viewBox", `0 0 ${size} ${size}`);
 
+            // 网格当作一整块：缩略图用「3×3 的格」（与工具栏「生成网格」同一个图），
+            // 颜色与线径跟着格线走 —— 原来它按线段画，只画出一条斜线
+            if (typeof window.isGridObjectId === 'function' && window.isGridObjectId(element.getId())) {
+                const gridColor = typeof element.getColor === 'function' ? element.getColor() : '#000000';
+                const gridWidth = 10 * (typeof element.getWidth === 'function' ? (element.getWidth() || 1) : 1);
+                const frame = document.createElementNS(svgNS, "rect");
+                frame.setAttribute("x", "30");
+                frame.setAttribute("y", "30");
+                frame.setAttribute("width", "140");
+                frame.setAttribute("height", "140");
+                frame.setAttribute("fill", "transparent");
+                frame.setAttribute("stroke", gridColor);
+                frame.setAttribute("stroke-width", gridWidth);
+                svg.appendChild(frame);
+                [76.7, 123.3].forEach(position => {
+                    const horizontal = document.createElementNS(svgNS, "line");
+                    horizontal.setAttribute("x1", 30);
+                    horizontal.setAttribute("y1", position);
+                    horizontal.setAttribute("x2", 170);
+                    horizontal.setAttribute("y2", position);
+                    horizontal.setAttribute("stroke", gridColor);
+                    horizontal.setAttribute("stroke-width", gridWidth);
+                    svg.appendChild(horizontal);
+                    const vertical = document.createElementNS(svgNS, "line");
+                    vertical.setAttribute("x1", position);
+                    vertical.setAttribute("y1", 30);
+                    vertical.setAttribute("x2", position);
+                    vertical.setAttribute("y2", 170);
+                    vertical.setAttribute("stroke", gridColor);
+                    vertical.setAttribute("stroke-width", gridWidth);
+                    svg.appendChild(vertical);
+                });
+                return svg;
+            }
+
             if (type === "point") {
                 // 中心圆点
                 const centerX = size / 2;
@@ -96,6 +207,8 @@ function loadGeometryElements() {
                 // 直线
                 const color = element.getColor();
                 const coordList = element.getCoordinate();
+                // 退化对象（基点失效 / 基底还没接上）取不到坐标：给个空缩略图，别把整个一览打断
+                if (!coordList) return svg;
                 const [x1, y1] = coordList[0];
                 const [x2, y2] = coordList[1];
                 const dx = x1 - x2;
@@ -146,6 +259,8 @@ function loadGeometryElements() {
                 const centerY = size / 2;
                 const color = element.getColor();
                 const coordList = element.getCoordinate();
+                // 退化对象（基点失效 / 基底还没接上）取不到坐标：给个空缩略图，别把整个一览打断
+                if (!coordList) return svg;
                 const [x1, y1] = coordList[0];
                 const [x2, y2] = coordList[1];
                 const dx = x1 - x2;
@@ -219,6 +334,8 @@ function loadGeometryElements() {
     overview.style.display = 'none';
     overview.offsetHeight;
     overview.style.display = 'grid';
+    // 头一次打开时先偷偷量一次详情有多高，让列表一开始就撑到那个高度（见 primeOverviewListHeight）
+    primeOverviewListHeight();
 }
 
 /**
@@ -363,6 +480,7 @@ function selectElementByOverview(event) {
                 body.appendChild(container2);
                 body.appendChild(container3);
                 viewerMode.appendChild(body);
+                syncOverviewListHeight(viewerMode);
             }else if (type === "line" || type === "circle") {
                 // 标题行
                 dataItem = titleRowDesktop(type, element);
@@ -405,6 +523,7 @@ function selectElementByOverview(event) {
                 body.appendChild(container2);
                 body.appendChild(container3);
                 viewerMode.appendChild(body);
+                syncOverviewListHeight(viewerMode);
             }
         }
     }

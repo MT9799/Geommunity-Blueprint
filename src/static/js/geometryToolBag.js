@@ -121,10 +121,30 @@ class PointTool {
     createPoint(x, y) {
         let goalX = x,
             goalY = y;
+        // 光标下压着一个隐藏的点对象（图形的定义点常常是隐藏的）：把它显示出来，
+        // 别再在它旁边叠一个几乎重合的新点（同一条规则，见 revealHiddenPoint / nearestHiddenPoint）
+        const hiddenUnder = nearestHiddenPoint(x, y);
+        if (hiddenUnder) {
+            geometryManager.duplicatedFlag = true;
+            revealHiddenPoint(hiddenUnder);
+            return;
+        }
         // 先吸附「离光标最近的那个交点」（附近图形两两求交，见 nearestIntersection）：
         // 不再只看最近的 2 个图形，避免光标下就有交点却取到附近别的图形组合在很远处的交点
         const snap = geometryManager.nearestIntersection(x, y);
         if (snap) {
+            // 吸附到的那个交点上已经有个**点对象**（多半是图形的定义点，而且常常是隐藏的，
+            // 所以 pointExistsAt 那边看不见它）：这个位置在 gmt 的编号规则里就是「已知交点」，
+            // 编号时会先把它排掉 —— 硬建出来的点只会落到**另一个候选**上，
+            // 表现就是「预览吸在这儿、点下去却在那儿」，两个候选离得越近越明显。
+            // 不再新建（与 pointExistsAt 同一口径），但要**把它显示出来**：
+            // 「点在有隐藏交点的位置就显示它」那条规则，点工具这一路也照办（见 revealHiddenPoint）
+            const hidden = pointAtPosition(snap.x, snap.y);
+            if (hidden) {
+                geometryManager.duplicatedFlag = true;
+                revealHiddenPoint(hidden);
+                return;
+            }
             const snapPoint = geometryManager.createPoint(snap.x, snap.y);
             applyIntersectionBase(snapPoint, snap);
             snap.element1.addSuperstructure(snapPoint);
@@ -648,6 +668,8 @@ class LineTypeTool {
         // 只有「两点定的直线 / 射线 / 线段」能换类型：垂线、平行线、角平分线、定值角
         // 这些构造出来的线换了类型没有意义
         if (line.getBase()?.type !== 'twoPoints') return;
+        // 网格当作一整块：格线始终是线段，不给换线型
+        if (typeof window.isGridObjectId === 'function' && window.isGridObjectId(line.getId())) return;
         const order = ['line', 'ray', 'lineSegment'];
         const index = order.indexOf(line.getDrawType());
         line.modifyDrawType(order[(index + 1) % order.length]);
@@ -739,6 +761,87 @@ function pointAtPosition(x, y) {
         if (!coord) return false;
         return Math.hypot(coord[0] - x, coord[1] - y) < 1e-6;
     }) || null;
+}
+
+/**
+ * 让一个点显示出来 过程函数
+ * 隐藏的点对象（图形的定义点常常是隐藏的）在画布上看不见、也进不了 near 的吸附范围 ——
+ * 点工具点上去时就该把它显示出来，而不是什么也不做
+ * 除了对象自身的可见性，还要同步「隐藏」标记集合：元素一览的隐藏档位、导出 gmt 的 hidden= 行都读它
+ * @param {Object} point 点对象
+ * @returns {boolean} 是不是真的从隐藏变成了可见
+ */
+function revealHiddenPoint(point) {
+    if (!point || typeof point.getVisible !== 'function' || point.getVisible()) return false;
+    if (typeof point.modifyVisible === 'function') point.modifyVisible(true);
+    if (typeof geometryElementLists !== 'undefined' && geometryElementLists.hidden) {
+        geometryElementLists.hidden.delete(point.getId());
+    }
+    return true;
+}
+
+/**
+ * 光标附近的隐藏点 过程函数
+ * near 只看可见对象（隐藏的定义点它看不见），所以这里自己扫一遍：吸附范围内取最近的一个
+ * @param {number} x 逻辑坐标
+ * @param {number} y 逻辑坐标
+ * @returns {Object|null}
+ */
+function nearestHiddenPoint(x, y) {
+    const scale = (typeof transform !== 'undefined' && transform.scale) || 1;
+    const limit = 15 / scale;
+    let best = null;
+    geometryManager.getAllByOrder().forEach(item => {
+        if (item.getType() !== 'point' || item.getVisible()) return;
+        if (typeof item.getValid === 'function' && !item.getValid()) return;
+        const coord = item.getCoordinate?.();
+        if (!coord) return;
+        const distance = Math.hypot(coord[0] - x, coord[1] - y);
+        if (distance > limit) return;
+        if (!best || distance < best.distance) best = {point: item, distance: distance};
+    });
+    return best ? best.point : null;
+}
+
+/**
+ * 把某个位置上的「隐藏交点」显示出来 过程函数（逻辑坐标）
+ * 点工具、交点工具、以及别的工具取点时「顺手点的点」都走这里：
+ *   · 那个位置上**已经有点对象**（多半是图形的定义点、而且隐藏着）→ 直接让它可见，不再叠一个；
+ *   · 还没有 → 作出这个交点并登记它所在的两个图形（拖动时跟着交点走，与交点工具口径一致）。
+ * 落库用 addObject 且**不发 storage 事件**：于是这一下寄生在当前这一步作图里 ——
+ * 不会多出一格撤销历史、也不额外计 L / E（点 / 交点本来就是 0L 0E）。
+ * @param {number} x 逻辑坐标
+ * @param {number} y 逻辑坐标
+ * @returns {boolean} 这一下是否显示（或作出了）一个交点
+ */
+function revealHiddenIntersection(x, y) {
+    const snap = geometryManager.nearestIntersection(x, y);
+    if (!snap) return false;
+    const existing = pointAtPosition(snap.x, snap.y);
+    if (existing) {
+        revealHiddenPoint(existing);
+        return true;
+    }
+    const point = geometryManager.createPoint(snap.x, snap.y);
+    applyIntersectionBase(point, snap);
+    snap.element1.addSuperstructure(point);
+    snap.element2.addSuperstructure(point);
+    geometryManager.addObject(point);
+    return true;
+}
+
+/**
+ * 点击时先把光标下的隐藏交点显示出来 过程函数（画布坐标）
+ * 在工具处理这次点击**之前**调用：工具随后取点时会直接引用这个点（quote），不会再叠一个重合的点；
+ * 非点工具 / 交点工具也照常往下走它们自己的这一步。移动 / 橡皮 / 样式刷 / 线型不取点，不参与
+ * @param {number} oriX 画布坐标
+ * @param {number} oriY 画布坐标
+ * @returns {boolean}
+ */
+function revealHiddenIntersectionAtClick(oriX, oriY) {
+    if (typeof tool !== 'string' || typeof transform === 'undefined') return false;
+    if (tool === 'move' || tool === 'eraser' || tool === 'styleBrush' || tool === 'lineType') return false;
+    return revealHiddenIntersection((oriX - transform.x) / transform.scale, (oriY - transform.y) / transform.scale);
 }
 
 /**
@@ -989,6 +1092,8 @@ class StyleBrushTool {
     hideEventFunction(x, y) {
         const [id] = geometryManager.near([x, y], ["point", "line", "circle"]);
         if (!id) return;
+        // 网格当作一整块：隐藏刷刷不动它
+        if (typeof window.isGridObjectId === 'function' && window.isGridObjectId(id)) return;
         const item = geometryManager.get(id);
         if (!item || !item.getVisible()) return;
         item.modifyVisible(false);
@@ -1010,6 +1115,8 @@ class StyleBrushTool {
         const [id] = geometryManager.near([x, y], ["point", "line", "circle"]);
         // 点在空白处不算数：只有切换工具 / 再点来源才取消选中
         if (!id) return;
+        // 网格当作一整块：既不能当样式来源，也不能被样式刷刷
+        if (typeof window.isGridObjectId === 'function' && window.isGridObjectId(id)) return;
         // 来源被删掉了（撤销 / 删除对象）：这一步点的对象就当作新来源
         if (this.sourceId && !geometryManager.get(this.sourceId)) this.sourceId = null;
         if (id === this.sourceId) {
@@ -1039,6 +1146,8 @@ class StyleBrushTool {
         target.modifyColor(source.getColor());
         target.modifyWidth(source.getWidth());
         target.modifyShowName(source.getShowName());
+        // 虚线（线 / 圆的样式）一并复制；点没有虚线，复制过去就是关闭
+        target.modifyDashed(source.getDashed());
     }
 
     /**

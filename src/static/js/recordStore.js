@@ -33,7 +33,7 @@
  * styles 的符号（一个图形有多项就逐个写，用逗号隔开；值里有逗号就写成 `\,`）：
  *   a%名称 显示名（与 id 不同的那个；改名是样式方向的事，不是标记）；
  *   a#ff0000 颜色；a~1 / a~3 点线径（1 小、3 大）；
- *   a$ 显示标签 / a^ 不显示；a@ 隐藏 / a! 可见
+ *   a$ 显示标签 / a^ 不显示；a& 虚线（线 / 圆，实线是默认所以不写）；a@ 隐藏 / a! 可见
  * 显示名和 `named=` 是两套规则：named= 只表示「带标签给定」那个标记（读了它会强制显示标签、
  * 按给定上色），改了名字但没标成带标签给定的对象归 styles 这边。
  * 默认样式不写，另有两条例外：
@@ -44,6 +44,8 @@
  * 载入时一并读出来（游玩模式与制题器读全部，求解器只读给定 / 带标签给定 / 第一个所求的判定部分，
  * 自由模式忽略）—— 于是切换样式、标记图形、移动图形、删除图形、改参数这些**都不进记录**，
  * 它们的结果随对应图形的撤回一起消失（要留就自己再调一次）。
+ * 其中 `hidden=` 在记录里**留空**（`hidden=`）：隐藏只记在 styles 的 `a@`（见 recordPanel 的
+ * canvasGmt / applyStyles），换个地方存一份就够了；关卡文件那边的 hidden= 照旧要写。
  *
  * 批量导出会把多条拼在一份里，每条前面加一行 `# ===== 记录 N =====` 分隔（老文件那行还带名称，
  * 也照样能读）；v1.1.3 及以前的老格式（`# undolist=` / `# styles=` / `# info=` 三行 JSON）仍能读。
@@ -70,10 +72,12 @@
         width: '~',
         showNameOn: '$',
         showNameOff: '^',
+        // 虚线（只有线 / 圆有，默认关闭所以只写「开」这一面）
+        dashed: '&',
         hidden: '@',
         visible: '!',
     };
-    const STYLE_MARK_PATTERN = /[%#~$^@!]/;
+    const STYLE_MARK_PATTERN = /[%#~$^@!&]/;
     // styles 一行里各项用逗号隔开，显示名里可能有逗号：转义后再写，读回来按未转义的逗号切
     const escapeStyleValue = value => String(value).replace(/\\/g, '\\\\').replace(/,/g, '\\,');
     const unescapeStyleValue = value => String(value).replace(/\\(.)/g, '$1');
@@ -273,7 +277,9 @@
         return String(gmt || '')
             .split(/\r?\n/)
             .map(line => line.trim())
-            .filter(line => line && !line.startsWith('#'))
+            // 网格那两行不是普通注释：它决定网格的大小与单位，得参与「是不是同一条作图」的比较
+            // （否则同一张网格改成不同大小时会被当成重复记录挡住）
+            .filter(line => line && (!line.startsWith('#') || /^#grid(?:style)?=/.test(line)))
             .map(line => line
                 // 自由点：只留 id
                 .replace(/^([A-Za-z_]\w*)\s*=\s*\[[^\]]*\]\s*$/, '$1=[*]')
@@ -552,7 +558,7 @@
     /**
      * 样式表 → 紧凑文本 过程函数
      * 只写传进来的键 —— 哪些算「非默认」由调用方定（见 recordPanel 的 stylesOfCanvas）
-     * @param {Object} styles {id: {color, width, showName, visible}}
+     * @param {Object} styles {id: {color, width, showName, visible, dashed}}
      * @returns {string} 形如 a#ff0000,a~1,a$,b@
      */
     function stylesToText(styles) {
@@ -565,6 +571,7 @@
             if (typeof entry.width === 'number') parts.push(id + STYLE_MARKS.width + entry.width);
             if (entry.showName === true) parts.push(id + STYLE_MARKS.showNameOn);
             if (entry.showName === false) parts.push(id + STYLE_MARKS.showNameOff);
+            if (entry.dashed === true) parts.push(id + STYLE_MARKS.dashed);
             if (entry.visible === false) parts.push(id + STYLE_MARKS.hidden);
             if (entry.visible === true) parts.push(id + STYLE_MARKS.visible);
         });
@@ -572,9 +579,47 @@
     }
 
     /**
+     * 按前缀解析样式文本 过程函数
+     * gmt 的 `#gridstyle=` 用前缀当键（如 `gS` 表示所有 gS* 对象），符号与 styles 完全同一套
+     * @param {string} text 形如 gS#000000,gS~1,gS^,gS&
+     * @param {string[]} ids 目标对象的 id 列表
+     * @returns {Object} {id: {name?, color?, width?, showName?, visible?, dashed?}}
+     */
+    function stylesByPrefix(text, ids) {
+        const styles = {};
+        // 先把每项拆成「前缀 + 符号 + 值」，再按前缀匹配 id
+        const items = splitStyleItems(text).map(item => item.trim()).filter(Boolean).map(item => {
+            const at = item.search(STYLE_MARK_PATTERN);
+            if (at <= 0) return null;
+            return {prefix: item.slice(0, at), mark: item[at], value: item.slice(at + 1).trim()};
+        }).filter(Boolean);
+        (ids || []).forEach(id => {
+            const entry = {};
+            items.forEach(item => {
+                if (!id.startsWith(item.prefix)) return;
+                if (item.mark === STYLE_MARKS.name) entry.name = unescapeStyleValue(item.value);
+                else if (item.mark === STYLE_MARKS.color) {
+                    entry.color = !item.value ? null : (/^[0-9a-f]{3,8}$/i.test(item.value) ? '#' + item.value : item.value);
+                }
+                else if (item.mark === STYLE_MARKS.width) {
+                    const width = Number(item.value);
+                    if (Number.isFinite(width)) entry.width = width;
+                }
+                else if (item.mark === STYLE_MARKS.showNameOn) entry.showName = true;
+                else if (item.mark === STYLE_MARKS.showNameOff) entry.showName = false;
+                else if (item.mark === STYLE_MARKS.dashed) entry.dashed = true;
+                else if (item.mark === STYLE_MARKS.hidden) entry.visible = false;
+                else if (item.mark === STYLE_MARKS.visible) entry.visible = true;
+            });
+            if (Object.keys(entry).length) styles[id] = entry;
+        });
+        return styles;
+    }
+
+    /**
      * 紧凑文本 → 样式表 过程函数
-     * @param {string} text 形如 a#ff0000,a~1,a$
-     * @returns {Object} {id: {color?, width?, showName?, visible?}}
+     * @param {string} text 形如 a#ff0000,a~1,a$,a&
+     * @returns {Object} {id: {color?, width?, showName?, visible?, dashed?}}
      */
     function stylesFromText(text) {
         const styles = {};
@@ -598,6 +643,7 @@
             }
             else if (mark === STYLE_MARKS.showNameOn) entry.showName = true;
             else if (mark === STYLE_MARKS.showNameOff) entry.showName = false;
+            else if (mark === STYLE_MARKS.dashed) entry.dashed = true;
             else if (mark === STYLE_MARKS.hidden) entry.visible = false;
             else if (mark === STYLE_MARKS.visible) entry.visible = true;
         });
@@ -873,6 +919,7 @@
         parseImportText: parseImportText,
         stylesToText: stylesToText,
         stylesFromText: stylesFromText,
+        stylesByPrefix: stylesByPrefix,
         stepsToText: stepsToText,
         stepsFromText: stepsFromText,
         stepsSummary: stepsSummary,

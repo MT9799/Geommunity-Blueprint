@@ -32,7 +32,9 @@ class StorageManager {
         const lists = {};
         const snapshotLists = snapshot?.lists || {};
         for (const [key, value] of Object.entries(snapshotLists)) lists[key] = [...value];
-        return {elements: [...(snapshot?.elements || [])], lists: lists};
+        // grid：网格信息（{m, n, unit, style} 或 null）—— 不带上它的话，撤销 / 重做之后
+        // 网格对象回来了、网格标记却丢了（导出不再带 #grid= 行、求解器也不认这是网格模式）
+        return {elements: [...(snapshot?.elements || [])], lists: lists, grid: snapshot?.grid || null};
     }
     
     /**

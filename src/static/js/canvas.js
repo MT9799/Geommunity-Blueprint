@@ -25,6 +25,41 @@ const maxMoveX = 500, // max是负的
 // 预览（半成品草稿图、光标下的点预览）与选中圈都跟着这两个值走，改这里就一起变
 const POINT_RADIUS_BASE = 6;
 const LINE_WIDTH_BASE = 3;
+// 虚线的划段：一段实线 / 一段空白，按线宽走（与线宽一样除以 scale，屏幕上是固定长短）
+const DASH_ON_RATIO = 4;
+const DASH_OFF_RATIO = 3;
+
+/**
+ * 虚线的 setLineDash 参数 过程函数
+ * @param {number} width 线宽倍率
+ * @returns {number[]} 画布逻辑坐标下的 [实线段长, 空白长]
+ */
+function dashPatternOf(width) {
+    const unit = (LINE_WIDTH_BASE * (width || 1)) / transform.scale;
+    return [DASH_ON_RATIO * unit, DASH_OFF_RATIO * unit];
+}
+
+// 圆的虚线最少分几段：圆特别小时（半径只够画几段）也不至于糊成一整圈
+const MIN_CIRCLE_DASH_COUNT = 8;
+
+/**
+ * 圆的虚线 setLineDash 参数 过程函数
+ * 与直线不同：圆是**闭合**的，划段排不满整圈时，收尾剩下的那一小段正好接在开头那一段前面
+ * （arc 的起点是 x 轴正方向），看着就像那里凭空多出特别长的一段 —— 所以按周长取整段数，
+ * 把「一段实线 + 一段空白」压成正好排满一圈的长度
+ * @param {number} radius 半径（逻辑坐标）
+ * @param {number} width 线宽倍率
+ * @returns {number[]} 画布逻辑坐标下的 [实线段长, 空白长]
+ */
+function circleDashPatternOf(radius, width) {
+    const circumference = 2 * Math.PI * Math.abs(radius || 0);
+    if (!Number.isFinite(circumference) || circumference <= 0) return dashPatternOf(width);
+    const [on, off] = dashPatternOf(width);
+    const period = on + off;
+    const count = Math.max(MIN_CIRCLE_DASH_COUNT, Math.round(circumference / period));
+    const step = circumference / count;
+    return [step * (on / period), step * (off / period)];
+}
 // 点完一下之后先不画预览，等指针真的移动过再画：
 // 点完一条线时光标还停在那条线上，这时立刻画出「过该点的平行线 / 垂线」会让人以为点已经取好了
 // 记的是**未吸附的原始指针坐标**：用吸附后的坐标比较时，吸附候选会随亚像素抖动在两个图形之间跳，
@@ -1107,6 +1142,8 @@ function drawInfiniteLine(element) {
 
     const drawType = element.getDrawType();
     const lineWidth = (LINE_WIDTH_BASE * width) / transform.scale;
+    // 虚线：整个对象一段一段地断开画（延长段也一样）
+    const dash = element.getDashed() ? dashPatternOf(width) : null;
     // 画一段（alpha < 1 时半透明）
     const stroke = (x1, y1, x2, y2, alpha) => {
         ct.globalAlpha = alpha;
@@ -1115,7 +1152,10 @@ function drawInfiniteLine(element) {
         ct.lineTo(x2, y2);
         ct.strokeStyle = color;
         ct.lineWidth = lineWidth;
+        if (dash) ct.setLineDash(dash);
         ct.stroke();
+        // 划段只在自己这一段里有效，画完立刻还原，别带到后面别的图形上
+        if (dash) ct.setLineDash([]);
         ct.globalAlpha = 1;
     };
     // 屏幕上这两个裁剪点各自落在「第一个定义点 → 第二个定义点」连线上的位置：
@@ -1252,7 +1292,10 @@ function drawCircle(element) {
     ct.strokeStyle = color;
     ct.arc(x1, y1, distance, 0, 2 * Math.PI)
     ct.lineWidth = (LINE_WIDTH_BASE * width) / transform.scale;
+    // 虚线：划段只在自己这里有效，画完立刻还原（圆的划段按周长取整，起点不会多出一段）
+    if (element.getDashed()) ct.setLineDash(circleDashPatternOf(distance, width));
     ct.stroke();
+    if (element.getDashed()) ct.setLineDash([]);
 }
 
 /**

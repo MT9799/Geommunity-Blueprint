@@ -79,7 +79,9 @@
      * @returns {string}
      */
     function canvasGmt() {
-        return global.boardGmt && typeof global.boardGmt.text === 'function' ? global.boardGmt.text() : '';
+        // 记录里的「隐藏」只记在 styles（`a@`），gmt 的 hidden= 行留空：
+        // 那张样式表本来就会写 visible=false，载回来一样是隐藏的，不必两处都记
+        return global.boardGmt && typeof global.boardGmt.text === 'function' ? global.boardGmt.text({omitHidden: true}) : '';
     }
 
     /**
@@ -178,10 +180,11 @@
 
     /**
      * 画布：各图形的样式表 过程函数
-     * 只记与默认（黑 #191919、宽 1、点默认显示标签 / 线圆默认不显示、可见）不同的项。
+     * 只记与默认（黑 #191919、宽 1、点默认显示标签 / 线圆默认不显示、实线、可见）不同的项。
      * 另两条例外（见 recordStore.js 的格式说明）：
      *   · 自由模式导出时，点默认就显示标签也要写 `$`（导入到别的模式也保持一样的外观）
      *   · 游玩模式与制题器导出时，所有非给定对象都写出 `@` / `!`（显式记下显隐）
+     * 隐藏的对象一定写 `@`（任何模式）：记录里 gmt 的 hidden= 行是空的，隐藏只有这一处记
      * **标记中的对象存它自己的样式**（见 boardGmt.ownStyleOf）：给定 / 所求在画布上是黑 / 金，
      * 那是标记的显示色，载入时标记会重新读出来上色，记录里不该把它当成图形的样式存下来
      * @param {number[]} [listed] 可撤回的图形（游玩模式用它认出哪些是玩家自己画的）
@@ -207,6 +210,9 @@
         all.forEach(item => {
             const entry = {};
             const id = item.getId();
+            // 网格当作一整块：它的样式只走 gmt 里的 #gridstyle= 一行，不再逐条写进记录 styles
+            // （辅助对象本来就被隐藏，逐条写会写出一堆 visible=false）
+            if (typeof window.isGridObjectId === 'function' && window.isGridObjectId(id)) return;
             const own = global.boardGmt?.ownStyleOf?.(id) || null;
             // 显示名与 id 不同就记下来：改名归样式，不归 named 标记
             if (!(namedMark && namedMark.has(id)) && typeof item.getName === 'function') {
@@ -221,6 +227,8 @@
             const shownByDefault = typeof item.getType === 'function' && item.getType() === 'point' && labelShownByDefault;
             if (!!showName !== !!shownByDefault) entry.showName = !!showName;
             else if (showName && mode === 'normal') entry.showName = true;
+            // 虚线默认关闭：只记开着的那些（标记期间也不改它，标记色与虚线互不相干）
+            if (typeof item.getDashed === 'function' && item.getDashed()) entry.dashed = true;
             if (typeof item.getVisible === 'function' && !item.getVisible()) entry.visible = false;
             else if (writesVisibility(id)) entry.visible = true;
             if (Object.keys(entry).length) styles[id] = entry;
@@ -330,12 +338,14 @@
                 item.modifyVisible(false);
                 return;
             }
+            // 网格当作一整块：显隐由 #grid= 决定（辅助对象藏、格线显示），hidden 名单管不着
+            if (typeof window.isGridObjectId === 'function' && window.isGridObjectId(item.getId())) return;
             item.modifyVisible(!(hidden && hidden.has(item.getId())));
         });
     }
 
     /**
-     * 按记录里的样式表上色 / 调粗细 / 开关标签与隐藏 过程函数
+     * 按记录里的样式表上色 / 调粗细 / 开关标签与隐藏 / 开关虚线 过程函数
      * @param {Object} styles
      */
     function applyStyles(styles) {
@@ -344,6 +354,10 @@
         // 没有才看样式里的 $ / ^（见 recordStore.js 的格式说明）
         const named = typeof geometryElementLists !== 'undefined' && geometryElementLists.named ? geometryElementLists.named : null;
         Object.keys(styles).forEach(id => {
+            // 网格当作一整块：它的显隐与样式只认 gmt 里的 #grid= / #gridstyle= 两行，
+            // 样式表里的 gO0 / gx0… 是旧记录存下来的（那些辅助对象当时被写成「可见」），
+            // 照着它改会把作网格的过程图形全点亮
+            if (typeof window.isGridObjectId === 'function' && window.isGridObjectId(id)) return;
             const item = geometryManager.get(id);
             if (!item) return;
             const entry = styles[id] || {};
@@ -353,7 +367,17 @@
             if (entry.showName !== undefined && !(named && named.has(id)) && typeof item.modifyShowName === 'function') {
                 item.modifyShowName(!!entry.showName);
             }
-            if (entry.visible !== undefined && typeof item.modifyVisible === 'function') item.modifyVisible(!!entry.visible);
+            if (entry.visible !== undefined && typeof item.modifyVisible === 'function') {
+                item.modifyVisible(!!entry.visible);
+                // 记录里的显隐只走样式表：顺手把「隐藏」集合也同步好，
+                // 制题器 / 求解器里的标记、以及再导出 gmt 时的 hidden= 行才跟画布一致
+                const hidden = typeof geometryElementLists !== 'undefined' ? geometryElementLists.hidden : null;
+                if (hidden) {
+                    if (entry.visible) hidden.delete(id);
+                    else hidden.add(id);
+                }
+            }
+            if (entry.dashed !== undefined && typeof item.modifyDashed === 'function') item.modifyDashed(!!entry.dashed);
         });
     }
 
@@ -417,6 +441,11 @@
         applyHiddenList();
         // 样式表要压在隐藏标记与标记着色之后：记录里的颜色 / 粗细就是保存那一刻的样子
         applyStyles(dict.styles);
+        // 网格再按 #grid= 收一次尾：辅助对象必须藏起来、格线按 #gridstyle= 上样式（幂等）
+        if (global.boardGmt && typeof global.boardGmt.setGridFromGmt === 'function') {
+            const grid = typeof global.boardGmt.grid === 'function' ? global.boardGmt.grid() : null;
+            if (grid) global.boardGmt.setGridFromGmt(grid);
+        }
         // 样式表存的是图形**自己**的颜色，标记的显示色要按记录里的标记重上一次
         // （给定黑 / 所求金），否则带标记的记录载回来会看到给定 / 所求是它本来的红 / 灰
         window.refreshElementListColors?.();

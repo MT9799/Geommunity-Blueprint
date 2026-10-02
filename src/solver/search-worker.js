@@ -13,6 +13,9 @@
  *   · 请求可带 toolType: 3 + gridM/gridN 走「网格直尺」模式
  *   · 请求可带 solutions / timeLimitSeconds / symmetry / goalFirst / lowMemory / eps，
  *     响应里会多带 solutions（全部解）、stats、timedOut 等诊断字段
+ * 另有一条单向的中间消息（早于 result 发出，旧页面忽略即可）：
+ *   {type: 'solution', id, taskIndex, solution, initialElementCount, initialPointCount}
+ *   —— 内核一找到解就发一条，页面据此边搜边显示、并在收够解数时当场收工
  */
 
 importScripts('bs-core.js', 'bs-sets.js', 'bs-solver.js', 'bs-report.js');
@@ -23,7 +26,7 @@ self.onmessage = function (event) {
     const {type, data, id} = event.data || {};
     if (type === 'search') {
         try {
-            const result = runSearch(data || {});
+            const result = runSearch(data || {}, id);
             self.postMessage({type: 'result', id, success: true, data: result});
         } catch (error) {
             self.postMessage({
@@ -220,24 +223,47 @@ function createSolver(request) {
         givenPointCount: givenPointCount, collector: collector, solver: solver};
 }
 
+/** 收集器里的一条解 → 页面侧的一条解 过程函数（流式上报与收尾共用） */
+function entryToSolution(entry, givenPointCount) {
+    // 中文步骤报告 + 构造计划（计划让页面在拖动图形时重算品红解法，见 bs-report.js）
+    const built = buildSolutionReportAndPlan(entry.graph, givenPointCount);
+    return {
+        points: dumpPoints(entry.graph.points),
+        elements: dumpElements(entry.graph.elements),
+        // 射线 / 线段的端点表：elements 里的 bound 是它的下标
+        bounds: dumpBounds(entry.graph.bounds),
+        // 每个点是在第几步被作出来的（0 = 给定），页面据此按步逐步显示
+        pointBirth: entry.graph.pointBirth.slice(),
+        newElementCount: entry.graph.elements.length - entry.graph.initialElementCount,
+        circles: entry.circles,
+        report: built.report,
+        plan: built.plan,
+    };
+}
+
 /** 收集器里的解 → 页面侧的解表 过程函数（并行任务也用它） */
 function collectSolutions(collector, givenPointCount) {
-    return collector.entries.map(entry => {
-        // 中文步骤报告 + 构造计划（计划让页面在拖动图形时重算品红解法，见 bs-report.js）
-        const built = buildSolutionReportAndPlan(entry.graph, givenPointCount);
-        return {
-            points: dumpPoints(entry.graph.points),
-            elements: dumpElements(entry.graph.elements),
-            // 射线 / 线段的端点表：elements 里的 bound 是它的下标
-            bounds: dumpBounds(entry.graph.bounds),
-            // 每个点是在第几步被作出来的（0 = 给定），页面据此按步逐步显示
-            pointBirth: entry.graph.pointBirth.slice(),
-            newElementCount: entry.graph.elements.length - entry.graph.initialElementCount,
-            circles: entry.circles,
-            report: built.report,
-            plan: built.plan,
-        };
-    });
+    return collector.entries.map(entry => entryToSolution(entry, givenPointCount));
+}
+
+/**
+ * 让内核「一找到解就端上来」 过程函数
+ * 收集器每收下一条新解就立刻 postMessage 回页面（对齐 C++ 版的边搜边交）：
+ * 页面于是不必等整次搜索（并行时是一整个前缀任务）跑完才看到解，
+ * 也能在收够解数的那一刻当场收工 —— 在飞的任务直接掐掉。
+ * 每条消息都自带 initialElementCount / initialPointCount：页面在搜索途中就能按它显示。
+ */
+function attachSolutionStream(collector, id, graph, givenPointCount, taskIndex) {
+    collector.onEntry = entry => {
+        self.postMessage({
+            type: 'solution',
+            id: id,
+            taskIndex: taskIndex,
+            solution: entryToSolution(entry, givenPointCount),
+            initialElementCount: graph.initialElementCount,
+            initialPointCount: givenPointCount,
+        });
+    };
 }
 
 /**
@@ -246,40 +272,50 @@ function collectSolutions(collector, givenPointCount) {
  * 「initialElementCount 之后新作的那些元素」当成一个任务。这一趟不收集解。
  */
 function runFrontier(request, id) {
-    const {limit, graph, givenPointCount, solver} = createSolver(request);
-    solver.setSolutionCollector(null);
-    // 与 C++ 版的 FrontierProbeMode 一致：这一趟只切任务，不提交解
-    solver.frontierProbeMode = true;
-    const splitDepth = Math.max(1, Math.trunc(request.splitDepth || 3));
-    const stats = makeSearchStats();
-    const initialElementCount = graph.initialElementCount;
-    // 任务太多也要收手（页面侧还排着队）：留一个很宽的上限，避免极端题把内存吃光
-    const TASK_LIMIT = 50000;
-    const batch = [];
-    let count = 0;
-    const flush = () => {
-        if (!batch.length) return;
-        self.postMessage({type: 'prefix-batch', id: id, tasks: batch.splice(0, batch.length)});
-    };
-    solver.produceFrontierTasks(graph, limit, stats, current => {
-        // 前缀里的元素要能跨线程传：只留几何字段（点由重放时重新求交得到）
-        batch.push(current.elements.slice(initialElementCount).map(element => ({
-            a: element.a, b: element.b, c: element.c, type: element.type, bound: element.bound,
-        })));
-        count++;
-        if (batch.length >= 16) flush();
-        return count < TASK_LIMIT;      // 一直产到穷尽（时间上限由求解器自己盯着）
-    }, splitDepth);
-    flush();
-    self.postMessage({
-        type: 'prefix-done',
-        id: id,
-        count: count,
-        timedOut: solver.isTimedOut(),
-        initialElementCount: initialElementCount,
-        initialPointCount: givenPointCount,
-        stats: stats,
-    });
+    const limitOf = () => Math.max(1, Math.trunc(request.limit || 1));
+    // 切分深度不能取到最后一层：`dfs` 在 remaining === 1 时会走「末段专用」分支
+    // （searchForcedGoalTail / searchOneStepPointTail），那条路不再递归下去，
+    // 于是 depth === limit 的节点根本不会出现 —— 按那一层切会一个任务都产不出来，
+    // 页面就以为「已穷尽」，并行反而搜不到解
+    const requested = Math.max(1, Math.min(Math.trunc(request.splitDepth || 3), Math.max(1, limitOf() - 1)));
+    // 一次别切太多（页面侧还排着队）；超了就退到更浅一层重切
+    const TASK_LIMIT = 4000;
+
+    for (let depth = requested; depth >= 1; depth--) {
+        const {limit, graph, givenPointCount, solver} = createSolver(request);
+        solver.setSolutionCollector(null);
+        // 与 C++ 版的 FrontierProbeMode 一致：这一趟只切任务，不提交解
+        solver.frontierProbeMode = true;
+        const stats = makeSearchStats();
+        const initialElementCount = graph.initialElementCount;
+        const tasks = [];
+        solver.produceFrontierTasks(graph, limit, stats, current => {
+            // 前缀里的元素要能跨线程传：只留几何字段（点由重放时重新求交得到）
+            tasks.push(current.elements.slice(initialElementCount).map(element => ({
+                a: element.a, b: element.b, c: element.c, type: element.type, bound: element.bound,
+            })));
+            return tasks.length < TASK_LIMIT;
+        }, depth);
+        // 两种情况下这一层不适用，退到更浅一层重切：
+        //   · 撞上上限：这一层太细（网格题分支极大），只发半套前缀会漏掉整片搜索树；
+        //   · 一个任务都没有：这一层太深（DFS 到不了，例如最后一两步走了「末段专用」分支），
+        //     页面会把这当成「已穷尽」。—— 宁可任务粗一点，也必须让前缀覆盖整棵搜索树
+        if ((tasks.length >= TASK_LIMIT || !tasks.length) && depth > 1) continue;
+        for (let at = 0; at < tasks.length; at += 16) {
+            self.postMessage({type: 'prefix-batch', id: id, tasks: tasks.slice(at, at + 16)});
+        }
+        self.postMessage({
+            type: 'prefix-done',
+            id: id,
+            count: tasks.length,
+            timedOut: solver.isTimedOut(),
+            splitDepth: depth,
+            initialElementCount: initialElementCount,
+            initialPointCount: givenPointCount,
+            stats: stats,
+        });
+        return;
+    }
 }
 
 /**
@@ -288,6 +324,8 @@ function runFrontier(request, id) {
  */
 function runPrefix(request, id, prefix, taskIndex) {
     const {limit, graph, givenPointCount, collector, solver} = createSolver(request);
+    // 这个前缀里搜到的解随到随发（页面按几何签名跨任务去重）
+    attachSolutionStream(collector, id, graph, givenPointCount, taskIndex);
     const startedAt = WORKER_NOW();
     solver.searchPrefixTask(graph, limit, prefix || [], makeSearchStats());
     self.postMessage({
@@ -303,8 +341,10 @@ function runPrefix(request, id, prefix, taskIndex) {
 }
 
 /** 跑一次搜索并组织返回值 过程函数 */
-function runSearch(request) {
+function runSearch(request, id) {
     const {limit, graph, givenPointCount, collector, solver} = createSolver(request);
+    // 一找到解就往页面发一条，不必等这次搜索收尾
+    attachSolutionStream(collector, id, graph, givenPointCount);
     const stats = makeSearchStats();
 
     const startedAt = WORKER_NOW();

@@ -17,7 +17,7 @@
     return fetch(`../data/${levelInfo.file}`).then(response => response.text());
   }).then(text => {
     // gmt -> 画板几何对象（解析器与画板的「导入 gmt」共用，见 board-tools.js 的 parseGmt）
-    const { elements, lists, resultGroups } = parseGmt(text);
+    const { elements, lists, resultGroups, grid } = parseGmt(text);
     // result 的分组：判定对象 + 判定成功后要显示的图形（试玩/关卡共用）
     window.gmtResultGroups = resultGroups || [];
     sessionStorage.setItem('elements', JSON.stringify(elements));
@@ -29,6 +29,8 @@
     window.levelTools = levelInfo.tools || null;
     if (typeof geometryManagerResult !== 'undefined') {
       Object.entries(lists).forEach(([key, value]) => { geometryElementLists[key] = new Set(value); });
+      // 网格关卡（gmt 头部的 #grid=）：登记网格对象、藏起辅助对象、按 #gridstyle 上样式
+      if (grid && typeof window.boardGmt?.setGridFromGmt === 'function') window.boardGmt.setGridFromGmt(grid);
       // 缩略图（点开卡片后可见）：标题 / 说明 / 本关目标 L/E 与示意图
       // 文案来自 levels.json，可用 levels.meta.json 覆盖
       // （带 pack 参数时 playStartDataLoad 会提前返回，所以这里必须自己填）

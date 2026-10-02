@@ -22,6 +22,8 @@ class GeometryElement {
         this.color = "#191919";
         this.showName = false;
         this.width = 1;
+        // 虚线：只有直线与圆用得上（点在样式面板里没有这个开关），各模式默认关闭
+        this.dashed = false;
     }
     
     /**
@@ -113,6 +115,14 @@ class GeometryElement {
     }
 
     /**
+     * 修改虚线（直线与圆），默认 false
+     * @param {boolean} bool
+     */
+    modifyDashed(bool) {
+        this.dashed = !!bool;
+    }
+
+    /**
      * 访问ID
      * @returns {string} ID
      */
@@ -175,6 +185,14 @@ class GeometryElement {
     getWidth() {
         return this.width;
     }
+
+    /**
+     * 访问虚线
+     * @returns {boolean}
+     */
+    getDashed() {
+        return !!this.dashed;
+    }
 }
 
 /**
@@ -216,8 +234,10 @@ class Point extends GeometryElement {
         // 基底换了就要换上层引用：新基底登记「本点依赖它」，旧基底撤掉登记。
         // 与 Line / Circle.modifyDefine 同一口径 —— 少了这步，拖动基底时本点不在更新链里，
         // 位置就不会实时刷新（各工具原先只能各自手写 addSuperstructure，漏一个就漏一处）
+        // 载入时基底可能还没接上（appendStorage 里 this.get(id) 取不到就是 undefined），
+        // 这类空位一律跳过 —— 旧代码只是不登记，不能在这里抛错
         if (Array.isArray(this.base.bases)) {
-            for (const item of this.base.bases) item.deleteSuperstructure(this.id);
+            for (const item of this.base.bases) item?.deleteSuperstructure?.(this.id);
         }
         this.base.type = type;
         this.base.bases = geometryElements;
@@ -225,7 +245,7 @@ class Point extends GeometryElement {
         // 交点编号时要排除的已知点（gmt 里 Intersect[a,b,x,已知点] 的第四个参数）
         this.base.exclude = exclude || null;
         if (Array.isArray(geometryElements)) {
-            for (const item of geometryElements) item.addSuperstructure(this);
+            for (const item of geometryElements) item?.addSuperstructure?.(this);
         }
         
         // 更新坐标
@@ -282,7 +302,7 @@ class Point extends GeometryElement {
     clearBase() {
         // 变回自由点：先把旧基底上的上层引用撤掉，免得拖动旧基底时还来更新这个已经独立的点
         if (Array.isArray(this.base.bases)) {
-            for (const item of this.base.bases) item.deleteSuperstructure(this.id);
+            for (const item of this.base.bases) item?.deleteSuperstructure?.(this.id);
         }
         this.base = {type: 'none'};
     }
@@ -372,6 +392,7 @@ class Line extends GeometryElement {
         dict.valid = this.valid;
         dict.color = this.color;
         dict.width = this.width;
+        dict.dashed = this.dashed;
         dict.coordinate = this.coordinate;
         dict.base = {type: this.base.type};
         if (this.base.type !== "none") {
@@ -395,9 +416,10 @@ class Line extends GeometryElement {
         this.base.value = value;
         
         // 删除原基底的上层引用，添加新基底的上层引用
-        if (this.base.figure) for (const item of this.base.figure) item.deleteSuperstructure(this.id);
+        // （载入时基底可能是 undefined，跳过这类空位，别在接基底的过程中抛错）
+        if (this.base.figure) for (const item of this.base.figure) item?.deleteSuperstructure?.(this.id);
         this.base.figure = figures;
-        for (const item of figures) item.addSuperstructure(this);
+        for (const item of figures) item?.addSuperstructure?.(this);
         
         // 更新坐标
         this.updateCoordinate();
@@ -477,6 +499,7 @@ class Circle extends GeometryElement {
         dict.valid = this.valid;
         dict.color = this.color;
         dict.width = this.width;
+        dict.dashed = this.dashed;
         dict.coordinate = this.coordinate;
         dict.base = {type: this.base.type};
         if (this.base.type !== "none") {
@@ -499,9 +522,10 @@ class Circle extends GeometryElement {
         this.base.value = value;
         
         // 删除原基底的上层引用，添加新基底的上层引用
-        if (this.base.figure) for (const item of this.base.figure) item.deleteSuperstructure(this.id);
+        // （载入时基底可能是 undefined，跳过这类空位，别在接基底的过程中抛错）
+        if (this.base.figure) for (const item of this.base.figure) item?.deleteSuperstructure?.(this.id);
         this.base.figure = figures;
-        for (const item of figures) item.addSuperstructure(this);
+        for (const item of figures) item?.addSuperstructure?.(this);
         
         // 更新坐标
         this.updateCoordinate();
@@ -537,8 +561,8 @@ class GeometryElementManager {
         this.duplicatedFlag = false;
         this.transform = {x: 0, y: 0, scale: 1};
         this.geometryStyle = {point: {colorChoice: "auto", color: "#191919"}, 
-            line: {colorChoice: "auto", color: "#191919"}, 
-            circle: {colorChoice: "auto", color: "#191919"}
+            line: {colorChoice: "auto", color: "#191919", dashed: false}, 
+            circle: {colorChoice: "auto", color: "#191919", dashed: false}
         };
         this.geometryElementLists = {
             hidden: new Set(),
@@ -758,6 +782,9 @@ class GeometryElementManager {
      * @param {string} objectId 指定ID
      */
     deleteObject(objectId) {
+        // 网格当作一整块、不能删：要撤掉网格请用「撤销」（那是生成网格那一步）。
+        // 生成 / 改大小时由 board-tools 临时放行（window.gridAllowDelete）
+        if (!window.gridAllowDelete && typeof window.isGridObjectId === 'function' && window.isGridObjectId(objectId)) return;
         let deleteList = new Array();
         let visitedList = new Array();
         deleteList.unshift(objectId);
@@ -787,19 +814,15 @@ class GeometryElementManager {
                 this.deleteToolQuote(tool, currentElementId);
             }
             // 删除其基底的上层引用
+            // 一律把基底表里能取到的都撤一遍：点的基底不止「线上点 / 交点」两种
+            //（中点 / 圆心 / 无穷远点 / 极点也登记过，见 Point.modifyBase），
+            // 而且残缺快照里基底可能是 undefined —— 那种一律跳过，别在删除过程中抛错
             if (objectType === "point") {
-                const baseType = currentElement.getBase().type;
-                if (baseType === "online") {
-                    const [base] = currentElement.getBase().bases;
-                    base.deleteSuperstructure(currentElementId);
-                }else if (baseType === "intersection") {
-                    const [base1, base2] = currentElement.getBase().bases;
-                    base1.deleteSuperstructure(currentElementId);
-                    base2.deleteSuperstructure(currentElementId);
-                }
+                const bases = currentElement.getBase().bases || [];
+                bases.forEach(item => item?.deleteSuperstructure?.(currentElementId));
             }else if (objectType === "line" || objectType === "circle") {
                 const defines = currentElement.getDefine();
-                defines.forEach((item) => item.deleteSuperstructure(currentElementId));
+                (defines || []).forEach((item) => item?.deleteSuperstructure?.(currentElementId));
             }
             // 减少计数器
             this.#counterDelete(objectType);
@@ -1359,6 +1382,7 @@ class GeometryElementManager {
                 lineObject.modifyColor("#808080");
             }
             lineObject.modifyWidth(style.width || 1);
+            lineObject.modifyDashed(!!style.dashed);
             if (style.showName) lineObject.modifyShowName(true);
             this.addToolObject(tool, key, "append", lineObject);
         }else if (type === "circle") {
@@ -1371,6 +1395,7 @@ class GeometryElementManager {
                 circleObject.modifyColor("#808080");
             }
             circleObject.modifyWidth(style.width || 1);
+            circleObject.modifyDashed(!!style.dashed);
             if (style.showName) circleObject.modifyShowName(true);
             this.addToolObject(tool, key, "append", circleObject);
         }
@@ -1584,7 +1609,16 @@ class GeometryElementManager {
      */
     loadStorage(elements) {
         this.deleteAll();
+        this.appendStorage(elements);
+    }
 
+    /**
+     * 追加一批元素（不清空画布） 过程函数
+     * 与 loadStorage 走同一套三步：反序列化 → 接基底 → 上样式色；
+     * 区别只在不清空画布、样式色也只刷这次加进来的那批（见生成网格）
+     * @param {dict[]} elements
+     */
+    appendStorage(elements) {
         // 1.反序列化为元素
         for (const item of elements) {
             const element = deserialization(item);
@@ -1592,6 +1626,10 @@ class GeometryElementManager {
         }
 
         // 2.添加元素间连接
+        // 快照本身残缺时（基底的 id 在仓库里找不到 —— 旧版本把网格按对象逐步记档、切出来的
+        // 半套网格就是这样），这类对象接不上定义，接下去只会读出 undefined 的坐标
+        // （悬停命中 / 求交会一路抛错），所以连同依赖它们的对象一起清掉，让画布停在能用的那部分
+        const brokenIds = [];
         for (const item of elements) {
             const bases = item.base;
             const basesType = bases.type;
@@ -1604,6 +1642,10 @@ class GeometryElementManager {
             bases.basesId.forEach((id) => {
                 objectList.push(this.get(id));
             });
+            if (objectList.some(element => !element)) {
+                brokenIds.push(id);
+                continue;
+            }
             if (currentElementType === 'point') {
                 // 第四个参数指定的「已知交点」也一并还原，编号时用它排掉重合的那个
                 // （依赖登记在 modifyBase 里做，见 Point.modifyBase）
@@ -1613,11 +1655,22 @@ class GeometryElementManager {
             }
         }
 
-        // 3.基础图元接好之后再上一次样式色：addObject 时 base 还没接上，
-        // 点会被当成自由点统统涂红（交点 / 中点 / 圆心本来该是灰的）
-        for (const id of Object.keys(this.repository)) {
-            this.applyAutoStyle(this.repository[id]);
+        // 2.5 清掉基底残缺的对象（连同由它们作出来的对象）
+        if (brokenIds.length) {
+            const allowDelete = window.gridAllowDelete;
+            // 网格平时不可删（见删除守卫），这里是在清残缺对象，临时放行
+            window.gridAllowDelete = true;
+            brokenIds.forEach(id => { if (this.get(id)) this.deleteObject(id); });
+            window.gridAllowDelete = allowDelete;
         }
+
+        // 3.基础图元接好之后再上一次样式色：addObject 时 base 还没接上，
+        // 点会被当成自由点统统涂红（交点 / 中点 / 圆心本来该是灰的）。
+        // appendStorage 只刷这次加进来的那批，画布上原有的对象不动
+        elements.forEach(item => {
+            const element = this.get(item.id);
+            if (element) this.applyAutoStyle(element);
+        });
 
         function deserialization(elementDict) {
             const type = elementDict.type;
@@ -1647,6 +1700,7 @@ class GeometryElementManager {
             element.modifyShowName(showName);
             element.modifyColor(color);
             element.modifyWidth(width || 1);
+            element.modifyDashed(!!elementDict.dashed);
             return element;
         }
     }
@@ -1730,6 +1784,8 @@ function displayNumber(value) {
  * 直线的斜率文字 过程函数（竖直线的斜率写成 ∞）
  */
 function lineSlopeText(coord) {
+    // 退化对象（基点失效 / 基底还没接上）没有坐标：显示成「—」，别把一览与详情整块打断
+    if (!coord) return '—';
     const [p1, p2] = coord;
     if (Math.abs(p2[0] - p1[0]) < 1e-9) return '∞（竖直）';
     return displayNumber((p2[1] - p1[1]) / (p2[0] - p1[0]));
@@ -1739,6 +1795,7 @@ function lineSlopeText(coord) {
  * 直线的截距文字 过程函数（竖直线的 y 轴截距不存在）
  */
 function lineInterceptText(coord) {
+    if (!coord) return '—';
     const [p1, p2] = coord;
     if (Math.abs(p2[0] - p1[0]) < 1e-9) return '—';
     const k = (p2[1] - p1[1]) / (p2[0] - p1[0]);
@@ -1749,6 +1806,7 @@ function lineInterceptText(coord) {
  * 圆的圆心文字 过程函数
  */
 function circleCenterText(coord) {
+    if (!coord) return '—';
     return `(${displayNumber(coord[0][0])}, ${displayNumber(coord[0][1])})`;
 }
 
@@ -1756,6 +1814,7 @@ function circleCenterText(coord) {
  * 圆的半径文字 过程函数
  */
 function circleRadiusText(coord) {
+    if (!coord) return '—';
     return displayNumber(Math.hypot(coord[1][0] - coord[0][0], coord[1][1] - coord[0][1]));
 }
 

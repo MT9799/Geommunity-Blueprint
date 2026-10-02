@@ -1,6 +1,46 @@
 /* stylePanel.js */
 /**
- * 样式面板：颜色 / 粗细（点的大小） / 标签显示
+ * 滑块开关 过程函数
+ * 弹层与元素一览里的「标签 / 虚线 / 隐藏」三个开关都用这一份
+ * @param {boolean} active 开（右侧圆点亮）
+ * @param {string} ariaLabel 无障碍名字
+ * @param {string} title 悬停提示
+ * @param {Function} onClick 点一下
+ * @returns {Object} 按钮元素
+ */
+function createStyleSwitch(active, ariaLabel, title, onClick) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'style-popup-switch';
+    button.setAttribute('role', 'switch');
+    button.setAttribute('aria-checked', String(!!active));
+    button.setAttribute('aria-label', ariaLabel);
+    if (title) button.title = title;
+    if (active) button.classList.add('active');
+    const knob = document.createElement('span');
+    knob.className = 'style-popup-switch-knob';
+    button.appendChild(knob);
+    button.addEventListener('click', onClick);
+    return button;
+}
+
+/**
+ * 开关行里再追加一个「标题 + 控件」 过程函数
+ * 「标签」与「虚线」并排在一行时用：第二个标题与第一个同宽，两个控件各占剩下的
+ * @param {Object} row 开关行
+ * @param {string} title 标题文字
+ * @param {Object} control 控件（开关 / 只读文字）
+ */
+function appendStyleControl(row, title, control) {
+    const label = document.createElement('span');
+    label.className = 'style-popup-title';
+    label.textContent = title;
+    row.appendChild(label);
+    row.appendChild(control);
+}
+
+/**
+ * 样式面板：颜色 / 粗细（点的大小） / 标签显示 / 虚线（线圆）
  * 画板（board.html 用 tool.js）与关卡游玩（level.html 用 toolPlayPage.js）共用，
  * 因此这里只依赖两边都有的全局量：
  * tool、geometryManager、geometryStyle、drawStyle()、refreshToolFloating()、drawContent()
@@ -108,12 +148,12 @@ function closeObjectStylePopup() {
 
 /**
  * 样式弹层 过程函数
- * 颜色 / 粗细（点的大小） / 标签显示，既可用于后续绘制的图形，也可用于已选中的对象
+ * 颜色 / 粗细（点的大小） / 标签显示 / 虚线（线圆），既可用于后续绘制的图形，也可用于已选中的对象
  * @param {Object} options
  *   - anchor 弹层的定位按钮
  *   - key 弹层标识，同一按钮再次点击时收起
- *   - isPoint 点样式（“大小”而非“粗细”）
- *   - get() 读取当前样式 {color, width, showName}
+ *   - isPoint 点样式（“大小”而非“粗细”，没有「虚线」这一行）
+ *   - get() 读取当前样式 {color, width, showName, dashed}
  *   - apply(patch) 应用样式变更
  */
 function openStylePopup(options) {
@@ -174,38 +214,26 @@ function openStylePopup(options) {
         styleWidths.forEach(item => addOption(widthRow, isPoint ? item.pointName : item.name, Math.abs(width - item.value) < 0.01, () => { apply({width: item.value}); draw(); }));
 
         // 标签：一个开关（开 = 显示标签，关 = 不显示）
-        const labelRow = addRow('标签');
-        const switchButton = document.createElement('button');
-        switchButton.type = 'button';
-        switchButton.className = 'style-popup-switch';
-        switchButton.setAttribute('role', 'switch');
-        switchButton.setAttribute('aria-checked', String(!!style.showName));
-        switchButton.setAttribute('aria-label', '显示标签');
-        switchButton.title = style.showName ? '显示标签' : '不显示标签';
-        if (style.showName) switchButton.classList.add('active');
-        const knob = document.createElement('span');
-        knob.className = 'style-popup-switch-knob';
-        switchButton.appendChild(knob);
-        switchButton.addEventListener('click', () => { apply({showName: !style.showName}); draw(); });
-        labelRow.appendChild(switchButton);
+        // 虚线与它并排在同一行（只有直线与圆有，点没有这个开关）：开 = 画成虚线，各模式默认关
+        // 网格（格线）不给「标签」开关：那一行只剩虚线（行名也跟着换）
+        const labelRow = addRow(options.hideLabel ? '虚线' : '标签');
+        labelRow.classList.add('style-popup-row-pair');
+        if (!options.hideLabel) {
+            labelRow.appendChild(createStyleSwitch(!!style.showName, '显示标签', style.showName ? '显示标签' : '不显示标签',
+                () => { apply({showName: !style.showName}); draw(); }));
+        }
+        if (!isPoint) {
+            const dashed = style.dashed === true;
+            appendStyleControl(labelRow, '虚线', createStyleSwitch(dashed, '虚线', dashed ? '虚线，点一下变回实线' : '实线，点一下变虚线',
+                () => { apply({dashed: !dashed}); draw(); }));
+        }
 
         // 隐藏对象（只有「调整已选中对象的样式」这个弹层有）：点一下就把当前对象藏起来
         if (options.showHide) {
             const hideRow = addRow('隐藏');
             const hidden = style.visible === false;
-            const hideSwitch = document.createElement('button');
-            hideSwitch.type = 'button';
-            hideSwitch.className = 'style-popup-switch';
-            hideSwitch.setAttribute('role', 'switch');
-            hideSwitch.setAttribute('aria-checked', String(hidden));
-            hideSwitch.setAttribute('aria-label', '隐藏对象');
-            hideSwitch.title = hidden ? '已隐藏，点一下恢复显示' : '点一下隐藏这个对象';
-            if (hidden) hideSwitch.classList.add('active');
-            const knob2 = document.createElement('span');
-            knob2.className = 'style-popup-switch-knob';
-            hideSwitch.appendChild(knob2);
-            hideSwitch.addEventListener('click', () => { apply({visible: hidden ? true : false}); draw(); });
-            hideRow.appendChild(hideSwitch);
+            hideRow.appendChild(createStyleSwitch(hidden, '隐藏对象', hidden ? '已隐藏，点一下恢复显示' : '点一下隐藏这个对象',
+                () => { apply({visible: hidden ? true : false}); draw(); }));
         }
     };
     draw();
@@ -251,18 +279,30 @@ function openObjectStylePopup(anchor) {
     const button = anchor || document.getElementById(`button-${tool}-objectStyle`);
     const element = getSelectedElement();
     if (!button || !element) return;
+    // 网格当作一整块：一次改动应用到所有格线；它不能隐藏、也不能改标签显示
+    const isGrid = typeof window.isGridObjectId === 'function' && window.isGridObjectId(element.getId());
+    const targetsOf = () => (isGrid && typeof geometryElementLists !== 'undefined' && geometryElementLists.grid
+        ? [...geometryElementLists.grid].filter(id => /^gS[XY]\d+$/.test(id)).map(id => geometryManager.get(id)).filter(Boolean)
+        : [element]);
     openStylePopup({
         anchor: button,
         key: 'object',
         isPoint: element.getType() === 'point',
-        // 这个弹层多一个「隐藏」开关（非游玩模式才能隐藏对象）
-        showHide: true,
-        get: () => ({color: element.getColor(), width: element.getWidth(), showName: element.getShowName(), visible: element.getVisible()}),
+        // 这个弹层多一个「隐藏」开关（非游玩模式才能隐藏对象）—— 网格不给
+        showHide: !isGrid,
+        hideLabel: isGrid,
+        get: () => ({color: element.getColor(), width: element.getWidth(), showName: element.getShowName(), visible: element.getVisible(), dashed: element.getDashed()}),
         apply: (patch, live) => {
-            if (patch.color) element.modifyColor(patch.color);
-            if (patch.width) element.modifyWidth(patch.width);
-            if (patch.showName !== undefined) element.modifyShowName(patch.showName);
-            if (patch.visible !== undefined) setElementVisible(element, patch.visible);
+            targetsOf().forEach(item => {
+                if (patch.color) item.modifyColor(patch.color);
+                if (patch.width) item.modifyWidth(patch.width);
+                if (patch.dashed !== undefined) item.modifyDashed(patch.dashed);
+                if (!isGrid && patch.showName !== undefined) item.modifyShowName(patch.showName);
+                if (!isGrid && patch.visible !== undefined) setElementVisible(item, patch.visible);
+            });
+            // 网格样式只认 gmt 里的 #gridstyle= 那一行（记录里不写 styles）：改完追平它。
+            // 改色时把选中的颜色直接传过去 —— 回头读对象的颜色会读成标记显示色（见 syncGridStyle）
+            if (isGrid && !live && window.boardGmt?.syncGridStyle) window.boardGmt.syncGridStyle(patch.color);
             refreshToolFloating();
             drawContent();
             // 记入撤销/重做历史（取色拖动中的中间状态不记）
@@ -296,11 +336,23 @@ function setElementVisible(element, visible) {
  * @returns {Function} 重画一次
  */
 function renderInlineStyleControls(container, element, onChange, readOnly) {
-    const done = () => { if (typeof onChange === 'function') onChange(); };
     // 撤销 / 重做会把图形整批重建（重新解析 gmt 文本），详情面板手里那个旧对象就脱离了画板，
     // 再调它的样式自然看不出变化 —— 所以一律按 id 现取当前对象，不缓存引用
     const targetId = typeof element.getId === 'function' ? element.getId() : null;
     const current = () => (targetId && typeof geometryManager !== 'undefined' && geometryManager.get(targetId)) || element;
+    // 网格当作一整块：详情面板里改样式要一次改到所有格线（与画布上的样式弹层同一口径）——
+    // 只改「手上这一条」的话，看起来就是「只能调最底下那条格线」
+    const isGrid = typeof window.isGridObjectId === 'function' && window.isGridObjectId(targetId);
+    const targetsOf = () => (isGrid && typeof geometryElementLists !== 'undefined' && geometryElementLists.grid
+        ? [...geometryElementLists.grid].filter(id => /^gS[XY]\d+$/.test(id)).map(id => geometryManager.get(id)).filter(Boolean)
+        : [current()]);
+    const each = fn => targetsOf().forEach(fn);
+    const done = patch => {
+        // 网格样式只认 gmt 里的 #gridstyle= 那一行（记录里不写 styles）：改完追平它。
+        // 改色时把选中的颜色直接传过去 —— 回头读对象的颜色会读成标记显示色（见 syncGridStyle）
+        if (isGrid && window.boardGmt?.syncGridStyle) window.boardGmt.syncGridStyle(patch && patch.color);
+        if (typeof onChange === 'function') onChange();
+    };
     // 控件只在自己这一层里重画：直接清空容器会把同一列里别的行（例如「有效性」）一起清掉
     const holder = document.createElement('div');
     holder.className = 'style-inline-holder';
@@ -334,11 +386,19 @@ function renderInlineStyleControls(container, element, onChange, readOnly) {
             widthText.textContent = String(target.getWidth() || 1);
             roWidthRow.appendChild(widthText);
 
+            // 标签与虚线并排一行（虚线只有直线与圆有）
             const roLabelRow = addRow('标签');
+            roLabelRow.classList.add('style-popup-row-pair');
             const labelText = document.createElement('span');
             labelText.className = 'style-inline-value';
             labelText.textContent = target.getShowName() ? '显示' : '不显示';
             roLabelRow.appendChild(labelText);
+            if (!isPoint) {
+                const dashText = document.createElement('span');
+                dashText.className = 'style-inline-value';
+                dashText.textContent = target.getDashed() ? '是' : '否';
+                appendStyleControl(roLabelRow, '虚线', dashText);
+            }
 
             const roHideRow = addRow('隐藏');
             const hideText = document.createElement('span');
@@ -358,11 +418,11 @@ function renderInlineStyleControls(container, element, onChange, readOnly) {
         colorButton.addEventListener('click', () => {
             let picked = current().getColor();
             const applyColor = live => {
-                current().modifyColor(picked);
+                each(item => item.modifyColor(picked));
                 // 拖动取色时也要立刻反映：预览色块跟着变，画布立即重绘（与弹层那套一致）
                 colorButton.style.backgroundColor = picked;
                 if (typeof drawContent === 'function') drawContent();
-                if (!live) done();
+                if (!live) done({color: picked});
             };
             pickStyleColor(picked, color => { picked = color; applyColor(true); }, () => applyColor(false));
         });
@@ -377,42 +437,33 @@ function renderInlineStyleControls(container, element, onChange, readOnly) {
             button.className = 'style-popup-option';
             button.textContent = isPoint ? item.pointName : item.name;
             if (Math.abs(width - item.value) < 0.01) button.classList.add('active');
-            button.addEventListener('click', () => { current().modifyWidth(item.value); draw(); done(); });
+            button.addEventListener('click', () => { each(target => target.modifyWidth(item.value)); draw(); done(); });
             widthRow.appendChild(button);
         });
 
-        // 标签开关
-        const labelRow = addRow('标签');
-        const labelSwitch = document.createElement('button');
-        labelSwitch.type = 'button';
-        labelSwitch.className = 'style-popup-switch';
-        labelSwitch.setAttribute('role', 'switch');
-        labelSwitch.setAttribute('aria-checked', String(!!target.getShowName()));
-        labelSwitch.setAttribute('aria-label', '显示标签');
-        labelSwitch.title = target.getShowName() ? '显示标签' : '不显示标签';
-        if (target.getShowName()) labelSwitch.classList.add('active');
-        const knob = document.createElement('span');
-        knob.className = 'style-popup-switch-knob';
-        labelSwitch.appendChild(knob);
-        labelSwitch.addEventListener('click', () => { const item = current(); item.modifyShowName(!item.getShowName()); draw(); done(); });
-        labelRow.appendChild(labelSwitch);
+        // 标签开关，虚线与它并排在同一行（只有直线与圆有）：开 = 画成虚线，各模式默认关
+        // 网格（格线）不给「标签」开关：那一行只剩虚线（与画布上的样式弹层同一口径）
+        if (isGrid) {
+            const gridDashed = target.getDashed();
+            appendStyleControl(addRow('虚线'), '虚线', createStyleSwitch(gridDashed, '虚线', gridDashed ? '虚线，点一下变回实线' : '实线，点一下变虚线',
+                () => { each(item => item.modifyDashed(!item.getDashed())); draw(); done(); }));
+        } else {
+            const labelRow = addRow('标签');
+            labelRow.classList.add('style-popup-row-pair');
+            labelRow.appendChild(createStyleSwitch(!!target.getShowName(), '显示标签', target.getShowName() ? '显示标签' : '不显示标签',
+                () => { const item = current(); item.modifyShowName(!item.getShowName()); draw(); done(); }));
+            if (!isPoint) {
+                const dashed = target.getDashed();
+                appendStyleControl(labelRow, '虚线', createStyleSwitch(dashed, '虚线', dashed ? '虚线，点一下变回实线' : '实线，点一下变虚线',
+                    () => { const item = current(); item.modifyDashed(!item.getDashed()); draw(); done(); }));
+            }
 
-        // 隐藏对象
-        const hideRow = addRow('隐藏');
-        const hidden = !target.getVisible();
-        const hideSwitch = document.createElement('button');
-        hideSwitch.type = 'button';
-        hideSwitch.className = 'style-popup-switch';
-        hideSwitch.setAttribute('role', 'switch');
-        hideSwitch.setAttribute('aria-checked', String(hidden));
-        hideSwitch.setAttribute('aria-label', '隐藏对象');
-        hideSwitch.title = hidden ? '已隐藏，点一下恢复显示' : '点一下隐藏这个对象';
-        if (hidden) hideSwitch.classList.add('active');
-        const knob2 = document.createElement('span');
-        knob2.className = 'style-popup-switch-knob';
-        hideSwitch.appendChild(knob2);
-        hideSwitch.addEventListener('click', () => { const item = current(); setElementVisible(item, !item.getVisible()); draw(); done(); });
-        hideRow.appendChild(hideSwitch);
+            // 隐藏对象（网格不给：它当作一整块，不能被隐藏）
+            const hideRow = addRow('隐藏');
+            const hidden = !target.getVisible();
+            hideRow.appendChild(createStyleSwitch(hidden, '隐藏对象', hidden ? '已隐藏，点一下恢复显示' : '点一下隐藏这个对象',
+                () => { const item = current(); setElementVisible(item, !item.getVisible()); draw(); done(); }));
+        }
     };
     draw();
     return draw;
@@ -441,9 +492,9 @@ function setObjectStyleAble(item) {
 
 /**
  * 样式样例图形 过程函数
- * 用于样式按钮的预览：颜色、粗细（点的大小）、是否带标签
+ * 用于样式按钮的预览：颜色、粗细（点的大小）、是否带标签、是否虚线
  * @param {string} type 'point' | 'line' | 'circle'
- * @param {Object} style {color, width, showName}
+ * @param {Object} style {color, width, showName, dashed}
  * @returns {Object} SVG元素
  */
 function createStyleSample(type, style) {
@@ -484,6 +535,8 @@ function createStyleSample(type, style) {
         line.setAttribute("stroke", style.color);
         line.setAttribute("stroke-width", 6 * width);
         line.setAttribute("stroke-linecap", "round");
+        // 虚线样例：段长也按「实线段 + 空白」那样断开，与画布上的虚线一致
+        if (style.dashed) line.setAttribute("stroke-dasharray", `${18 * width} ${13 * width}`);
         svg.appendChild(line);
         if (style.showName) svg.appendChild(createStyleSampleLabel('a', 60, 80, style.color));
     }else if (type === 'circle') {
@@ -494,6 +547,7 @@ function createStyleSample(type, style) {
         circle.setAttribute("stroke", style.color);
         circle.setAttribute("stroke-width", 6 * width);
         circle.setAttribute("fill", "transparent");
+        if (style.dashed) circle.setAttribute("stroke-dasharray", `${18 * width} ${13 * width}`);
         svg.appendChild(circle);
         if (style.showName) svg.appendChild(createStyleSampleLabel('c', 52, 62, style.color));
     }

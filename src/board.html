@@ -115,7 +115,7 @@ fill="transparent" stroke-width="10"  stroke-linejoin="round" stroke="rgb(128, 2
     <!-- 浏览面板 -->
     <div id="overviewPanel" class="panel">
         <div class="panel-container" id="geometry-item-list">
-            <div class="panel-head">
+            <div class="item-container-title">
                 <p data-i18n="board.overview">几何元素一览</p>
                 <button type="button" class="panel-close-button" id="overview-close" data-action="close-overview"></button>
             </div>
@@ -175,7 +175,17 @@ fill="transparent" stroke-width="10"  stroke-linejoin="round"/>
             <!-- 工具功能切换 -->
             <!-- 其它 -->
         </template>
-        <template id="svg-eraser">
+        <template id="svg-grid">
+<!-- 3×3 的格：外框 + 两条内线（元素一览里的「格线」一行也用这个图，见 geometryItem 的缩略图） -->
+<svg class="button-icon-toolbar svg-icon" viewBox="0 0 200 200">
+<rect x="30" y="30" width="140" height="140" fill="transparent" stroke-width="10"/>
+<line x1="30" y1="76.7" x2="170" y2="76.7" fill="transparent" stroke-width="10"/>
+<line x1="30" y1="123.3" x2="170" y2="123.3" fill="transparent" stroke-width="10"/>
+<line x1="76.7" y1="30" x2="76.7" y2="170" fill="transparent" stroke-width="10"/>
+<line x1="123.3" y1="30" x2="123.3" y2="170" fill="transparent" stroke-width="10"/>
+</svg>
+</template>
+<template id="svg-eraser">
             <!-- 工具 -->
 <svg class="button-icon-toolbar svg-icon" viewBox="0 0 200 200">
 <polygon points="

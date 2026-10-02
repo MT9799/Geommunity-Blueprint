@@ -671,6 +671,13 @@ function drawStyle(type) {
  * @param {number} y
  */
 function operateEventFunction(type, x, y) {
+    // 画板 / 制题器 / 求解器里不限制取点范围：网格是作图背景，题面之外还要留出自由作图的地方。
+    // 只有游玩模式（关卡游玩 / 试玩）才把点限制在网格范围内（见 playPage.js 所用的 toolPlayPage.js）
+    //
+    // 点在任何「隐藏交点」的位置上都先把那个交点显示出来（点工具 / 交点工具 / 其它工具取点时顺手
+    // 点的点一视同仁）。这一步必须在工具之前：工具取点时会直接引用它，不会再叠一个重合的点；
+    // 非点工具 / 交点工具照常继续自己这一步（见 geometryToolBag.js 的 revealHiddenIntersection）
+    if (type === 'click') revealHiddenIntersectionAtClick(x, y);
     tools[tool].toolEvent(type, x, y);
     drawContent();
     refreshToolFloating();

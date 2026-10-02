@@ -10,7 +10,7 @@
   // 而试玩返回制题器要靠 makerBackup 还原编辑状态，所以这时不能清制题器的编辑状态
   // （从首页直接进画板这类「新开」的入口才清，免得残留上一次的旧图形）
   const roundTrip = !!params.get('from');
-  if (!isLevel && mode !== 'maker-play' && !restoreMaker && !roundTrip) ['elements', 'geometryElementLists', 'thumbnail', 'constructRecord', 'makerBackup'].forEach(key => sessionStorage.removeItem(key));
+  if (!isLevel && mode !== 'maker-play' && !restoreMaker && !roundTrip) ['elements', 'geometryElementLists', 'thumbnail', 'constructRecord', 'makerBackup', 'gridMeta'].forEach(key => sessionStorage.removeItem(key));
   // 仅当从画板主动跳转进入 solver（restore=1）时沿用图形，其余入口（首页等）清空画板
   if (!restoreSolver) sessionStorage.removeItem('solverElements');
   // 自制/求解模式的几何默认样式与关卡游玩模式保持一致（初始点红色、构造出的点与线圆灰色）
@@ -72,6 +72,13 @@
   // 求解器只保留「给定」与「所求判定」，制题器保留完整的 3 + 3
   const solverMode = mode === 'solver';
   const markSetOf = key => geometryElementLists[key] || new Set();
+  // 当前画布上的网格信息（没有网格时为 null）：{m, n, unit, style, ids: Set}。
+  // 声明放在前面：快照（collectStorageSnapshot）在页面初始化时就会被调用
+  let gridMeta = null;
+  /** 网格信息（去掉 ids），供快照 / 记录使用 过程函数 */
+  const gridMetaSnapshot = () => (gridMeta
+    ? {m: gridMeta.m, n: gridMeta.n, unit: gridMeta.unit, style: gridMeta.style}
+    : null);
   /**
    * 多解 过程变量
    * 当前往哪一组写标记、画布上点亮哪一组，分别由 resultActive 与 highlightedResult() 决定
@@ -199,7 +206,8 @@
   window.collectStorageSnapshot = () => {
     const lists = {};
     for (const [key, value] of Object.entries(geometryElementLists)) lists[key] = [...value];
-    return {elements: geometryManager.toStorage(), lists: lists};
+    // 网格信息随快照一起走：撤销 / 重做要能连同网格一起还原（网格当作一整块）
+    return {elements: geometryManager.toStorage(), lists: lists, grid: gridMetaSnapshot()};
   };
   /**
    * 清空所有画布管理器 过程函数
@@ -215,6 +223,10 @@
     managers.filter(Boolean).forEach(manager => {
       if (typeof manager.deleteAll === 'function') manager.deleteAll();
     });
+    // 画布清空了，网格元信息也得跟着清：不然导出 / 记录仍会写 #grid= 那两行，
+    // 而且清空之后紧接着记的历史快照里也带着网格 —— 求解器每撤回一次就以为回到了网格模式
+    // （见 gmtText / loadStorageSnapshot 里同一件事的两道保险）
+    setGridMeta(null);
   };
   /**
    * 丢弃画到一半的工具状态 过程函数
@@ -278,6 +290,12 @@
       const dict = dicts.get(item.getId());
       if (dict?.color) GeometryElement.prototype.modifyColor.call(item, dict.color);
     });
+    // 网格：按快照确认这次还有没有网格（没有就清掉 —— 否则撤销掉网格之后导出仍会带 #grid= 行，
+    // 求解器也会以为还处在网格模式）
+    const gridOfSnapshot = !isList && snapshot?.grid ? snapshot.grid : null;
+    setGridMeta(gridOfSnapshot
+      ? {m: gridOfSnapshot.m, n: gridOfSnapshot.n, unit: gridOfSnapshot.unit, style: gridOfSnapshot.style}
+      : null);
     if (!isList && snapshot?.lists) {
       // 先把所有标记表清空再按快照填：瘦身过的撤销清单会省掉**空的**标记表（见 recordStore 的
       // slimUndolist），只填不清理的话，上一步的标记会留在原地 —— 表现为撤销后「对象已经不在
@@ -338,12 +356,38 @@
     const emptyLists = {};
     Object.keys(full.lists).forEach(key => { emptyLists[key] = []; });
     const steps = [{elements: [], lists: emptyLists}];
-    for (let index = 0; index < full.elements.length; index++) {
-      const prefix = full.elements.slice(0, index + 1);
-      const ids = new Set(prefix.map(item => item.id));
+    // 网格当作一整块：它那几十个对象**不参与逐个记档**，只在「它出现的位置」整块加一次 ——
+    // 既不会被一条条剥掉，撤回顺序也仍是作图顺序（网格最先作、就最后撤掉）
+    const gridIds = gridMeta?.ids || new Set();
+    const gridPart = full.elements.filter(item => gridIds.has(item.id));
+    const batches = [];
+    let gridQueued = false;
+    full.elements.forEach(item => {
+      if (!gridIds.has(item.id)) { batches.push([item]); return; }
+      if (gridQueued) return;
+      gridQueued = true;
+      batches.push(gridPart);
+    });
+    const pushStep = elements => {
+      const ids = new Set(elements.map(item => item.id));
       const lists = {};
       Object.entries(full.lists).forEach(([key, value]) => { lists[key] = value.filter(id => ids.has(id)); });
-      steps.push({elements: prefix, lists: lists});
+      steps.push({elements: elements, lists: lists});
+    };
+    let accumulated = [];
+    batches.forEach(batch => {
+      accumulated = accumulated.concat(batch);
+      pushStep(accumulated);
+    });
+    // 网格信息跟着「整套网格都在」的那些档走：撤到网格那一档时它仍是网格（能识别、能上样式），
+    // 撤过网格那一档才彻底没有网格 —— 只挂在最后一档的话，中间那些含网格的档会被当成「没有网格」，
+    // 画布上却还留着那批格线
+    const gridOfFull = gridMetaSnapshot();
+    if (gridOfFull) {
+      steps.forEach(step => {
+        const ids = new Set(step.elements.map(item => item.id));
+        if ([...gridMeta.ids].every(id => ids.has(id))) step.grid = gridOfFull;
+      });
     }
     // 普通 / 所求 / 探索三套存储都以这些步骤为历史
     [storageManager, typeof storageManagerResult !== 'undefined' ? storageManagerResult : null, typeof storageManagerExplore !== 'undefined' ? storageManagerExplore : null].forEach(manager => {
@@ -375,15 +419,36 @@
     const order = nodes.map((item, at) => at + 1);
     const indexList = Array.isArray(listed) ? order.filter(index => listed.includes(index)) : order.slice();
     const baseline = order.filter(index => !indexList.includes(index));
+    // 网格当作一整块：它那几十个对象要在历史里**一起**出现，否则从记录载入的网格会被一条条撤掉。
+    // 位置留在它原本的地方（网格通常是文件里最先作的那批，于是最后才被撤掉，与作图顺序一致）；
+    // 网格本来就在名单外（关卡自带的图形）时它属于每一格，不必并
+    const gridIds = gridMeta?.ids || new Set();
+    const isGridIndex = index => !!(nodes[index - 1] && gridIds.has(nodes[index - 1].id));
+    const gridIndices = indexList.filter(isGridIndex);
+    const batches = [];
+    let gridQueued = false;
+    indexList.forEach(index => {
+      if (!isGridIndex(index)) { batches.push(index); return; }
+      if (gridQueued) return;
+      gridQueued = true;
+      batches.push(gridIndices);
+    });
     const snapshotOf = indices => {
       const sorted = indices.slice().sort((one, two) => one - two);
       const ids = new Set(sorted.map(index => nodes[index - 1].id));
       const lists = {};
       Object.entries(full.lists).forEach(([key, value]) => { lists[key] = value.filter(id => ids.has(id)); });
-      return {elements: sorted.map(index => nodes[index - 1]), lists: lists};
+      const snapshot = {elements: sorted.map(index => nodes[index - 1]), lists: lists};
+      // 网格当作一整块：只有把整套网格都含进来的那一格才算「有网格」（半套网格没有意义）
+      if (gridMeta && ids.size && [...gridMeta.ids].every(id => ids.has(id))) snapshot.grid = gridMetaSnapshot();
+      return snapshot;
     };
     const steps = [snapshotOf(baseline)];
-    indexList.forEach((index, at) => { steps.push(snapshotOf(baseline.concat(indexList.slice(0, at + 1)))); });
+    let accumulated = baseline.slice();
+    batches.forEach(batch => {
+      accumulated = accumulated.concat(Array.isArray(batch) ? batch : [batch]);
+      steps.push(snapshotOf(accumulated));
+    });
     [storageManager, typeof storageManagerResult !== 'undefined' ? storageManagerResult : null, typeof storageManagerExplore !== 'undefined' ? storageManagerExplore : null].forEach(manager => {
       if (!manager) return;
       manager.clear();
@@ -399,6 +464,13 @@
       geometryManager.loadStorage(elements);
       const savedLists = JSON.parse(sessionStorage.getItem('geometryElementLists') || '{}');
       Object.entries(savedLists).forEach(([key, value]) => { geometryElementLists[key] = new Set(value); });
+      // 网格：制题器里生成过网格时这份会话带着网格元信息（见 index.js 的 dataTransfer）——
+      // 按它登记网格（藏起辅助对象）并把视图适配回网格范围
+      const savedGrid = JSON.parse(sessionStorage.getItem('gridMeta') || 'null');
+      if (savedGrid) {
+        setGridMeta(savedGrid);
+        fitViewToGrid(gridMeta);
+      }
       const record = sessionStorage.getItem('constructRecord');
       // 记录只在「最后一个快照确实就是带进来的这份图形」时才沿用：
       // sessionStorage 里可能残留上一次制题器的记录（别的关卡 / 别的会话），
@@ -436,6 +508,11 @@
       // 它会按求解器的自动配色把对象重新涂成红 / 灰，游玩时已经显示出来的「所求显示」图形
       // 就莫名变灰了；快照会按带过来的颜色还原，之后再补一次标记色（所求金）
       loadStorageSnapshot(data.elements || []);
+      // 网格：从关卡 / 试玩带过来的网格，按同一份元信息登记并把视图适配到网格范围
+      if (data.grid) {
+        setGridMeta(data.grid);
+        fitViewToGrid(gridMeta);
+      }
       refreshElementListColors();
       seedMarkedStyles();
       drawContent();
@@ -614,13 +691,15 @@
     // 其余选定栏（关卡带过来的 result2 / resultShown2 / explore…）统统清空：
     // 求解器里只认「给定」与「所求」两种标记，别的标记性质不能跟着进来
     Object.keys(geometryElementLists).forEach(key => { if (!(key in lists)) lists[key] = []; });
-    sessionStorage.setItem('solverElements', JSON.stringify({elements: elements, lists: lists}));
+    // 网格也带过去：求解器里按它登记网格（藏起辅助对象、上样式）并把视图适配到网格范围
+    sessionStorage.setItem('solverElements', JSON.stringify({elements: elements, lists: lists, grid: gridMetaSnapshot()}));
     // from：求解器的「返回」据此回到本页并还原图形（关卡游玩 / 试玩由 savePlayBackup 存备份）
     const from = typeof savePlayBackup === 'function' ? savePlayBackup() : '';
     // 本关限定了工具（单尺 / 单规）时，把对应的求解器模式一起带过去：
     // 求解器面板的「可用工具」默认就选到同一种（2 尺规 / 1 单尺 / 0 单规）
     const levelTool = typeof window.levelTools === 'string' ? window.levelTools : '';
-    const solverTool = levelTool === 'straightedge' ? '1' : levelTool === 'compass' ? '0' : '';
+    // grid：这一关限定网格直尺 → 求解器默认就选「网格」模式（面板再按网格大小与步数 4 调整）
+    const solverTool = levelTool === 'straightedge' ? '1' : levelTool === 'compass' ? '0' : levelTool === 'grid' ? '3' : '';
     location.href = './board.html?mode=solver&restore=1'
       + (solverTool ? '&solverTool=' + solverTool : '')
       + (from ? '&from=' + encodeURIComponent(from) : '');
@@ -733,6 +812,44 @@
     confirmButton.textContent = t('common.confirm');
     confirmButton.addEventListener('click', () => mask.remove());
     actions.appendChild(confirmButton);
+    mask.addEventListener('click', event => { if (event.target === mask) mask.remove(); });
+    document.body.appendChild(mask);
+    return mask;
+  };
+  /**
+   * 选项弹框 过程函数
+   * 一组「图标 + 文字」的选项竖排（导入 / 导出 gmt 这类）：原来是弹层菜单，
+   * 手机上会占掉大半个屏幕，改成站内弹框
+   * @param {string} title 标题
+   * @param {Object[]} items {label, templateId, actionKey, action}
+   * @returns {Object} 遮罩元素
+   */
+  const optionDialog = (title, items) => {
+    const mask = document.createElement('div');
+    mask.className = 'board-dialog-mask';
+    mask.innerHTML = '<div class="board-dialog board-dialog-options"><strong></strong><div class="board-dialog-list"></div><div class="board-dialog-actions"></div></div>';
+    mask.querySelector('strong').textContent = title;
+    const list = mask.querySelector('.board-dialog-list');
+    items.forEach(item => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      // 与弹层菜单同一套按钮样式（图标 + 文字）
+      button.className = 'popup-item';
+      button.dataset.action = item.actionKey;
+      button.setAttribute('aria-label', item.label);
+      const template = document.getElementById(`svg-${item.templateId}`);
+      if (template) button.innerHTML = template.innerHTML;
+      const text = document.createElement('span');
+      text.textContent = item.label;
+      button.appendChild(text);
+      button.addEventListener('click', () => { mask.remove(); item.action(); });
+      list.appendChild(button);
+    });
+    const cancelButton = document.createElement('button');
+    cancelButton.type = 'button';
+    cancelButton.textContent = t('common.cancel');
+    cancelButton.addEventListener('click', () => mask.remove());
+    mask.querySelector('.board-dialog-actions').appendChild(cancelButton);
     mask.addEventListener('click', event => { if (event.target === mask) mask.remove(); });
     document.body.appendChild(mask);
     return mask;
@@ -1047,8 +1164,297 @@
     }
     return `# 无法导出：${id}（${item.getType()}）`;
   };
-  const gmtText = () => {
+  // 网格作图（模式 3「网格直尺」）：整块网格是一套用 gmt 指令**作**出来的对象 ——
+  // 老版本读到也只是当普通作图，照样能把网格画出来。id 一律以 g 开头，
+  // 其中网格线段是 gSX* / gSY*，其余（圆规滚出来的格点、过格点的垂线等）是作图过程的辅助对象。
+  const GRID_DEFAULT_UNIT = 50;
+  const GRID_MIN_SIZE = 2;
+  const GRID_MAX_SIZE = 20;
+  const GRID_SEGMENT_PATTERN = /^gS[XY]\d+$/;
+  /** 是不是模板里的辅助对象（g 开头但不是网格线段） */
+  const isGridHelperId = id => typeof id === 'string' && id.startsWith('g') && !GRID_SEGMENT_PATTERN.test(id);
+  /** 是不是网格线段（网格当作一整块时真正参与作图的那部分） */
+  const isGridSegmentId = id => typeof id === 'string' && GRID_SEGMENT_PATTERN.test(id);
+  /**
+   * 这个 id 是不是网格的一部分 过程函数
+   * 网格在界面上当作**一个整体**：选择、样式、删除 / 刷子 / 线型转换的禁用都看它
+   */
+  const isGridId = id => !!(id && ((gridMeta?.ids && gridMeta.ids.has(id))
+    || (geometryElementLists?.grid && geometryElementLists.grid.has(id))));
+  /**
+   * 解析 #grid=m,n[,unit] 过程函数
+   * @param {string} text
+   * @returns {{m: number, n: number, unit: number}|null}
+   */
+  const parseGridSpec = text => {
+    const [mText, nText, unitText] = String(text || '').split(',').map(item => item.trim());
+    const m = Math.trunc(Number(mText));
+    const n = Math.trunc(Number(nText));
+    if (!Number.isFinite(m) || !Number.isFinite(n) || m < 1 || n < 1 || m > GRID_MAX_SIZE || n > GRID_MAX_SIZE) return null;
+    const unit = Number(unitText);
+    return {m: m, n: n, unit: Number.isFinite(unit) && unit > 0 ? unit : GRID_DEFAULT_UNIT};
+  };
+
+  /**
+   * 网格模板 过程函数
+   * 用 gmt 的写法把 m×n 网格「作」出来：先作横轴、竖轴与首条竖线（一个单位），
+   * 再用圆规在两条轴上滚动出等距格点（圆心在上一格点、过再上一格点），过格点作垂线，
+   * 最后拿两端交点作线段 —— 共 m+n+2 条网格线段（gSY* 水平、gSX* 竖直）
+   * @param {number} m 列数（x 方向格数）
+   * @param {number} n 行数（y 方向格数）
+   * @param {number} [unit=50] 单位长度
+   * @returns {string}
+   */
+  const gridTemplateText = (m, n, unit = GRID_DEFAULT_UNIT) => {
+    const size = Number(unit) > 0 ? Number(unit) : GRID_DEFAULT_UNIT;
+    const rows = [
+      `#grid=${m},${n},${gmtNumber(size)}`,
+      // 网格线段的样式：黑色、细、不显示标签、虚线（符号与记录的样式表同一套）
+      // 默认：黑色、最细一档（0.5 细）、不显示标签、虚线 —— 格线是背景，别抢图形的视线
+      '#gridstyle=g#000000,g~0.5,g^,g&',
+      'gO0=[0,0]',
+      `gX1=[${gmtNumber(size)},0]`,
+      'gy0=Line[gO0,gX1]',
+      'gx0=Perp[gO0,gy0]',
+      'gx1=Perp[gX1,gy0]',
+    ];
+    // 横向格点（y = -k·单位）：第 1 个用单位圆取，之后每格用「上一格点 + 再上一格点」作圆滚动出来。
+    // 交点取第 0 个 —— 画布上 +y 朝下，所以格点落在 -y 一侧时，屏幕上是「原点在左下、网格往右上铺」
+    // （右上是第一象限的习惯）；换到求解内核时由 gridToKernel 把 y 取反，内核那边仍是 [0,m]×[0,n]
+    rows.push('gcy1=Circle[gO0,gX1]');
+    rows.push('gY1=Intersect[gcy1,gx0,0]');
+    rows.push('gy1=Perp[gY1,gx0]');
+    for (let k = 2; k <= n; k++) {
+      rows.push(`gcy${k}=Circle[gY${k - 1},${k === 2 ? 'gO0' : `gY${k - 2}`}]`);
+      rows.push(`gY${k}=Intersect[gcy${k},gx0,0]`);
+      rows.push(`gy${k}=Perp[gY${k},gx0]`);
+    }
+    // 竖向格点（x = k·单位）：同理，圆与横轴的交点取第 1 个
+    for (let k = 2; k <= m; k++) {
+      rows.push(`gcx${k}=Circle[gX${k - 1},${k === 2 ? 'gO0' : `gX${k - 2}`}]`);
+      rows.push(`gX${k}=Intersect[gcx${k},gy0,1]`);
+      rows.push(`gx${k}=Perp[gX${k},gy0]`);
+    }
+    // 每条网格线的另一端：水平线取与最右竖线的交点，竖线取与最上水平线的交点
+    for (let k = 1; k <= n; k++) rows.push(`gY${k}e=Intersect[gx${m},gy${k},0]`);
+    for (let k = 1; k <= m; k++) rows.push(`gX${k}e=Intersect[gy${n},gx${k},0]`);
+    rows.push(`gOe=Intersect[gx${m},gy${n},0]`);
+    // 网格线段：横 n+1 条、竖 m+1 条
+    rows.push(`gSY0=Segment[gO0,gX${m}]`);
+    for (let k = 1; k < n; k++) rows.push(`gSY${k}=Segment[gY${k},gY${k}e]`);
+    rows.push(`gSY${n}=Segment[gY${n},gOe]`);
+    rows.push(`gSX0=Segment[gO0,gY${n}]`);
+    for (let k = 1; k < m; k++) rows.push(`gSX${k}=Segment[gX${k},gX${k}e]`);
+    rows.push(`gSX${m}=Segment[gX${m},gOe]`);
+    return rows.join('\n');
+  };
+
+  /**
+   * 把网格样式表应用到网格对象上 过程函数
+   * @param {Object} styles {id: {name?, color?, width?, showName?, visible?, dashed?}}
+   * @param {Set<string>} ids 网格对象的 id
+   */
+  const applyGridStyles = (styles, ids) => {
+    Object.keys(styles || {}).forEach(id => {
+      if (ids && !ids.has(id)) return;
+      const item = geometryManager.get(id);
+      if (!item) return;
+      const entry = styles[id] || {};
+      if (entry.color && typeof item.modifyColor === 'function') item.modifyColor(entry.color);
+      if (typeof entry.width === 'number' && typeof item.modifyWidth === 'function') item.modifyWidth(entry.width);
+      if (entry.showName !== undefined && typeof item.modifyShowName === 'function') item.modifyShowName(!!entry.showName);
+      if (entry.dashed !== undefined && typeof item.modifyDashed === 'function') item.modifyDashed(!!entry.dashed);
+      if (entry.visible !== undefined && typeof item.modifyVisible === 'function') item.modifyVisible(!!entry.visible);
+      if (entry.name && typeof item.modifyName === 'function') item.modifyName(entry.name);
+    });
+  };
+
+  /**
+   * 记下当前画布上的网格信息 过程函数
+   * 有网格时：把网格对象登记进 geometryElementLists.grid，辅助对象隐藏（只留网格线段）
+   * @param {{m: number, n: number, unit: number, style: string}|null} grid
+   */
+  const setGridMeta = grid => {
+    if (!grid) {
+      gridMeta = null;
+      if (geometryElementLists) {
+        geometryElementLists.grid = new Set();
+        // 网格没了：格线也不该继续留在标记里（撤销掉网格后「给定」栏还列着一串 gSY0… 说不通）
+        Object.values(geometryElementLists).forEach(set => {
+          if (!(set instanceof Set)) return;
+          [...set].forEach(id => { if (isGridSegmentId(id)) set.delete(id); });
+        });
+      }
+      // 网格没了（撤销掉 / 换成没有网格的画布）：求解面板要切回尺规（见 syncSolverGridOption）
+      window.syncSolverGridOption?.();
+      return;
+    }
+    const ids = new Set(geometryManager.getAllByOrder()
+      .map(item => item.getId())
+      .filter(id => id.startsWith('g')));
+    gridMeta = {m: grid.m, n: grid.n, unit: grid.unit, style: grid.style || '', ids: ids};
+    if (geometryElementLists) geometryElementLists.grid = new Set(ids);
+    // 辅助对象（格点、垂线、圆）只参与作图，画布上不显示；样式按 #gridstyle= 来
+    ids.forEach(id => {
+      const item = geometryManager.get(id);
+      if (!item || !isGridHelperId(id)) return;
+      if (typeof item.modifyVisible === 'function') item.modifyVisible(false);
+    });
+    if (grid.style && typeof recordStore !== 'undefined' && typeof recordStore.stylesByPrefix === 'function') {
+      applyGridStyles(recordStore.stylesByPrefix(grid.style, [...ids]), ids);
+    }
+    // 求解参数面板跟着走（有网格 → 切网格模式 + 步数 4；网格没了 → 切回尺规）
+    window.syncSolverGridOption?.();
+  };
+
+  /**
+   * 把视图适配到网格范围 过程函数
+   * 网格铺在逻辑坐标 [0, m·单位] × [-n·单位, 0] —— 画布 +y 朝下，
+   * 所以屏幕上是「原点在左下角、网格往右上铺」
+   */
+  const fitViewToGrid = grid => {
+    const width = grid.m * grid.unit;
+    const height = grid.n * grid.unit;
+    const viewWidth = (typeof canvas !== 'undefined' && canvas ? canvas.clientWidth : 0) || 1280;
+    const viewHeight = (typeof canvas !== 'undefined' && canvas ? canvas.clientHeight : 0) || 720;
+    // 顶部菜单栏与各种浮层（工具面板 / 记录面板 / 元素一览…）浮在画布上，会盖住网格：
+    // 适配时按「没被盖住的那块空地」算大小与圆心
+    const insets = gridFitInsets();
+    const usableWidth = Math.max(120, viewWidth - insets.left - insets.right);
+    const usableHeight = Math.max(120, viewHeight - insets.top - insets.bottom);
+    // 留点边距、最多放大 2 倍（与关卡载入时的适配口径一致）
+    transform.scale = Math.min(usableWidth / (width * 1.3), usableHeight / (height * 1.3), 2);
+    transform.x = insets.left + usableWidth / 2 - (width / 2) * transform.scale;
+    transform.y = insets.top + usableHeight / 2 + (height / 2) * transform.scale;
+  };
+
+  /**
+   * 网格适配要在画布的哪块空地里居中 过程函数
+   * 顶部菜单栏与各种浮层（工具面板、记录面板、元素一览…）都浮在画布上，不扣掉它们，
+   * 网格会有一部分压在下面。这里按各浮层的**实际矩形**量出四边各被盖住多少：
+   * 浮层收起来 / 与画布不相交时算 0；压在哪一边看它整块更贴画布的哪条边
+   * （记录面板贴左边、工具栏贴顶边，各自只扣对应的一侧）。
+   * 侧边那串圆形按钮（一条纵向长条，横跨整屏高度）不参与，否则会被算成整屏都挡住了
+   * @returns {{top: number, bottom: number, left: number, right: number}} 四边被盖住的宽度（CSS 像素）
+   */
+  const gridFitInsets = () => {
+    const insets = {top: 0, bottom: 0, left: 0, right: 0};
+    const canvasElement = document.getElementById('canvas_id1');
+    if (!canvasElement) return insets;
+    const canvasRect = canvasElement.getBoundingClientRect();
+    if (!canvasRect.width || !canvasRect.height) return insets;
+    // 顶部那条栏 + 各个浮层（.panel：工具面板 / 记录 / 元素一览 / 构造…）
+    const overlays = [document.getElementById('container_more')].concat([...document.querySelectorAll('.panel')]);
+    overlays.forEach(element => {
+      if (!element) return;
+      const rect = element.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      // 与画布相交的那块矩形（不相交就与网格无关）
+      const overlapWidth = Math.min(canvasRect.right, rect.right) - Math.max(canvasRect.left, rect.left);
+      const overlapHeight = Math.min(canvasRect.bottom, rect.bottom) - Math.max(canvasRect.top, rect.top);
+      if (overlapWidth <= 0 || overlapHeight <= 0) return;
+      const centerX = (rect.left + rect.right) / 2;
+      const centerY = (rect.top + rect.bottom) / 2;
+      const distances = {
+        top: Math.abs(centerY - canvasRect.top),
+        bottom: Math.abs(centerY - canvasRect.bottom),
+        left: Math.abs(centerX - canvasRect.left),
+        right: Math.abs(centerX - canvasRect.right),
+      };
+      const side = Object.keys(distances).reduce((best, key) => (distances[key] < distances[best] ? key : best), 'top');
+      if (side === 'top') insets.top = Math.max(insets.top, Math.min(canvasRect.bottom, rect.bottom) - canvasRect.top);
+      else if (side === 'bottom') insets.bottom = Math.max(insets.bottom, canvasRect.bottom - Math.max(canvasRect.top, rect.top));
+      else if (side === 'left') insets.left = Math.max(insets.left, Math.min(canvasRect.right, rect.right) - canvasRect.left);
+      else insets.right = Math.max(insets.right, canvasRect.right - Math.max(canvasRect.left, rect.left));
+    });
+    insets.top = Math.max(0, Math.min(insets.top, canvasRect.height));
+    insets.bottom = Math.max(0, Math.min(insets.bottom, canvasRect.height));
+    insets.left = Math.max(0, Math.min(insets.left, canvasRect.width));
+    insets.right = Math.max(0, Math.min(insets.right, canvasRect.width));
+    return insets;
+  };
+  // 关卡游玩页 / 试玩页的「初始图形适配」也用它（那两页是另一套脚本，见 playPage.js 的 fitInitialView）
+  window.gridFitInsets = gridFitInsets;
+
+  /**
+   * 生成 / 重新生成网格 过程函数
+   * 画布上已有网格就先整块删掉（所以再点一次就是「改大小」），再按模板把新网格作上：
+   * 登记成 grid 集合、辅助对象隐藏、网格线段按 #gridstyle= 上样式、视图适配到网格范围。
+   * 整个过程只发一次 storage 事件 —— 撤销一步就把整块网格撤掉
+   * @param {number} m 列数
+   * @param {number} n 行数
+   * @param {number} [unit=50] 单位长度
+   * @returns {boolean}
+   */
+  const generateGrid = (m, n, unit = GRID_DEFAULT_UNIT) => {
+    const columns = Math.max(GRID_MIN_SIZE, Math.min(GRID_MAX_SIZE, Math.trunc(Number(m) || 0)));
+    const rows = Math.max(GRID_MIN_SIZE, Math.min(GRID_MAX_SIZE, Math.trunc(Number(n) || 0)));
+    const size = Number(unit) > 0 ? Number(unit) : GRID_DEFAULT_UNIT;
+    const { elements, grid } = parseGmt(gridTemplateText(columns, rows, size));
+    if (!elements.length || !grid) return false;
+    // 旧网格整块撤掉：删掉其中一条会连带删掉依赖它的同批对象。
+    // 网格平时不可删（deleteObject 里有守卫），这里放行一下
+    window.gridAllowDelete = true;
+    [...(gridMeta?.ids || [])].forEach(id => {
+      if (geometryManager.get(id)) geometryManager.deleteObject(id);
+    });
+    window.gridAllowDelete = false;
+    // 旧网格连同依赖它的图形一起删了：它们身上的标记也一并清掉（见 pruneMarks）
+    pruneMarks();
+    setGridMeta(null);
+    // 模板对象先一律可见，辅助对象随后由 setGridMeta 藏起来
+    elements.forEach(item => { item.visible = true; });
+    geometryManager.appendStorage(elements);
+    setGridMeta(grid);
+    fitViewToGrid(grid);
+    // 制题器 / 求解器：生成网格就把格线记成「给定」——
+    // 制题器里导出后落在 initial= 那一行（关卡 / 求解器读到的题目里网格就是题面的一部分），
+    // 求解器的「给定」栏里也能看见「格线」一行（求解请求本身会跳过网格对象，不送进内核，
+    // 见 buildSolverRequest）。改大小时先把旧格线的标记撤掉
+    if ((mode === 'maker' || mode === 'solver') && geometryElementLists) {
+      if (!geometryElementLists.initial) geometryElementLists.initial = new Set();
+      // 登记完网格的 id 在 gridMeta.ids 上（setGridMeta 里算的，不是 parseGmt 给的那个对象）
+      const ids = gridMeta?.ids || new Set();
+      [...geometryElementLists.initial].forEach(id => {
+        if (isGridSegmentId(id) && !ids.has(id)) geometryElementLists.initial.delete(id);
+      });
+      ids.forEach(id => { if (isGridSegmentId(id)) geometryElementLists.initial.add(id); });
+    }
+    if (typeof refreshElementListColors === 'function') refreshElementListColors();
+    if (typeof loadGeometryElements === 'function') loadGeometryElements();
+    if (typeof refreshMarks === 'function') refreshMarks();
+    if (typeof drawContent === 'function') drawContent();
+    // 记一步历史：整块网格是一步，撤销就把网格撤掉
+    if (typeof notifyStorageChange === 'function') notifyStorageChange('grid');
+    return true;
+  };
+
+  /**
+   * 画布上还有网格吗 过程函数（顺手把「只剩元信息」的情况清掉）
+   * 网格对象被撤销 / 清空画布清掉之后，元信息可能还挂着 —— 那会让导出、记录与撤销历史
+   * 继续带 #grid= 两行，求解器也会以为还处在网格模式。这里对一次表，不一致就清干净
+   * @returns {boolean}
+   */
+  const gridOnCanvas = () => {
+    if (!gridMeta) return false;
+    const ids = [...(gridMeta.ids || [])];
+    if (ids.some(id => geometryManager.get(id))) return true;
+    setGridMeta(null);
+    return false;
+  };
+
+  const gmtText = (options = {}) => {
     const content = [];
+    // 网格关卡的模板头两行（老版本读到当注释跳过，不影响）
+    // 只在格线真的还在画布上时才写：万一某条路径把网格清掉了、元信息却还挂着，
+    // 这里顺手把它清掉，别再往导出 / 记录 / 撤销历史里写 #grid= 两行
+    if (gridOnCanvas()) {
+      content.push(`#grid=${gridMeta.m},${gridMeta.n},${gmtNumber(gridMeta.unit)}`);
+      content.push(`#gridstyle=${gridMeta.style || 'g#000000,g~1,g^,g&'}`);
+    }
+    // 存记录时「隐藏」只写进 styles（`a@`），gmt 的 hidden= 行留空（见 recordPanel 的 canvasGmt）：
+    // 关卡文件那边照旧要写，它是关卡唯一能声明隐藏的地方
+    const omitHidden = !!options.omitHidden;
     geometryManager.getAllByOrder().forEach(item => { content.push(gmtLineOf(item)); });
     // named：标成「带标签给定」的对象（标签名与对象 ID 不同时写成「ID.标签名」）。
     // 只看标记表 —— 光是显示标签、或改了个名字而没标成带标签给定的不算：
@@ -1065,7 +1471,7 @@
     content.push('', `initial=${listOf('initial').join(',')}`);
     content.push(`named=${named.join(',')}`);
     content.push(`movepoints=${listOf('movepoints').join(',')}`);
-    content.push(`hidden=${listOf('hidden').join(',')}`);
+    content.push(`hidden=${omitHidden ? '' : listOf('hidden').join(',')}`);
     // 所求：每个解写一行（一行一组「判定:显示」，没写显示对象时只判定），
     // 空的解也留一行空行，保证第几行就是第几个解
     for (let index = 1; index <= resultGroupCount(); index++) {
@@ -1104,10 +1510,17 @@
       centerpoint: 'CenterPoint', fixangle: 'FixAngle', tangent: 'Tangent', polarline: 'PolarLine',
       copyangle: 'CopyAngle', edgepoint: 'EdgePoint', polarpoint: 'PolarPoint',
     };
+    // 网格关卡：模板头两行注释记着网格大小与网格线段样式
+    let grid = null;
+    let gridStyle = '';
     for (const raw of text.split(/\r?\n/)) {
       const line = raw.trim();
+      if (!line) continue;
+      // 「#grid=」/「#gridstyle=」是网格关卡的元信息（老版本读到只会当注释跳过）
+      if (line.startsWith('#grid=')) { grid = parseGridSpec(line.slice('#grid='.length)); continue; }
+      if (line.startsWith('#gridstyle=')) { gridStyle = line.slice('#gridstyle='.length).trim(); continue; }
       // 「#」在行首表示整行注释
-      if (!line || line.startsWith('#')) continue;
+      if (line.startsWith('#')) continue;
       // 行尾注释同样去掉；rules 行里的 “#” 是「两者必须相交」，不能截断
       const content = line.startsWith('rules') ? line : line.split('#')[0].trim();
       if (!content) continue;
@@ -1367,16 +1780,26 @@
       .map(group => ({judged: keep(group.judged), shown: keep(group.shown)}))
       .filter(group => group.judged.length || group.shown.length);
 
-    return {elements: elements, lists: result, resultGroups: groups};
+    return {
+      elements: elements,
+      lists: result,
+      resultGroups: groups,
+      // 网格元信息（没有 #grid= 行就是 null）
+      grid: grid ? Object.assign({}, grid, {style: gridStyle}) : null,
+    };
   };
   const loadGmt = text => {
-    const { elements, lists } = parseGmt(text);
+    const { elements, lists, grid } = parseGmt(text);
     if (!elements.length) return false;
     // 画板里所有对象都要可见：关卡中「预绘制出的解」在制作时也要能看到
     // 无穷远点（EdgePoint）除外：它是假想的点、坐标在很远处，画出来会让画布糊掉一大片
     elements.forEach(item => { item.visible = item.base?.type !== 'edgePoint'; });
     geometryManager.loadStorage(elements);
     Object.keys(lists).forEach(key => { geometryElementLists[key] = new Set(lists[key]); });
+    // 网格关卡：登记网格对象、藏起辅助对象、按 #gridstyle= 上样式（没有网格就清掉）
+    setGridMeta(grid);
+    // 导入 gmt / 载入记录都走这里：有网格就把视图适配到网格范围，别以别的比例出现
+    if (gridMeta) fitViewToGrid(gridMeta);
     // 导入的标记要立刻上色（含多解的点亮规则），并记下样式色，取消标记时才恢复得回去
     refreshElementListColors();
     seedMarkedStyles();
@@ -1402,9 +1825,76 @@
   };
   // 历史记录面板（recordPanel.js，画板与关卡游玩共用）要用到的 gmt 桥：
   // 上面这些实现都在本文件的作用域里，页面脚本只能通过这里调用
+  /**
+   * 网格当作一整块：判断「这个 id 属不属于网格」 过程函数（全局）
+   * 几何对象（删除守卫）、各工具（橡皮 / 线型 / 刷子）、元素一览、样式面板都调它
+   */
+  window.isGridObjectId = id => isGridId(id);
+  // 网格线段（真正参与作图的那部分）
+  window.isGridSegmentObjectId = id => isGridSegmentId(id);
+  /**
+   * 这个点是不是落在网格之外 过程函数（全局）
+   * 网格模式下允许的点域就是网格那一块闭矩形 [0, m·单位] × [-n·单位, 0]（画布 +y 朝下），
+   * 与求解内核的 PointAllowed 同一口径：网格外取的点不在题面里，工具里直接拒绝
+   * @param {number} x
+   * @param {number} y
+   * @returns {boolean} 没有网格时恒为 false
+   */
+  window.isOutsideGrid = (x, y) => {
+    if (!gridMeta || !(gridMeta.unit > 0)) return false;
+    const width = gridMeta.m * gridMeta.unit;
+    const height = gridMeta.n * gridMeta.unit;
+    const eps = 1e-6;
+    return x < -eps || x > width + eps || y > eps || y < -height - eps;
+  };
   window.boardGmt = {
-    text: () => gmtText(),
+    /**
+     * 画布上的作图文本 过程函数
+     * @param {{omitHidden?: boolean}} [options] omitHidden：hidden= 行留空（存记录用，隐藏改记在 styles 里）
+     */
+    text: options => gmtText(options),
     load: text => loadGmt(text),
+    // 网格：模板文本、当前画布上的网格信息（{m, n, unit, style, ids} 或 null）、生成 / 改大小
+    gridTemplate: (m, n, unit) => gridTemplateText(m, n, unit),
+    grid: () => gridMeta,
+    generateGrid: (m, n, unit) => generateGrid(m, n, unit),
+    // 网格当作一整块：某个 id 属不属于网格（选择 / 样式 / 禁用操作都看它）
+    isGridId: id => isGridId(id),
+    isGridSegmentId: id => isGridSegmentId(id),
+    /**
+     * 改过格线样式之后把 #gridstyle= 追平 过程函数
+     * 网格样式只认 gmt 里那一行（记录里不写 styles），所以调完样式要把那一行重写一遍
+     * @param {string} [newColor] 刚选的颜色（改色时由调用方传进来；不传就按对象自己的颜色）
+     */
+    syncGridStyle: newColor => {
+      if (!gridMeta) return;
+      const segment = [...gridMeta.ids]
+        .map(id => geometryManager.get(id))
+        .find(item => item && isGridSegmentId(item.getId()));
+      if (!segment) return;
+      // 颜色与标签不能回头读对象：格线在制题器里被标成「给定」，getColor() 给的是标记显示色（黑 #191919）、
+      // getShowName() 由标记决定，照抄就把对象自己的样式改掉了。所以颜色由调用方给（改色的那条路径知道
+      // 用户选了哪个色，见 stylePanel），没给就越过标记读原来的那一行；线径与虚实不受标记影响，直接读
+      const marked = allMarkIds().has(segment.getId());
+      const existing = String(gridMeta.style || '');
+      const existingColor = (existing.match(/g#([0-9a-fA-F]{3,8})/) || [])[1] || '000000';
+      const picked = typeof newColor === 'string' && newColor ? newColor.replace(/^#/, '') : '';
+      const color = picked || (marked ? existingColor : String(segment.getColor() || '#000000').replace(/^#/, ''));
+      const showName = marked ? /g\$/.test(existing) : !!segment.getShowName();
+      const width = segment.getWidth() || 0.5;
+      const dashed = segment.getDashed();
+      const parts = [
+        `g#${color}`,
+        `g~${width}`,
+        showName ? 'g$' : 'g^',
+      ];
+      if (dashed) parts.push('g&');
+      gridMeta.style = parts.join(',');
+    },
+    // 关卡页 / 试玩页载入 gmt 后按 #grid= 登记网格（藏辅助对象、按 #gridstyle 上样式）
+    setGridFromGmt: grid => setGridMeta(grid),
+    /** 更省事的全局别名：别的脚本判断「这个 id 是不是网格」用它（见 geometry.js 的删除守卫） */
+    isGridObjectId: id => isGridId(id),
     /**
      * 这个对象**自己**的样式（不是标记期间的显示色） 过程函数
      * 给定 / 所求这些被标记的对象画布上是黑 / 金，但记录里要存的是它原本的样式色 ——
@@ -1439,6 +1929,50 @@
     },
   };
   /**
+   * 请求的「图幅」量级 过程函数（用来定内核的判定容差：eps = 1e-11 × 这个数）
+   * 只能按**长度**量取：点坐标、直线到原点的距离、圆的半径、射线 / 线段的端点。
+   * 不能直接把请求里所有数字取最大 —— 里面的直线系数是未归一化的
+   * （c = x1·y2 − y1·x2，量级 ~L²；画布 px 下一条线就能到几万），圆的 c 是半径平方（~L²），
+   * 那样算出来的 eps 会松上好几个数量级：内核判「目标点达成」用的是绝对容差，
+   * 于是会收下一堆「只差 1e-5 px」的伪解（网格模式下单位是格子，更明显）。
+   * @param {Object} request 请求（此时坐标已是内核坐标系）
+   * @returns {number} 图幅长度量级（至少 1）
+   */
+  const solverLengthScale = request => {
+    let extent = 1;
+    const stretch = value => {
+      if (Number.isFinite(value)) extent = Math.max(extent, Math.abs(value));
+    };
+    [request.points, request.goalPoints].forEach(list => (list || []).forEach(stretch));
+    [[request.rays, 4], [request.segments, 4]].forEach(([list, stride]) => {
+      const values = list || [];
+      for (let i = 0; i + 3 < values.length; i += stride) {
+        stretch(values[i]);
+        stretch(values[i + 1]);
+        stretch(values[i + 2]);
+        stretch(values[i + 3]);
+      }
+    });
+    [[request.lines, 3], [request.goalLines, 3]].forEach(([list, stride]) => {
+      const values = list || [];
+      for (let i = 0; i + 2 < values.length; i += stride) {
+        const norm = Math.hypot(values[i], values[i + 1]);
+        // 直线到原点的有向距离：|c| / √(a²+b²)，系数未归一化也不影响它
+        if (norm > 0) stretch(values[i + 2] / norm);
+      }
+    });
+    [[request.circles, 3], [request.goalCircles, 3]].forEach(([list, stride]) => {
+      const values = list || [];
+      for (let i = 0; i + 2 < values.length; i += stride) {
+        stretch(values[i]);
+        stretch(values[i + 1]);
+        stretch(Math.sqrt(Math.abs(values[i + 2]))); // 半径（c 是半径平方）
+      }
+    });
+    return extent;
+  };
+
+  /**
    * 求解器：把画布图形整理成搜索请求 过程函数
    * 已知条件 = 画布上除「所求判定」以外的对象（目标对象不能同时算作已知，否则一搜就「0 步找到」）；
    * 目标 = 标为「所求判定」的直线 / 圆 / 点，三类可以同时存在
@@ -1465,6 +1999,10 @@
       if (item.getValid && !item.getValid()) return;
       if (item.getVisible && !item.getVisible()) return;
       const id = item.getId();
+      // 网格当作一整块：网格线段由内核按 m / n 自己铺（请求里的 gridM / gridN），
+      // 不必再当给定送进去 —— 否则同一批线既算初始对象又算免费网格线，
+      // 还会把「初始元素下标 → 画布对象」的映射整体挤偏
+      if (typeof window.isGridObjectId === 'function' && window.isGridObjectId(id)) return;
       const isGoal = goalIds.has(id);
       if (!isGoal && useGivenMarks && !givenIds.has(id)) return;
       const type = item.getType();
@@ -1519,11 +2057,59 @@
     // 容差按图幅量级放大：圆的比较落在半径平方上（量级 ~r²），而搜索器默认的绝对 1e-11
     // 在这个量级上比 1 ulp 还小，等于要求位级完全相同 —— 大坐标的题会出现「明明作出来了却匹配不上」。
     // 放大后仍远小于状态去重 / 网格判定用的阈值（0.5），不会把不同状态并到一起
-    let extent = 1;
-    [request.points, request.lines, request.rays, request.segments, request.circles,
-      request.goalPoints, request.goalLines, request.goalCircles]
-      .forEach(list => (list || []).forEach(value => { extent = Math.max(extent, Math.abs(value)); }));
-    request.eps = 1e-11 * extent;
+    // 网格模式：内核的网格直尺以「格点＝整数坐标、点域 [0,m]×[0,n]」为前提，
+    // 而画布上的网格是「单位长度 u、+y 朝下」，所以请求里的坐标与方程要换算到内核坐标系：
+    //   X = x / u，Y = -y / u（格点正好落在整数上，且网格铺在 [0,m]×[0,n]）
+    // 解法回来时再按同一套算式换回画布坐标（见 kernelSolutionToCanvas）
+    const grid = typeof window.boardGmt?.grid === 'function' ? window.boardGmt.grid() : null;
+    if (grid && grid.unit > 0) {
+      const unit = grid.unit;
+      const toKernel = (x, y) => [x / unit, -y / unit];
+      const scalePairs = list => {
+        for (let i = 0; i + 1 < list.length; i += 2) {
+          const [X, Y] = toKernel(list[i], list[i + 1]);
+          list[i] = X;
+          list[i + 1] = Y;
+        }
+      };
+      const scaleQuads = list => {
+        for (let i = 0; i + 3 < list.length; i += 4) {
+          const [x1, y1] = toKernel(list[i], list[i + 1]);
+          const [x2, y2] = toKernel(list[i + 2], list[i + 3]);
+          list[i] = x1;
+          list[i + 1] = y1;
+          list[i + 2] = x2;
+          list[i + 3] = y2;
+        }
+      };
+      // 直线 a·x + b·y = c 代进 x = uX、y = -uY：a·u·X - b·u·Y = c ⇒ [a·u, -b·u, c]
+      const scaleLines = list => {
+        for (let i = 0; i + 2 < list.length; i += 3) {
+          list[i] *= unit;
+          list[i + 1] *= -unit;
+        }
+      };
+      // 圆 [cx, cy, r²] ⇒ [cx/u, -cy/u, r²/u²]
+      const scaleCircles = list => {
+        for (let i = 0; i + 2 < list.length; i += 3) {
+          list[i] /= unit;
+          list[i + 1] /= -unit;
+          list[i + 2] /= unit * unit;
+        }
+      };
+      scalePairs(request.points);
+      scalePairs(request.goalPoints);
+      scaleQuads(request.rays);
+      scaleQuads(request.segments);
+      scaleLines(request.lines);
+      scaleLines(request.goalLines);
+      scaleCircles(request.circles);
+      scaleCircles(request.goalCircles);
+      request.gridM = grid.m;
+      request.gridN = grid.n;
+      request.gridUnit = unit;
+    }
+    request.eps = 1e-11 * solverLengthScale(request);
     return request;
   };
 
@@ -1538,6 +2124,65 @@
   const solverOverlayLine = element => {
     if (Math.abs(element.b) > 1e-12) return {x1: 0, y1: element.c / element.b, x2: 1, y2: (element.c - element.a) / element.b};
     return {x1: element.c / element.a, y1: 0, x2: element.c / element.a, y2: 1};
+  };
+
+  /**
+   * 网格线段按「内核装图的顺序」排 过程函数
+   * 网格模式下内核会在「给定点之后、给定线圆之前」自己铺网格线：先 m+1 条竖线（x=0…m）、
+   * 再 n+1 条横线（y=0…n）（见 bs-core.js 的 addAutomaticGridLines）。
+   * 构造计划里的元素下标就是这个顺序，映射回画布对象时要按同一顺序排在最前面，
+   * 否则后面每一个下标都会错位（把解法里凭空作出来的线画成给定圆之类）
+   * @returns {string[]} 网格线段的 id（按内核顺序）
+   */
+  const gridSegmentIdsInKernelOrder = () => {
+    if (!gridMeta) return [];
+    const vertical = [];
+    const horizontal = [];
+    gridMeta.ids.forEach(id => {
+      const match = /^gS([XY])(\d+)$/.exec(id);
+      if (!match) return;
+      (match[1] === 'X' ? vertical : horizontal).push({index: Number(match[2]), id: id});
+    });
+    const byIndex = (one, two) => one.index - two.index;
+    return vertical.sort(byIndex).concat(horizontal.sort(byIndex))
+      .map(item => item.id)
+      .filter(id => !!geometryManager.get(id));
+  };
+
+  /**
+   * 把内核返回的解法换算回画布坐标 过程函数
+   * 网格模式的请求是换算过去的（X = x/u、Y = -y/u，见 buildSolverRequest），
+   * 解法里的点坐标与元素方程要按同一套算式换回来，否则覆盖层会画到别处（比例、朝向都不对）：
+   *   点 [X, Y] → [x, y] = [X·u, -Y·u]
+   *   直线 a·X + b·Y = c → a·x - b·y = c·u（即 [a, -b, c·u]）
+   *   圆 [X, Y, r²] → [X·u, -Y·u, r²·u²]
+   * @param {Object} solution 内核返回的一个解
+   * @param {number} unit 网格单位长度
+   * @returns {Object} 同一个对象（就地改写）
+   */
+  const kernelSolutionToCanvas = (solution, unit) => {
+    if (!solution || !(unit > 0)) return solution;
+    (solution.points || []).forEach(point => {
+      point.x *= unit;
+      point.y *= -unit;
+    });
+    (solution.elements || []).forEach(element => {
+      if (element.type === 0) {
+        element.a *= unit;
+        element.b *= -unit;
+        element.c *= unit * unit;
+      } else {
+        element.b *= -1;
+        element.c *= unit;
+      }
+    });
+    (solution.bounds || []).forEach(bound => {
+      bound.x1 *= unit;
+      bound.y1 *= -unit;
+      bound.x2 *= unit;
+      bound.y2 *= -unit;
+    });
+    return solution;
   };
 
   // 最近一次求解发出的请求：构造计划靠它把已知点 / 已知元素映射回画布对象
@@ -1558,8 +2203,15 @@
    */
   const solverPlanMatchesCanvas = (solution, result) => {
     if (!solverLastRequest) return false;
-    if (solverLastRequest.pointIds.length < result.initialPointCount) return false;
-    for (let i = 0; i < result.initialPointCount; i++) {
+    // 网格模式：内核自己会铺 (m+1)+(n+1) 条网格线、并把全部格点当已知点，
+    // 所以「已知点 / 初始元素」的数目都要把网格那份算上；只核对请求里发出去的那些已知点
+    // （格点排在它们后面）。万一有给定对象与网格线重合、被内核当重复丢掉，数量就对不上 ——
+    // 那种情况不启用计划，退回一次性覆盖层（画得对，只是拖动时解法不跟着变形）
+    const grid = solverLastRequest.gridM !== undefined;
+    const gridLines = grid ? (solverLastRequest.gridM + 1) + (solverLastRequest.gridN + 1) : 0;
+    if (!grid && solverLastRequest.pointIds.length < result.initialPointCount) return false;
+    const checkCount = grid ? solverLastRequest.pointIds.length : result.initialPointCount;
+    for (let i = 0; i < checkCount; i++) {
       const item = geometryManager.get(solverLastRequest.pointIds[i]);
       const recorded = solution.points[i];
       if (!item || item.getType() !== 'point') return false;
@@ -1568,25 +2220,166 @@
     const sentElements = solverLastRequest.lines.length / 3
       + solverLastRequest.rays.length / 4 + solverLastRequest.segments.length / 4
       + solverLastRequest.circles.length / 3;
-    return sentElements === result.initialElementCount;
+    return sentElements + gridLines === result.initialElementCount;
+  };
+
+  /**
+   * 组装「构造计划」的作业对象 过程函数
+   * 画布按它把解法重算出来（拖动图形时解法跟着变形），解法自检也用它
+   * @param {Object} solution 一条解
+   * @param {Object} result 这次搜索的结果（提供 initialPointCount 等）
+   * @param {number} [step] 画到第几步（默认整条解）
+   * @returns {Object|null} null 表示这条解没有可动计划（对不上画布，只能一次性画覆盖层）
+   */
+  const solverPlanJobOf = (solution, result, step) => {
+    if (!solution || !solution.plan || !solverPlanMatchesCanvas(solution, result)) return null;
+    return {
+      solution: solution,
+      result: result,
+      dag: solution.plan,
+      step: step === undefined ? solution.newElementCount : Math.max(0, Math.min(solution.newElementCount, step)),
+      pointIds: solverLastRequest.pointIds,
+      // 顺序要与 Worker 装图的顺序一致：网格线 → 直线 → 射线 → 线段 → 圆
+      // （网格模式下内核自己先铺网格线，不把它们排在最前面，构造计划里的下标会整体错位）
+      elementIds: (solverLastRequest.gridUnit ? gridSegmentIdsInKernelOrder() : [])
+        .concat(solverLastRequest.lineIds
+          .concat(solverLastRequest.rayIds || [], solverLastRequest.segmentIds || [], solverLastRequest.circleIds)),
+      // 射线 / 线段的端点表：解法里与它们的交点必须落在范围内（见 canvas.js 的 solverPlanInRange）
+      bounds: solution.bounds || null,
+      eps: solverLastRequest.eps,
+    };
+  };
+
+  /**
+   * 覆盖层离某个所求对象最近的距离 过程函数（自检用）
+   * 点看最近的新点；圆看「圆心距 + 半径差」；直线 / 射线 / 线段看所求线上两个点离最近那条解法的线
+   * @param {Object} goalItem 画布上的所求对象
+   * @param {Object} overlay evaluateSolverSolutionPlan 的结果
+   * @returns {number} 距离（画布 px），算不出来给 Infinity
+   */
+  const overlayGoalDistance = (goalItem, overlay) => {
+    if (!goalItem || !overlay) return Infinity;
+    const type = goalItem.getType?.();
+    if (type === 'point') {
+      if (!overlay.points || !overlay.points.length) return Infinity;
+      return Math.min(...overlay.points.map(point => Math.hypot(point.x - goalItem.x, point.y - goalItem.y)));
+    }
+    const coordinate = goalItem.getCoordinate?.();
+    if (!coordinate) return Infinity;
+    if (type === 'circle') {
+      const [center, on] = coordinate;
+      if (!overlay.circles || !overlay.circles.length) return Infinity;
+      const radius = Math.hypot(on[0] - center[0], on[1] - center[1]);
+      return Math.min(...overlay.circles.map(circle =>
+        Math.hypot(circle.x - center[0], circle.y - center[1]) + Math.abs(circle.r - radius)));
+    }
+    const [first, second] = coordinate;
+    if (!overlay.lines || !overlay.lines.length) return Infinity;
+    const offsetTo = (line, point) => {
+      const length = Math.hypot(line.x2 - line.x1, line.y2 - line.y1) || 1;
+      return Math.abs((line.x2 - line.x1) * (point.y - line.y1) - (line.y2 - line.y1) * (point.x - line.x1)) / length;
+    };
+    return Math.min(...overlay.lines.map(line =>
+      (offsetTo(line, {x: first[0], y: first[1]}) + offsetTo(line, {x: second[0], y: second[1]})) / 2));
+  };
+
+  /**
+   * 自检的候选点 过程函数
+   * 画布上看得见的点都算候选，但要排掉网格自带的那一批（挪了会把整副网格拖走，
+   * 而构造计划里的格点用的是记录值，对不齐）；至于某个点到底挪不挪得动，
+   * 交给 modifyPointCoordinate 试一下就知道（自由点 / 线上点会动，交点 / 中点这些不动）
+   * @returns {Object[]}
+   */
+  const selfCheckCandidates = () => geometryManager.getAllByOrder().filter(item =>
+    item.getType?.() === 'point' && item.getVisible?.() &&
+    !(typeof window.isGridObjectId === 'function' && window.isGridObjectId(item.getId())));
+
+  /**
+   * 解法自检 过程函数（高级选项，默认关）
+   * 把每个可动点按图幅的 0.1% 轻挪一点，让画布自己把给定对象与所求对象一起重算，
+   * 再用这条解的构造计划重算一遍：落点若不再命中所求，说明它只在当前这组数上成立
+   * （特解），自检不通过。测完一律把点挪回原位：不留撤销历史、不动标记集合。
+   * @param {Object} solution 一条解
+   * @param {Object} result 这次搜索的结果
+   * @returns {boolean|null} true 通过 / false 不通过 / null 判断不了（没有计划 / 没有可动点 / 挪了所求也不动）
+   */
+  const solutionPassesSelfCheck = (solution, result) => {
+    const job = solverPlanJobOf(solution, result);
+    if (!job || !solverLastRequest) return null;
+    const goalItems = [...(geometryElementLists.result || new Set())]
+      .map(id => geometryManager.get(id))
+      .filter(item => item && item.getCoordinate?.());
+    const candidates = selfCheckCandidates();
+    if (!goalItems.length || !candidates.length) return null;
+    // 挪动幅度取图幅的 0.1%：按 eps 的量级算这点扰动已经足够暴露特解（见「解法自检」的说明），
+    // 再大反而容易把某些线圆挪成不相交（那属于题目退化了，不该算自检不通过）
+    const scale = solverLengthScale(solverLastRequest) * (solverLastRequest.gridUnit || 1);
+    const delta = Math.max(0.01, scale * 0.001);
+    const tolerance = Math.max(1e-6, scale * 1e-9);
+    const before = goalItems.map(item => item.getCoordinate());
+    let verdict = null;
+    for (const item of candidates) {
+      const id = item.getId();
+      const start = item.getCoordinate();
+      if (!start) continue;
+      // 两个互相垂直的一般方向（22.5° / 112.5°）：不沿坐标轴或对称轴走（那样有可能恰好保住特解关系），
+      // 又保证「线上的点」至少有一个方向投影不为零（例如 Linepoint 会把某个方向投影回原地）
+      for (const [sx, sy] of [[0.9238795, 0.3826834], [-0.3826834, 0.9238795]]) {
+        geometryManager.modifyPointCoordinate(id, start[0] + delta * sx, start[1] + delta * sy);
+        const after = item.getCoordinate();
+        // 挪不动（交点 / 中点这类）就换方向
+        if (!after || Math.hypot(after[0] - start[0], after[1] - start[1]) < delta * 0.1) continue;
+        const now = goalItems.map(goal => goal.getCoordinate());
+        const shifted = now.some((coordinate, index) => coordinate && before[index] &&
+          Math.hypot(coordinate[0] - before[index][0], coordinate[1] - before[index][1]) > tolerance);
+        if (!shifted) continue; // 这个点与题目无关（挪了所求也不动）：换方向 / 换下一个点
+        const overlay = typeof evaluateSolverSolutionPlan === 'function' ? evaluateSolverSolutionPlan(job) : null;
+        const distance = Math.max(...goalItems.map(goal => overlayGoalDistance(goal, overlay)));
+        if (!(distance <= tolerance)) verdict = false;
+        else if (verdict === null) verdict = true;
+        break;
+      }
+      geometryManager.modifyPointCoordinate(id, start[0], start[1]); // 挪回原位
+      if (verdict === false) break;
+    }
+    drawContent();
+    return verdict;
+  };
+
+  /**
+   * 用解法自检把「只在当前这组数上成立」的解剔掉 过程函数
+   * @param {Object} result 搜索结果（就地改写 solutions / found / solutionCount 等）
+   * @returns {number} 被剔掉的解数
+   */
+  const filterSolutionsBySelfCheck = result => {
+    const kept = [];
+    let rejected = 0;
+    result.solutions.forEach(solution => {
+      if (solutionPassesSelfCheck(solution, result) === false) {
+        rejected++;
+        return;
+      }
+      kept.push(solution);
+    });
+    if (!rejected) return 0;
+    result.solutions = kept;
+    result.solutionCount = kept.length;
+    result.found = kept.length > 0;
+    // 首页 / 逐步播放都读这几个字段，跟着换成留下第一条
+    result.steps = kept.length ? kept[0].newElementCount : 0;
+    result.points = kept.length ? kept[0].points : [];
+    result.elements = kept.length ? kept[0].elements : [];
+    result.bounds = kept.length ? (kept[0].bounds || []) : [];
+    result.newElementCount = kept.length ? kept[0].newElementCount : 0;
+    result.selfCheckRejected = rejected;
+    return rejected;
   };
 
   const showSolverSolutionStep = (solution, result, step) => {
     const shown = Math.max(0, Math.min(solution.newElementCount, step));
-    if (solution.plan && solverPlanMatchesCanvas(solution, result)) {
-      solverSolutionPlan = {
-        solution: solution,
-        result: result,
-        dag: solution.plan,
-        step: shown,
-        pointIds: solverLastRequest.pointIds,
-        // 顺序要与 Worker 装图的顺序一致：直线 → 射线 → 线段 → 圆
-        elementIds: solverLastRequest.lineIds
-          .concat(solverLastRequest.rayIds || [], solverLastRequest.segmentIds || [], solverLastRequest.circleIds),
-        // 射线 / 线段的端点表：解法里与它们的交点必须落在范围内（见 canvas.js 的 solverPlanInRange）
-        bounds: solution.bounds || null,
-        eps: solverLastRequest.eps,
-      };
+    const job = solverPlanJobOf(solution, result, shown);
+    if (job) {
+      solverSolutionPlan = job;
       solverSolutionOverlay = null;
       drawContent();
       return;
@@ -1814,6 +2607,39 @@
     return button;
   };
 
+  /**
+   * 求解参数面板：网格模式的联动 过程函数
+   * 画布上有网格时：自动切到「网格」模式、最大步数切到 4（网格题通常 ≤4 步），并显示网格尺寸；
+   * 没有网格时把「网格」那一项标灰（模式 3 必须知道 m / n 才能搜）
+   * @param {HTMLElement} [target] 面板元素（默认取页面上的求解面板）
+   */
+  const syncSolverGridOption = (target = document.querySelector('.solver-panel')) => {
+    if (!target) return;
+    const select = target.querySelector('#geb-solver-tool');
+    const limit = target.querySelector('#geb-solver-limit');
+    const option = select ? select.querySelector('option[value="3"]') : null;
+    const grid = typeof window.boardGmt?.grid === 'function' ? window.boardGmt.grid() : null;
+    // 网格大小就写在这个选项上（面板里不再单列一行「网格尺寸」）
+    if (option) {
+      option.disabled = !grid;
+      option.textContent = grid
+        ? `${t('board.solverToolGrid')}（${grid.m}×${grid.n}）`
+        : t('board.solverToolGrid');
+    }
+    // 画布上有网格就切到网格模式；已经在这个模式里就不动用户改过的选项
+    if (grid && select && select.value !== '3') {
+      select.value = '3';
+      if (limit && limit.value !== '4') limit.value = '4';
+    }
+    // 网格没了（撤销掉 / 换成没有网格的画布）还停在网格模式：切回尺规 ——
+    // 否则请求会带 toolType 3 而 m / n 是 0，搜出来的东西没有意义
+    if (!grid && select && select.value === '3') {
+      select.value = '2';
+    }
+  };
+  // 供 setGridMeta 等更早定义的函数回调（那些函数不能直接引用这里的 const：初始化顺序在前）
+  window.syncSolverGridOption = syncSolverGridOption;
+
   const solverPanel = () => {
     const panel = document.createElement('aside');
     panel.className = 'solver-panel';
@@ -1825,17 +2651,26 @@
         `<label>${t('board.solverTool')}<select id="geb-solver-tool">` +
           `<option value="2">${t('board.solverToolBoth')}</option>` +
           `<option value="1">${t('board.solverToolLine')}</option>` +
-          `<option value="0">${t('board.solverToolCircle')}</option></select></label>` +
+          `<option value="0">${t('board.solverToolCircle')}</option>` +
+          `<option value="3">${t('board.solverToolGrid')}</option></select></label>` +
       '</div>',
+
       '<div class="solver-field-row">' +
         `<label>${t('board.solverTime')}<input id="geb-solver-time" type="number" min="1" max="600" value="60"></label>` +
         `<label>${t('board.solverCount')}<input id="geb-solver-solutions" type="number" min="1" max="20" value="20"></label>` +
       '</div>',
       // 高级选项：平时收起（<details>），里面的值都对应搜索内核本来就支持的参数（见 search-worker.js）
-      `<details class="solver-advanced" id="geb-solver-advanced"><summary>${t('board.solverAdvanced')}</summary>` +
+      // 高级选项的三角是 SVG（不是 CSS 的文字三角）：展开时整个图标转 90°，风格与其它图标一致
+      `<details class="solver-advanced" id="geb-solver-advanced"><summary>` +
+        '<svg class="svg-icon solver-advanced-icon" viewBox="0 0 200 200" aria-hidden="true">' +
+        '<polygon points="70 34, 152 100, 70 166" fill="transparent" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>' +
+        '</svg>' +
+        `${t('board.solverAdvanced')}</summary>` +
         `<label class="solver-check" title="${t('board.solverSymmetryHint')}"><input id="geb-solver-symmetry" type="checkbox" checked><span>${t('board.solverSymmetry')}</span></label>` +
         `<label class="solver-check" title="${t('board.solverGoalFirstHint')}"><input id="geb-solver-goal-first" type="checkbox" checked><span>${t('board.solverGoalFirst')}</span></label>` +
         `<label class="solver-check" title="${t('board.solverLowMemoryHint')}"><input id="geb-solver-low-memory" type="checkbox" checked><span>${t('board.solverLowMemory')}</span></label>` +
+        // 解法自检：默认关（每个解都要挪点重算一遍，慢一些；只在当前位置成立的特解会被剔掉）
+        `<label class="solver-check" title="${t('board.solverSelfCheckHint')}"><input id="geb-solver-generic" type="checkbox"><span>${t('board.solverSelfCheck')}</span></label>` +
         '<div class="solver-field-row">' +
           `<label title="${t('board.solverTtMbHint')}">${t('board.solverTtMb')}<input id="geb-solver-tt" type="number" min="0" max="512" value="8"></label>` +
           `<label title="${t('board.solverDedupHint')}">${t('board.solverDedup')}<input id="geb-solver-dedup" type="number" min="0" max="65536" value="2048"></label>` +
@@ -1859,6 +2694,8 @@
     if (solverToolSelect && ['0', '1', '2'].includes(presetSolverTool)) {
       solverToolSelect.value = presetSolverTool;
     }
+    // 画布上已经有网格（画板里生成过 / 关卡自带）：切到网格模式并把最大步数切到 4
+    syncSolverGridOption(panel);
     // 收进底部上拉栏：画布上只留一个圆形按钮（见 addSideButton）
     addSideButton('solver-params', solverSideIcon(), t('board.solverParams'), wrapInSheet(panel, t('board.solverParams')));
 
@@ -1988,6 +2825,7 @@
       streamDedup: panel.querySelector('#geb-solver-dedup'),
       threads: panel.querySelector('#geb-solver-threads'),
       eps: panel.querySelector('#geb-solver-eps'),
+      generic: panel.querySelector('#geb-solver-generic'),
     };
     /** 读一遍高级选项 过程函数 */
     const readAdvanced = () => {
@@ -2000,6 +2838,8 @@
         threads: Math.max(1, Math.min(16, Number(advancedFields.threads.value) || 1)),
         // 留空 = 自动（按图幅算，见 buildSolverRequest 里的 eps）
         eps: Number(advancedFields.eps.value) > 0 ? Number(advancedFields.eps.value) : null,
+        // 解法自检：默认关（见 solutionPassesSelfCheck）
+        generic: advancedFields.generic.checked,
       };
       try { localStorage.setItem(ADVANCED_KEY, JSON.stringify(options)); } catch (error) { /* 隐私模式等忽略 */ }
       return options;
@@ -2015,6 +2855,8 @@
       if (typeof saved.ttMB === 'number') advancedFields.ttMB.value = saved.ttMB;
       if (typeof saved.streamDedup === 'number') advancedFields.streamDedup.value = saved.streamDedup;
       if (typeof saved.threads === 'number') advancedFields.threads.value = saved.threads;
+      // 解法自检默认关：只有上次明确勾上过才勾回来
+      advancedFields.generic.checked = saved.generic === true;
       if (saved.open) panel.querySelector('#geb-solver-advanced').open = true;
     };
     restoreAdvanced();
@@ -2034,42 +2876,123 @@
     let activePool = [];
 
     /**
+     * 解法列表里补一行 过程函数（「解法 n」点了画出来，「文字步骤」看中文步骤说明）
+     * 收尾重画与搜索途中的边搜边显示共用它
+     */
+    const appendSolutionRow = (solution, index) => {
+      const row = document.createElement('div');
+      row.className = 'solver-solution-row';
+      const pick = document.createElement('button');
+      pick.type = 'button';
+      pick.className = 'solver-solution-pick';
+      pick.textContent = t('board.solverSolutionIndex', {index: index + 1, steps: solution.newElementCount});
+      pick.addEventListener('click', () => playSolution(index, false));
+      const text = document.createElement('button');
+      text.type = 'button';
+      text.className = 'solver-solution-text';
+      text.textContent = t('board.solverReportButton');
+      text.addEventListener('click', () => showReport(index));
+      row.appendChild(pick);
+      row.appendChild(text);
+      list.appendChild(row);
+    };
+
+    // 内核「一找到解就端上来」：搜索途中收到的解攒在这一份里，随到随显示。
+    // 它同时就是并行那条路的正式解表（去重、换算都只在这儿做一次），单线程那条路则只拿它显示，
+    // 收尾时 showSearchResult 会按 worker 汇总的完整解表重画一遍
+    const liveResult = {solutions: [], initialElementCount: 0, initialPointCount: 0};
+    const streamedSignatures = new Set();
+
+    /**
+     * 解法的几何签名 过程函数（去重用：同一步数、同一批新作元素算同一条解）
+     * 并行时不同前缀会把同一条解各搜一遍，页面据此只留一条
+     */
+    const solutionSignature = (solution, initialElementCount) => solution.newElementCount + '|'
+      + solution.elements.slice(initialElementCount || 0)
+        .map(element => [element.type, element.a, element.b, element.c].join(',')).join(';');
+
+    /**
+     * 记下这次搜索的「初始元素数 / 已知点数」 过程函数
+     * 流式消息（每条解）、前缀任务消息都自带这两个数：知道了才能判断解法里的构造计划
+     * 与画布对得上（见 solverPlanMatchesCanvas）
+     */
+    const rememberResultMeta = meta => {
+      if (!meta || !meta.initialElementCount) return;
+      liveResult.initialElementCount = meta.initialElementCount;
+      liveResult.initialPointCount = meta.initialPointCount || 0;
+    };
+
+    /**
+     * 收下一条「一找到就端上来」的解 过程函数
+     * 去重 → 换算到画布坐标（网格模式的请求是按网格单位换算过去的，解法得换回来）→
+     * 补一行到列表、顺手把状态改成「已找到 n 个」；latest 指到这份进行中的结果上，
+     * 于是这些行当场就能点开逐步看（不必等搜索结束）
+     * @param {Object} solution 内核发来的一条解
+     * @param {Object} meta {initialElementCount, initialPointCount}（每条流式消息都自带）
+     * @param {number} seconds 已用时
+     * @returns {boolean} true 表示这是一条新解
+     */
+    const takeStreamedSolution = (solution, meta, seconds) => {
+      rememberResultMeta(meta);
+      if (solverLastRequest?.gridUnit) kernelSolutionToCanvas(solution, solverLastRequest.gridUnit);
+      const signature = solutionSignature(solution, liveResult.initialElementCount);
+      if (streamedSignatures.has(signature)) return false;
+      streamedSignatures.add(signature);
+      liveResult.solutions.push(solution);
+      latest = liveResult;
+      appendSolutionRow(solution, liveResult.solutions.length - 1);
+      status.textContent = t('board.solverSearchingFound', {
+        count: liveResult.solutions.length,
+        seconds: seconds,
+      });
+      return true;
+    };
+
+    /**
      * 把一次搜索的结果画进面板 过程函数
      * 单线程与并行两条路都从这里收尾（形状与 worker 的返回值一致）
      */
     const showSearchResult = (result, seconds, timeLimitSeconds, limit) => {
+      // 网格模式：请求是按网格单位换算过去的，解法里的坐标与方程要换回画布坐标系 ——
+      // 否则覆盖层会把解法画到别处。单线程与并行两条路都从这里收尾，所以只改这一处
+      if (result.solutions && !result.gridScaledToCanvas && solverLastRequest?.gridUnit) {
+        result.solutions.forEach(solution => kernelSolutionToCanvas(solution, solverLastRequest.gridUnit));
+        result.gridScaledToCanvas = true;
+      }
+      // 解法自检（高级选项，默认关）：把可动点轻挪一点重算，只在当前这组数上成立的
+      // 特解会被剔掉 —— 画布对不上（没有可动计划）、挪不动的题一律原样保留
+      if (result.solutions && advancedFields.generic.checked) filterSolutionsBySelfCheck(result);
       if (!result.found) {
+        if (result.selfCheckRejected) {
+          // 全部被自检剔掉：搜索途中边搜边显示的行与覆盖层也要收回去，别留着误导
+          list.innerHTML = '';
+          latest = null;
+          currentIndex = -1;
+          currentStep = 0;
+          stepInfo.textContent = '—';
+          solverSolutionPlan = null;
+          solverSolutionOverlay = null;
+          drawContent();
+          status.textContent = t('board.solverSelfCheckAllRejected', {count: result.selfCheckRejected});
+          return;
+        }
         status.textContent = result.timedOut
           ? t('board.solverTimeoutNoSolution', {seconds: timeLimitSeconds})
           : t('board.solverNoSolution', {limit: limit, seconds: seconds});
         return;
       }
       latest = result;
-      status.textContent = result.timedOut
+      status.textContent = (result.timedOut
         ? t('board.solverTimeoutPartial', {
           seconds: timeLimitSeconds,
           found: result.solutionCount,
           requested: result.requestedSolutions,
         })
-        : t('board.solverFound', {count: result.solutionCount, seconds: seconds});
-      result.solutions.forEach((solution, index) => {
-        const row = document.createElement('div');
-        row.className = 'solver-solution-row';
-        // 「解法 n」选了就画出来，「文字步骤」看中文步骤说明
-        const pick = document.createElement('button');
-        pick.type = 'button';
-        pick.className = 'solver-solution-pick';
-        pick.textContent = t('board.solverSolutionIndex', {index: index + 1, steps: solution.newElementCount});
-        pick.addEventListener('click', () => playSolution(index, false));
-        const text = document.createElement('button');
-        text.type = 'button';
-        text.className = 'solver-solution-text';
-        text.textContent = t('board.solverReportButton');
-        text.addEventListener('click', () => showReport(index));
-        row.appendChild(pick);
-        row.appendChild(text);
-        list.appendChild(row);
-      });
+        : t('board.solverFound', {count: result.solutionCount, seconds: seconds}))
+        + (result.selfCheckRejected ? t('board.solverSelfCheckNote', {count: result.selfCheckRejected}) : '');
+      // 搜索途中已经边搜边显示了一些行：清掉，按这份完整解表重画（顺序也照这里的排）
+      list.innerHTML = '';
+      result.solutions.forEach(appendSolutionRow);
       playSolution(0, true);
     };
 
@@ -2102,6 +3025,8 @@
      * 照着 C++ 版 bs_v8 的分工：1 号 worker 把搜索树按固定深度切成一串「前缀任务」流式发回来，
      * 每个 worker 领一个前缀**独占**地搜（重放前缀 + DFS；任务内部不用置换表，与 C++ 一致），
      * 页面上汇总去重、按步数排序。与单线程一样：收够解数就收工，超时/停止随时能掐掉。
+     * 解是「一找到就单发一条」的（见 search-worker.js 的 attachSolutionStream），所以收够解数
+     * 那一刻就能收工 —— 不必再等在飞的前缀任务跑完（网格题里一个任务可能要好几百毫秒）。
      * @param {Object} settings {request, limit, toolType, timeLimitSeconds, solutions, advanced, threads}
      */
     const startParallelSearch = settings => {
@@ -2109,34 +3034,26 @@
       const token = ++searchToken;
       const threads = Math.max(2, settings.threads | 0);
       const payload = workerPayload(settings, settings.request, settings.advanced);
-      // 切分深度：线程越多就切深一层（深度 3 通常有几十上百个前缀，够分了）
-      const splitDepth = threads > 2 ? 3 : 2;
+      // 切分深度：线程越多就切深一层（深度 3 通常有几十上百个前缀，够分了）。
+      // 但不能切到最后一层：search 在最后一步走的是「末段专用」分支、不再递归，
+      // 那一层的节点不存在，按它切会一个任务都产不出来（worker 里也有同样的收紧）
+      const splitDepth = Math.min(threads > 2 ? 3 : 2, Math.max(1, settings.limit - 1));
       const startedAt = performance.now();
       const deadline = startedAt + settings.timeLimitSeconds * 1000;
-      const collected = [];
-      const signatures = new Set();
+      // 解直接收在面板共用的那份 liveResult 里：去重、坐标换算、边搜边显示都由 takeStreamedSolution
+      // 统一办，于是内核一找到解就能收下，不必等它所属的那个前缀任务跑完
       const queue = [];
       const state = new Map();
       const workers = [];
       let frontierDone = false;
       let finished = false;
       let frontierWorker = null;
-      let meta = {initialElementCount: 0, initialPointCount: 0};
       let timer = null;
 
-      const initialElementCountOf = () => meta.initialElementCount;
+      const elapsedSeconds = () => ((performance.now() - startedAt) / 1000).toFixed(2);
 
-      // 同一条解法（同步骤同几何）可能被不同前缀各搜一遍，这里按几何签名去重
-      const signatureOf = solution => solution.newElementCount + '|' + solution.elements
-        .slice(initialElementCountOf())
-        .map(element => [element.type, element.a, element.b, element.c].join(',')).join(';');
-
-      const collect = solution => {
-        const signature = signatureOf(solution);
-        if (signatures.has(signature)) return;
-        signatures.add(signature);
-        collected.push(solution);
-      };
+      /** 收下一条解 过程函数（重复的会被 takeStreamedSolution 挡掉，顺手补一行到面板） */
+      const collect = (solution, meta) => takeStreamedSolution(solution, meta, elapsedSeconds());
 
       const teardown = () => {
         if (timer) clearTimeout(timer);
@@ -2155,32 +3072,35 @@
         finished = true;
         teardown();
         // 并行时各前缀出解的先后是乱的：按步数排一下，短的在前
-        collected.sort((one, two) => one.newElementCount - two.newElementCount);
+        const found = liveResult.solutions;
+        found.sort((one, two) => one.newElementCount - two.newElementCount);
         // 多个 worker 可能各带着解一起回来，超过「解数」就只留前面这些（与单线程的口径一致）
-        if (collected.length > settings.solutions) collected.length = settings.solutions;
-        const seconds = ((performance.now() - startedAt) / 1000).toFixed(2);
+        if (found.length > settings.solutions) found.length = settings.solutions;
+        const seconds = elapsedSeconds();
         showSearchResult({
-          found: collected.length > 0,
+          found: found.length > 0,
           time: seconds,
-          steps: collected.length ? collected[0].newElementCount : 0,
-          points: collected.length ? collected[0].points : [],
-          elements: collected.length ? collected[0].elements : [],
-          bounds: collected.length ? (collected[0].bounds || []) : [],
-          solutions: collected,
-          solutionCount: collected.length,
+          steps: found.length ? found[0].newElementCount : 0,
+          points: found.length ? found[0].points : [],
+          elements: found.length ? found[0].elements : [],
+          bounds: found.length ? (found[0].bounds || []) : [],
+          solutions: found,
+          solutionCount: found.length,
           requestedSolutions: settings.solutions,
-          quotaReached: collected.length >= settings.solutions,
+          quotaReached: found.length >= settings.solutions,
           timedOut: !!timedOut,
-          initialElementCount: meta.initialElementCount,
-          initialPointCount: meta.initialPointCount,
-          newElementCount: collected.length ? collected[0].newElementCount : 0,
+          initialElementCount: liveResult.initialElementCount,
+          initialPointCount: liveResult.initialPointCount,
+          newElementCount: found.length ? found[0].newElementCount : 0,
+          // 这些解在收到时就换算到画布坐标了（见 takeStreamedSolution），别在这再换算一次
+          gridScaledToCanvas: true,
           engine: 'bs v8 (JS, ' + threads + ' workers)',
         }, seconds, settings.timeLimitSeconds, settings.limit);
       };
 
       const maybeFinish = () => {
         if (finished) return;
-        if (collected.length >= settings.solutions) {
+        if (liveResult.solutions.length >= settings.solutions) {
           finish(false);
           return;
         }
@@ -2227,6 +3147,12 @@
         worker.onmessage = event => {
           const message = event.data || {};
           if (finished) return;
+          // 内核一找到解就单独发一条：当场收下、当场显示，收够「解数」就当场收工 ——
+          // 不必再等在飞的那个前缀任务跑完（网格题里一个任务可能就是几百毫秒到几秒）
+          if (message.type === 'solution') {
+            if (collect(message.solution, message) && liveResult.solutions.length >= settings.solutions) finish(false);
+            return;
+          }
           if (message.type === 'prefix-batch') {
             queue.push(...(message.tasks || []));
             dispatchIdle();
@@ -2234,24 +3160,17 @@
           }
           if (message.type === 'prefix-done') {
             frontierDone = true;
-            if (message.initialElementCount) meta = {
-              initialElementCount: message.initialElementCount,
-              initialPointCount: message.initialPointCount,
-            };
+            rememberResultMeta(message);
             state.set(worker, 'idle');
             dispatch(worker);
             maybeFinish();
             return;
           }
           if (message.type === 'prefix-result') {
-            if (message.initialElementCount) meta = {
-              initialElementCount: message.initialElementCount,
-              initialPointCount: message.initialPointCount,
-            };
-            (message.solutions || []).forEach(collect);
+            (message.solutions || []).forEach(solution => collect(solution, message));
             state.set(worker, 'idle');
             dispatch(worker);
-            if (collected.length >= settings.solutions) finish(false);
+            if (liveResult.solutions.length >= settings.solutions) finish(false);
             return;
           }
           if (message.type === 'error') {
@@ -2295,6 +3214,9 @@
       // 高级选项（高级选项栏里的值）：容差留空就用 buildSolverRequest 按图幅自动算的那个
       const advanced = advancedOptions();
       if (advanced.eps) request.eps = advanced.eps;
+      // 把这次**实际生效**的自动容差写在输入框的提示里：省得以为内核按 1e-11 判定
+      // （实际是 1e-11 × 图幅，而且内核坐标系在网格模式下是「格」，不是画布 px）
+      else if (advancedFields.eps) advancedFields.eps.placeholder = `自动 ${request.eps.toExponential(2)}`;
       const goalCount = request.goalPoints.length / 2 + request.goalLines.length / 3 + request.goalCircles.length / 3;
       if (!goalCount) {
         status.textContent = t('board.solverNeedGoal');
@@ -2317,6 +3239,9 @@
       stepInfo.textContent = '—';
       solverSolutionOverlay = null;
       list.innerHTML = '';
+      // 边搜边看的那本账也清空：上一次搜索留下的解不能混进来
+      liveResult.solutions.length = 0;
+      streamedSignatures.clear();
       drawContent();
       status.textContent = t('board.solverSearching');
 
@@ -2335,11 +3260,19 @@
       const startedAt = performance.now();
       const seconds = () => ((performance.now() - startedAt) / 1000).toFixed(2);
       worker.onmessage = event => {
+        const message = event.data;
+        // 内核一找到解就端上来（早于 result 的一条消息）：当场收下、当场显示，
+        // 去重与坐标换算都在 takeStreamedSolution 里。单线程不必提前收工 ——
+        // 内核收够解数自己就停了，紧接着会把汇总结果发过来
+        if (message && message.type === 'solution') {
+          if (token !== searchToken) return;
+          takeStreamedSolution(message.solution, message, seconds());
+          return;
+        }
         worker.terminate();
         activeWorker = null;
         setSearching(false);
         if (token !== searchToken) return;
-        const message = event.data;
         if (!message || !message.success) {
           status.textContent = t('board.solverFailed', {
             error: message && message.error ? message.error : t('board.solverUnknownError'),
@@ -2411,6 +3344,35 @@
     const item = geometryManager.get(id);
     if (item) releaseMarkStyle(item); else markedStyles.delete(id);
   });
+  /**
+   * 清掉已经不在画布上的标记 过程函数
+   * 制题器 / 求解器里删掉一个图形（连同它的子图形）时，标记表与「隐藏」集合里还挂着它的 id，
+   * 样式色记录也留着 —— 于是标记面板里会多出一个已经不存在的对象、导出的 gmt 也会带上它，
+   * 同一个 id 之后新建出来的图形还会被那份旧样式色染错。这里一并清掉
+   * @returns {boolean} 有没有清掉东西
+   */
+  const pruneMarks = () => {
+    if (typeof geometryManager === 'undefined') return false;
+    let changed = false;
+    allMarkSets().forEach(({set}) => {
+      [...set].forEach(id => {
+        if (geometryManager.get(id)) return;
+        set.delete(id);
+        changed = true;
+      });
+    });
+    // 「隐藏」不在标记面板的那几组里，但同样按 id 记着（gmt 的 hidden= 行读它）
+    const hidden = typeof geometryElementLists !== 'undefined' ? geometryElementLists.hidden : null;
+    if (hidden) {
+      [...hidden].forEach(id => {
+        if (geometryManager.get(id)) return;
+        hidden.delete(id);
+        changed = true;
+      });
+    }
+    if (changed) [...markedStyles.keys()].forEach(id => { if (!geometryManager.get(id)) markedStyles.delete(id); });
+    return changed;
+  };
   /**
    * 自动配色下的样式色 过程函数
    * 制题器 / 求解器用 autoPlayMode：自由点（坐标点 / 线上点）红，其余点与线圆灰
@@ -2510,6 +3472,12 @@
     // 手机端：这个手势按在图形上，整个手势都归标记，后续的 touchmove 不要再拿去平移画布
     markingGesture = true;
     const item = geometryManager.get(id);
+    // 网格当作一整块、不接受任何标记：它在 gmt / 记录里由 #grid= 两行带出，
+    // 标了既进不了「给定」栏（栏里只占一行「格线」），导出时还会多出一堆普通对象
+    if (isGridId(id)) {
+      toast(t('board.gridNoMark'));
+      return;
+    }
     // 可移动点只能是自由点（能拖得动的那种），交点 / 线上点 / 中点这些不算
     if (marking === 'movepoints' && (item?.getType() !== 'point' || item.getBase().type !== 'none')) {
       toast(t('board.movepointOnlyFree'));
@@ -2576,7 +3544,8 @@
     };
     // 哪些分组一开始就展开：求解器里本来就是（「要用的条件」与「要作的目标」），
     // 手机版制题器也照这样（面板本身还是收起的，点圆形按钮才拉起来）
-    const foldOpened = solverMode || (mode === 'maker' && window.matchMedia('(max-width: 768px)').matches);
+    // 手机那套布局（窄屏或矮屏，阈值见 index.css 末尾的媒体查询）里标记分组默认展开
+    const foldOpened = solverMode || (mode === 'maker' && window.matchMedia('(max-width: 960px), (max-height: 500px)').matches);
     const listOf = key => `<ul id="marked-${key}"></ul>`;
     const titled = (title, key) => `<div class="mark-item"><b>${title}</b>${listOf(key)}</div>`;
     // 标题在上拉栏的标题栏里（见 wrapInSheet），面板本体只放分组列表
@@ -2644,11 +3613,20 @@
   const markListOf = (id, set) => {
     const list = markPanel.querySelector(`#marked-${id}`);
     if (!list) return;
-    list.innerHTML = [...set].map(item => {
+    // 网格当作一整块：它可能有几十条格线，在栏里只占一行「网格（m×n）」（元素一览那边只叫「格线」，
+    // 这里带上大小，制题者一眼能看出尺寸）
+    const ids = [...set].filter(item => !isGridId(item));
+    const hasGrid = ids.length !== set.size;
+    const rows = ids.map(item => {
       const element = geometryManager.get(item);
       const equation = element ? equationOf(element) : '';
       return `<li><span class="mark-name">${item}</span>${equation ? `<span class="mark-eq">${equation}</span>` : ''}</li>`;
-    }).join('') || `<li class="empty">${t('board.markEmpty')}</li>`;
+    }).join('');
+    const gridName = gridMeta
+      ? t('board.gridSize', {m: gridMeta.m, n: gridMeta.n})
+      : t('board.gridLabel');
+    const gridRow = hasGrid ? `<li><span class="mark-name">${gridName}</span></li>` : '';
+    list.innerHTML = (gridRow + rows) || `<li class="empty">${t('board.markEmpty')}</li>`;
   };
   const refreshMarks = () => {
     renderMarkPanel();
@@ -2660,6 +3638,9 @@
    * 结构本身不动，所以开销只有几个 <li> 的文本
    */
   window.refreshMarkEquations = () => {
+    // 每次刷新前先把「已经删掉的图形」的标记清干净（见 pruneMarks）：删除图形走的是
+    // storage 事件，面板就是在这里重画的，顺手清掉最省事
+    pruneMarks();
     givenMarkItems.forEach(([key]) => markListOf(key, key === 'initial' ? givenColumnIds() : markSetOf(key)));
     for (let index = 1; index <= resultGroupCount(); index++) {
       markListOf(`result-${index}`, resultSetOf(index, 'judged'));
@@ -2667,6 +3648,8 @@
     }
     if (!solverMode) markListOf('explore', markSetOf('explore'));
   };
+  // 给页面脚本用：删除图形后清掉它的标记（关卡游玩那条 storage 处理里调，见 playPage.js）
+  window.pruneMarks = () => pruneMarks();
   /**
    * 解的编号按钮 过程函数
    * 数字 / + / − 用 SVG 文本画，样式与其它切换项一致，选中项变绿
@@ -2915,26 +3898,87 @@
     available: solverAvailable,
     disabledHint: t('board.solverNeedSolution'),
   });
+  // gmt 的导入 / 导出（制题器专用）：原来是画布上两个弹层按钮，现在收进菜单、
+  // 选项改成站内弹框（见 optionDialog）—— 排在这两行菜单里：清空画布之后、帮助之前
+  if (mode === 'maker') {
+    const helpIndex = menuItems.findIndex(item => item.actionKey === 'help');
+    menuItems.splice(helpIndex < 0 ? menuItems.length : helpIndex, 0,
+      {
+        label: t('board.exportGmt'), templateId: 'exportGmt', actionKey: 'export-gmt',
+        action: () => optionDialog(t('board.exportGmt'), [
+          { label: '查看 gmt 代码', templateId: 'gmtView', actionKey: 'gmt-view', action: () => codeDialog('gmt 代码', gmtText()) },
+          { label: '导出为 gmt 文件', templateId: 'gmtSave', actionKey: 'gmt-save', action: saveGmtFile },
+          { label: '导出至 Issue', templateId: 'gmtIssue', actionKey: 'gmt-issue', action: submitGmtIssue },
+        ]),
+      },
+      {
+        label: t('board.importGmt'), templateId: 'importGmt', actionKey: 'import-gmt',
+        action: () => optionDialog(t('board.importGmt'), [
+          { label: '导入 gmt 代码', templateId: 'gmtPaste', actionKey: 'gmt-paste', action: () => codeDialog('导入 gmt 代码', '', loadGmt) },
+          { label: '导入 gmt 文件', templateId: 'gmtRead', actionKey: 'gmt-read', action: readGmtFile },
+        ]),
+      });
+  }
   menuItems.push({ label: t('board.closeMenu'), templateId: 'menuClose', actionKey: 'close-menu', action: closePopups });
+  /**
+   * 生成网格弹层 过程函数
+   * 输列数 / 行数（2–20）与单位长度（默认 50）；已经生成过网格时，里面填的就是当前的尺寸 ——
+   * 再确认一次就是「改大小」（旧网格会被整块换掉）
+   */
+  const gridDialog = () => {
+    const current = gridMeta;
+    const mask = document.createElement('div');
+    mask.className = 'board-dialog-mask';
+    mask.innerHTML = '<div class="board-dialog board-dialog-confirm">' +
+      `<strong>${t('board.gridTitle')}</strong>` +
+      '<div class="grid-form">' +
+        `<label>${t('board.gridCols')}<input class="board-dialog-input" id="grid-cols" type="number" step="1"></label>` +
+        `<label>${t('board.gridRows')}<input class="board-dialog-input" id="grid-rows" type="number" step="1"></label>` +
+        `<label>${t('board.gridUnit')}<input class="board-dialog-input" id="grid-unit" type="number" step="1"></label>` +
+      '</div>' +
+      `<p class="board-dialog-hint">${t('board.gridRangeHint')}</p>` +
+      '<div class="board-dialog-actions"></div></div>';
+    const cols = mask.querySelector('#grid-cols');
+    const rows = mask.querySelector('#grid-rows');
+    const unit = mask.querySelector('#grid-unit');
+    cols.value = String(current ? current.m : 6);
+    rows.value = String(current ? current.n : 6);
+    unit.value = String(current ? current.unit : GRID_DEFAULT_UNIT);
+    const hint = mask.querySelector('.board-dialog-hint');
+    const actions = mask.querySelector('.board-dialog-actions');
+    const cancelButton = document.createElement('button');
+    cancelButton.type = 'button';
+    cancelButton.textContent = t('common.cancel');
+    cancelButton.addEventListener('click', () => mask.remove());
+    const confirmButton = document.createElement('button');
+    confirmButton.type = 'button';
+    confirmButton.textContent = t('common.confirm');
+    confirmButton.addEventListener('click', () => {
+      const columns = Math.trunc(Number(cols.value));
+      const gridRows = Math.trunc(Number(rows.value));
+      const size = Number(unit.value);
+      if (!(columns >= GRID_MIN_SIZE && columns <= GRID_MAX_SIZE
+        && gridRows >= GRID_MIN_SIZE && gridRows <= GRID_MAX_SIZE && size > 0)) {
+        hint.textContent = t('board.gridRangeHint');
+        return;
+      }
+      if (generateGrid(columns, gridRows, size)) mask.remove();
+      else hint.textContent = t('board.gridFailed');
+    });
+    actions.appendChild(confirmButton);
+    actions.appendChild(cancelButton);
+    mask.addEventListener('click', event => { if (event.target === mask) mask.remove(); });
+    document.body.appendChild(mask);
+    cols.focus();
+  };
   popupButton(t('board.menu'), { templateId: 'menu', actionKey: 'open-menu', items: menuItems });
+  // 非游玩模式（画板 / 制题器 / 求解器）：菜单右边一个「生成网格」按钮（见 gridDialog）
+  if (mode !== 'level' && mode !== 'maker-play') {
+    add(t('board.gridButton'), () => gridDialog(), { templateId: 'grid', actionKey: 'make-grid' });
+  }
   if (mode === 'level' || mode === 'maker-play') add(t('board.explore'), () => { if (typeof exploreMode === 'function') exploreMode(); }, { templateId: 'explore', actionKey: 'explore' });
   if (mode === 'maker' || mode === 'solver') addMarkTools();
-  if (mode === 'maker') {
-    popupButton(t('board.exportGmt'), {
-      templateId: 'exportGmt', actionKey: 'export-gmt',
-      items: [
-        { label: '查看 gmt 代码', templateId: 'gmtView', actionKey: 'gmt-view', action: () => codeDialog('gmt 代码', gmtText()) },
-        { label: '导出为 gmt 文件', templateId: 'gmtSave', actionKey: 'gmt-save', action: saveGmtFile },
-        { label: '导出至 Issue', templateId: 'gmtIssue', actionKey: 'gmt-issue', action: submitGmtIssue },
-      ],
-    });
-    popupButton(t('board.importGmt'), {
-      templateId: 'importGmt', actionKey: 'import-gmt',
-      items: [
-        { label: '导入 gmt 代码', templateId: 'gmtPaste', actionKey: 'gmt-paste', action: () => codeDialog('导入 gmt 代码', '', loadGmt) },
-        { label: '导入 gmt 文件', templateId: 'gmtRead', actionKey: 'gmt-read', action: readGmtFile },
-      ],
-    });    /**
+  if (mode === 'maker') {    /**
      * 试玩前的数据传输 过程函数
      * 正常走页面里的 dataTransfer（图形 + 标记 + 撤销历史 + 一份备份）。复杂关卡的撤销历史动辄
      * 几 MB（几百个对象的关卡能到 4~5MB），sessionStorage 放不下会抛 QuotaExceededError ——
@@ -2970,6 +4014,9 @@
       sessionStorage.removeItem('constructRecord');
       if (!write('geometryElementLists', JSON.stringify(lists))) return false;
       if (!write('elements', elements)) return false;
+      // 网格元信息很小，退让时照样带上（不然试玩页会把网格辅助对象当普通作图显示出来）
+      const grid = typeof window.boardGmt?.grid === 'function' ? window.boardGmt.grid() : null;
+      write('gridMeta', JSON.stringify(grid || null));
       if (history && !write('constructRecord', history)) sessionStorage.removeItem('constructRecord');
       return true;
     };
@@ -3065,10 +4112,15 @@
       const moving = marking !== null || (typeof tool === 'string' && tool === 'move');
       if (element && moving) {
         tip.hidden = false;
-        // named 图形的表观标签可能与作图时的变量名不同（gmt 的 named=A.M 把 A 显示成 M），
-        const originalLabel = element.getId();
-        const tipLabel = originalLabel && originalLabel !== element.getName() ? originalLabel : element.getName();
-        tip.textContent = `${tipLabel} · ${typeLabel(element)}`;
+        // 网格当作一整块：悬停在任意一条格线上都显示「格线」，不显示 gSY3 这种作图名
+        if (isGridId(element.getId())) {
+          tip.textContent = t('board.gridLabel');
+        }else{
+          // named 图形的表观标签可能与作图时的变量名不同（gmt 的 named=A.M 把 A 显示成 M），
+          const originalLabel = element.getId();
+          const tipLabel = originalLabel && originalLabel !== element.getName() ? originalLabel : element.getName();
+          tip.textContent = `${tipLabel} · ${typeLabel(element)}`;
+        }
         tip.style.left = `${clientX + 16}px`;
         tip.style.top = `${clientY + 18}px`;
       }else{

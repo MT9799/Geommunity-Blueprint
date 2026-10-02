@@ -674,6 +674,21 @@ function clickToolFloatingButton(action, event) {
  * @param {number} y
  */
 function operateEventFunction(type, x, y) {
+    // 游玩模式（关卡游玩 / 试玩）里网格就是作答范围：点只能取在网格那一块闭矩形里
+    // （与求解内核的点域一致），网格外的点击直接挡掉；画板 / 制题器 / 求解器不限制（见 tool.js）
+    if (type === 'click' && typeof window.isOutsideGrid === 'function') {
+        const worldX = (x - transform.x) / transform.scale;
+        const worldY = (y - transform.y) / transform.scale;
+        if (window.isOutsideGrid(worldX, worldY)) {
+            if (typeof window.boardToast === 'function') window.boardToast(t('board.gridOutOfRange'));
+            return;
+        }
+    }
+    // 点在任何「隐藏交点」的位置上都先把那个交点显示出来（点工具 / 交点工具 / 其它工具取点时顺手
+    // 点的点一视同仁）。放在网格越界判断之后（越界那一下不该造点），且在工具之前：工具取点时会
+    // 直接引用它、不会再叠一个重合的点；非点工具 / 交点工具照常继续自己这一步
+    // （见 geometryToolBag.js 的 revealHiddenIntersection）
+    if (type === 'click') revealHiddenIntersectionAtClick(x, y);
     tools[tool].toolEvent(type, x, y);
     drawContent();
     refreshToolFloating();

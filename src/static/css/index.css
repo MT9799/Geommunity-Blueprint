@@ -3,6 +3,13 @@ html {
     overflow: hidden;
 }
 
+:root {
+    /* 「更多栏 / 浮动栏」上按钮的边长（.more-button-item）：弹层菜单的尺寸按它算 ——
+       菜单宽度约 2.5 个按钮，里面的图标与字号也一起缩放（手机上不再是半屏大，
+       见 .board-popup 与媒体查询里的覆盖） */
+    --board-button-size: 60px;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -408,6 +415,13 @@ textarea {
     box-shadow: 0 12px 28px rgba(25, 25, 25, 0.18);
 }
 
+/* 菜单弹层的宽度按按钮算（约 2.5 个按钮宽），窄屏上也不会横着铺开。
+   样式弹层（.style-popup）自成一套尺寸，不跟着这个宽度走 */
+.board-popup:not(.style-popup) {
+    width: calc(var(--board-button-size) * 2.5);
+    max-width: calc(100vw - 16px);
+}
+
 .board-popup.open {
     display: flex;
 }
@@ -453,14 +467,23 @@ textarea {
 .style-popup-row {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 4px;
 }
 
 .style-popup-title {
-    width: 34px;
+    /* 两字标题（颜色 / 粗细 / 标签 / 虚线 / 隐藏）在 13px 下正好 26px，
+       留 2px 余量：一行里并排放两组「标题 + 开关」时也不至于把中间那列撑宽 */
+    width: 28px;
     flex-shrink: 0;
     color: rgb(90, 90, 95);
     font-size: 13px;
+}
+
+/* 「标签 + 虚线」并排在同一行的那一行：两个标题、两个开关，间距收紧一点，
+   这样元素一览详情的三列还是塞得进面板宽度（见 #geometry-item .item-container-column） */
+.style-popup-row-pair {
+    gap: 4px;
+    flex-wrap: nowrap;
 }
 
 .style-popup-color {
@@ -494,14 +517,19 @@ textarea {
     outline-offset: -2px;
 }
 
-/* 标签开关：滑块式，开（右侧圆点亮）表示显示标签，关表示不显示 */
+/* 标签 / 虚线 / 隐藏开关：滑块式，开（右侧圆点亮）表示启用，关表示不启用。
+   尺寸按「一行放两个开关」定：两个标题加两个开关要比单独一个开关那行宽不了多少，
+   元素一览详情的三列才不会挤出面板（见 #geometry-item .item-container-column） */
 .style-popup-switch {
-    max-width: 50%;
+    /* 上限按滑块的样子定：列被拉宽（详情的中间列会吃掉剩下的宽度）时也不跟着拉成横条 */
+    max-width: 64px;
+    /* 并排一行时也要留出滑块那么宽：再窄就成圆点了（46x26 才是滑块的样子） */
+    min-width: 46px;
     position: relative;
     flex: 1;
-    height: 34px;
+    height: 26px;
     border: none;
-    border-radius: 34px;
+    border-radius: 26px;
     background-color: rgb(240, 240, 240);
     cursor: pointer;
     transition: background-color 0.3s ease;
@@ -514,9 +542,9 @@ textarea {
 .style-popup-switch-knob {
     position: absolute;
     top: 50%;
-    left: 5px;
-    width: 24px;
-    height: 24px;
+    left: 4px;
+    width: 18px;
+    height: 18px;
     border-radius: 50%;
     background-color: rgb(170, 170, 175);
     transform: translateY(-50%);
@@ -534,7 +562,7 @@ textarea {
 }
 
 .style-popup-switch.active .style-popup-switch-knob {
-    left: calc(100% - 29px);
+    left: calc(100% - 22px);
     background-color: #277f96;
 }
 
@@ -627,6 +655,17 @@ textarea {
 
 .popup-item.disable:hover {
     background-color: transparent;
+}
+
+/* 选项弹框（导入 / 导出 gmt 这类）与里面的选项列表：一行一个「图标 + 文字」 */
+.board-dialog-options {
+    width: min(320px, 88vw);
+}
+
+.board-dialog-list {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
 }
 
 /* 确认框 */
@@ -735,6 +774,28 @@ textarea {
     font-size: 13px;
 }
 
+/* 「生成网格」弹层里的三行输入（列 / 行 / 单位长度） */
+.grid-form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 12px 0 0;
+}
+
+.grid-form label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 14px;
+    color: #191919;
+}
+
+.grid-form .board-dialog-input {
+    width: 110px;
+    flex: 0 0 auto;
+}
+
 .board-dialog-actions {
     display: flex;
     justify-content: flex-end;
@@ -814,9 +875,19 @@ textarea {
 
 .solver-advanced > summary::-webkit-details-marker { display: none; }
 
-/* 收起时 ▸、展开时 ▾ */
-.solver-advanced > summary::before { content: '▶'; font-size: 12px; }
-.solver-advanced[open] > summary::before { content: '▼'; }
+/* 三角是 SVG 图标（见 board-tools 的 solverPanel）：收起时朝右、展开时转 90° 朝下 */
+.solver-advanced > summary .solver-advanced-icon {
+    width: 13px;
+    height: 13px;
+    flex-shrink: 0;
+    stroke: #5a5a60;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.solver-advanced[open] > summary .solver-advanced-icon {
+    transform: rotate(90deg);
+}
+
 .solver-advanced[open] > summary { margin-bottom: 8px; }
 .solver-advanced .solver-field-row { margin-top: 10px; }
 
@@ -1197,8 +1268,9 @@ textarea {
 
 
 .more-button-item {
-    width: 60px;
-    height: 60px;
+    /* 边长由 --board-button-size 给（手机端见媒体查询）：弹层菜单的尺寸跟着它算 */
+    width: var(--board-button-size);
+    height: var(--board-button-size);
     background-color: rgb(240, 240, 240);
     border-radius: 5px;
     cursor: pointer;
@@ -1292,25 +1364,37 @@ textarea {
     white-space: nowrap;
 }
 
-/* 一览面板的标题行：标题在左，关闭（✕）在右上角 */
-.panel-head {
-    display: flex;
-    align-items: center;
+/* 一览面板的标题行：与详情共用 .item-container-title（灰底圆角条），
+   只是那头一行要标题在左、关闭（✕）在右（详情那头是返回键在左） */
+#geometry-item-list .item-container-title {
     justify-content: space-between;
-    gap: 8px;
+    /* 抵掉 .panel-container 的内边距（5px / 10px）：不然这条比详情的标题栏窄 20px、矮 5px，
+       两头切来切去标题栏会往里缩一圈 */
+    width: calc(100% + 20px);
+    margin: -5px -10px 5px;
+}
+
+#geometry-item-list .item-container-title p {
+    margin: 2px 10px;
+}
+
+/* 关闭键与详情标题行的返回键同尺寸（50×50）：两头的条子一样高 */
+#geometry-item-list .item-container-title .panel-close-button {
+    width: 50px;
+    height: 50px;
 }
 
 .panel-close-button {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
+    width: 45px;
+    height: 45px;
     flex-shrink: 0;
     padding: 0;
     border: 0;
     border-radius: 6px;
-    background-color: rgb(232, 232, 236);
+    background-color: rgb(240, 240, 240);
     cursor: pointer;
 }
 
@@ -1504,6 +1588,13 @@ textarea {
     gap: 5px;
 }
 
+/* 元素详情与元素一览一样宽：一览外面套着 .panel-container（105% 宽、左移 2.5%），
+   详情（#geometry-item）直接铺在 .panel 里 —— 不补上这 5% 就会比一览窄一圈 */
+#geometry-item {
+    width: 105%;
+    margin-left: -2.5%;
+}
+
 .item-container-title {
     position: sticky;
     top: 0;
@@ -1623,6 +1714,26 @@ textarea {
 #geometry-item .item-container-column {
     gap: 4px;
     padding: 6px;
+}
+
+/* 三列的宽度分配：第一列（图形自己的数据）把剩下的宽度全吃掉 —— 圆心 / 半径这些
+   字符串很长，列宽一点才看得见；样式与上层构造那两列按自己的内容排、还稍稍收窄一点 */
+#geometry-item .item-container-column:first-child {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+#geometry-item .item-container-column:nth-child(2),
+#geometry-item .item-container-column:nth-child(3) {
+    width: 210px;
+    flex: 0 0 auto;
+    padding-left: 4px;
+    padding-right: 4px;
+}
+
+#geometry-item .item-container-column:first-child input:not([type="checkbox"]):not([type="color"]),
+#geometry-item .item-container-row input:not([type="checkbox"]):not([type="color"]) {
+    flex: 1 1 auto;
 }
 
 #geometry-item .item-container-plain {
@@ -1989,8 +2100,68 @@ textarea {
 }
 */
 
-/* 响应式设计：手机端调整 */
-@media (max-width: 768px) {
+/* 平板横屏 / 小号笔记本（宽度 961–1279、高度 501 起，UA 仍是电脑版，例如 1024×683、1180×787）：
+   整套 UI 收一号 —— 70px 的工具按钮在这种屏幕上相对太大，工具面板会占掉将近四成的高度。
+   按钮、分隔线、角标一起缩，菜单弹层的宽度由 --board-button-size 带着一起缩，比例不变。
+   上界 961 / 501 与下面的手机档互补（手机档还管窄屏与矮屏：见文件末尾的媒体查询） */
+@media (min-width: 901px) and (max-width: 1279px) and (min-height: 601px) {
+    :root {
+        --board-button-size: 50px;
+    }
+
+    .svg-button {
+        width: 58px;
+        height: 58px;
+    }
+
+    .svg-button:hover {
+        width: 84px;
+    }
+
+    .floating-svg-switch-button,
+    .floating-svg-button,
+    .floating-svg-choice {
+        width: 50px;
+        height: 50px;
+    }
+
+    /* 工具栏里的分组竖线跟着按钮缩，容器才不会比按钮高出一截 */
+    .tool-separator {
+        height: 46px;
+        margin: 0 6px;
+    }
+
+    /* 构造档按钮右下角的小角标（当前高级工具）跟着缩 */
+    .menu-tool-corner {
+        width: 24px;
+        height: 24px;
+    }
+
+    #menu_toolbar .menu-tool-corner .svg-icon {
+        width: 20px;
+        height: 20px;
+    }
+
+    /* 菜单弹层窄了（2.5 × 50 = 125px），条目里的图标与字号跟着收一点，
+       最长的标签（「打开求解器」这种 5 个字）也放得下 */
+    .board-popup:not(.style-popup) .popup-item {
+        min-height: 38px;
+        padding: 0 8px;
+        gap: 8px;
+        font-size: 13px;
+    }
+
+    .board-popup:not(.style-popup) .popup-item .svg-icon {
+        width: 23px;
+        height: 23px;
+    }
+}
+
+/* 响应式设计：手机端（底部上拉栏那套）调整。
+   不只是窄屏：**矮屏**也算 —— 手机横屏（844×390 这种）宽度过了 768，可高度只有 390，
+   电脑版那套工具栏（三行合起来 200 多像素）会吃掉半屏，所以高度不到 501 也走这一档。
+   阈值与 JS 的 EQUIPMENT_WIDTH（index.js / playPage.js）保持一致 */
+@media (max-width: 900px), (max-height: 600px) {
     /* 弹层里的按钮：手机上横排（还靠右对齐）会把最左边那个挤出屏幕 ——
        记录导入那三个（导入 gmt 代码 / 导入 gmt 文件 / 取消）尤其明显。竖着排、各占一行 */
     .board-dialog-actions {
@@ -2028,9 +2199,27 @@ textarea {
         height: 40px;
     }
 
-    .more-button-item {
-        width: 40px;
-        height: 40px;
+    /* 按钮变小，弹层菜单跟着小一圈（宽度 = 2.5 × 40 = 100px）：字号取 11px 兜底，
+       再小就看不清了；图标 17px、条目 30px 高，六个菜单项合起来约 200px 高 */
+    :root {
+        --board-button-size: 40px;
+    }
+
+    .board-popup:not(.style-popup) {
+        padding: 6px;
+        gap: 4px;
+    }
+
+    .board-popup:not(.style-popup) .popup-item {
+        min-height: 32px;
+        padding: 0 4px;
+        gap: 5px;
+        font-size: 12px;
+    }
+
+    .board-popup:not(.style-popup) .popup-item .svg-icon {
+        width: 17px;
+        height: 17px;
     }
     .panel {
         width: 90vw;

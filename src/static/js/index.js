@@ -11,19 +11,22 @@ myRound
 */
 
 // 浏览器视口变化
+// 手机那套布局（底部上拉栏）的判定：**窄屏或矮屏**都算 —— 手机横屏宽度过了 768，
+// 可高度只有 390～430，这时用电脑版工具栏会吃掉半屏。阈值与 index.css 末尾的
+// @media (max-width: 960px), (max-height: 500px) 保持一致
 const EQUIPMENT_WIDTH = {
-    MOBILE: 768,
+    MOBILE: 960,
     TABLET: 1024,
     DESKTOP: 1200,
 }
+const EQUIPMENT_HEIGHT = {
+    MOBILE: 500,
+}
 let widthTypeEquipment;
 function updateLayout() {
-    const width = window.innerWidth;
-    if (width < EQUIPMENT_WIDTH.MOBILE) {
-        widthTypeEquipment = 'mobile';
-    }else{
-        widthTypeEquipment = 'tablet';
-    }
+    const mobile = window.innerWidth <= EQUIPMENT_WIDTH.MOBILE
+        || window.innerHeight <= EQUIPMENT_HEIGHT.MOBILE;
+    widthTypeEquipment = mobile ? 'mobile' : 'tablet';
 }
 window.addEventListener('resize', updateLayout);
 
@@ -57,8 +60,8 @@ let transform = {
 // 点默认显示标签（与 addObject 的默认策略一致），直线与圆默认不显示
 let geometryStyle = {
     point: {colorChoice: "auto", color: "#191919", width: 1, showName: true}, 
-    line: {colorChoice: "auto", color: "#191919", width: 1, showName: false}, 
-    circle: {colorChoice: "auto", color: "#191919", width: 1, showName: false}
+    line: {colorChoice: "auto", color: "#191919", width: 1, showName: false, dashed: false}, 
+    circle: {colorChoice: "auto", color: "#191919", width: 1, showName: false, dashed: false}
 };
 
 // 几何对象管理器
@@ -662,11 +665,16 @@ function dataTransfer() {
     // 构造记录
     const constructRecordJSON = storageManager.serialization();
     sessionStorage.setItem('constructRecord', constructRecordJSON);
+    // 网格（制题器里生成过才有）：试玩页按它把网格还原成一整块 ——
+    // 不带上，网格辅助对象（格点、垂线那些）到试玩页会当成普通作图原样显示出来
+    const gridMetaJSON = JSON.stringify(window.boardGmt?.grid?.() || null);
+    sessionStorage.setItem('gridMeta', gridMetaJSON);
     sessionStorage.setItem('makerBackup', JSON.stringify({
         thumbnail: sessionStorage.getItem('thumbnail'),
         geometryElementLists: sessionStorage.getItem('geometryElementLists'),
         elements: sessionStorage.getItem('elements'),
         constructRecord: sessionStorage.getItem('constructRecord'),
+        gridMeta: sessionStorage.getItem('gridMeta'),
     }));
 }
 
@@ -729,6 +737,9 @@ function afterHistoryMove() {
     // 在 drawContent 之前调用：补回来的颜色这一次绘制就生效
     if (typeof window.recordPanelAfterRestore === 'function') window.recordPanelAfterRestore();
     window.recordPanelRefresh?.();
+    // 元素一览也要跟着撤回 / 重做重建：不重建的话面板里还是撤回前的图形
+    // （网格那一行、格线数目、隐藏档都停在旧状态，看起来就像面板卡住了）
+    if (typeof loadGeometryElements === 'function') loadGeometryElements();
 }
 
 /**
@@ -774,6 +785,9 @@ window.addEventListener("storage", () => {
     storage();
 });
 function storage() {
+    // 删掉的图形如果还挂着标记（给定 / 可动点 / 所求 / 探索 / 隐藏），先清掉再记快照 ——
+    // 不然快照里会留着一个已经不在画布上的对象的标记（见 board-tools 的 pruneMarks）
+    if (typeof window.pruneMarks === 'function') window.pruneMarks();
     // 存储：几何对象 + 选定栏（标记等改动也能撤销）
     storageManager.append(collectStorageSnapshot());
     refreshStorageButton();
@@ -849,15 +863,16 @@ const infDict = {
     "moveView": {title: "移动视图模式", context: "防误触几何对象"},
     "restoreTransform": {title: "还原画布变化量", context: "将画布的视图变换还原至初始值"},
     "clear": {title: "清空选择", context: "清空当前工具的选中栏"},
+    "make-grid": {title: "生成网格", context: "作一块 m×n 的网格，可指定单位长度"},
     "pointStyle": {title: "配置点样式", context: "设置后续绘制的点的颜色、大小与标签显示"},
-    "objectStyle": {title: "调整对象样式", context: "用移动工具选中对象后，可修改它的颜色、粗细与标签显示"},
+    "objectStyle": {title: "调整对象样式", context: "用移动工具选中对象后，可修改它的颜色、粗细、标签显示，直线与圆还可切成虚线"},
     "deleteObject": {title: "删除选中对象", context: "删除移动工具选中的对象，连同由它作出来的所有子对象"},
     "any": {title: "任意对象", context: "可选中任意几何对象"},
     "choicePoint": {title: "点对象", context: "仅选中点对象"},
     "style": {title: "样式刷", context: "拖拽以配置直线的样式为当前线工具样式"},
     "lineType": {title: "切换线类型", context: "点一下直线 / 射线 / 线段，把它的类型换成下一种"},
-    "lineStyle": {title: "配置直线样式", context: "设置后续绘制的直线的颜色、粗细与标签显示"},
-    "circleStyle": {title: "配置圆样式", context: "设置后续绘制的圆的颜色、粗细与标签显示"},
+    "lineStyle": {title: "配置直线样式", context: "设置后续绘制的直线的颜色、粗细、标签显示与是否虚线"},
+    "circleStyle": {title: "配置圆样式", context: "设置后续绘制的圆的颜色、粗细、标签显示与是否虚线"},
     "threePointAngleBisector": {title: "三点角平分线", context: "第二点为角的顶点"},
     "twoLineAngleBisector": {title: "角平分线", context: "构造两条直线的两条角平分线。⚠ 制题器慎用：gmt 无法导出"},
     "threePointCompass": {title: "三点圆规", context: "两点距离为半径，第三点为圆心作圆"},

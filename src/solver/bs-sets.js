@@ -157,6 +157,9 @@ class SolutionCollector {
         this.entries = [];
         this.successfulVisits = 0;
         this.duplicateVisits = 0;
+        // 收下一条新解就立刻回调（entry, 当前条数）：worker 用它「一找到就端上来」，
+        // 页面不必等整次搜索（并行时是一个前缀任务）跑完才看到解
+        this.onEntry = null;
     }
 
     /**
@@ -202,6 +205,8 @@ class SolutionCollector {
         }
         // 不预分配：搜不到解时一个结果都不占
         this.entries.push({graph: graph.clone(), newElements, circles});
+        // 收下了（不是重复）→ 立刻上报。解很少、这一步只在新解时走，对搜索速度没有影响
+        if (this.onEntry) this.onEntry(this.entries[this.entries.length - 1], this.entries.length);
         if (this.entries.length < this.requested) return false;
         if (control) {
             control.found = true; // 这里的 found 表示「已收够」，不是「第一次找到」
