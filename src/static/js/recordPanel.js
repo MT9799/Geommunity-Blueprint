@@ -458,9 +458,14 @@
             global.boardGmt.fitView();
             global.drawContent?.();
         }
-        // 记下来：撤销清单为了瘦身不带样式字段（见 recordStore 的 slimUndolist），
-        // 撤回 / 重做重建对象之后要按这张表再补一次色（见 recordPanelAfterRestore）
-        loadedStyles = dict.styles || null;
+        // 记下来：只有**老格式**的撤销清单才要它 —— 那是瘦身过的快照栈（见 recordStore 的
+        // slimUndolist），样式字段不全，撤回 / 重做重建对象之后要按记录的样式表补一次
+        // （见 recordPanelAfterRestore）。
+        // 新格式（undolist 是一串对象行序号）不记：它的每一格就是**完整**快照，
+        // 颜色 / 粗细 / 标签 / 虚线都会随快照回来（loadStorageSnapshot 按快照逐项还原）。
+        // 而样式表是按**对象名**存的，撤掉的对象名会被新画的图形复用（E / F / s1 …），
+        // 再补一次就会把新图形改成旧对象的颜色 / 显隐（现象：撤回后新画的点变灰、线不见了）
+        loadedStyles = null;
         const undolist = dict.undolist || (dict.storage ? {construct: dict.storage.construct, moves: dict.storage.moves} : null);
         if (Array.isArray(undolist)) {
             // 新格式：名单就是「可撤回的图形」那一串对象行序号。
@@ -472,6 +477,8 @@
                 global.rebuildMovesHistoryForRecord(listed, store.infoOf(dict).steps);
             }
         }else{
+            // 老格式才需要「撤回后按样式表补一次」
+            loadedStyles = dict.styles || null;
             // 老格式（v1.1.3 及以前）：撤销清单是紧凑的快照栈，先展开成存储类认的 JSON 字符串；
             // 清单读不出来（空 / 坏掉的旧记录）就保持导入时的历史，别把撤销功能弄坏
             const lists = store.expandUndolist(undolist);

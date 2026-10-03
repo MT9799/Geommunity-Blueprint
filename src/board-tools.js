@@ -67,8 +67,11 @@
   if (modeTitles[mode]) document.title = `${modeTitles[mode]} | Geommunity Blueprint`;
   // 标记显示色：给定 / 带标签给定黑、可移动点蓝、所求类与探索显示金
   const markColors = {initial: '#191919', named: '#191919', movepoints: '#0099ff', result: '#ffd700', resultShown: '#ffd700', explore: '#ffd700'};
-  // 标记分类：给定三项互斥（一个对象只属于其中一个）；所求的判定 / 显示可以同时标
-  const markGroups = {given: ['initial', 'named', 'movepoints']};
+  // 标记的互斥关系：给定三项（给定 / 带标签给定 / 可移动点）互相排斥，一个对象只属于其中一个；
+  // 所求判定 / 所求显示 / 探索显示**彼此可以共存**，但它们与给定那三类互斥 ——
+  // 一个图形要么是题面条件，要么是目标 / 探索对象，不能两头都占（见 markExclusive）
+  const givenMarkKeys = ['initial', 'named', 'movepoints'];
+  const goalMarkKeys = ['result', 'resultShown', 'explore'];
   // 求解器只保留「给定」与「所求判定」，制题器保留完整的 3 + 3
   const solverMode = mode === 'solver';
   const markSetOf = key => geometryElementLists[key] || new Set();
@@ -180,6 +183,29 @@
     allMarkSets().forEach(({set}) => set.forEach(id => ids.add(id)));
     return ids;
   };
+  /**
+   * 标上某一类之前先撤掉与它互斥的标记 过程函数
+   * 规则：给定三项（给定 / 带标签给定 / 可移动点）互相排斥；所求判定 / 所求显示 / 探索显示
+   * 彼此可以共存，但与给定三类互斥 —— 例如把「给定」的图形标成「所求判定」，
+   * 它的给定标记就被撤掉（反之把「所求判定」的图形标成「给定」，所求判定也撤掉）
+   * @param {string} id 对象 id
+   * @param {string} key 要标的这一类（initial / named / movepoints / result / resultShown / explore）
+   */
+  const markExclusive = (id, key) => {
+    if (givenMarkKeys.includes(key)) {
+      // 给定：同类里只留这一个；所求（含多解每一组的判定与显示）与探索显示一并撤掉
+      givenMarkKeys.forEach(other => { if (other !== key) markSetOf(other).delete(id); });
+      resultMarkSets().forEach(item => item.set.delete(id));
+      markSetOf('explore').delete(id);
+      return;
+    }
+    if (goalMarkKeys.includes(key)) {
+      // 所求类 / 探索显示：彼此共存、不动对方，只撤掉给定那三类
+      givenMarkKeys.forEach(other => markSetOf(other).delete(id));
+    }
+  };
+  // 元素一览（geometryItem.js）补标记时也要守同一条互斥规则
+  window.markExclusive = (id, key) => markExclusive(id, key);
   // 标记面板「给定」一组的条目（求解器只留给定）
   const givenMarkItems = [
     ['initial', 'board.markGiven'],
@@ -238,7 +264,26 @@
         if (item && typeof item.clear === 'function') item.clear();
       });
     }
+    // 工具自己的 clear 不一定清掉管理器里的缓存（geometryManager.choice[工具]）——
+    // 那里面存着「画到一半」的旧对象引用，换了一整套图形之后不清的话，
+    // 之后作图会取到已经不存在的对象（报 null.getCoordinate、点一下没反应、历史也记不下来）
+    if (typeof geometryManager !== 'undefined' && geometryManager
+      && typeof geometryManager.deleteAllCache === 'function') {
+      geometryManager.deleteAllCache();
+    }
     if (typeof refreshToolFloating === 'function') refreshToolFloating();
+  };
+  /**
+   * 统一「给定」三项的读入口径 过程函数
+   * 有些 gmt / 记录里同一个对象既写在 initial= 又写在 named= 里（早期导出或手工编辑过）。
+   * 带标签给定是更强的说明，这种对象一律按 **named** 读：从 initial 名单里去掉。
+   * 否则「给定」与「带标签给定」两栏同时挂着它，标签与颜色该听谁的也说不清
+   */
+  window.normalizeGivenMarks = () => {
+    const named = geometryElementLists.named;
+    const initial = geometryElementLists.initial;
+    if (!named || !initial) return;
+    named.forEach(id => initial.delete(id));
   };
   /**
    * 按选定栏刷新显示色 过程函数
@@ -284,11 +329,25 @@
     const isList = Array.isArray(snapshot);
     const elements = (isList ? snapshot : snapshot?.elements) || [];
     geometryManager.loadStorage(elements);
-    // loadStorage 会按当前绘制样式（如自动配色）重新给对象上色，这里按快照还原各自颜色
+    // loadStorage 会按当前绘制样式（如自动配色）重新给对象上色 / 定粗细，这里按快照逐项还原。
+    // 快照本身就是完整的（getDict 连颜色 / 粗细 / 标签 / 虚线都存了），所以这里还原齐全之后，
+    // 撤回 / 重做就不必再让记录面板「按记录的样式表补一次」—— 那套是按**对象名**补的，
+    // 而撤掉的对象名会被新画的图形复用（E / F / s1 …），补上去就把新图形改成旧对象的颜色 / 显隐
     const dicts = new Map(elements.map(item => [item.id, item]));
+    const restoreStyle = (item, method, value) => {
+      if (value === undefined || value === null) return;
+      if (typeof GeometryElement.prototype[method] !== 'function') return;
+      GeometryElement.prototype[method].call(item, value);
+    };
     geometryManager.getAllByOrder().forEach(item => {
       const dict = dicts.get(item.getId());
-      if (dict?.color) GeometryElement.prototype.modifyColor.call(item, dict.color);
+      if (!dict) return;
+      // 直接用原型上的方法：标记中的对象 modifyColor / modifyShowName 被改写为「只记样式」，
+      // 而快照里存的就是当时的显示值（标记色），照它还原才对
+      restoreStyle(item, 'modifyColor', dict.color);
+      restoreStyle(item, 'modifyWidth', dict.width);
+      restoreStyle(item, 'modifyShowName', dict.showName);
+      restoreStyle(item, 'modifyDashed', dict.dashed);
     });
     // 网格：按快照确认这次还有没有网格（没有就清掉 —— 否则撤销掉网格之后导出仍会带 #grid= 行，
     // 求解器也会以为还处在网格模式）
@@ -302,6 +361,11 @@
       // 画布上了，标记面板里还挂着它」
       Object.keys(geometryElementLists).forEach(key => { geometryElementLists[key] = new Set(); });
       Object.entries(snapshot.lists).forEach(([key, value]) => { geometryElementLists[key] = new Set(value); });
+      // 读入口径：同时写在 initial 与 named 里的对象按 named 算（撤销 / 重做恢复快照时同样守它）
+      if (typeof window.normalizeGivenMarks === 'function') window.normalizeGivenMarks();
+      // 快照换了整套图形，工具缓存也要扔（同 loadGmt）；duplicatedFlag 残留会吃掉下一格历史
+      if (typeof window.resetToolState === 'function') window.resetToolState();
+      geometryManager.duplicatedFlag = false;
       // 快照重建了对象，清理不再处于标记状态的样式记录（含多解）
       const markedIds = allMarkIds();
       [...markedStyles.keys()].forEach(id => {
@@ -331,6 +395,9 @@
     [storageManager, typeof storageManagerResult !== 'undefined' ? storageManagerResult : null, typeof storageManagerExplore !== 'undefined' ? storageManagerExplore : null].forEach(manager => {
       if (!manager) return;
       manager.clear();
+      // 记历史前一定把「开闸」打开：没开闸时 append 是空操作（见 StorageManager.append），
+      // 历史会静静变成空的 —— 之后作图就再也记不进撤销，撤回当然不正常
+      manager.setStatus(true);
       manager.append(collectStorageSnapshot());
     });
     // keepMoves：从制题器 / 求解器返回游玩页时用 —— 图形重建后撤销起点要归零，
@@ -393,12 +460,18 @@
     [storageManager, typeof storageManagerResult !== 'undefined' ? storageManagerResult : null, typeof storageManagerExplore !== 'undefined' ? storageManagerExplore : null].forEach(manager => {
       if (!manager) return;
       manager.clear();
+      // 记历史前一定把「开闸」打开：没开闸时 append 是空操作（见 StorageManager.append），
+      // 历史会静静变成空的 —— 那之后作图就再也记不进撤销，撤回当然不正常
+      manager.setStatus(true);
       steps.forEach(step => manager.append(step));
     });
+    // 残留的 duplicatedFlag 会让下一次 storage 事件被当成「这次作图作废」而不记历史（见 index.js）
+    if (typeof geometryManager !== 'undefined' && geometryManager) geometryManager.duplicatedFlag = false;
     if (typeof movesStorageManager !== 'undefined') {
       [movesStorageManager, typeof movesStorageManagerResult !== 'undefined' ? movesStorageManagerResult : null, typeof movesStorageManagerExplore !== 'undefined' ? movesStorageManagerExplore : null].forEach(manager => {
         if (!manager) return;
         manager.clear();
+        manager.setStatus(true);
         manager.append({e: 0, l: 0});
       });
     }
@@ -452,8 +525,12 @@
     [storageManager, typeof storageManagerResult !== 'undefined' ? storageManagerResult : null, typeof storageManagerExplore !== 'undefined' ? storageManagerExplore : null].forEach(manager => {
       if (!manager) return;
       manager.clear();
+      // 同 resetStorageHistory：先开闸，否则 append 会被 StorageManager 静默丢掉
+      manager.setStatus(true);
       steps.forEach(step => manager.append(step));
     });
+    // 同 resetStorageHistory：别把上一次动作残留的 duplicatedFlag 带过去
+    if (typeof geometryManager !== 'undefined' && geometryManager) geometryManager.duplicatedFlag = false;
     refreshStorageButton();
     return steps.length;
     };
@@ -967,6 +1044,27 @@
     return solutionsById.has(params.get('id') || '');
   };
   /**
+   * 全屏看一张图 过程函数
+   * 与关卡示意图（缩略图那个 .thumbnail-zoom）同一套观感：黑底铺满、点哪儿都关掉。
+   * 答案图原来是在弹层里原地放大（.answer-figure.zoom），手机上会把整排在图上撑开，
+   * 所以改成和示意图一样点开全屏看
+   * @param {string} src 图片地址
+   * @param {string} [alt] 说明文字
+   * @returns {HTMLElement} 遮罩本身
+   */
+  const imageZoomOverlay = (src, alt) => {
+    const mask = document.createElement('div');
+    mask.className = 'image-zoom';
+    const picture = document.createElement('img');
+    picture.src = src;
+    picture.alt = alt || '';
+    mask.appendChild(picture);
+    mask.addEventListener('click', () => mask.remove());
+    document.body.appendChild(mask);
+    return mask;
+  };
+
+  /**
    * 答案图窗口 过程函数
    * @param {Array<{file: string, star: string}>} images
    */
@@ -993,7 +1091,9 @@
         picture.src = `../data/${image.file}`;
         picture.alt = image.star || t('board.answerTitle');
         picture.loading = 'lazy';
-        picture.addEventListener('click', () => figure.classList.toggle('zoom'));
+        // 点开全屏大图（与关卡示意图同一套观感），不再是原地放大 ——
+        // 原地放大在手机上会把整排答案图一起撑开
+        picture.addEventListener('click', () => imageZoomOverlay(picture.src, picture.alt));
         const caption = document.createElement('figcaption');
         caption.textContent = image.star || '';
         figure.appendChild(picture);
@@ -1905,7 +2005,16 @@
     // 无穷远点（EdgePoint）除外：它是假想的点、坐标在很远处，画出来会让画布糊掉一大片
     elements.forEach(item => { item.visible = item.base?.type !== 'edgePoint'; });
     geometryManager.loadStorage(elements);
+    // 换了一整套图形：画到一半的工具状态（工具缓存 + 管理器里的 choice 缓存）要一并扔掉，
+    // 否则它们还指着刚被换掉的旧对象 —— 之后再作图会取到 null（报错、点一下没反应），
+    // 而且整段作图都记不进撤销历史（表现为「载入记录后撤回变得极不正常」）
+    if (typeof window.resetToolState === 'function') window.resetToolState();
+    // 残留的 duplicatedFlag 会让下一次 storage 事件被当成「这次作图作废」而不记历史
+    geometryManager.duplicatedFlag = false;
+    if (typeof refreshOpenedGeometryItem === 'function') refreshOpenedGeometryItem();
     Object.keys(lists).forEach(key => { geometryElementLists[key] = new Set(lists[key]); });
+    // 读入口径：同时写在 initial 与 named 里的对象按 named 算
+    if (typeof window.normalizeGivenMarks === 'function') window.normalizeGivenMarks();
     // 网格关卡：登记网格对象、藏起辅助对象、按 #gridstyle= 上样式（没有网格就清掉）
     setGridMeta(grid);
     // 导入 gmt / 载入记录都走这里：有网格就适配到网格范围，没有网格就适配到图形本身
@@ -4027,7 +4136,6 @@
       toast(t('board.movepointOnlyFree'));
       return;
     }
-    const group = Object.values(markGroups).find(keys => keys.includes(marking)) || [marking];
     // 多解：所求判定 / 所求显示写进当前选中的那一组解
     const set = marking === 'result' ? resultSetOf(resultActive, 'judged')
       : marking === 'resultShown' ? resultSetOf(resultActive, 'shown')
@@ -4038,9 +4146,9 @@
       // 同分类的其他集合还在标记就保持标记色，都不在就恢复对象自身的样式
       applyMarkToElement(id);
     }else{
-      // 同分类互斥：给定（给定 / 带标签给定 / 可移动点）里只能选一个；
-      // 所求判定与所求显示可以同时标在一个对象上（显示时取所求显示的橙色）
-      group.forEach(key => markSetOf(key).delete(id));
+      // 互斥：给定三项里只能选一个，且与所求类 / 探索显示互斥
+      // （所求判定与所求显示之间可以共存，见 markExclusive）
+      markExclusive(id, marking);
       set.add(id);
       if (marking === 'named') promptMarkLabel(item);
       applyMarkToElement(id);
@@ -4200,6 +4308,8 @@
   };
   // 给页面脚本用：删除图形后清掉它的标记（关卡游玩那条 storage 处理里调，见 playPage.js）
   window.pruneMarks = () => pruneMarks();
+  // 元素一览补标记之后，画布上的黑 / 蓝 / 金高亮要跟着重画（撤掉的给定色也要退回去）
+  window.refreshMarkHighlight = () => refreshMarkHighlight();
   /**
    * 解的编号按钮 过程函数
    * 数字 / + / − 用 SVG 文本画，样式与其它切换项一致，选中项变绿

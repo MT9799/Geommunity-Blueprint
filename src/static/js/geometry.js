@@ -775,6 +775,18 @@ class GeometryElementManager {
         this.repository[id] = object;
         // 增加计数器
         this.#counterAdd(type);
+        // 后置修补依赖链：对象在**工具缓存**里造出来时就已经登记过一次（模板里紧跟 createPoint 的那两句），
+        // 而那时它的名字可能还是临时的 —— createPoint 取名只看得到仓库（createPoint 调 getId 时没带工具名），
+        // 同一个「半成品」里第二次取点会拿到与第一次相同的名字，于是按 id 为键的 superstructure
+        // 会把前一个对象的登记**覆盖**掉；名字随后在 addObject 的查重里才改成正式的（E、F…）。
+        // 表现就是「拖动时某个派生点卡住不动，撤回一次（按快照重建依赖链）后又好了」。
+        // 这里用**最终 id** 再登记一次：既补回被覆盖的那条，也保证键与对象一致（幂等，重复登记无害）
+        const base = typeof object.getBase === 'function' ? object.getBase() : null;
+        if (base) {
+            [base.bases, base.figure].filter(Array.isArray).flat().forEach(parent => {
+                if (parent && typeof parent.addSuperstructure === 'function') parent.addSuperstructure(object);
+            });
+        }
     }
     
     /**
@@ -1295,13 +1307,17 @@ class GeometryElementManager {
      * @return {string} ID
      */
     getId(type, tool = "none", drawType = null) {
-        // 已经占着的名字：画布上的对象 + 这次作图缓存里刚作出的（同一个作图里不能重名）
+        // 已经占着的名字：画布上的对象 + **所有**工具缓存里这次刚作出的 —— 只查「本工具」不够：
+        // createPoint / createLine 这些工厂是从半成品里取名的（取点时还不知道属于哪个工具），
+        // 于是同一个作图里第二次取点会拿到与第一次相同的名字，名字要等 addObject 查重时才改正，
+        // 而按 id 为键的依赖链（superstructure）在改正之前就登记好了 —— 表现就是
+        // 「拖动时某个派生点卡住不动，撤回一次（按快照重建）后又好了」（见 addObject 里的后置修补）
         const taken = new Set(Object.keys(this.repository));
-        if (Object.keys(this.choice).includes(tool)) {
-            for (const item of Object.values(this.choice[tool])) {
-                if (item.type === "create" && item.create) taken.add(item.create.getId());
-            }
-        }
+        Object.values(this.choice).forEach(entries => {
+            Object.values(entries || {}).forEach(item => {
+                if (item && item.type === "create" && item.create) taken.add(item.create.getId());
+            });
+        });
         let kind = "line";
         if (type === "point") kind = "point";
         else if (type === "circle") kind = "circle";

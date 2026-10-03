@@ -290,6 +290,8 @@ window.rebuildMovesHistoryForRecord = (listed, finalSteps) => {
         typeof movesStorageManagerExplore !== 'undefined' ? movesStorageManagerExplore : null].forEach(manager => {
         if (!manager) return;
         manager.clear();
+        // 与图形历史同理：没开闸时 append 是空操作，L / E 那一串会静静变空、撤销时步数就错位
+        manager.setStatus(true);
         steps.forEach(step => manager.append(step));
     });
     refreshMovesCounter();

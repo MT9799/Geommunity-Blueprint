@@ -202,7 +202,9 @@ body.mode-level .moves-layout {
     cursor: zoom-in;
 }
 
-.thumbnail-zoom {
+/* 全屏看一张图：关卡示意图（缩略图）与答案图共用这一套 */
+.thumbnail-zoom,
+.image-zoom {
     position: fixed;
     inset: 0;
     z-index: 20;
@@ -214,7 +216,8 @@ body.mode-level .moves-layout {
     cursor: zoom-out;
 }
 
-.thumbnail-zoom img {
+.thumbnail-zoom img,
+.image-zoom img {
     max-width: 100%;
     max-height: 100%;
     border-radius: 10px;
@@ -792,17 +795,27 @@ textarea {
     color: #2b2b2b;
 }
 
-/* 答案图窗口 */
+/* 答案图窗口：弹层本身不滚 —— 滚的是中间那排答案图，
+   标题与底下的「关闭」始终留在两头（.board-dialog 本来就是纵向 flex） */
 .answer-dialog {
     width: min(860px, 92vw);
     max-height: 86vh;
-    overflow: auto;
+    overflow: hidden;
+}
+
+.answer-dialog > .board-dialog-actions {
+    flex: 0 0 auto;
 }
 
 .answer-gallery {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: 12px;
+    /* 唯一可滚的一块：撑满标题与「关闭」之间的空间，内容多了在这里滚 */
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 2px;
 }
 
 .answer-figure {
@@ -830,13 +843,9 @@ textarea {
     text-align: center;
 }
 
-.answer-figure.zoom {
-    grid-column: 1 / -1;
-}
-
-.answer-figure.zoom img {
-    max-height: none;
-    cursor: zoom-out;
+.answer-figure img:active {
+    /* 点一下就是「开大图」，给个按下反馈（大图见 .image-zoom） */
+    opacity: 0.85;
 }
 
 /* gmt 代码框（制题器「查看 / 导入 gmt 代码」、记录面板导出 / 导入的代码）：
@@ -1048,6 +1057,7 @@ textarea {
 .board-dialog-report::-webkit-scrollbar,
 .help-dialog::-webkit-scrollbar,
 .answer-dialog::-webkit-scrollbar,
+.answer-gallery::-webkit-scrollbar,
 .thumbnail-body-container::-webkit-scrollbar {
     width: 8px;
     height: 8px;
@@ -1056,6 +1066,7 @@ textarea {
 .board-dialog-report::-webkit-scrollbar-thumb,
 .help-dialog::-webkit-scrollbar-thumb,
 .answer-dialog::-webkit-scrollbar-thumb,
+.answer-gallery::-webkit-scrollbar-thumb,
 .thumbnail-body-container::-webkit-scrollbar-thumb {
     background-color: rgb(165, 165, 175);
     border-radius: 4px;
@@ -1064,6 +1075,7 @@ textarea {
 .board-dialog-report::-webkit-scrollbar-track,
 .help-dialog::-webkit-scrollbar-track,
 .answer-dialog::-webkit-scrollbar-track,
+.answer-gallery::-webkit-scrollbar-track,
 .thumbnail-body-container::-webkit-scrollbar-track {
     background-color: transparent;
 }
@@ -1072,6 +1084,7 @@ textarea {
 .board-dialog-report,
 .help-dialog,
 .answer-dialog,
+.answer-gallery,
 .thumbnail-body-container {
     scrollbar-gutter: stable;
 }
@@ -2271,6 +2284,32 @@ textarea {
 
     .board-dialog-actions button {
         width: 100%;
+    }
+
+    /* 答案图窗口：小图先排成几列（原来 220px 一列，手机上等于一行一张），
+       点开才是全屏大图（见 .image-zoom）；「关闭」照旧钉在弹层最下方 */
+    .answer-dialog {
+        width: 94vw;
+        max-height: 80vh;
+    }
+
+    .answer-gallery {
+        grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+        gap: 8px;
+    }
+
+    .answer-figure {
+        gap: 4px;
+        padding: 4px;
+        border-radius: 8px;
+    }
+
+    .answer-figure img {
+        max-height: 120px;
+    }
+
+    .answer-figure figcaption {
+        font-size: 11px;
     }
 
     .moves-layout {

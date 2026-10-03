@@ -882,9 +882,14 @@ function selectElementByOverview(event) {
         // 这些档位是「看看有哪些标好的」：已经标上的不再点掉（免得误触取消标记、把画布上的高亮弄没），
         // 只有还没标的才补上。要取消标记请用画布上的标记工具
         if (set.has(id)) return;
+        // 标记互斥（见 board-tools.js 的 markExclusive）：给定三项只能有一个，
+        // 所求判定 / 所求显示 / 探索显示彼此能共存，但与给定三类互斥 ——
+        // 在「所求」档补一个已经标了给定的图形，就顺手把它的给定标记撤掉
+        if (typeof window.markExclusive === 'function') window.markExclusive(id, overviewPanelSelect);
         set.add(id);
         target.classList.add('select');
-        // 标记集合变了，画布上的金 / 蓝高亮跟着重画（例如在「所求」档补一个判定）
+        // 标记集合变了，画布上的黑 / 蓝 / 金高亮跟着重画（撤掉的给定色也要退回去）
+        if (typeof window.refreshMarkHighlight === 'function') window.refreshMarkHighlight();
         drawContent();
     }
 }
