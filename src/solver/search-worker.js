@@ -16,6 +16,10 @@
  * 另有一条单向的中间消息（早于 result 发出，旧页面忽略即可）：
  *   {type: 'solution', id, taskIndex, solution, initialElementCount, initialPointCount}
  *   —— 内核一找到解就发一条，页面据此边搜边显示、并在收够解数时当场收工
+ * 搜索期间还有只报进度的消息（单线程每 200ms 最多一条，旧页面忽略即可）：
+ *   {type: 'progress', id, nodes, tasksDone, completedNodes, totalTasks}
+ *   —— 已搜节点数 / 已搜完几个情况（+ 那两个数一共多少节点、这一层一共多少个情况），
+ *      页面按「平均每个情况多大」外推总量，画「已搜情况数 / 预估总情况数」的进度条
  */
 
 importScripts('bs-core.js', 'bs-sets.js', 'bs-solver.js', 'bs-report.js');
@@ -327,12 +331,15 @@ function runPrefix(request, id, prefix, taskIndex) {
     // 这个前缀里搜到的解随到随发（页面按几何签名跨任务去重）
     attachSolutionStream(collector, id, graph, givenPointCount, taskIndex);
     const startedAt = WORKER_NOW();
-    solver.searchPrefixTask(graph, limit, prefix || [], makeSearchStats());
+    const stats = makeSearchStats();
+    solver.searchPrefixTask(graph, limit, prefix || [], stats);
     self.postMessage({
         type: 'prefix-result',
         id: id,
         taskIndex: taskIndex,
         seconds: ((WORKER_NOW() - startedAt) / 1000).toFixed(3),
+        // 这个前缀子树搜了多少个节点（页面按它累加，估总情况数用）
+        nodes: stats.nodes,
         solutions: collectSolutions(collector, givenPointCount),
         timedOut: solver.isTimedOut(),
         initialElementCount: graph.initialElementCount,
@@ -340,11 +347,57 @@ function runPrefix(request, id, prefix, taskIndex) {
     });
 }
 
+/** 进度条探测的上限：情况数、节点数（超了就退到浅一层重数，见 countFrontierTasks） */
+const PROGRESS_TASK_LIMIT = 4096;
+const PROGRESS_NODE_LIMIT = 400000;
+
+/** 进度条的边界层深度 过程函数（越深情况越多、估得越细，探测也越贵） */
+function progressDepthOf(request) {
+    const limit = Math.max(1, Math.trunc(request.limit || 1));
+    return Math.max(1, Math.min(3, limit - 1));
+}
+
+/**
+ * 数一遍「搜索树在某一层有多少个情况」 过程函数
+ * 这一趟只走不搜（与并行那条路的前缀探测是同一个函数，只是不落任务），
+ * 页面拿它当进度条的分母；撞上上限就返回 0，调用方退到浅一层重数
+ * @param {Object} request
+ * @param {number} depth
+ * @returns {number} 情况数（0 = 没数清）
+ */
+function countFrontierTasks(request, depth) {
+    const {limit, graph, solver} = createSolver(request);
+    solver.setSolutionCollector(null);
+    solver.frontierProbeMode = true;
+    const stats = makeSearchStats();
+    let count = 0;
+    let overflow = false;
+    solver.produceFrontierTasks(graph, limit, stats, () => {
+        count++;
+        if (count >= PROGRESS_TASK_LIMIT || stats.nodes > PROGRESS_NODE_LIMIT) {
+            overflow = true;
+            return false;
+        }
+        return true;
+    }, depth);
+    return overflow ? 0 : count;
+}
+
 /** 跑一次搜索并组织返回值 过程函数 */
 function runSearch(request, id) {
     const {limit, graph, givenPointCount, collector, solver} = createSolver(request);
     // 一找到解就往页面发一条，不必等这次搜索收尾
     attachSolutionStream(collector, id, graph, givenPointCount);
+    // 进度条（页面侧见 board-tools.js 的 refreshSearchProgress）：
+    //   ① 先数一遍「搜索树在边界层有多少个情况」当分母（这一趟只走不搜，几毫秒到几百毫秒）；
+    //   ② 再让内核边搜边报「已搜多少个节点 / 已经搜完几个情况」，页面按平均规模外推总量
+    const progressDepth = progressDepthOf(request);
+    const totalTasks = countFrontierTasks(request, progressDepth) || countFrontierTasks(request, 1);
+    if (totalTasks > 0) {
+        solver.progressDepth = progressDepth;
+        solver.progressTotalTasks = totalTasks;
+        solver.onProgress = payload => self.postMessage(Object.assign({type: 'progress', id: id}, payload));
+    }
     const stats = makeSearchStats();
 
     const startedAt = WORKER_NOW();

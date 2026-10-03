@@ -467,10 +467,9 @@
       // 网格：制题器里生成过网格时这份会话带着网格元信息（见 index.js 的 dataTransfer）——
       // 按它登记网格（藏起辅助对象）并把视图适配回网格范围
       const savedGrid = JSON.parse(sessionStorage.getItem('gridMeta') || 'null');
-      if (savedGrid) {
-        setGridMeta(savedGrid);
-        fitViewToGrid(gridMeta);
-      }
+      if (savedGrid) setGridMeta(savedGrid);
+      // 视图适配（并记下「初始视图」）：有网格就适配到网格范围，没有网格就按带过来的图形本身
+      fitViewToContent();
       const record = sessionStorage.getItem('constructRecord');
       // 记录只在「最后一个快照确实就是带进来的这份图形」时才沿用：
       // sessionStorage 里可能残留上一次制题器的记录（别的关卡 / 别的会话），
@@ -1308,9 +1307,18 @@
   };
 
   /**
+   * 画板 / 制题器 / 求解器的「初始视图」 过程函数
+   * 每次把内容适配到画布（生成网格 / 载入记录 / 导入 gmt / 从游玩返回）都记一份逻辑中心 + 比例，
+   * 浮动栏的「还原画布变化量」回到它（见 index.js 的 resetTransform）——
+   * 与游玩页的 levelInitialView 同一套口径，只是那份在 playPage.js 里
+   */
+  let boardInitialView = null;
+
+  /**
    * 把视图适配到网格范围 过程函数
    * 网格铺在逻辑坐标 [0, m·单位] × [-n·单位, 0] —— 画布 +y 朝下，
    * 所以屏幕上是「原点在左下角、网格往右上铺」
+   * @returns {{centerX: number, centerY: number, scale: number}} 适配出来的逻辑中心与比例
    */
   const fitViewToGrid = grid => {
     const width = grid.m * grid.unit;
@@ -1322,10 +1330,101 @@
     const insets = gridFitInsets();
     const usableWidth = Math.max(120, viewWidth - insets.left - insets.right);
     const usableHeight = Math.max(120, viewHeight - insets.top - insets.bottom);
-    // 留点边距、最多放大 2 倍（与关卡载入时的适配口径一致）
+    // 留点边距、最多放大 2 倍（与 fitViewToElements 同一口径）
     transform.scale = Math.min(usableWidth / (width * 1.3), usableHeight / (height * 1.3), 2);
     transform.x = insets.left + usableWidth / 2 - (width / 2) * transform.scale;
     transform.y = insets.top + usableHeight / 2 + (height / 2) * transform.scale;
+    // 网格在逻辑坐标里铺在 [0, width] × [-height, 0] 上，中心就是 (width/2, -height/2)
+    return {centerX: width / 2, centerY: -height / 2, scale: transform.scale};
+  };
+
+  /**
+   * 画布上这批图形的外接矩形 过程函数
+   * 只看**看得见、有效、且不属于网格**的对象：点取坐标，圆取「圆心 ± 半径」，线段取两端。
+   * 射线 / 直线不封口，不拿它们那两个（取值任意的）坐标点撑范围 —— 一条往远处延伸的线会把
+   * 缩放一路拽小；它们的定义点本身也是画布上的点，已经在范围里了
+   * @returns {{minX: number, maxX: number, minY: number, maxY: number}|null}
+   */
+  const visibleBounds = () => {
+    if (typeof geometryManager === 'undefined' || !geometryManager) return null;
+    let minX = Infinity;
+    let maxX = -Infinity;
+    let minY = Infinity;
+    let maxY = -Infinity;
+    const include = (x, y) => {
+      if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+      minX = Math.min(minX, x);
+      maxX = Math.max(maxX, x);
+      minY = Math.min(minY, y);
+      maxY = Math.max(maxY, y);
+    };
+    geometryManager.getAllByOrder().forEach(item => {
+      if (!item || typeof item.getType !== 'function') return;
+      if (isGridId(item.getId())) return;
+      if (typeof item.getVisible === 'function' && !item.getVisible()) return;
+      if (typeof item.getValid === 'function' && !item.getValid()) return;
+      // 无穷远点：坐标在很远处，画出来会让画布糊掉一大片（见 loadGmt）
+      if (item.getBase?.()?.type === 'edgePoint') return;
+      if (item.getType() === 'point') {
+        const [x, y] = item.getCoordinate() || [];
+        include(x, y);
+        return;
+      }
+      const coord = typeof item.getCoordinate === 'function' ? item.getCoordinate() : null;
+      if (!Array.isArray(coord) || coord.length < 2) return;
+      const [first, second] = coord;
+      if (!Array.isArray(first) || !Array.isArray(second)) return;
+      if (item.getType() === 'circle') {
+        const radius = Math.hypot(second[0] - first[0], second[1] - first[1]);
+        include(first[0] - radius, first[1] - radius);
+        include(first[0] + radius, first[1] + radius);
+        return;
+      }
+      if (item.getType() === 'line' && item.getDrawType?.() === 'lineSegment') {
+        include(first[0], first[1]);
+        include(second[0], second[1]);
+      }
+    });
+    return Number.isFinite(minX) ? {minX: minX, maxX: maxX, minY: minY, maxY: maxY} : null;
+  };
+
+  /**
+   * 把视图适配到画布上这批图形 过程函数
+   * 没有网格时用（从历史记录载入作图 / 导入 gmt）：图形可能是任意尺寸、任意位置，
+   * 不适配就会落在画布外或者小得看不清。口径与 fitViewToGrid 完全一致 ——
+   * 扣掉浮层占的地方、留 30% 边距、最多放大 2 倍
+   * @returns {boolean} 有没有动过视图（画布上一个能看的图形都没有时不动）
+   */
+  const fitViewToElements = () => {
+    const bounds = visibleBounds();
+    if (!bounds) return false;
+    const viewWidth = (typeof canvas !== 'undefined' && canvas ? canvas.clientWidth : 0) || 1280;
+    const viewHeight = (typeof canvas !== 'undefined' && canvas ? canvas.clientHeight : 0) || 720;
+    const insets = gridFitInsets();
+    const usableWidth = Math.max(120, viewWidth - insets.left - insets.right);
+    const usableHeight = Math.max(120, viewHeight - insets.top - insets.bottom);
+    // 退化情形（只有一个点、或一条竖线）：给个最小尺寸，免得除出无穷大的比例
+    const width = Math.max(bounds.maxX - bounds.minX, 1);
+    const height = Math.max(bounds.maxY - bounds.minY, 1);
+    const centerX = (bounds.minX + bounds.maxX) / 2;
+    const centerY = (bounds.minY + bounds.maxY) / 2;
+    transform.scale = Math.max(minScale,
+      Math.min(usableWidth / (width * 1.3), usableHeight / (height * 1.3), 2));
+    transform.x = insets.left + usableWidth / 2 - centerX * transform.scale;
+    transform.y = insets.top + usableHeight / 2 - centerY * transform.scale;
+    return {centerX: centerX, centerY: centerY, scale: transform.scale};
+  };
+
+  /**
+   * 把视图适配到画布上的内容 过程函数（首选的入口：导入 gmt / 载入记录 / 关卡载入都走它）
+   * 有网格就适配到网格范围（网格就是作答范围），没有网格就适配到图形本身
+   * @returns {{centerX: number, centerY: number, scale: number}|null} 逻辑中心与比例
+   */
+  const fitViewToContent = () => {
+    const view = gridMeta ? fitViewToGrid(gridMeta) : fitViewToElements();
+    // 记下这一刻的视图：「还原画布变化量」照它复位（有网格就是网格范围，没网格就是适配过的图形）
+    if (view) boardInitialView = {centerX: view.centerX, centerY: view.centerY, scale: view.scale};
+    return view;
   };
 
   /**
@@ -1406,7 +1505,8 @@
     elements.forEach(item => { item.visible = true; });
     geometryManager.appendStorage(elements);
     setGridMeta(grid);
-    fitViewToGrid(grid);
+    // 适配到网格范围，并记下「初始视图」（「还原画布变化量」回到这里）
+    fitViewToContent();
     // 制题器 / 求解器：生成网格就把格线记成「给定」——
     // 制题器里导出后落在 initial= 那一行（关卡 / 求解器读到的题目里网格就是题面的一部分），
     // 求解器的「给定」栏里也能看见「格线」一行（求解请求本身会跳过网格对象，不送进内核，
@@ -1452,9 +1552,9 @@
       content.push(`#grid=${gridMeta.m},${gridMeta.n},${gmtNumber(gridMeta.unit)}`);
       content.push(`#gridstyle=${gridMeta.style || 'g#000000,g~1,g^,g&'}`);
     }
-    // 存记录时「隐藏」只写进 styles（`a@`），gmt 的 hidden= 行留空（见 recordPanel 的 canvasGmt）：
-    // 关卡文件那边照旧要写，它是关卡唯一能声明隐藏的地方
-    const omitHidden = !!options.omitHidden;
+    // 「隐藏」一律只写进 styles（记录的 `a@`，见 recordStore.js），gmt 的 hidden= 行导出时留空：
+    // 它只作读取用（导入别人的 gmt 时按它藏起那些对象），不再作为关卡语义的一部分
+    // （options.omitHidden 是旧调用的兼容项，现在不影响输出）
     geometryManager.getAllByOrder().forEach(item => { content.push(gmtLineOf(item)); });
     // named：标成「带标签给定」的对象（标签名与对象 ID 不同时写成「ID.标签名」）。
     // 只看标记表 —— 光是显示标签、或改了个名字而没标成带标签给定的不算：
@@ -1468,10 +1568,20 @@
     });
     // 设定行：无论有没有标记都写出来，没有标记的留空，方便对照与手动编辑
     const listOf = key => [...(geometryElementLists?.[key] || [])];
-    content.push('', `initial=${listOf('initial').join(',')}`);
+    // 网格线的给定与其它对象的给定分两行写：格线那串 id 又长又同质，混在一行里看不清题面
+    // （读的一方按行累积，见 parseGmt 里的 lists[key].push，多写几行 initial= 等价）
+    const allInitial = listOf('initial');
+    const gridInitial = allInitial.filter(id => isGridSegmentId(id));
+    content.push('');
+    if (gridInitial.length) content.push(`initial=${gridInitial.join(',')}`);
+    content.push(`initial=${allInitial.filter(id => !isGridSegmentId(id)).join(',')}`);
     content.push(`named=${named.join(',')}`);
     content.push(`movepoints=${listOf('movepoints').join(',')}`);
-    content.push(`hidden=${omitHidden ? '' : listOf('hidden').join(',')}`);
+    // hidden= 只作**读取**用：导入别人的 gmt 时按它把那些对象藏起来，但导出时一律留空。
+    // 「隐藏」是样式（记录里写在 styles 的 `a@`，见 recordStore.js），不写进关卡语义 ——
+    // 写进 hidden= 的话，一次样式上的隐藏会让对象变成「关卡里预绘制 / 隐藏的图形」，
+    // 求解器会因此不把它当题面条件（见 buildSolverRequest）
+    content.push('hidden=');
     // 所求：每个解写一行（一行一组「判定:显示」，没写显示对象时只判定），
     // 空的解也留一行空行，保证第几行就是第几个解
     for (let index = 1; index <= resultGroupCount(); index++) {
@@ -1798,8 +1908,9 @@
     Object.keys(lists).forEach(key => { geometryElementLists[key] = new Set(lists[key]); });
     // 网格关卡：登记网格对象、藏起辅助对象、按 #gridstyle= 上样式（没有网格就清掉）
     setGridMeta(grid);
-    // 导入 gmt / 载入记录都走这里：有网格就把视图适配到网格范围，别以别的比例出现
-    if (gridMeta) fitViewToGrid(gridMeta);
+    // 导入 gmt / 载入记录都走这里：有网格就适配到网格范围，没有网格就适配到图形本身
+    // （图形可能是任意尺寸、任意位置，不适配就会落在画布外或小得看不清）
+    fitViewToContent();
     // 导入的标记要立刻上色（含多解的点亮规则），并记下样式色，取消标记时才恢复得回去
     refreshElementListColors();
     seedMarkedStyles();
@@ -1847,13 +1958,134 @@
     const eps = 1e-6;
     return x < -eps || x > width + eps || y > eps || y < -height - eps;
   };
+  /**
+   * 网格之外允许点下去的例外 过程函数（游玩模式用）
+   * 网格关卡的题面就是「网格 + 直尺」（单尺作图，垂线 / 平行线那些工具根本不存在），
+   * 所以规则很简单：**网格外不许作出任何图形** —— 点（自由点 / 线上点 / 交点）以及由它们
+   * 带出的直线、圆一律挡掉。两个例外：移动模式（要看图形 / 平移视图），
+   * 以及探索模式（探索画布本来就不受题目范围限制）
+   * @returns {boolean}
+   */
+  window.gridClickAllowedOutside = () => {
+    // 移动模式：哪里都要能点（看图形 / 平移视图）
+    if (typeof tool === 'string' && tool === 'move') return true;
+    // 探索模式：探索画布不受网格限制（关卡的题目范围与探索是两回事），范围外照样能作图
+    return typeof exploreFlag !== 'undefined' && !!exploreFlag;
+  };
+  /**
+   * 沿一条轴把参数区间裁进 [min, max] 过程函数
+   * 起点 p + t·d：t 是解出来的参数，返回 null 表示这一段被裁没了
+   */
+  const clipParamRange = (lo, hi, value, dir, min, max) => {
+    if (Math.abs(dir) < 1e-12) return (value >= min && value <= max) ? [lo, hi] : null;
+    const first = (min - value) / dir;
+    const second = (max - value) / dir;
+    const nextLo = Math.max(lo, Math.min(first, second));
+    const nextHi = Math.min(hi, Math.max(first, second));
+    return nextLo <= nextHi ? [nextLo, nextHi] : null;
+  };
+  /**
+   * 图形与网格矩形有没有交集 过程函数
+   * @param {string} kind point / segment / ray / line / circle
+   * @param {Object} p1 点坐标 / 线段射线直线的第一个端点 / 圆心
+   * @param {Object} p2 第二个端点 / 圆上一点
+   * @param {Object} rect {x1, y1, x2, y2}
+   * @returns {boolean}
+   */
+  const shapeHitsRect = (kind, p1, p2, rect) => {
+    if (!p1) return false;
+    if (kind === 'point') {
+      return p1.x >= rect.x1 && p1.x <= rect.x2 && p1.y >= rect.y1 && p1.y <= rect.y2;
+    }
+    if (kind === 'circle') {
+      // 圆周与矩形相交 ⟺ 圆心到矩形最近点的距离 ≤ 半径 ≤ 到最远角的距离
+      const radius = p2 ? Math.hypot(p2.x - p1.x, p2.y - p1.y) : 0;
+      const nearestX = Math.min(Math.max(p1.x, rect.x1), rect.x2);
+      const nearestY = Math.min(Math.max(p1.y, rect.y1), rect.y2);
+      const nearest = Math.hypot(p1.x - nearestX, p1.y - nearestY);
+      const farthest = Math.max(
+        Math.hypot(p1.x - rect.x1, p1.y - rect.y1),
+        Math.hypot(p1.x - rect.x2, p1.y - rect.y1),
+        Math.hypot(p1.x - rect.x1, p1.y - rect.y2),
+        Math.hypot(p1.x - rect.x2, p1.y - rect.y2),
+      );
+      return nearest <= radius && radius <= farthest;
+    }
+    // 线段 / 射线 / 直线：按各自的参数范围裁
+    const dir = {x: p2.x - p1.x, y: p2.y - p1.y};
+    const lo = kind === 'line' ? -Infinity : 0;
+    const hi = kind === 'segment' ? 1 : Infinity;
+    const afterX = clipParamRange(lo, hi, p1.x, dir.x, rect.x1, rect.x2);
+    if (!afterX) return false;
+    return !!clipParamRange(afterX[0], afterX[1], p1.y, dir.y, rect.y1, rect.y2);
+  };
+  /**
+   * 这个图形是不是整个落在网格范围之外 过程函数
+   * 「完全在外」= 它与网格矩形没有任何交集（点在外、线段 / 射线 / 直线扫不到网格、圆的圆周
+   * 不穿过网格）。没有网格、或对象拿不到几何量时返回 false（当作「不限制」）
+   * @param {Object} item
+   * @returns {boolean}
+   */
+  const isItemOutsideGrid = item => {
+    if (!gridMeta || !item || typeof item.getType !== 'function') return false;
+    const rect = {x1: 0, y1: -gridMeta.n * gridMeta.unit, x2: gridMeta.m * gridMeta.unit, y2: 0};
+    // getCoordinate() 有两种写法：点给 [x, y] 两个数，线 / 圆给 [[x1,y1],[x2,y2]]，
+    // 统一成 {x, y} 再算（不归一化的话线 / 圆的端点会读成 undefined → 全被误判成「在网格外」）
+    const asPoint = value => {
+      if (!value) return null;
+      if (Array.isArray(value) && value.length >= 2 && typeof value[0] === 'number') {
+        return {x: value[0], y: value[1]};
+      }
+      if (typeof value.x === 'number' && typeof value.y === 'number') return {x: value.x, y: value.y};
+      return null;
+    };
+    const type = item.getType();
+    if (type === 'point') return !shapeHitsRect('point', {x: item.x, y: item.y}, null, rect);
+    const coord = typeof item.getCoordinate === 'function' ? item.getCoordinate() : null;
+    if (!Array.isArray(coord) || coord.length < 2) return false;
+    const first = asPoint(coord[0]);
+    if (!first) return false;
+    if (type === 'circle') return !shapeHitsRect('circle', first, asPoint(coord[1]), rect);
+    if (type === 'line') {
+      const drawType = typeof item.getDrawType === 'function' ? item.getDrawType() : 'line';
+      const kind = drawType === 'lineSegment' ? 'segment' : drawType === 'ray' ? 'ray' : 'line';
+      const second = asPoint(coord[1]);
+      if (!second) return false;
+      return !shapeHitsRect(kind, first, second, rect);
+    }
+    return false;
+  };
+  // 制题器 / 求解器里，完全在网格范围外的图形不许标记：标记会把它写进题面 / 已知条件，
+  // 而网格关卡的题面就该落在网格那块范围里（见 markFromCanvas 与元素一览的 select）
+  const restrictMarkOutsideGrid = mode === 'maker' || mode === 'solver';
+  /**
+   * 这个对象是不是「在网格外、因此不给标记」 过程函数
+   * @param {string} id
+   * @returns {boolean}
+   */
+  window.markBlockedOutsideGrid = id => restrictMarkOutsideGrid
+    && !!geometryManager
+    && isItemOutsideGrid(geometryManager.get(id));
   window.boardGmt = {
     /**
      * 画布上的作图文本 过程函数
-     * @param {{omitHidden?: boolean}} [options] omitHidden：hidden= 行留空（存记录用，隐藏改记在 styles 里）
+     * @param {{omitHidden?: boolean}} [options] 兼容旧调用：hidden= 行现在一律留空
+     *   （隐藏只记在 styles 的 `a@`，见 recordStore.js），这个选项已不再影响输出
      */
     text: options => gmtText(options),
     load: text => loadGmt(text),
+    /**
+     * 把视图适配到画布上的内容 过程函数（有网格适配网格、没有网格适配图形本身）
+     * 导入 gmt / 载入记录用它；游玩页的「初始图形适配」也用它（见 playPage 的 fitInitialView），
+     * 那边拿返回的逻辑中心与比例记「初始视图」，供「还原视图」按钮回到这里
+     */
+    fitView: () => fitViewToContent(),
+    /**
+     * 画板侧记下的「初始视图」 过程函数（逻辑中心 + 比例，或 null）
+     * 「还原画布变化量」照它复位（见 index.js 的 resetTransform）；null 表示还没适配过内容，
+     * 那时按通用初始值（画布正中 + initialScale）复位
+     */
+    initialView: () => boardInitialView,
     // 网格：模板文本、当前画布上的网格信息（{m, n, unit, style, ids} 或 null）、生成 / 改大小
     gridTemplate: (m, n, unit) => gridTemplateText(m, n, unit),
     grid: () => gridMeta,
@@ -1883,9 +2115,12 @@
       const showName = marked ? /g\$/.test(existing) : !!segment.getShowName();
       const width = segment.getWidth() || 0.5;
       const dashed = segment.getDashed();
+      // 点线径写档位号（1..5，见 recordStore 的 widthToStyleValue），与记录里的 styles 同一套
+      const widthValue = typeof recordStore !== 'undefined' && typeof recordStore.widthToStyleValue === 'function'
+        ? recordStore.widthToStyleValue(width) : width;
       const parts = [
         `g#${color}`,
-        `g~${width}`,
+        `g~${widthValue}`,
         showName ? 'g$' : 'g^',
       ];
       if (dashed) parts.push('g&');
@@ -2643,6 +2878,10 @@
   const solverPanel = () => {
     const panel = document.createElement('aside');
     panel.className = 'solver-panel';
+    // 推荐的并行线程数：浏览器只有 navigator.hardwareConcurrency 这一个口径（逻辑核心数，
+    // 拿不到真实物理核），留一个核心给页面本身；上限 8（再多收益很小、内存翻倍）
+    const hardwareCores = Math.max(2, Number(navigator.hardwareConcurrency) || 4);
+    const recommendedThreads = Math.max(2, Math.min(8, hardwareCores - 1));
     panel.innerHTML = [
       // 标题在上拉栏的标题栏里（见 wrapInSheet），这里只放设置项
       // 两两并排，省一半高度（见 index.css 的 .solver-field-row）
@@ -2666,17 +2905,20 @@
         '<polygon points="70 34, 152 100, 70 166" fill="transparent" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>' +
         '</svg>' +
         `${t('board.solverAdvanced')}</summary>` +
+        // 五个开关：前两个是「怎么搜」（逐步搜索 / 解法自检），后三个是内核原来的剪枝与内存选项
+        // 逐步搜索：1 步搜一遍、2 步搜一遍 …… 一直到设定步数（短解先出来，可随时停）
+        `<label class="solver-check" title="${t('board.solverStepwiseHint')}"><input id="geb-solver-stepwise" type="checkbox"><span>${t('board.solverStepwise')}</span></label>` +
+        // 解法自检：默认关（每个解都要挪点重算一遍，慢一些；只在当前位置成立的特解会被剔掉）
+        `<label class="solver-check" title="${t('board.solverSelfCheckHint')}"><input id="geb-solver-generic" type="checkbox"><span>${t('board.solverSelfCheck')}</span></label>` +
         `<label class="solver-check" title="${t('board.solverSymmetryHint')}"><input id="geb-solver-symmetry" type="checkbox" checked><span>${t('board.solverSymmetry')}</span></label>` +
         `<label class="solver-check" title="${t('board.solverGoalFirstHint')}"><input id="geb-solver-goal-first" type="checkbox" checked><span>${t('board.solverGoalFirst')}</span></label>` +
         `<label class="solver-check" title="${t('board.solverLowMemoryHint')}"><input id="geb-solver-low-memory" type="checkbox" checked><span>${t('board.solverLowMemory')}</span></label>` +
-        // 解法自检：默认关（每个解都要挪点重算一遍，慢一些；只在当前位置成立的特解会被剔掉）
-        `<label class="solver-check" title="${t('board.solverSelfCheckHint')}"><input id="geb-solver-generic" type="checkbox"><span>${t('board.solverSelfCheck')}</span></label>` +
         '<div class="solver-field-row">' +
           `<label title="${t('board.solverTtMbHint')}">${t('board.solverTtMb')}<input id="geb-solver-tt" type="number" min="0" max="512" value="8"></label>` +
           `<label title="${t('board.solverDedupHint')}">${t('board.solverDedup')}<input id="geb-solver-dedup" type="number" min="0" max="65536" value="2048"></label>` +
         '</div>' +
         '<div class="solver-field-row">' +
-          `<label title="${t('board.solverThreadsHint')}">${t('board.solverThreads')}<input id="geb-solver-threads" type="number" min="1" max="16" value="1"></label>` +
+          `<label title="${t('board.solverThreadsHint')}"><span class="solver-label-text">${t('board.solverThreads')}<span class="solver-recommend">${t('board.solverThreadsRecommended', {count: recommendedThreads})}</span></span><input id="geb-solver-threads" type="number" min="1" max="16" value="1"></label>` +
           `<label title="${t('board.solverEpsHint')}">${t('board.solverEps')}<input id="geb-solver-eps" type="number" min="0" step="any" placeholder="${t('board.solverEpsAuto')}"></label>` +
         '</div>' +
       '</details>' +
@@ -2686,6 +2928,10 @@
         `<button id="geb-solver-next">${t('board.solverNextStep')}</button></div>`,
       `<button id="geb-solver-clear">${t('board.solverClear')}</button>`,
       `<output id="geb-solver-status">${t('board.solverIdle')}</output>`,
+      // 搜索进度条 + 右边的百分比（百分比就是条的比例，见 paintSearchProgress）
+      '<div class="solver-progress-row">' +
+        '<div class="solver-progress" id="geb-solver-progress"><div class="solver-progress-bar" id="geb-solver-progress-bar"></div></div>' +
+        '<span class="solver-progress-text" id="geb-solver-progress-text">0.00%</span></div>',
       '<div id="geb-solver-list" class="solver-solution-list"></div>',
     ].join('');
     // 从关卡打开求解器时带了 solverTool（那一关限定单尺 / 单规）：可用工具默认就选到同一种模式
@@ -2790,12 +3036,164 @@
     let activeSearchCancel = null;
     // 每次搜索的编号：停掉之后迟到的 worker 消息就不要再往面板上写了
     let searchToken = 0;
+    // 「被停止」的次数：逐步搜索（多轮）靠它判断该不该继续下一轮（searchToken 每轮都会变，用不了）
+    let searchStopToken = 0;
+    // 搜索进度（进度条）：进度 = 已搜情况数 / 预估总情况数（「情况」= 搜索树的一个节点，
+    // 无解的也算；见 refreshSearchProgress）。顺便记下时间上限与已找到的解数，鼠标停上去能看到
+    let progressState = null;
+    let progressTimer = null;
+
+    /** 大数字加千分位 过程函数 */
+    const progressNumber = value => Number(value || 0).toLocaleString();
+
+    /**
+     * 预估总情况数 过程函数
+     * 「已经搜完的那几个情况」一共占了多少节点 → 平均每个情况多大 → 乘上情况总数。
+     * 一路自校准：搜得越多估得越准（这也正是「没有先验、只能估」的代价）
+     * @param {Object} state
+     * @returns {number} 0 表示还算不出来
+     */
+    const estimatedSituations = state => {
+      if (!(state.tasksTotal > 0) || !(state.tasksDone > 0)) return 0;
+      return (state.completedNodes / state.tasksDone) * state.tasksTotal;
+    };
+
+    /** 进度条的说明文字 过程函数（鼠标停在进度条上能看到：这个条按什么算、顺带几个数字） */
+    const progressTitle = state => {
+      const parts = [t('board.solverProgressNote')];
+      const estimated = estimatedSituations(state);
+      parts.push(t('board.solverProgressNodes', {
+        nodes: progressNumber(state.nodes),
+        total: estimated > 0 ? progressNumber(Math.round(estimated)) : '?',
+      }));
+      if (state.target > 0) {
+        parts.push(t('board.solverProgressFound', {found: liveResult.solutions.length, target: state.target}));
+      }
+      if (state.limitSeconds > 0) {
+        parts.push(t('board.solverProgressTime', {
+          elapsed: ((performance.now() - state.startedAt) / 1000).toFixed(1),
+          limit: state.limitSeconds,
+        }));
+      }
+      return parts.join(' · ');
+    };
+
+    /**
+     * 把进度条的宽度与右边那个百分比一起写上 过程函数
+     * 百分比就是条的比例（绿色那一段占满格多少），所以两处都写同一个数、只从这儿写
+     * @param {number} ratio 0~1
+     * @param {string} [title] 悬停说明（放在条与数字上，两边一样）
+     */
+    const paintSearchProgress = (ratio, title = '') => {
+      const bar = panel.querySelector('#geb-solver-progress-bar');
+      const text = panel.querySelector('#geb-solver-progress-text');
+      const percent = Math.max(0, Math.min(1, ratio || 0)) * 100;
+      // 3 位有效数字（1.00 / 50.0 / 100）：进度常在小数上磨，取整会让数字一段时间里一动不动
+      const shown = `${percent.toPrecision(3)}%`;
+      if (bar) {
+        // 条按同一个数（多留几位给 CSS 定位，它自己会归一化）
+        bar.style.width = `${Number(percent.toFixed(3))}%`;
+        bar.title = title;
+      }
+      if (text) {
+        // 与条同一位小数：进度常在小数上磨，取整会让数字一段时间里一动不动
+        text.textContent = shown;
+        text.title = title;
+      }
+    };
+
+    /**
+     * 按当前进度刷新进度条 过程函数
+     * 进度 = **已搜情况数 / 预估总情况数**（情况 = 搜索树的一个节点，无解的也算一种情况）：
+     *   · 分母 = 平均每个情况多大 × 情况总数（自校准外推，见 estimatedSituations）；
+     *     还算不出来时（一个情况都还没搜完）条就停在 0
+     *   · 凑满设定的解数时收尾会把条补满（那时搜索提前停了，本来就到不了 100%）
+     *   · 其余收尾（穷尽 / 超时 / 手动停）停在原地
+     */
+    const refreshSearchProgress = () => {
+      if (!panel.querySelector('#geb-solver-progress-bar')) return;
+      if (!progressState) {
+        paintSearchProgress(0);
+        return;
+      }
+      const state = progressState;
+      const estimated = estimatedSituations(state);
+      // 分母是「边搜边校准」出来的：搜完的情况一多，估计值就会变，条于是可能往回缩。
+      // 这里只许往前走（记住见过的最大值）—— 进度条往回跳比估得粗还难理解
+      const raw = estimated > 0 ? Math.min(1, state.nodes / estimated) : 0;
+      state.ratio = Math.max(state.ratio || 0, raw);
+      paintSearchProgress(state.ratio, progressTitle(state));
+    };
+
+    /**
+     * 收下内核报来的一次搜索进度 过程函数（单线程）
+     * @param {{nodes: number, tasksDone: number, completedNodes: number, totalTasks: number}} payload
+     */
+    const takeSearchProgress = payload => {
+      if (!progressState || !payload) return;
+      progressState.nodes = payload.nodes || 0;
+      progressState.tasksDone = payload.tasksDone || 0;
+      progressState.completedNodes = payload.completedNodes || 0;
+      if (payload.totalTasks > 0) progressState.tasksTotal = payload.totalTasks;
+      refreshSearchProgress();
+    };
+
+    /** 清空进度（开始新搜索 / 面板复位时用） 过程函数 */
+    const resetSearchProgress = () => {
+      progressState = null;
+      refreshSearchProgress();
+    };
+
+    /**
+     * 凑满设定的解数时把进度条补满 过程函数
+     * 只有「收满设定的解数」这一种收尾才补满：其余（穷尽 / 超时 / 手动停）条停在原地才是实情
+     */
+    const finishSearchProgress = () => {
+      progressState = null;
+      paintSearchProgress(1, `${t('board.solverProgressNote')} · ${t('board.solverProgressDone')}`);
+    };
+
+    /** 没凑满就收尾时给进度条补一句「搜索已结束」 过程函数（宽度与百分比保留实情，不补满） */
+    const markSearchProgressFinished = () => {
+      if (!panel.querySelector('#geb-solver-progress-bar')) return;
+      const parts = progressState ? [progressTitle(progressState)] : [];
+      parts.push(t('board.solverProgressDone'));
+      paintSearchProgress(progressState ? (progressState.ratio || 0) : 0, parts.join(' · '));
+    };
+
+    /**
+     * 开始一次搜索的进度统计 过程函数
+     * @param {{target?: number, limitSeconds?: number}} options target=要几个解，limitSeconds=时间上限
+     */
+    const startSearchProgress = options => {
+      progressState = {
+        target: options.target || 0,
+        limitSeconds: options.limitSeconds || 0,
+        startedAt: performance.now(),
+        // 「情况」计数：nodes = 已搜节点数（分子）；tasksDone / completedNodes = 已搜完的情况数
+        // 与它们的节点数合计（用来算平均规模）；tasksTotal = 边界层的情况总数（分母的一部分）
+        nodes: 0,
+        tasksDone: 0,
+        completedNodes: 0,
+        tasksTotal: 0,
+        // 条上已经显示到哪儿（只许往前走，见 refreshSearchProgress）
+        ratio: 0,
+      };
+      refreshSearchProgress();
+    };
 
     /** 切换按钮的「开始求解 / 停止求解」状态 过程函数 */
     const setSearching = searching => {
       const runButton = panel.querySelector('#geb-solver-run');
       runButton.textContent = searching ? t('board.solverStop') : t('board.solverRun');
       runButton.classList.toggle('running', searching);
+      // 进度条只在搜索期间定时刷新（收尾时停在最后的位置，不重置 —— 一眼能看到搜到哪一步）
+      if (searching) {
+        if (!progressTimer) progressTimer = setInterval(refreshSearchProgress, 300);
+      } else if (progressTimer) {
+        clearInterval(progressTimer);
+        progressTimer = null;
+      }
     };
 
     /** 停掉正在跑的搜索 过程函数（返回是否真的停掉了一个） */
@@ -2826,6 +3224,7 @@
       threads: panel.querySelector('#geb-solver-threads'),
       eps: panel.querySelector('#geb-solver-eps'),
       generic: panel.querySelector('#geb-solver-generic'),
+      stepwise: panel.querySelector('#geb-solver-stepwise'),
     };
     /** 读一遍高级选项 过程函数 */
     const readAdvanced = () => {
@@ -2840,6 +3239,9 @@
         eps: Number(advancedFields.eps.value) > 0 ? Number(advancedFields.eps.value) : null,
         // 解法自检：默认关（见 solutionPassesSelfCheck）
         generic: advancedFields.generic.checked,
+        // 逐步搜索：默认关（见 runStepwiseSearch）—— 少了这一项的话勾了等于没勾，
+        // 「逐步搜索」会退化成一次普通搜索（8E 里那堆 8 步解就会把 7 步解挤掉）
+        stepwise: advancedFields.stepwise.checked,
       };
       try { localStorage.setItem(ADVANCED_KEY, JSON.stringify(options)); } catch (error) { /* 隐私模式等忽略 */ }
       return options;
@@ -2857,6 +3259,8 @@
       if (typeof saved.threads === 'number') advancedFields.threads.value = saved.threads;
       // 解法自检默认关：只有上次明确勾上过才勾回来
       advancedFields.generic.checked = saved.generic === true;
+      // 逐步搜索同样默认关
+      advancedFields.stepwise.checked = saved.stepwise === true;
       if (saved.open) panel.querySelector('#geb-solver-advanced').open = true;
     };
     restoreAdvanced();
@@ -2941,6 +3345,7 @@
       liveResult.solutions.push(solution);
       latest = liveResult;
       appendSolutionRow(solution, liveResult.solutions.length - 1);
+      refreshSearchProgress();
       status.textContent = t('board.solverSearchingFound', {
         count: liveResult.solutions.length,
         seconds: seconds,
@@ -2953,6 +3358,11 @@
      * 单线程与并行两条路都从这里收尾（形状与 worker 的返回值一致）
      */
     const showSearchResult = (result, seconds, timeLimitSeconds, limit) => {
+      // 进度条 = 已搜情况数 / 预估总情况数：搜满设定的解数、或把搜索树搜穷了，两种都意味着
+      // 「该搜的都搜完了」→ 补满；超时 / 手动停则停在估计出来的位置（那才是搜到哪儿）
+      const hitQuota = result.requestedSolutions > 0 && result.solutionCount >= result.requestedSolutions;
+      if (hitQuota || !result.timedOut) finishSearchProgress();
+      else markSearchProgressFinished();
       // 网格模式：请求是按网格单位换算过去的，解法里的坐标与方程要换回画布坐标系 ——
       // 否则覆盖层会把解法画到别处。单线程与并行两条路都从这里收尾，所以只改这一处
       if (result.solutions && !result.gridScaledToCanvas && solverLastRequest?.gridUnit) {
@@ -2998,9 +3408,12 @@
 
     /**
      * 组装给 worker 的请求体 过程函数（单线程与并行共用）
-     * 默认值＝内核原本的默认，所以高级选项不动时行为与以前完全一致
+     * 默认值＝内核原本的默认，所以高级选项不动时行为与以前完全一致。
+     * `request` 里也带着一份 limit / solutions / timeLimitSeconds（面板值），所以它必须放在
+     * **前面**：放后面会把这里的 settings 覆盖掉 —— 逐步搜索那种「每轮换一个 limit」就换不动
+     * （表现：8E + 逐步搜索时，每一轮其实都是 8 步搜索，7E 的解会被一堆 8E 解挤掉）
      */
-    const workerPayload = (settings, request, advanced) => Object.assign({
+    const workerPayload = (settings, request, advanced) => Object.assign({}, request, {
       limit: settings.limit,
       toolType: settings.toolType,
       P: request.points.length / 2,
@@ -3018,7 +3431,7 @@
       lowMemory: advanced.lowMemory,
       ttMB: advanced.ttMB,
       streamDedup: advanced.streamDedup,
-    }, request);
+    });
 
     /**
      * 并行搜索 过程函数
@@ -3077,6 +3490,11 @@
         // 多个 worker 可能各带着解一起回来，超过「解数」就只留前面这些（与单线程的口径一致）
         if (found.length > settings.solutions) found.length = settings.solutions;
         const seconds = elapsedSeconds();
+        // 逐步搜索的中间轮：只把解攒进 liveResult，不往面板写结论（最后一轮由 runStepwiseSearch 统一收尾）
+        if (settings.silent) {
+          if (typeof settings.onDone === 'function') settings.onDone(!!timedOut);
+          return;
+        }
         showSearchResult({
           found: found.length > 0,
           time: seconds,
@@ -3161,6 +3579,8 @@
           if (message.type === 'prefix-done') {
             frontierDone = true;
             rememberResultMeta(message);
+            // 进度条的分母：内核这一步拿到了「一共切了多少个情况」（边界层的情况总数）
+            if (progressState && message.count) progressState.tasksTotal = message.count;
             state.set(worker, 'idle');
             dispatch(worker);
             maybeFinish();
@@ -3168,6 +3588,12 @@
           }
           if (message.type === 'prefix-result') {
             (message.solutions || []).forEach(solution => collect(solution, message));
+            // 进度条：这个情况搜完了 —— 它的节点数记进合计，分子也跟着涨
+            if (progressState) {
+              progressState.tasksDone++;
+              progressState.nodes += message.nodes || 0;
+              progressState.completedNodes += message.nodes || 0;
+            }
             state.set(worker, 'idle');
             dispatch(worker);
             if (liveResult.solutions.length >= settings.solutions) finish(false);
@@ -3202,6 +3628,102 @@
         else maybeFinish();
       }, 400);
       setSearching(true);
+    };
+
+    /**
+     * 跑一轮搜索并等它结束 过程函数（逐步搜索用）
+     * 面板不写结论（收尾交给 runStepwiseSearch 统一做），解照旧走流式那本账
+     * @param {Object} settings
+     * @returns {Promise<void>}
+     */
+    const runSearchRound = settings => new Promise(resolve => {
+      if (settings.threads > 1) {
+        startParallelSearch(Object.assign({}, settings, {silent: true, onDone: () => resolve()}));
+        return;
+      }
+      const worker = new Worker('./solver/search-worker.js');
+      const token = ++searchToken;
+      activeWorker = worker;
+      setSearching(true);
+      const startedAt = performance.now();
+      let done = false;
+      let roundTimedOut = false;
+      const finishRound = () => {
+        if (done) return;
+        done = true;
+        worker.terminate();
+        if (activeWorker === worker) activeWorker = null;
+        setSearching(false);
+        resolve({timedOut: roundTimedOut});
+      };
+      worker.onmessage = event => {
+        const message = event.data;
+        // 一找到就端上来：这一轮搜到的解照样当场进面板（收尾时才整体重排）
+        if (message && message.type === 'solution') {
+          if (token !== searchToken) return;
+          takeStreamedSolution(message.solution, message, ((performance.now() - startedAt) / 1000).toFixed(2));
+          return;
+        }
+        // 内核报来的搜索进度（已搜多少个情况）：这一轮也照样画进进度条
+        if (message && message.type === 'progress') {
+          if (token !== searchToken) return;
+          takeSearchProgress(message);
+          return;
+        }
+        roundTimedOut = !!(message && message.data && message.data.timedOut);
+        finishRound();
+      };
+      worker.onerror = finishRound;
+      worker.postMessage({type: 'search', id: Date.now(), data: workerPayload(settings, settings.request, settings.advanced)});
+    });
+
+    /**
+     * 逐步搜索 过程函数（高级选项，默认关）
+     * 步数上限 N 时按 1 步、2 步 …… N 步各搜一遍：短解先出来（例如 8E 里搜出来的都是 8 步解，
+     * 7 步那条只有在「上限 7」那一轮里才不会被挤掉），收够「解数」或自己按停就收工。
+     * 每轮都是一次**完整**的搜索，各自按面板里的「时间上限」单独计时（不是总共多久）——
+     * 否则前面几轮就把时间吃光，后面步数更大的几轮根本轮不到，正是漏解的原因。
+     * 每轮沿用同一条流式账（liveResult / streamedSignatures），解累积去重；
+     * 中途只在列表里长出「解法 n」，最后一轮结束才统一排序收尾一次
+     * @param {Object} settings
+     */
+    const runStepwiseSearch = async settings => {
+      const startedAt = performance.now();
+      const stopToken = searchStopToken;
+      let lastTimedOut = false;
+      for (let step = 1; step <= settings.limit; step++) {
+        if (searchStopToken !== stopToken || liveResult.solutions.length >= settings.solutions) break;
+        // 新一轮从零开始数「情况」（上一轮的计数是它自己的搜索树，不能混在一起）
+        startSearchProgress({target: settings.solutions, limitSeconds: settings.timeLimitSeconds});
+        const round = await runSearchRound(Object.assign({}, settings, {limit: step}));
+        lastTimedOut = !!(round && round.timedOut);
+      }
+      // 被停止（再点一次按钮 / 清空）：面板状态交给 stopSearch，这里不再写结论
+      if (searchStopToken !== stopToken) return;
+      const seconds = ((performance.now() - startedAt) / 1000).toFixed(2);
+      const found = liveResult.solutions;
+      found.sort((one, two) => one.newElementCount - two.newElementCount);
+      if (found.length > settings.solutions) found.length = settings.solutions;
+      showSearchResult({
+        found: found.length > 0,
+        time: seconds,
+        steps: found.length ? found[0].newElementCount : 0,
+        points: found.length ? found[0].points : [],
+        elements: found.length ? found[0].elements : [],
+        bounds: found.length ? (found[0].bounds || []) : [],
+        solutions: found,
+        solutionCount: found.length,
+        requestedSolutions: settings.solutions,
+        quotaReached: found.length >= settings.solutions,
+        // 最后一轮是超时结束的话，这次「逐步搜索」也算没搜穷
+        timedOut: lastTimedOut,
+        initialElementCount: liveResult.initialElementCount,
+        initialPointCount: liveResult.initialPointCount,
+        newElementCount: found.length ? found[0].newElementCount : 0,
+        // 这些解在收到时就换算到画布坐标了（见 takeStreamedSolution）
+        gridScaledToCanvas: true,
+        engine: 'bs v8 (JS, stepwise)',
+      }, seconds, settings.timeLimitSeconds, settings.limit);
     };
 
     panel.querySelector('#geb-solver-run').addEventListener('click', () => {
@@ -3246,6 +3768,12 @@
       status.textContent = t('board.solverSearching');
 
       const settings = {request, limit, toolType, timeLimitSeconds, solutions, advanced, threads: advanced.threads};
+      startSearchProgress({target: solutions, limitSeconds: timeLimitSeconds});
+      // 逐步搜索（高级选项）：1 步搜一遍、2 步搜一遍 …… 到设定步数（见 runStepwiseSearch）
+      if (advanced.stepwise) {
+        runStepwiseSearch(settings);
+        return;
+      }
       // 并行：多个 worker 按前缀分头搜（见 startParallelSearch）；线程数 1 时走原来的单 worker
       if (settings.threads > 1) {
         startParallelSearch(settings);
@@ -3267,6 +3795,12 @@
         if (message && message.type === 'solution') {
           if (token !== searchToken) return;
           takeStreamedSolution(message.solution, message, seconds());
+          return;
+        }
+        // 内核报来的搜索进度（已搜多少个情况）：画进进度条
+        if (message && message.type === 'progress') {
+          if (token !== searchToken) return;
+          takeSearchProgress(message);
           return;
         }
         worker.terminate();
@@ -3305,6 +3839,7 @@
     panel.querySelector('#geb-solver-clear').addEventListener('click', () => {
       // 还搜着就先停掉，免得停了之后又冒出一堆解法
       stopSearch();
+      resetSearchProgress();
       replayToken++;
       latest = null;
       currentIndex = -1;
@@ -3460,8 +3995,12 @@
     const rect = event.target.getBoundingClientRect();
     const x = (source.clientX - rect.left - transform.x) / transform.scale;
     const y = (source.clientY - rect.top - transform.y) / transform.scale;
-    // near() 内部已做点优先：交点不会被背后的直线 / 圆抢先命中
-    const [id] = geometryManager.near([x, y], ['point', 'line', 'circle']);
+    // near() 内部已做点优先：交点不会被背后的直线 / 圆抢先命中。
+    // 网格当作一整块直接排除在命中之外（先忽略网格再找最近的图形）：否则点在格线附近会
+    // 先选中网格、吃到「网格不能标记」的提示，反而选不到网格后面的图形（见 #8）
+    const gridIds = (typeof geometryElementLists !== 'undefined' && geometryElementLists.grid)
+      ? [...geometryElementLists.grid] : [];
+    const [id] = geometryManager.near([x, y], ['point', 'line', 'circle'], 1, gridIds);
     // 未命中对象时不拦截事件，交给画布拖拽（标记模式下当前工具已是「移动视图」）
     if (!id) {
       markingGesture = false;
@@ -3476,6 +4015,11 @@
     // 标了既进不了「给定」栏（栏里只占一行「格线」），导出时还会多出一堆普通对象
     if (isGridId(id)) {
       toast(t('board.gridNoMark'));
+      return;
+    }
+    // 制题器 / 求解器：完全落在网格范围外的图形不许标记（会把它写进题面 / 已知条件）
+    if (window.markBlockedOutsideGrid(id)) {
+      toast(t('board.markOutsideGrid'));
       return;
     }
     // 可移动点只能是自由点（能拖得动的那种），交点 / 线上点 / 中点这些不算
@@ -3511,6 +4055,12 @@
   // 手指按在图形上拖动时，既不移动图形也不平移画布，只是标记它
   const swallowMarkingGesture = event => {
     if (!markingGesture) return;
+    // 双指是缩放：直接放行给 index.js / playPage.js 的触摸处理（它们挂在同一个 canvas 上），
+    // 否则标记模式下就没法双指缩放（手指按在图形上时被这里全吃掉，见 #3）
+    if (event.touches && event.touches.length >= 2) {
+      markingGesture = false;
+      return;
+    }
     event.preventDefault();
     // 必须用 stopImmediatePropagation：index.js 的监听挂在同一个 canvas 上，
     // 只 stopPropagation 挡不住同一元素上的其它监听
@@ -3904,18 +4454,18 @@
     const helpIndex = menuItems.findIndex(item => item.actionKey === 'help');
     menuItems.splice(helpIndex < 0 ? menuItems.length : helpIndex, 0,
       {
+        label: t('board.importGmt'), templateId: 'importGmt', actionKey: 'import-gmt',
+        action: () => optionDialog(t('board.importGmt'), [
+          { label: '导入 gmt 代码', templateId: 'gmtPaste', actionKey: 'gmt-paste', action: () => codeDialog('导入 gmt 代码', '', loadGmt) },
+          { label: '导入 gmt 文件', templateId: 'gmtRead', actionKey: 'gmt-read', action: readGmtFile },
+        ]),
+      },
+      {
         label: t('board.exportGmt'), templateId: 'exportGmt', actionKey: 'export-gmt',
         action: () => optionDialog(t('board.exportGmt'), [
           { label: '查看 gmt 代码', templateId: 'gmtView', actionKey: 'gmt-view', action: () => codeDialog('gmt 代码', gmtText()) },
           { label: '导出为 gmt 文件', templateId: 'gmtSave', actionKey: 'gmt-save', action: saveGmtFile },
           { label: '导出至 Issue', templateId: 'gmtIssue', actionKey: 'gmt-issue', action: submitGmtIssue },
-        ]),
-      },
-      {
-        label: t('board.importGmt'), templateId: 'importGmt', actionKey: 'import-gmt',
-        action: () => optionDialog(t('board.importGmt'), [
-          { label: '导入 gmt 代码', templateId: 'gmtPaste', actionKey: 'gmt-paste', action: () => codeDialog('导入 gmt 代码', '', loadGmt) },
-          { label: '导入 gmt 文件', templateId: 'gmtRead', actionKey: 'gmt-read', action: readGmtFile },
         ]),
       });
   }

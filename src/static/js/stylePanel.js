@@ -46,12 +46,46 @@ function appendStyleControl(row, title, control) {
  * tool、geometryManager、geometryStyle、drawStyle()、refreshToolFloating()、drawContent()
  */
 
-// 粗细档位：点的大小（小中大）与线、圆的粗细（细中粗），默认值 1 为「中」
+// 粗细档位：点的大小与线、圆的粗细，默认值 1 为「中」。
+// 「大」与「中」之间、「中」与「小」之间各再加一挡（共 5 挡），用挡位条选（见 addWidthBar）
 const styleWidths = [
     {value: 0.5, name: '细', pointName: '小'},
+    {value: 0.75, name: '较细', pointName: '较小'},
     {value: 1, name: '中', pointName: '中'},
+    {value: 1.25, name: '较粗', pointName: '较大'},
     {value: 1.5, name: '粗', pointName: '大'},
 ];
+/** 档位名 过程函数（按值找名字，找不到就用原值） */
+const styleWidthNameOf = (value, isPoint) => {
+    const hit = styleWidths.find(item => Math.abs(value - item.value) < 0.01);
+    return hit ? (isPoint ? hit.pointName : hit.name) : String(value);
+};
+
+/**
+ * 粗细 / 大小的挡位条 过程函数（画布样式弹层与「调整已选中对象的样式」两处共用）
+ * 一排等宽挡位（小 → 大），当前档高亮；每一档上的圆点按该档的粗细画，一眼能看出选的是哪一档
+ * @param {HTMLElement} row 所在行
+ * @param {number} current 当前值
+ * @param {boolean} isPoint true = 点（用「大小」那一套档名）
+ * @param {Function} onPick 选中某档
+ * @return {HTMLElement} 挡位条
+ */
+const addWidthBar = (row, current, isPoint, onPick) => {
+    const bar = document.createElement('div');
+    bar.className = 'style-width-bar';
+    styleWidths.forEach(item => {
+        const seg = document.createElement('button');
+        seg.type = 'button';
+        seg.className = 'style-width-seg';
+        seg.style.setProperty('--seg-width', item.value);
+        seg.title = styleWidthNameOf(item.value, isPoint);
+        if (Math.abs(current - item.value) < 0.01) seg.classList.add('active');
+        seg.addEventListener('click', () => onPick(item.value));
+        bar.appendChild(seg);
+    });
+    row.appendChild(bar);
+    return bar;
+};
 
 /**
  * 已选中的几何对象（移动工具的选中栏）
@@ -189,6 +223,7 @@ function openStylePopup(options) {
         row.appendChild(button);
     };
 
+
     // 按当前样式重绘弹层内容
     const draw = () => {
         const style = get();
@@ -209,9 +244,9 @@ function openStylePopup(options) {
         });
         colorRow.appendChild(colorButton);
 
-        // 粗细 / 大小
+        // 粗细 / 大小（挡位条）
         const widthRow = addRow(isPoint ? '大小' : '粗细');
-        styleWidths.forEach(item => addOption(widthRow, isPoint ? item.pointName : item.name, Math.abs(width - item.value) < 0.01, () => { apply({width: item.value}); draw(); }));
+        addWidthBar(widthRow, width, isPoint, value => { apply({width: value}); draw(); });
 
         // 标签：一个开关（开 = 显示标签，关 = 不显示）
         // 虚线与它并排在同一行（只有直线与圆有，点没有这个开关）：开 = 画成虚线，各模式默认关
@@ -383,7 +418,8 @@ function renderInlineStyleControls(container, element, onChange, readOnly) {
             const roWidthRow = addRow(isPoint ? '大小' : '粗细');
             const widthText = document.createElement('span');
             widthText.className = 'style-inline-value';
-            widthText.textContent = String(target.getWidth() || 1);
+            // 只读时直接写档位名（细 / 较细 / 中 / 较粗 / 粗），比裸数字好读
+            widthText.textContent = styleWidthNameOf(target.getWidth() || 1, isPoint);
             roWidthRow.appendChild(widthText);
 
             // 标签与虚线并排一行（虚线只有直线与圆有）
@@ -428,17 +464,13 @@ function renderInlineStyleControls(container, element, onChange, readOnly) {
         });
         colorRow.appendChild(colorButton);
 
-        // 粗细 / 大小
+        // 粗细 / 大小（挡位条）
         const widthRow = addRow(isPoint ? '大小' : '粗细');
         const width = target.getWidth() || 1;
-        styleWidths.forEach(item => {
-            const button = document.createElement('button');
-            button.type = 'button';
-            button.className = 'style-popup-option';
-            button.textContent = isPoint ? item.pointName : item.name;
-            if (Math.abs(width - item.value) < 0.01) button.classList.add('active');
-            button.addEventListener('click', () => { each(target => target.modifyWidth(item.value)); draw(); done(); });
-            widthRow.appendChild(button);
+        addWidthBar(widthRow, width, isPoint, value => {
+            each(item => item.modifyWidth(value));
+            draw();
+            done();
         });
 
         // 标签开关，虚线与它并排在同一行（只有直线与圆有）：开 = 画成虚线，各模式默认关

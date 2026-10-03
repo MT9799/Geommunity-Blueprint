@@ -79,9 +79,9 @@
      * @returns {string}
      */
     function canvasGmt() {
-        // 记录里的「隐藏」只记在 styles（`a@`），gmt 的 hidden= 行留空：
-        // 那张样式表本来就会写 visible=false，载回来一样是隐藏的，不必两处都记
-        return global.boardGmt && typeof global.boardGmt.text === 'function' ? global.boardGmt.text({omitHidden: true}) : '';
+        // 「隐藏」只记在 styles（`a@`），gmt 的 hidden= 行留空（现在导出那边也是这个口径，
+        // hidden= 只作读取用）：那张样式表本来就会写 visible=false，载回来一样是隐藏的
+        return global.boardGmt && typeof global.boardGmt.text === 'function' ? global.boardGmt.text() : '';
     }
 
     /**
@@ -370,7 +370,8 @@
             if (entry.visible !== undefined && typeof item.modifyVisible === 'function') {
                 item.modifyVisible(!!entry.visible);
                 // 记录里的显隐只走样式表：顺手把「隐藏」集合也同步好，
-                // 制题器 / 求解器里的标记、以及再导出 gmt 时的 hidden= 行才跟画布一致
+                // 制题器 / 求解器里的标记色那几处才跟画布一致（导出的 hidden= 行恒为空，
+                // 隐藏不再进关卡语义，见 board-tools.js 的 gmtText）
                 const hidden = typeof geometryElementLists !== 'undefined' ? geometryElementLists.hidden : null;
                 if (hidden) {
                     if (entry.visible) hidden.delete(id);
@@ -449,6 +450,14 @@
         // 样式表存的是图形**自己**的颜色，标记的显示色要按记录里的标记重上一次
         // （给定黑 / 所求金），否则带标记的记录载回来会看到给定 / 所求是它本来的红 / 灰
         window.refreshElementListColors?.();
+        // 视图适配：有网格的记录由 boardGmt.load 内部适配到网格范围；没有网格时按图形本身适配
+        // （记录里的图形可能是任意尺寸、任意位置，不适配就会落在画布外或小得看不清）。
+        // 放在隐藏名单与样式之后：刚被藏起来的对象不该参与范围
+        if (global.boardGmt && typeof global.boardGmt.grid === 'function'
+            && typeof global.boardGmt.fitView === 'function' && !global.boardGmt.grid()) {
+            global.boardGmt.fitView();
+            global.drawContent?.();
+        }
         // 记下来：撤销清单为了瘦身不带样式字段（见 recordStore 的 slimUndolist），
         // 撤回 / 重做重建对象之后要按这张表再补一次色（见 recordPanelAfterRestore）
         loadedStyles = dict.styles || null;

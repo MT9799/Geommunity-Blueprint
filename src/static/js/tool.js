@@ -94,7 +94,8 @@ const toolItems = {
         "choice": {"general": {"point1": 'point', "point2": 'point'}},
     }, 
     'angleBisector': {
-        'switch': ['threePointAngleBisector', 'twoLineAngleBisector'],
+        // 两线模式暂时不列出来（见 constructToolBag.js 的 TWO_LINE_BISECTOR_ENABLED）
+        'switch': ['threePointAngleBisector'],
         "button": ["clear", "lineStyle"], 
         "choice": {"threePointAngleBisector": {"point1": 'point', "point2": 'point', "point3": 'point'},
             "twoLineAngleBisector": {"choice1": 'line', "choice2": 'line'}},

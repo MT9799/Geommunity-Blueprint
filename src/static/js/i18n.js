@@ -176,6 +176,8 @@ const I18N_DICT = {
         'board.solverToolCircle': '单规',
         // 网格作图（模式 3）：可用工具里多一项「网格」，尺寸就写在选项上（取自画布上已生成的网格）
         'board.solverToolGrid': '网格',
+        // 制题器 / 求解器：完全落在网格范围外的图形不许标记
+        'board.markOutsideGrid': '这个图形完全在网格范围外，不能标记',
         // 边搜边看：内核一找到解就上报，搜索途中列表就长出「解法 n」
         'board.solverSearchingFound': '已找到 {count} 个解（搜索中，用时 {seconds} 秒）',
         // 解法自检（高级选项，默认关）：只对当前这组数成立的特解会被剔掉
@@ -183,6 +185,18 @@ const I18N_DICT = {
         'board.solverSelfCheckHint': '对每个解把可动点轻挪图幅的 0.1%、重算一遍：只在当前位置成立的特解会被剔除（慢一些，也可能一个解都不剩）',
         'board.solverSelfCheckNote': '；另有 {count} 个解只在当前位置成立，已剔除',
         'board.solverSelfCheckAllRejected': '找到的 {count} 个解都只在当前位置成立（未通过解法自检）',
+        // 并行线程数标题后面跟一句推荐值（按设备逻辑核心数估，见 solverPanel）
+        'board.solverThreadsRecommended': '（推荐：{count}）',
+        // 逐步搜索（高级选项，默认关）：1 步搜一遍、2 步搜一遍 …… 到设定步数
+        'board.solverStepwise': '逐步搜索',
+        'board.solverStepwiseHint': '按 1 步搜一遍、2 步搜一遍 …… 一直到步数上限（每轮都是一次完整的搜索，各自按「时间上限」单独计时）：短解先出来、随时能停，总用时更长',
+        // 进度条的说明（鼠标停在进度条上）：进度 = 已搜情况数 / 预估总情况数（「情况」= 搜索树
+        // 的一个节点，无解的也算），顺带已找到的解数与已用时。条右边的百分比就是条的比例
+        'board.solverProgressNote': '进度条 = 已搜情况数 / 预估总情况数',
+        'board.solverProgressNodes': '已搜 {nodes} 个情况（预估共 {total} 个）',
+        'board.solverProgressFound': '已找到 {found}/{target} 个解',
+        'board.solverProgressTime': '已用时 {elapsed}/{limit} 秒',
+        'board.solverProgressDone': '搜索已结束',
         'board.solverTime': '时间上限（秒）',
         'board.solverCount': '解数',
         'board.solverAdvanced': '高级选项',
@@ -280,7 +294,7 @@ const I18N_DICT = {
         'help.board': '画板：左侧工具栏选择工具，画布上点击（有些工具需要点击多次）即可作图；拖动可平移视图，滚轮缩放。\n顶栏右侧依次是：菜单（构造面板 / 元素一览 / 记录 / 清空画布 / 打开求解器）、撤销、重做、返回。\n「菜单 → 打开求解器」会把画布上的图形交给求解器搜索构造方案。\n鼠标停在按钮上时，工具栏上方会显示这个按钮的说明。',
         'help.level': '关卡：按标题给出的目标作图，画布上的黑色对象是题目条件，金色对象是你作出的所求。\n每作出一个所求，右上角会弹出通关界面：完成勾表示作出了解，L / E 勾表示步数不超过最佳步数，V 勾表示作出了全部多解。\n顶栏右侧是 LE 计数器与返回按钮；「探索」可以把所求的关联图形标金显示，方便观察。\n「菜单 → 查看答案」可以看该关收录的解法图（会先确认一次）。',
         'help.maker': '制题器：先用工具画出题目条件与解法，再用工具栏上的标记按钮把对象标记为「初始」或「所求」。\n初始对象在关卡里会直接显示（黑色），所求对象用于判定玩家是否作出。\n「导出 gmt」可以查看代码、下载文件或提交到 Issue；「试玩」用当前图形进入游玩模式预览。',
-        'help.solver': '求解器：求解参数中设置最大步数与可用工具，点击「开始求解」后会用 Web Worker 搜索作图方案。\n画布上的图形是搜索的已知条件，搜索结果会在下方的状态栏显示。\n注：该求解器暂不支持自动标点，若给定图形中的点过少导致搜索无解时（如一部分单尺关卡），请尝试再绘制1~2个自由点并加入给定。\n搜索内核由 [Ander](https://github.com/Aricler-Ander) 与 zzzzzz 共同开发，本项目使用的是它的 JavaScript 移植版。',
+        'help.solver': '求解器：求解参数中设置最大步数与可用工具，点击「开始求解」后会用 Web Worker 搜索作图方案。\n画布上的图形是搜索的已知条件，搜索结果会在下方的状态栏显示。\n注1：搜索到的解不保证正确，它只保证在你给的这组数上命中目标，请自己核对每一条解（把图形拖一拖、看看解法还成不成立），或者打开高级选项里的「解法自检」自动剔除错解。\n注2：该求解器暂不支持自动标点，若给定图形中的点过少导致搜索无解时（如一部分单尺关卡），请尝试再绘制1~2个自由点并加入给定。\n搜索内核由 [Ander](https://github.com/Aricler-Ander) 与 zzzzzz 共同开发，本项目使用的是它的 JavaScript 移植版。',
         'help.makerPlay': '试玩：把刚做好的题目按关卡游玩的方式验一遍，用来检查标记与解法是否正确。\n黑色对象是你标记的「给定」（带标签给定会显示标签），作出「所求」后右上角会弹出通关界面；右上角也是步数计数器与「返回」。\n「探索」可以按探索模式查看标记为探索的内容，自己画在探索画布上的图形会一直留着。\n验完点「返回」回到制题器继续编辑（图形与标记都会保留）。',
 
         "exception.pointBaseDialogToolTemplateTypeException": "点基工具模板输入类型不匹配",
@@ -455,6 +469,8 @@ const I18N_DICT = {
         'board.solverToolCircle': 'Compass only',
         // Grid construction (mode 3): one more tool in the list, with its size written on the option
         'board.solverToolGrid': 'Grid',
+        // Maker / solver: a figure lying entirely outside the grid cannot be marked
+        'board.markOutsideGrid': 'This figure lies entirely outside the grid and cannot be marked',
         // Streaming: the core reports every solution the moment it is found, so rows appear while searching
         'board.solverSearchingFound': 'Found {count} solution(s) (searching, {seconds}s)',
         // Solution self-check (advanced option, off by default): drops solutions that only hold for the current numbers
@@ -462,6 +478,19 @@ const I18N_DICT = {
         'board.solverSelfCheckHint': 'Nudge the movable points by 0.1% of the figure for every solution and re-evaluate: ones that only hold at the current position are dropped (slower, may leave none)',
         'board.solverSelfCheckNote': '; {count} solution(s) only hold at the current position and were dropped',
         'board.solverSelfCheckAllRejected': 'All {count} solution(s) only hold at the current position (failed the self-check)',
+        // Recommended parallel thread count, shown after the label (see solverPanel)
+        'board.solverThreadsRecommended': ' (recommended: {count})',
+        // Stepwise search (advanced option, off by default): search for 1 step, then 2 steps, ... up to the limit
+        'board.solverStepwise': 'Stepwise search',
+        'board.solverStepwiseHint': 'Search for 1 step, then 2 steps, ... up to the limit (each round is a full search with its own time limit): short solutions show up first and you can stop at any time, but the total run is longer',
+        // Progress bar tooltip: the bar is situations searched / estimated total situations
+        // (a "situation" is one node of the search tree, dead ends included), plus a few figures.
+        // The percentage on the right is simply the bar's fill ratio
+        'board.solverProgressNote': 'bar = situations searched / estimated total',
+        'board.solverProgressNodes': '{nodes} situations searched (about {total} expected)',
+        'board.solverProgressFound': '{found}/{target} solution(s) found',
+        'board.solverProgressTime': '{elapsed}/{limit}s elapsed',
+        'board.solverProgressDone': 'search finished',
         'board.solverTime': 'Time limit (s)',
         'board.solverCount': 'Solutions',
         'board.solverAdvanced': 'Advanced',
@@ -559,7 +588,7 @@ const I18N_DICT = {
         'help.board': 'Board: pick a tool on the left toolbar and click on the canvas (some tools need several clicks). Drag to pan the view, scroll to zoom.\nThe right side of the top bar holds the menu (tools / elements / records / clear canvas / open solver), undo, redo and back.\n"Menu → Open solver" sends the current figure to the solver.\nHover a button to read its description above the toolbar.',
         'help.level': 'Level: build the construction described by the title. Black objects are given, golden objects are what you have constructed.\nEvery time you solve a goal, the completion panel slides in: the done tick means a goal is solved, L / E mean you stayed within the target moves, V means every variant is solved.\nThe top right shows the L/E counter and the back button; "Explore" highlights the related objects in gold.\n"Menu → View answer" shows the archived solution images (after a confirmation).',
         'help.maker': 'Maker: draw the givens and the solution with the tools, then use the marking buttons on the toolbar to mark objects as "given" or "goal".\nGiven objects are shown in the level (black), goal objects are used to check the player.\n"Export gmt" shows the code, downloads a file or opens an issue; "Test play" previews the level in play mode.',
-        'help.solver': 'Solver: set the move limit and the allowed tools in the solver panel, then press "Start" to search with a Web Worker.\nThe figure on the canvas is the known configuration; the search result appears in the status line below.\nNote: This solver doesn\'t support automatically marking movepoints yet. If the given points in a figure are too few and the search comes up empty (like in some straightedge-only levels), try adding 1 or 2 more free points and include them in the given points.\nThe search engine was developed by [Ander](https://github.com/Aricler-Ander) and zzzzzz; this project ships a JavaScript port of it.',
+        'help.solver': 'Solver: set the move limit and the allowed tools in the solver panel, then press "Start" to search with a Web Worker.\nThe figure on the canvas is the known configuration; the search result appears in the status line below.\n**The solutions found are not guaranteed to be correct**: they only hit the goal for the numbers you gave, so check every one yourself (drag the figure around and see whether the construction still holds), or turn on "Solution self-check" in the advanced options — it drops the special-case solutions that only hold at the current position.\nNote: This solver doesn\'t support automatically marking movepoints yet. If the given points in a figure are too few and the search comes up empty (like in some straightedge-only levels), try adding 1 or 2 more free points and include them in the given points.\nThe search engine was developed by [Ander](https://github.com/Aricler-Ander) and zzzzzz; this project ships a JavaScript port of it.',
         'help.makerPlay': 'Playtest: check the level you just built the way a player would see it, to verify your marks and solution.\nBlack objects are the givens you marked (labelled givens show their label); solve the goal and the completion panel appears at the top right, together with the move counter and "Back".\n"Explore" switches to explore mode to look at what you marked as explore; anything you draw on the explore canvas stays there.\nPress "Back" when you are done to return to the maker with your figure and marks kept.',
 
         "exception.pointBaseDialogToolTemplateTypeException": "PointBaseDialogToolTemplate input type mismatched exception",

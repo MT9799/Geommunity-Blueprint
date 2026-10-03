@@ -110,25 +110,37 @@ function loadGeometryElements() {
     const overview = document.getElementById("container_overview");
     // 已经量过就按那个高度撑住列表与详情（见 syncOverviewListHeight）：面板高度不变
     applyOverviewMinHeight();
-    // 网格当作一整块：只列「格线」一行（放在第一位），模板里的辅助对象不列
+    // 网格当作一整块：只列「格线」一行。位置放在**它原本出现的地方** ——
+    // 网格生成之前作的图形排在它前面、之后作的排在它后面，与作图 / 撤销历史同一口径
+    // （不再固定挂在第一行）。模板里的辅助对象不列
     const allElements = geometryManager.getAllByOrder();
     const gridIds = (typeof window.isGridObjectId === 'function'
         && typeof geometryElementLists !== 'undefined' && geometryElementLists.grid)
         ? [...geometryElementLists.grid] : [];
     const gridSegments = gridIds.filter(id => /^gS[XY]\d+$/.test(id))
         .map(id => geometryManager.get(id)).filter(Boolean);
-    const geometryElements = [];
-    if (gridSegments.length) {
-        // 拿第一条格线当原型（其余方法照旧转发），只把名字换成「格线」
+    // 拿第一条格线当原型（其余方法照旧转发），只把名字换成「格线」
+    const gridRow = gridSegments.length ? (() => {
         const row = Object.create(gridSegments[0]);
         row.getName = () => (typeof t === 'function' ? t('board.gridLabel') : '格线');
         row.getShowName = () => false;
-        geometryElements.push(row);
-    }
+        return row;
+    })() : null;
+    const geometryElements = [];
+    let gridRowPlaced = false;
     allElements.forEach(element => {
-        if (gridIds.includes(element.getId())) return;
+        if (gridIds.includes(element.getId())) {
+            // 整块网格只在遇到第一个网格对象时插一行
+            if (gridRow && !gridRowPlaced) {
+                geometryElements.push(gridRow);
+                gridRowPlaced = true;
+            }
+            return;
+        }
         geometryElements.push(element);
     });
+    // 画布上只剩网格、没有普通对象时也要把「格线」那行列出来
+    if (gridRow && !gridRowPlaced) geometryElements.push(gridRow);
     let count = 0;
     overview.innerHTML = "";
     // 「隐藏」档以外（初始 / 可动点 / 所求 / 探索…）看的是标记：被标出的格子换成红框，
@@ -859,6 +871,12 @@ function selectElementByOverview(event) {
             else set.add(id);
             target.classList.toggle('select', !geometryElement.getVisible());
             drawContent();
+            return;
+        }
+        // 制题器 / 求解器：完全落在网格范围外的图形不许标记（见 board-tools.js 的 markBlockedOutsideGrid）
+        // —— 这条在「隐藏」档之外，隐藏只是看不看得见，与题面无关
+        if (typeof window.markBlockedOutsideGrid === 'function' && window.markBlockedOutsideGrid(id)) {
+            if (typeof window.boardToast === 'function') window.boardToast(t('board.markOutsideGrid'));
             return;
         }
         // 这些档位是「看看有哪些标好的」：已经标上的不再点掉（免得误触取消标记、把画布上的高亮弄没），

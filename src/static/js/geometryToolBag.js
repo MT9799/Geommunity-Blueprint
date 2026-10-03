@@ -122,13 +122,10 @@ class PointTool {
         let goalX = x,
             goalY = y;
         // 光标下压着一个隐藏的点对象（图形的定义点常常是隐藏的）：把它显示出来，
-        // 别再在它旁边叠一个几乎重合的新点（同一条规则，见 revealHiddenPoint / nearestHiddenPoint）
+        // 别再在它旁边叠一个几乎重合的新点（同一条规则，见 revealHiddenPoint / nearestHiddenPoint）。
+        // 显示不出来时（游玩模式里隐藏是关卡语义、网格辅助点、或压根没藏着）就按普通取点往下走
         const hiddenUnder = nearestHiddenPoint(x, y);
-        if (hiddenUnder) {
-            geometryManager.duplicatedFlag = true;
-            revealHiddenPoint(hiddenUnder);
-            return;
-        }
+        if (hiddenUnder && revealHiddenPoint(hiddenUnder)) return;
         // 先吸附「离光标最近的那个交点」（附近图形两两求交，见 nearestIntersection）：
         // 不再只看最近的 2 个图形，避免光标下就有交点却取到附近别的图形组合在很远处的交点
         const snap = geometryManager.nearestIntersection(x, y);
@@ -140,11 +137,10 @@ class PointTool {
             // 不再新建（与 pointExistsAt 同一口径），但要**把它显示出来**：
             // 「点在有隐藏交点的位置就显示它」那条规则，点工具这一路也照办（见 revealHiddenPoint）
             const hidden = pointAtPosition(snap.x, snap.y);
-            if (hidden) {
-                geometryManager.duplicatedFlag = true;
-                revealHiddenPoint(hidden);
-                return;
-            }
+            // 网格自己的辅助点（格点位置上的小点径黑点）不算「这儿已经有点了」：
+            // 照常作出一个真正的交点，但不要把那个小黑点显示出来（见 #4）。
+            // 显示不出来时（游玩模式）也照常作出这个交点
+            if (hidden && !isGridOwnedId(hidden.getId()) && revealHiddenPoint(hidden)) return;
             const snapPoint = geometryManager.createPoint(snap.x, snap.y);
             applyIntersectionBase(snapPoint, snap);
             snap.element1.addSuperstructure(snapPoint);
@@ -764,20 +760,53 @@ function pointAtPosition(x, y) {
 }
 
 /**
+ * 是不是游玩页（关卡游玩 / 试玩） 过程函数
+ * 这两页里「隐藏」是**关卡自己的语义**（隐藏的给定图形、图形自己的内部定义点…），
+ * 不是玩家随手藏起来的东西。
+ * 判据用游玩页独有的 isGivenObject / isProtectedElement（显示规则与可删性都按关卡来，
+ * 画板 / 制题器 / 求解器没有这两个）—— 没有全局 mode 可用：那几页的 mode 只在各自闭包里
+ * @returns {boolean}
+ */
+function isPlayMode() {
+    return typeof window.isGivenObject === 'function' || typeof window.isProtectedElement === 'function';
+}
+
+/**
  * 让一个点显示出来 过程函数
  * 隐藏的点对象（图形的定义点常常是隐藏的）在画布上看不见、也进不了 near 的吸附范围 ——
  * 点工具点上去时就该把它显示出来，而不是什么也不做
  * 除了对象自身的可见性，还要同步「隐藏」标记集合：元素一览的隐藏档位、导出 gmt 的 hidden= 行都读它
  * @param {Object} point 点对象
+ * @param {boolean} [ownStep] 这一下点击本身就是「在这儿放一个点」（点工具 / 交点工具）：
+ *        那么显示出来这件事要自己占一格历史；其它工具取点时顺手显示的点，
+ *        跟着它那一步作图一起撤回（所以这时不发存储事件）
  * @returns {boolean} 是不是真的从隐藏变成了可见
  */
-function revealHiddenPoint(point) {
+function revealHiddenPoint(point, ownStep = false) {
     if (!point || typeof point.getVisible !== 'function' || point.getVisible()) return false;
+    // 游玩模式里不翻出隐藏点：关卡把某些点藏起来有它自己的用意（给定里的隐藏对象、图形的内部
+    // 定义点…），点一下就显示会和关卡那套隐藏规则打架 —— 显示出来又被收回去，看着像「点了没反应」。
+    // 这里直接返回 false，调用方会按普通取点往下走：照常作出一个新点（见 PointTool.createPoint）
+    if (isPlayMode()) return false;
     if (typeof point.modifyVisible === 'function') point.modifyVisible(true);
     if (typeof geometryElementLists !== 'undefined' && geometryElementLists.hidden) {
         geometryElementLists.hidden.delete(point.getId());
     }
+    // 「在这儿放一个点」的那一路上，显示出来自己占一格历史：否则这个点会并进**下一个动作**的
+    // 快照里，撤回那个动作时把它一起撤掉
+    if (ownStep && typeof notifyStorageChange === 'function') notifyStorageChange('point');
     return true;
+}
+
+/**
+ * 这个 id 是不是网格自己的对象 过程函数
+ * 网格是一整套作图对象（辅助点、格线、以及滚出来的圆与垂线）：它不能被单独标记，
+ * 也不能被「点击显示隐藏交点」这条规则点出来（那些辅助点是小点径黑点，露出来只是噪声）
+ * @param {string} id
+ * @returns {boolean}
+ */
+function isGridOwnedId(id) {
+    return !!id && typeof window.isGridObjectId === 'function' && window.isGridObjectId(id);
 }
 
 /**
@@ -793,6 +822,8 @@ function nearestHiddenPoint(x, y) {
     let best = null;
     geometryManager.getAllByOrder().forEach(item => {
         if (item.getType() !== 'point' || item.getVisible()) return;
+        // 网格自己的辅助点（生成网格时滚出来的那些小点径黑点）不算：点出来只是噪声（见 #4）
+        if (isGridOwnedId(item.getId())) return;
         if (typeof item.getValid === 'function' && !item.getValid()) return;
         const coord = item.getCoordinate?.();
         if (!coord) return;
@@ -814,19 +845,26 @@ function nearestHiddenPoint(x, y) {
  * @param {number} y 逻辑坐标
  * @returns {boolean} 这一下是否显示（或作出了）一个交点
  */
-function revealHiddenIntersection(x, y) {
+function revealHiddenIntersection(x, y, ownStep = false) {
     const snap = geometryManager.nearestIntersection(x, y);
-    if (!snap) return false;
+    // 网格自己的交点（就是格点）不参与：交点在格线上时，点出来的会是生成网格用的辅助点
+    // （小点径黑点，见 #4）。真实图形的交点照旧
+    if (!snap || isGridOwnedId(snap.element1 && snap.element1.getId())
+        || isGridOwnedId(snap.element2 && snap.element2.getId())) return false;
     const existing = pointAtPosition(snap.x, snap.y);
     if (existing) {
-        revealHiddenPoint(existing);
-        return true;
+        // 这个位置上已经有点（多半是隐藏的定义点）：能显示出来才算这一下有用
+        // （游玩模式里不翻隐藏点，这里就会返回 false，工具照常自己作点）
+        return revealHiddenPoint(existing, ownStep);
     }
     const point = geometryManager.createPoint(snap.x, snap.y);
     applyIntersectionBase(point, snap);
     snap.element1.addSuperstructure(point);
     snap.element2.addSuperstructure(point);
     geometryManager.addObject(point);
+    // 同 revealHiddenPoint：只有「这一下本来就是放个点」才自己占一格历史，
+    // 其它工具顺手作出的交点跟着它那一步作图一起撤回（见 #「顺手造的交点」）
+    if (ownStep && typeof notifyStorageChange === 'function') notifyStorageChange('point');
     return true;
 }
 
@@ -841,7 +879,11 @@ function revealHiddenIntersection(x, y) {
 function revealHiddenIntersectionAtClick(oriX, oriY) {
     if (typeof tool !== 'string' || typeof transform === 'undefined') return false;
     if (tool === 'move' || tool === 'eraser' || tool === 'styleBrush' || tool === 'lineType') return false;
-    return revealHiddenIntersection((oriX - transform.x) / transform.scale, (oriY - transform.y) / transform.scale);
+    // 点工具 / 交点工具这一下本来就是「在这儿放个点」：显示 / 作出的点自己占一格历史。
+    // 其它工具（直线、圆、构造类…）随后会完成自己那一步，那个点跟着那一步一起撤回
+    const ownStep = tool === 'point' || tool === 'intersection';
+    return revealHiddenIntersection((oriX - transform.x) / transform.scale,
+        (oriY - transform.y) / transform.scale, ownStep);
 }
 
 /**
@@ -1143,9 +1185,15 @@ class StyleBrushTool {
         const source = geometryManager.get(this.sourceId);
         const target = geometryManager.get(id);
         if (!source || !target) return;
-        target.modifyColor(source.getColor());
+        // 来源要是「给定 / 可移动点 / 所求」这类被标记的图形（画布上是黑 / 金、标签由标记决定），
+        // getColor() / getShowName() 给的是**标记显示值**，照抄就把黑色刷到目标上了。
+        // 标记之前的原样式由 boardGmt.ownStyleOf 记着（见 board-tools.js 的 markedStyles），
+        // 它在对象没被标记时返回 null，那时照旧读对象本身
+        const own = typeof window.boardGmt?.ownStyleOf === 'function'
+            ? window.boardGmt.ownStyleOf(this.sourceId) : null;
+        target.modifyColor(own ? own.color : source.getColor());
         target.modifyWidth(source.getWidth());
-        target.modifyShowName(source.getShowName());
+        target.modifyShowName(own ? own.showName : source.getShowName());
         // 虚线（线 / 圆的样式）一并复制；点没有虚线，复制过去就是关闭
         target.modifyDashed(source.getDashed());
     }

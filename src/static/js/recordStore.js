@@ -32,7 +32,8 @@
  *
  * styles 的符号（一个图形有多项就逐个写，用逗号隔开；值里有逗号就写成 `\,`）：
  *   a%名称 显示名（与 id 不同的那个；改名是样式方向的事，不是标记）；
- *   a#ff0000 颜色；a~1 / a~3 点线径（1 小、3 大）；
+ *   a#ff0000 颜色；a~1 … a~5 点线径（1 最小、5 最大，与样式面板的挡位条一一对应；
+ *                          老记录里写的裸宽度，如 a~0.5，读的时候按宽度原样用）；
  *   a$ 显示标签 / a^ 不显示；a& 虚线（线 / 圆，实线是默认所以不写）；a@ 隐藏 / a! 可见
  * 显示名和 `named=` 是两套规则：named= 只表示「带标签给定」那个标记（读了它会强制显示标签、
  * 按给定上色），改了名字但没标成带标签给定的对象归 styles 这边。
@@ -79,6 +80,41 @@
     };
     const STYLE_MARK_PATTERN = /[%#~$^@!&]/;
     // styles 一行里各项用逗号隔开，显示名里可能有逗号：转义后再写，读回来按未转义的逗号切
+    /**
+     * 点线径档位表 过程函数
+     * 与 stylePanel.js 的 styleWidths 是同一张表（那边是画布上的档位条）；画布脚本还没载入时用兜底表
+     * @returns {number[]} 从小到大的宽度值
+     */
+    function widthGradeTable() {
+        if (typeof styleWidths !== 'undefined' && Array.isArray(styleWidths) && styleWidths.length) {
+            return styleWidths.map(item => item.value);
+        }
+        return [0.5, 0.75, 1, 1.25, 1.5];
+    }
+
+    /**
+     * 宽度值 → 样式文本里的值 过程函数
+     * `~n` 写的是**档位号**（1 最小、5 最大）；不在档位表里的值（老记录的裸宽度）原样写回
+     * @param {number} value
+     * @returns {number}
+     */
+    function widthToStyleValue(value) {
+        const index = widthGradeTable().findIndex(item => Math.abs(item - value) < 1e-6);
+        return index >= 0 ? index + 1 : value;
+    }
+
+    /**
+     * 样式文本里的值 → 宽度值 过程函数
+     * 1..5 的整数当档位号换算；其它（老记录的裸宽度，如 0.5 / 1.5）按宽度原样用
+     * @param {number} value
+     * @returns {number}
+     */
+    function styleValueToWidth(value) {
+        const table = widthGradeTable();
+        if (Number.isInteger(value) && value >= 1 && value <= table.length) return table[value - 1];
+        return value;
+    }
+
     const escapeStyleValue = value => String(value).replace(/\\/g, '\\\\').replace(/,/g, '\\,');
     const unescapeStyleValue = value => String(value).replace(/\\(.)/g, '$1');
     const splitStyleItems = text => (String(text || '').match(/(?:\\.|[^,])+/g) || []);
@@ -568,7 +604,7 @@
             if (entry.name) parts.push(id + STYLE_MARKS.name + escapeStyleValue(entry.name));
             // 颜色按 `a#ff0000` 写：值里的 `#` 省掉（画布上的颜色本来就是 # 开头的十六进制）
             if (entry.color) parts.push(id + STYLE_MARKS.color + String(entry.color).replace(/^#/, ''));
-            if (typeof entry.width === 'number') parts.push(id + STYLE_MARKS.width + entry.width);
+            if (typeof entry.width === 'number') parts.push(id + STYLE_MARKS.width + widthToStyleValue(entry.width));
             if (entry.showName === true) parts.push(id + STYLE_MARKS.showNameOn);
             if (entry.showName === false) parts.push(id + STYLE_MARKS.showNameOff);
             if (entry.dashed === true) parts.push(id + STYLE_MARKS.dashed);
@@ -603,7 +639,7 @@
                 }
                 else if (item.mark === STYLE_MARKS.width) {
                     const width = Number(item.value);
-                    if (Number.isFinite(width)) entry.width = width;
+                    if (Number.isFinite(width)) entry.width = styleValueToWidth(width);
                 }
                 else if (item.mark === STYLE_MARKS.showNameOn) entry.showName = true;
                 else if (item.mark === STYLE_MARKS.showNameOff) entry.showName = false;
@@ -639,7 +675,7 @@
             }
             else if (mark === STYLE_MARKS.width) {
                 const width = Number(value);
-                if (Number.isFinite(width)) entry.width = width;
+                if (Number.isFinite(width)) entry.width = styleValueToWidth(width);
             }
             else if (mark === STYLE_MARKS.showNameOn) entry.showName = true;
             else if (mark === STYLE_MARKS.showNameOff) entry.showName = false;
@@ -920,6 +956,9 @@
         stylesToText: stylesToText,
         stylesFromText: stylesFromText,
         stylesByPrefix: stylesByPrefix,
+        // 点线径档位换算（`~n` 写档位号 1..5，见 widthToStyleValue）：#gridstyle= 那行也用它
+        widthToStyleValue: widthToStyleValue,
+        styleValueToWidth: styleValueToWidth,
         stepsToText: stepsToText,
         stepsFromText: stepsFromText,
         stepsSummary: stepsSummary,

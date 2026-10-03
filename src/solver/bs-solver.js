@@ -40,6 +40,34 @@ class Solver {
         this.frontierDepth = 3;
         this.frontierStopped = false;
         this.frontierProbeMode = false;
+        // 搜索进度上报（页面拿它画进度条）：null = 不上报；见 reportProgress
+        this.onProgress = null;
+        // 「情况」= 搜索树的一个节点（无解的也算一种情况）：到这个深度就开始数，
+        // 这一层一共多少个情况由一次浅层探测先数出来（页面用它估总量）
+        this.progressDepth = 0;
+        this.progressTotalTasks = 0;
+        this.progressTasksSeen = 0;
+        // 已经搜完的那几个情况一共占了多少节点（页面据此算「平均每个情况多大」）
+        this.progressCompletedNodes = 0;
+        this.progressLastBoundaryNodes = 0;
+        this.progressLastAt = 0;
+    }
+
+    /**
+     * 搜索进度上报 过程函数（每 200ms 最多一次）
+     * 报的是「已经搜了多少个节点 / 已经搜完几个情况」，页面拿它按平均规模外推总量
+     * @param {Object} stats
+     */
+    reportProgress(stats) {
+        const now = SOLVER_NOW();
+        if (now - this.progressLastAt < 200) return;
+        this.progressLastAt = now;
+        this.onProgress({
+            nodes: stats.nodes,
+            tasksDone: this.progressTasksSeen,
+            completedNodes: this.progressCompletedNodes,
+            totalTasks: this.progressTotalTasks,
+        });
     }
 
     setSolutionCollector(collector) {
@@ -775,7 +803,7 @@ class Solver {
         }
         const missingGoalPoints = useGoalBands && graph.hasMissingGoalPoints();
         const passes = useGoalBands ? (missingGoalPoints ? 2 : 1) : 1;
-
+        // 进度：第 1 层扫过的点对 / 它要扫的点对总数（含各 pass）—— 这是从根上数得清的那一档
         for (let pass = 0; pass < passes; pass++) {
             if (this.checkTimeout()) return false;
             for (let i = 0; i < n; i++) {
@@ -913,6 +941,15 @@ class Solver {
     dfs(graph, remaining, depth, previous, stats) {
         if (this.checkTimeout()) return false;
         stats.nodes++;
+        if (this.progressDepth > 0 && depth === this.progressDepth) {
+            // 走到边界层的一个新「情况」：上一个情况的整棵子树已经搜完，把它的节点数记进
+            // 「已搜完情况的总节点数」（第一次会把边界之上的少量节点也算进来，可忽略）
+            this.progressCompletedNodes += stats.nodes - this.progressLastBoundaryNodes;
+            this.progressLastBoundaryNodes = stats.nodes;
+            this.progressTasksSeen++;
+        }
+        // 每 1024 个节点看一眼要不要上报（真正的时间节流在 reportProgress 里）
+        if (this.onProgress && (stats.nodes & 1023) === 0) this.reportProgress(stats);
         stats.maxPoints = Math.max(stats.maxPoints, graph.points.length);
         stats.maxElements = Math.max(stats.maxElements, graph.elements.length);
 
@@ -1032,6 +1069,11 @@ class Solver {
         this.frontierTaskSink = null;
         this.frontierStopped = false;
         this.deadline = SOLVER_NOW() + this.timeLimitSeconds * 1000;
+        // 进度计数从头开始（探测那几个数由调用方在搜索前设好）
+        this.progressTasksSeen = 0;
+        this.progressCompletedNodes = 0;
+        this.progressLastBoundaryNodes = 0;
+        this.progressLastAt = 0;
 
         this.streamSeen = new Array(limit + 1);
         for (let i = 0; i <= limit; i++) this.streamSeen[i] = new BoundedElementSet();

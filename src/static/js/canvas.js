@@ -387,6 +387,22 @@ function evaluateSolverSolutionPlan(job) {
             if (solution.pointBirth[pi] === s && pointValid[pi]) overlay.points.push(points[pi]);
         }
     }
+    // 网格模式下内核把格点当「已知点」铺进去（pointBirth 记 0、下标又排在给定点之后），
+    // 按「出生步」永远画不出来 —— 可解法常常正是架在这些格点上的（line/ray 工具在网格题里的解
+    // 几乎都会用格点），于是要把**解法真正用到**的那几个格点补画出来，
+    // 否则面板上的解法看起来「凭空画出了线」（见 #5）
+    const usedLattice = new Set();
+    for (let s = 1; s <= shown; s++) {
+        const elementIndex = initialElementCount + s - 1;
+        const definition = dag && dag.definitions ? dag.definitions[elementIndex] : null;
+        if (!definition) continue;
+        definition.forEach(pi => {
+            if (pi >= initialPointCount && solution.pointBirth[pi] === 0 && pointValid[pi] && points[pi]) {
+                usedLattice.add(pi);
+            }
+        });
+    }
+    usedLattice.forEach(pi => overlay.points.push(points[pi]));
     // 给定线段 / 射线**不再补画整条直线**：求解器已经按它们的范围夹取交点
     // （见 board-tools.js 的 buildSolverRequest），解法用到的每一段都在范围内，
     // 画布上本来就有那些图形，覆盖层不必再画
@@ -874,18 +890,21 @@ function drawPointer() {
         ct.lineWidth = 3 / transform.scale;
         ct.strokeRect(x, y, width, width);
     }else if (tool === 'lineType' || (tool === 'styleBrush' && !hiddenBrush)) {
-        // 切换线类型 / 样式刷：光标画成一个圆环，提示「点这里就换类型 / 刷样式」
+        // 切换线类型 / 样式刷：光标画成一个圆环，提示「点这里就换类型 / 刷样式」。
+        // 圆环半径（屏幕像素）：外圈与内圈，两圈之差就是环的粗细（这里 4px）
+        const ringOuter = 11;
+        const ringInner = 7;
         const x = (pointerPosition.x - transform.x) / transform.scale;
         const y = (pointerPosition.y - transform.y) / transform.scale;
 
         ct.fillStyle = 'rgb(25, 25, 25)';
         ct.beginPath();
-        ct.arc(x, y, 15 / transform.scale, 0, Math.PI * 2);
+        ct.arc(x, y, ringOuter / transform.scale, 0, Math.PI * 2);
         ct.fill();
 
         ct.fillStyle = 'rgb(255, 255, 255)';
         ct.beginPath();
-        ct.arc(x, y, 10 / transform.scale, 0, Math.PI * 2);
+        ct.arc(x, y, ringInner / transform.scale, 0, Math.PI * 2);
         ct.fill();
     }
 }
@@ -935,6 +954,9 @@ function drawStrokedText(ctx, text, x, y, fillColor, strokeColor, lineWidth) {
 function sortLineLayers(elements) {
     const rankOf = element => {
         if (!element || element.getType() !== 'line') return null;
+        // 网格永远是背景：格线是线段，按原来的规则会压在用户画的直线 / 射线上。
+        // 这里给它一个更小的层序，用户后画的图形（哪怕与格线重合）就都显在网格之上
+        if (typeof window.isGridObjectId === 'function' && window.isGridObjectId(element.getId())) return -1;
         const drawType = element.getDrawType();
         if (drawType === 'line') return 0;
         if (drawType === 'ray') return 1;

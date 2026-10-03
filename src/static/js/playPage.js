@@ -715,10 +715,16 @@ function resetTransform() {
     // 原地改，不要换成新对象：管理器持有的是同一个 transform 引用，
     // 换成新对象之后 near() 里的 15px 吸附阈值会一直用旧的 scale（缩放后命中范围全错）
     if (levelInitialView) {
-        // 回到关卡载入时那个适配视图（小图形会被放大到 2 倍），不是通用初始值
+        // 回到关卡载入时那个适配视图（小图形会被放大到 2 倍），不是通用初始值。
+        // 算式与适配时完全一致（见 fitInitialView / board-tools 的 fitViewToElements）：
+        // 中心落在「扣掉浮层之后那块空地」的正中 —— 浮层收起来 / 又打开、窗口大小变了都不会偏
+        const insets = typeof window.gridFitInsets === 'function'
+            ? window.gridFitInsets() : {top: 0, bottom: 0, left: 0, right: 0};
+        const usableWidth = Math.max(120, canvasWidth - insets.left - insets.right);
+        const usableHeight = Math.max(120, canvasHeight - insets.top - insets.bottom);
         transform.scale = levelInitialView.scale;
-        transform.x = canvasWidth / 2 - levelInitialView.centerX * levelInitialView.scale;
-        transform.y = canvasHeight / 2 - levelInitialView.centerY * levelInitialView.scale;
+        transform.x = insets.left + usableWidth / 2 - levelInitialView.centerX * transform.scale;
+        transform.y = insets.top + usableHeight / 2 - levelInitialView.centerY * transform.scale;
     }else{
         transform.x = canvasWidth / 2;
         transform.y = canvasHeight / 2;
@@ -1572,50 +1578,15 @@ function playStartDataLoad() {
  * 画布坐标原点在左上角，而 gmt / 画板里的坐标以图形为中心，需要平移后才能在视野里
  */
 function fitInitialView() {
-    const visible = geometryManager.getAllByOrder().filter(item => item.getVisible());
-    if (!visible.length) return;
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    const extend = (x, y) => {
-        minX = Math.min(minX, x); minY = Math.min(minY, y);
-        maxX = Math.max(maxX, x); maxY = Math.max(maxY, y);
-    };
-    visible.forEach(item => {
-        const coord = item.getCoordinate?.();
-        if (!coord) return;
-        if (item.getType() === 'point') {
-            extend(coord[0], coord[1]);
-        }else if (item.getType() === 'circle') {
-            const [[centerX, centerY], [pointX, pointY]] = coord;
-            const radius = Math.hypot(pointX - centerX, pointY - centerY);
-            extend(centerX - radius, centerY - radius);
-            extend(centerX + radius, centerY + radius);
-        }else{
-            coord.forEach(point => extend(point[0], point[1]));
-        }
-    });
-    if (!Number.isFinite(minX)) return;
-    const width = Math.max(maxX - minX, 1);
-    const height = Math.max(maxY - minY, 1);
-    const canvasDE = document.getElementById('canvas_id1');
-    // 画布内部尺寸是物理像素，这里要的是逻辑（CSS）尺寸
-    const canvasWidth = canvasDE?.clientWidth || 1280;
-    const canvasHeight = canvasDE?.clientHeight || 720;
-    // 网格关卡（gmt 头部有 #grid= / 试玩带过来网格）：顶部菜单栏与工具面板浮在画布上，
-    // 适配时把被它们盖住的高度扣掉，网格才不会有一部分压在栏下面
-    const gridActive = typeof window.boardGmt?.grid === 'function' && !!window.boardGmt.grid();
-    const insets = gridActive && typeof window.gridFitInsets === 'function'
-        ? window.gridFitInsets() : {top: 0, bottom: 0, left: 0, right: 0};
-    const usableWidth = Math.max(120, canvasWidth - insets.left - insets.right);
-    const usableHeight = Math.max(120, canvasHeight - insets.top - insets.bottom);
-    // 留出边距，最多放大 2 倍，避免小图形被放得过大
-    const scale = Math.min(usableWidth / (width * 1.6), usableHeight / (height * 1.6), 2);
-    transform.scale = scale;
-    transform.x = insets.left + usableWidth / 2 - ((minX + maxX) / 2) * scale;
-    transform.y = insets.top + usableHeight / 2 - ((minY + maxY) / 2) * scale;
+    // 适配口径与画板 / 记录载入完全共用（board-tools.js 的 fitViewToContent）：
+    // 有网格就适配到网格范围，没有网格就按可见图形的外接矩形适配 ——
+    // 扣掉浮层占的地方、留 30% 边距、最多放大 2 倍（旧的那套是 1.6 边距、非网格关卡不扣浮层）
+    const view = typeof window.boardGmt?.fitView === 'function' ? window.boardGmt.fitView() : null;
+    if (!view) return;
     // 记下关卡载入时的视图：这就是「初始视图」，还原画布变化量要回到它，
     // 而不是通用的 initialScale（那是 0.5，小图形会被适配放大，还原时会看着缩小一圈）。
-    // 记的是逻辑中心 + 比例，还原时按当时的画布尺寸重算，窗口大小变了也不会偏
-    levelInitialView = {centerX: (minX + maxX) / 2, centerY: (minY + maxY) / 2, scale: scale};
+    // 记的是逻辑中心 + 比例，还原时按当时的画布尺寸与浮层位置重算（见 resetTransform）
+    levelInitialView = {centerX: view.centerX, centerY: view.centerY, scale: view.scale};
     drawContent();
 }
 

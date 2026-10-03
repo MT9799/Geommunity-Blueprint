@@ -498,9 +498,24 @@ function limitLoad(currentX, currentY, currentScale) {
 function resetTransform() {
     // 原地改，不要换成新对象：geometryManager 持有的是同一个 transform 引用，
     // 换成新对象之后 near() 里的 15px 吸附阈值会一直用旧的 scale（缩放后命中范围全错）
-    transform.x = canvasWidth / 2;
-    transform.y = canvasHeight / 2;
-    transform.scale = initialScale;
+    // 画板 / 制题器 / 求解器里适配过内容（生成网格 / 载入记录 / 导入 gmt / 从游玩返回）之后
+    // 会记下一份「初始视图」：有网格就是网格范围、没有网格就是适配过的图形本身 ——
+    // 复位回到它，算式与适配时完全一致（中心落在扣掉浮层之后那块空地的正中），
+    // 而不是一律回到通用初始值（那样有网格的题目会缩成 initialScale ≈ 0.5，网格大小就不对了）
+    const initial = typeof window.boardGmt?.initialView === 'function' ? window.boardGmt.initialView() : null;
+    if (initial) {
+        const insets = typeof window.gridFitInsets === 'function'
+            ? window.gridFitInsets() : {top: 0, bottom: 0, left: 0, right: 0};
+        const usableWidth = Math.max(120, canvasWidth - insets.left - insets.right);
+        const usableHeight = Math.max(120, canvasHeight - insets.top - insets.bottom);
+        transform.scale = initial.scale;
+        transform.x = insets.left + usableWidth / 2 - initial.centerX * transform.scale;
+        transform.y = insets.top + usableHeight / 2 - initial.centerY * transform.scale;
+    }else{
+        transform.x = canvasWidth / 2;
+        transform.y = canvasHeight / 2;
+        transform.scale = initialScale;
+    }
     [typeof geometryManager !== 'undefined' ? geometryManager : null,
      typeof geometryManagerResult !== 'undefined' ? geometryManagerResult : null,
      typeof geometryManagerExplore !== 'undefined' ? geometryManagerExplore : null].forEach(manager => {

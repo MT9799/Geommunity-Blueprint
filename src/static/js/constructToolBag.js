@@ -325,6 +325,10 @@ class ThreePointCircleConstructTool {
     }
 }
 
+// 「点两条线作角平分线」暂时关掉（见 #10）：这条路径与三点那套不兼容（两线角平分线的对象
+// 也没法导出 gmt，见 board-tools.js 里 twoLineAngleBisector 的注释）。要恢复改成 true 即可
+const TWO_LINE_BISECTOR_ENABLED = false;
+
 class AngleBisectorConstructTool {
     constructor() {
         this.toolName = 'angleBisector';
@@ -361,8 +365,9 @@ class AngleBisectorConstructTool {
      */
     toolEvent(type, oriX, oriY) {
         // 只有明确选了「两线」才走两线模式：关卡页没有小项切换按钮时 subTool 会停留在
-        // 工具名（'angleBisector'），这时按三点模式处理，否则第一个点都点不出来
-        if (subTool === 'twoLineAngleBisector') {
+        // 工具名（'angleBisector'），这时按三点模式处理，否则第一个点都点不出来。
+        // 两线模式暂时关掉（见 TWO_LINE_BISECTOR_ENABLED）
+        if (TWO_LINE_BISECTOR_ENABLED && subTool === 'twoLineAngleBisector') {
             this.twoLineAngleBisectorMode.toolEvent(type, oriX, oriY);
         }else{
             this.threePointAngleBisectorMode.toolEvent(type, oriX, oriY);

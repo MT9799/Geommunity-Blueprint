@@ -675,11 +675,14 @@ function clickToolFloatingButton(action, event) {
  */
 function operateEventFunction(type, x, y) {
     // 游玩模式（关卡游玩 / 试玩）里网格就是作答范围：点只能取在网格那一块闭矩形里
-    // （与求解内核的点域一致），网格外的点击直接挡掉；画板 / 制题器 / 求解器不限制（见 tool.js）
+    // （与求解内核的点域一致）；画板 / 制题器 / 求解器不限制（见 tool.js）。
+    // 例外：移动工具、以及「这一下本就落在点上」的点法不受限制（见 window.gridClickAllowedOutside）
     if (type === 'click' && typeof window.isOutsideGrid === 'function') {
         const worldX = (x - transform.x) / transform.scale;
         const worldY = (y - transform.y) / transform.scale;
-        if (window.isOutsideGrid(worldX, worldY)) {
+        const allowed = typeof window.gridClickAllowedOutside === 'function'
+            && window.gridClickAllowedOutside(worldX, worldY);
+        if (!allowed && window.isOutsideGrid(worldX, worldY)) {
             if (typeof window.boardToast === 'function') window.boardToast(t('board.gridOutOfRange'));
             return;
         }

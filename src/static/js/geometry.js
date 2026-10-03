@@ -1123,8 +1123,10 @@ class GeometryElementManager {
      */
     nearestIntersection(x, y, tolerance) {
         const limit = tolerance || 15 / this.transform.scale;
-        // 附近的线与圆（near 只在吸附范围内返回，最多取 12 个，够覆盖实际叠图）
-        const ids = this.near([x, y], ["line", "circle"], 12);
+        // 附近的线与圆（near 只在吸附范围内返回，最多取 12 个，够覆盖实际叠图）。
+        // 这里按原范围认网格线：格线与格线的交点是格点，网格题里要照 15px 吸附（gridReach: 1），
+        // 不受 near 对网格收紧的那一半影响
+        const ids = this.near([x, y], ["line", "circle"], 12, [], {gridReach: 1});
         let best = null;
         for (let i = 0; i < ids.length; i++) {
             for (let j = i + 1; j < ids.length; j++) {
@@ -1159,14 +1161,20 @@ class GeometryElementManager {
      * @param {string[]} types 类型表单
      * @param {number} maxQuote 最大取数
      * @param {string[]} ignore 以id忽略表单
+     * @param {{gridReach?: number}} [options] gridReach：网格对象的吸附范围倍数（默认 0.5）
      * @return {string[]} id表单
      */
-    near(coord, types, maxQuote = 1, ignore = []) {
+    near(coord, types, maxQuote = 1, ignore = [], options = {}) {
         const minDistance = 15 / this.transform.scale;
+        // 网格是背景、又是一大片铺满画布的图形：它的吸附范围比普通图形收紧一半 ——
+        // 离格线还差十几像素的点击不该被格线抢走（按原范围认格点交点时由调用方传 gridReach: 1）
+        const gridReach = typeof options.gridReach === 'number' ? options.gridReach : 0.5;
+        const isGridElement = element => typeof window.isGridObjectId === 'function'
+            && window.isGridObjectId(element.getId());
         const container = new Array();
         const [x, y] = coord;
         const all = Object.values(this.repository);
-    
+   
         const scan = elementList => {
             for (const element of elementList) {
                 if (container.length >= maxQuote) return;
@@ -1176,9 +1184,10 @@ class GeometryElementManager {
                 const type = element.getType();
                 if (!types.includes(type)) continue;
                 
-                const id = type === "point" ? nearPoint(x, y, element, minDistance)
-                    : type === "line" ? nearLine(x, y, element, minDistance)
-                    : type === "circle" ? nearCircle(x, y, element, minDistance)
+                const reach = isGridElement(element) ? minDistance * gridReach : minDistance;
+                const id = type === "point" ? nearPoint(x, y, element, reach)
+                    : type === "line" ? nearLine(x, y, element, reach)
+                    : type === "circle" ? nearCircle(x, y, element, reach)
                     : undefined;
                 if (ignore.includes(id)) continue;
                 if (id) container.push(id);
@@ -1202,9 +1211,18 @@ class GeometryElementManager {
             scan(points);
         }
         if (types.includes("line")) {
-            scan(all.filter(element => element.getType() === "line" && element.getDrawType() === "lineSegment"));
-            scan(all.filter(element => element.getType() === "line" && element.getDrawType() === "ray"));
-            scan(all.filter(element => element.getType() === "line" && element.getDrawType() !== "lineSegment" && element.getDrawType() !== "ray"));
+            // 网格是背景：与格线「重合」或「交叉」时优先选用户自己画的线段 / 射线 / 直线，
+            // 否则点在（压在格线上的）自己的图形上会选中后面的网格（见移动工具）。
+            // 用户线之间仍按 线段 → 射线 → 直线（范围小的优先），网格的一律排在线族最末
+            // （只有附近确实没有用户线时才轮得到网格，网格照旧可点可改）
+            const lines = all.filter(element => element.getType() === "line");
+            const lineRank = element => {
+                const drawType = element.getDrawType();
+                const base = drawType === 'lineSegment' ? 0 : drawType === 'ray' ? 1 : 2;
+                return isGridElement(element) ? base + 3 : base;
+            };
+            lines.sort((one, two) => lineRank(one) - lineRank(two));
+            scan(lines);
         }
         if (types.includes("circle")) scan(all.filter(element => element.getType() === "circle"));
         return container;

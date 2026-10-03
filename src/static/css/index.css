@@ -415,10 +415,10 @@ textarea {
     box-shadow: 0 12px 28px rgba(25, 25, 25, 0.18);
 }
 
-/* 菜单弹层的宽度按按钮算（约 2.5 个按钮宽），窄屏上也不会横着铺开。
+/* 菜单弹层的宽度按按钮算，窄屏上也不会横着铺开。
    样式弹层（.style-popup）自成一套尺寸，不跟着这个宽度走 */
 .board-popup:not(.style-popup) {
-    width: calc(var(--board-button-size) * 2.5);
+    width: calc(var(--board-button-size) * 2.6);
     max-width: calc(100vw - 16px);
 }
 
@@ -515,6 +515,106 @@ textarea {
     background-color: #d7e8eb;
     outline: 2px solid #277f96;
     outline-offset: -2px;
+}
+
+/* 求解器参数里的「推荐值」一类提示：小一号的灰字，不跟标签正文抢眼。
+   标签是 display: grid，所以文字 + 推荐值要包在同一个 .solver-label-text 里才不会各自成行；
+   整段也不换行（窄面板上「并行线程数（推荐：8）」要连在一起） */
+.solver-label-text {
+    white-space: nowrap;
+}
+
+.solver-recommend {
+    margin-left: 2px;
+    color: rgb(150, 150, 150);
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+/* 求解器搜索进度条：进度 = 已搜情况数 / 预估总情况数（见 board-tools.js 的 refreshSearchProgress），
+   凑满设定解数时补满，其余收尾停在原地。右边跟一个百分比（与条的宽度同步） */
+.solver-progress-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 6px 0 2px;
+}
+
+.solver-progress {
+    flex: 1;
+    height: 6px;
+    border-radius: 3px;
+    background-color: rgb(232, 232, 232);
+    overflow: hidden;
+}
+
+.solver-progress-text {
+    flex: none;
+    min-width: 36px;
+    font-size: 11px;
+    color: #666;
+    text-align: right;
+    /* 数字等宽：百分比跳动时右边不会跟着抖 */
+    font-variant-numeric: tabular-nums;
+}
+
+.solver-progress-bar {
+    width: 0;
+    height: 100%;
+    border-radius: 3px;
+    background-color: #277f96;
+    transition: width 0.3s ease;
+}
+
+/* 粗细 / 大小的挡位条：一排等宽挡位（小 → 大），当前档高亮。
+   每一档画一个按该档粗细缩放的圆点，一眼能看出选的是哪一档 */
+.style-width-bar {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 6px;
+    border-radius: 5px;
+    background-color: rgb(240, 240, 240);
+}
+
+.style-width-seg {
+    position: relative;
+    flex: 1;
+    height: 26px;
+    border: none;
+    border-radius: 4px;
+    background-color: transparent;
+    cursor: pointer;
+}
+
+.style-width-seg::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: calc(12px * var(--seg-width, 1));
+    height: calc(12px * var(--seg-width, 1));
+    max-width: 22px;
+    max-height: 22px;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background-color: #191919;
+    opacity: 0.35;
+}
+
+.style-width-seg:hover {
+    background-color: #fef7e5;
+}
+
+.style-width-seg.active {
+    background-color: #d7e8eb;
+    outline: 2px solid #277f96;
+    outline-offset: -2px;
+}
+
+.style-width-seg.active::before {
+    opacity: 1;
 }
 
 /* 标签 / 虚线 / 隐藏开关：滑块式，开（右侧圆点亮）表示启用，关表示不启用。
@@ -2214,7 +2314,7 @@ textarea {
         min-height: 32px;
         padding: 0 4px;
         gap: 5px;
-        font-size: 12px;
+        font-size: 10px;
     }
 
     .board-popup:not(.style-popup) .popup-item .svg-icon {
