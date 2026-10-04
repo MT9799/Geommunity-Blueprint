@@ -20,6 +20,7 @@ const toolMenus = {
         'perpendicularLine', 
         'perpendicularBisector', 
         'angleBisector',
+        'tangent',
         'compass', 
         'middlePoint', 
         'threePointCircle', 
@@ -92,6 +93,13 @@ const toolItems = {
     'perpendicularBisector': {
         "button": ["clear", "lineStyle"], 
         "choice": {"general": {"point1": 'point', "point2": 'point'}},
+    }, 
+    'tangent': {
+        // 两种取法：过点作切线（默认）/ 作与直线平行的切线；小项的图标是 svg-tangentParallel
+        'switch': ['tangent', 'tangentParallel'],
+        "button": ["clear", "lineStyle"], 
+        "choice": {"tangent": {"point": 'point', "circle": 'circle'},
+            "tangentParallel": {"line": 'line', "circle": 'circle'}},
     }, 
     'angleBisector': {
         // 两线模式暂时不列出来（见 constructToolBag.js 的 TWO_LINE_BISECTOR_ENABLED）
