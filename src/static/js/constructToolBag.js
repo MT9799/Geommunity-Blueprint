@@ -105,6 +105,209 @@ class PerpendicularBisectorConstructTool {
     }
 }
 
+const tangent = 'tangent';
+const tangentParallel = 'tangentParallel';
+const TANGENT_DEGENERATE_EPSILON = 1e-10;
+class TangentConstructTool extends MixPointBaseToolTemplate {
+    /**
+     * @param {string} toolName
+     */
+    constructor(toolName) {
+        super(toolName, 'tangent', 'line', 'tangent', 'circle');
+        // 第二条切线的缓存键：第一条用模板的 goal（'tangent'），第二条另起一个名字
+        this.secondTangentKey = 'tangent2';
+        this.secondTangentDefine = {
+            type: 'tangent',
+            basesId: [],
+            value: 1,
+        };
+        // 直线 + 圆：两次都只是「选一个图形」，交给 ExceptPointBaseToolTemplate
+        // （模板调 create 时传的是「点在第几个图形上」，所以取图形要自己按 choice1 / choice2 取）
+        this.parallelMode = new ExceptPointBaseToolTemplate(
+            toolName,
+            2,
+            ["line", "circle"],
+            () => this.createParallelTangents()
+        );
+    }
+    /**
+     * 切线工具
+     * @param {string} type
+     * @param {number} oriX 原x坐标
+     * @param {number} oriY 原y坐标
+     */
+    toolEvent(type, oriX, oriY) {
+        // 只有明确选了「平行于直线」才走那个模式：其余（含小项停留在工具名的页面）都是「过点作切线」
+        if (subTool === tangentParallel) {
+            this.parallelMode.toolEvent(type, oriX, oriY);
+        }else{
+            super.toolEvent(type, oriX, oriY);
+        }
+    }
+    /**
+     * 创建目标图形
+     * 覆写模板：造出第一条切线后再补第二条；点在圆内时两条都不作
+     */
+    create() {
+        if (this.completeStatus) return;
+        this.completeStatus = true;
+        const point = geometryManager.getToolKey(this.toolName, "point");
+        const circle = geometryManager.getToolKey(this.toolName, this.exceptPoint);
+        // 点在圆内没有切线：这条路径连第一条也不该落下来（不先拦，s1 会以空坐标进缓存）
+        if (this.isPointInsideCircle(point, circle)) {
+            geometryManager.deleteTool(this.toolName);
+            return;
+        }
+        geometryManager.createGeometryElementInputTool(this.goalType, this.toolName, this.goal);
+        const goal = geometryManager.getToolKey(this.toolName, this.goal);
+        goal.modifyDefine(this.define, [point, circle]);
+        this.createSecondTangent(point, circle, goal);
+    }
+    /**
+     * 点是否严格落在圆内 过程函数
+     * 判据是一维的（比的是「点到圆心的距离」与半径），不受两条切线夹角的敏感度影响
+     * @param {Object} point 过点
+     * @param {Object} circle 切圆
+     * @returns {boolean}
+     */
+    isPointInsideCircle(point, circle) {
+        const circleCoord = circle?.getCoordinate?.();
+        const pointCoord = point?.getCoordinate?.();
+        if (!Array.isArray(circleCoord) || !Array.isArray(pointCoord)) return false;
+        const [cx, cy] = circleCoord[0];
+        const radius = Math.hypot(circleCoord[1][0] - cx, circleCoord[1][1] - cy);
+        const distance = Math.hypot(pointCoord[0] - cx, pointCoord[1] - cy);
+        // 留出与判退化同一个量级的容差，别把「正好在圆上」误判成圆内
+        return distance < radius - TANGENT_DEGENERATE_EPSILON;
+    }
+    /**
+     * 创建第二条切线 过程函数
+     * 与第一条同一次作图、同一个工具名下造出来，一起进缓存、一起 loadTool（于是只占一步、一起可撤销）
+     * @param {Object} point 过点（figure[0]）
+     * @param {Object} circle 切圆（figure[1]）
+     * @param {Object} firstTangent 第一条切线（用来判两条是否重合）
+     */
+    createSecondTangent(point, circle, firstTangent) {
+        geometryManager.createGeometryElementInputTool(this.goalType, this.toolName, this.secondTangentKey);
+        const secondTangent = geometryManager.getToolKey(this.toolName, this.secondTangentKey);
+        if (!secondTangent) return;
+        this.setSecondTangent(secondTangent, point, circle, firstTangent);
+    }
+    /**
+     * 按当前动点 / 切圆重挂第二条切线的定义 过程函数
+     * 判退化并丢掉这一条（坐标为空、或与第一条重合）
+     * @param {Object} secondTangent 第二条切线
+     * @param {Object} point 过点
+     * @param {Object} circle 切圆
+     * @param {Object} firstTangent 第一条切线
+     */
+    setSecondTangent(secondTangent, point, circle, firstTangent) {
+        // 修改定义时 modifyDefine 自己会更新坐标，具体几何在 ToolsFunction.updateLineCoordinate 的 tangent 分支
+        secondTangent.modifyDefine(this.secondTangentDefine.type, [point, circle], this.secondTangentDefine.value);
+        if (this.isDegenerateTangent(secondTangent, firstTangent)) {
+            geometryManager.deleteToolKey(this.toolName, this.secondTangentKey);
+        }
+    }
+    /**
+     * 是不是退化的切线 过程函数
+     * 坐标为空（点在圆内，没有切线）或与第一条重合（点在圆上）时为真
+     * @param {Object} secondTangent 第二条切线
+     * @param {Object} firstTangent 第一条切线
+     * @returns {boolean}
+     */
+    isDegenerateTangent(secondTangent, firstTangent) {
+        const coord = secondTangent.getCoordinate();
+        if (!Array.isArray(coord) || !Array.isArray(coord[0])) return true;
+        const firstCoord = firstTangent.getCoordinate();
+        if (!Array.isArray(firstCoord) || !Array.isArray(firstCoord[0])) return false;
+        return Math.abs(coord[0][0] - firstCoord[0][0]) < TANGENT_DEGENERATE_EPSILON
+            && Math.abs(coord[0][1] - firstCoord[0][1]) < TANGENT_DEGENERATE_EPSILON
+            && Math.abs(coord[1][0] - firstCoord[1][0]) < TANGENT_DEGENERATE_EPSILON
+            && Math.abs(coord[1][1] - firstCoord[1][1]) < TANGENT_DEGENERATE_EPSILON;
+    }
+    /**
+     * 移动缓存点
+     * 模板负责第一条切线（含点 / 切圆还没配齐时先造一个 / 先撤一个的那些情况），
+     * 这里补上：第二条切线的定义同步 + 把动点从圆上放回自由位置
+     * @param {number} x
+     * @param {number} y
+     */
+    movePoint(x, y) {
+        super.movePoint(x, y);
+        this.releasePointFromCircle(x, y);
+        this.syncSecondTangentDefine();
+    }
+    /**
+     * 把「过点」从切圆上放回自由位置 过程函数
+     * @param {number} x
+     * @param {number} y
+     */
+    releasePointFromCircle(x, y) {
+        // 只有「切圆已选中、正在定过点」这一档会被模板吸附
+        if (this.status !== 'point+') return;
+        const point = geometryManager.getToolKey(this.toolName, 'point');
+        if (!point) return;
+        const base = point.getBase();
+        if (!base || base.type !== 'online') return;
+        const [circle] = base.bases || [];
+        const target = geometryManager.getToolKey(this.toolName, this.exceptPoint);
+        // 只撤「挂在切圆上」这一种吸附：吸在别的图形上就交给模板原样处理
+        if (!circle || !target || circle.getId() !== target.getId()) return;
+        point.clearBase();
+        point.modifyCoordinate(x, y);
+        const goal = geometryManager.getToolKey(this.toolName, this.goal);
+        if (goal && goal.getBase().type === this.define) {
+            goal.modifyDefine(this.define, [point, target]);
+        }
+    }
+    /**
+     * 同步第二条切线的定义 过程函数
+     * 点与切圆都还在缓存里、第二条切线也没被丢掉时才同步（点在圆上 / 圆内时第二条不存在）
+     */
+    syncSecondTangentDefine() {
+        const point = geometryManager.getToolKey(this.toolName, "point");
+        const circle = geometryManager.getToolKey(this.toolName, this.exceptPoint);
+        const secondTangent = geometryManager.getToolKey(this.toolName, this.secondTangentKey);
+        if (!point || !circle || !secondTangent) return;
+        secondTangent.modifyDefine(this.secondTangentDefine.type, [point, circle], this.secondTangentDefine.value);
+    }
+    /**
+     * 平行的两条切线 过程函数
+     */
+    createParallelTangents() {
+        const first = geometryManager.getToolKey(this.toolName, 'choice1');
+        const second = geometryManager.getToolKey(this.toolName, 'choice2');
+        if (!first || !second || first.getId() === second.getId()) return;
+        // 两种取法都是一条线 + 一个圆，顺序无所谓
+        const lineObject = first.getType() === 'line' ? first : second;
+        const circleObject = first.getType() === 'line' ? second : first;
+        if (lineObject.getType() !== 'line' || circleObject.getType() !== 'circle') return;
+        ['tangent1', 'tangent2'].forEach((key, index) => {
+            geometryManager.createGeometryElementInputTool(this.goalType, this.toolName, key);
+            const goal = geometryManager.getToolKey(this.toolName, key);
+            if (goal) goal.modifyDefine(this.define, [lineObject, circleObject], index);
+        });
+        // 查重：画布上已经有同一个图形就把这一笔整个作废（与 loadTool 的预检同一口径）
+        const duplicated = ['tangent1', 'tangent2'].some(key => {
+            const goal = geometryManager.getToolKey(this.toolName, key);
+            return goal && geometryManager.findSameElement(goal);
+        });
+        if (duplicated) {
+            geometryManager.deleteTool(this.toolName);
+            return;
+        }
+        geometryManager.loadTool(this.toolName);
+        // 触发存储事件（与模板里各工具一致）
+        const event = new CustomEvent("storage", {
+            detail: {
+                type: this.toolName,
+            },
+        });
+        window.dispatchEvent(event);
+    }
+}
+
+
 class MiddlePointConstructTool {
     constructor() {
         this.cacheFlag = false;
