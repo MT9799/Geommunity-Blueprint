@@ -658,6 +658,8 @@ const TIP_EN = {
     'parallelLine': ['Parallel line tool', ''],
     'perpendicularLine': ['Perpendicular tool', ''],
     'perpendicularBisector': ['Perpendicular bisector tool', ''],
+    'tangent': ['Tangent tool', 'Draw the tangents to a circle through a point; two when the point is outside, one when it is on the circle, none inside'],
+    'tangentParallel': ['Parallel tangents', 'Draw the two tangents parallel to a line, one on each side of the circle'],
     'angleBisector': ['Angle bisector tool', 'Three-point and two-line modes'],
     'compass': ['Compass tool', 'Three-point and copy modes'],
     'middlePoint': ['Midpoint tool', 'Midpoint of two points, or the center of a circle'],
