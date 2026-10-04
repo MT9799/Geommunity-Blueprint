@@ -857,6 +857,17 @@ function revealHiddenIntersection(x, y, ownStep = false) {
         // （游玩模式里不翻隐藏点，这里就会返回 false，工具照常自己作点）
         return revealHiddenPoint(existing, ownStep);
     }
+    // 这个位置上没点，但画布上已经有**别的点**落在吸附范围内时不要再造 —— 玩家这一下很可能就是
+    // 想选那个点（作图工具选已有点、或是想把它拖走），而不是在它旁边多插一个交点。
+    // nearestIntersection 找的是「离光标最近的任意两条图形的交点」，不限于点中的那两条：
+    // 于是一条经过已有点附近的图形与另一条图形相交时，点已有点会顺手在几像素外造出一个交点
+    // （「不仅选中已有点、还在很近的相交位置建了点」）。
+    // 交点上原本就有个点对象时也不该造（与点工具那一句同一口径，见 PointTool.createPoint）：
+    // 那个位置在 gmt 的编号规则里就是「已知交点」，硬建出来的点还会落到另一个候选上。
+    // 隐藏点算不算「已有」？算 —— pointAtPosition 不看可见性，这里的口径跟它保持一致：
+    // 上面能显示就显示，显示不出来（游玩模式）也不叠一个重合的新点。
+    const occupied = geometryManager.near([x, y], ["point"], 1);
+    if (occupied.length) return false;
     const point = geometryManager.createPoint(snap.x, snap.y);
     applyIntersectionBase(point, snap);
     snap.element1.addSuperstructure(point);
