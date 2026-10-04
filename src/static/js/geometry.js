@@ -1205,11 +1205,13 @@ class GeometryElementManager {
                 if (id) container.push(id);
             }
         };
-        // 优先级（叠在一起时优先选范围更小的那个）：
+        // 优先级（叠在一起时优先选范围更小、更靠上层的那个）：
         // 先点（交点这类点常常正压在直线 / 圆上），再线段、射线、直线，最后圆；
-        // 高亮范围之外的请求（比如只要圆）也照这个顺序扫
+        // 同一档位里**后画的先被选到** —— 后画的图形盖在先画的上面，选中的也该是看得见的那个。
+        // 原来每一档都按插入顺序扫、先命中的返回，于是两条重叠的线段永远只能选到先画的那条。
+        // order 就是作图顺序，取它反向比较即可
+        const order = new Map(all.map((element, index) => [element, index]));
         if (types.includes("point")) {
-            const order = new Map(all.map((element, index) => [element, index]));
             const points = all.filter(element => element.getType() === "point");
             // 同一个位置压着好几个点时：先选自由点（能拖得动的那种，base.type === 'none'），
             // 其余按作图倒序（后画的先被选到）。绘制顺序不在这里管，照旧按作图顺序画
@@ -1225,18 +1227,23 @@ class GeometryElementManager {
         if (types.includes("line")) {
             // 网格是背景：与格线「重合」或「交叉」时优先选用户自己画的线段 / 射线 / 直线，
             // 否则点在（压在格线上的）自己的图形上会选中后面的网格（见移动工具）。
-            // 用户线之间仍按 线段 → 射线 → 直线（范围小的优先），网格的一律排在线族最末
-            // （只有附近确实没有用户线时才轮得到网格，网格照旧可点可改）
+            // 用户线之间按 线段 → 射线 → 直线（范围小的优先），同一档里后画的优先，
+            // 网格的一律排在线族最末（只有附近确实没有用户线时才轮得到网格，网格照旧可点可改）
             const lines = all.filter(element => element.getType() === "line");
             const lineRank = element => {
                 const drawType = element.getDrawType();
                 const base = drawType === 'lineSegment' ? 0 : drawType === 'ray' ? 1 : 2;
                 return isGridElement(element) ? base + 3 : base;
             };
-            lines.sort((one, two) => lineRank(one) - lineRank(two));
+            lines.sort((one, two) => lineRank(one) - lineRank(two) || order.get(two) - order.get(one));
             scan(lines);
         }
-        if (types.includes("circle")) scan(all.filter(element => element.getType() === "circle"));
+        if (types.includes("circle")) {
+            // 圆同理：叠在一起时取后画的那个
+            const circles = all.filter(element => element.getType() === "circle");
+            circles.sort((one, two) => order.get(two) - order.get(one));
+            scan(circles);
+        }
         return container;
         
         
