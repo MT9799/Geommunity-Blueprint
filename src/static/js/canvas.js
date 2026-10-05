@@ -10,6 +10,9 @@ let canvasLeft = rect.left;
 let canvasWidth = rect.width;
 let canvasHeight = rect.height;
 let viewportInitialized = false;
+// 后备像素与逻辑像素之比：resize 时定下来，绘制时**照它**缩放。
+// 绘制时再读一次 devicePixelRatio 是不行的（见 resizeCanvas）
+let canvasRatio = 1;
 const ct = canvas.getContext("2d");
 let minMoveX = -500 - canvasWidth,
     minMoveY = -500 - canvasWidth;
@@ -116,19 +119,27 @@ function canvasPixelRatio() {
 function resizeCanvas() {
     const previousWidth = canvasWidth;
     const previousHeight = canvasHeight;
-    const ratio = canvasPixelRatio();
-    // 画布内部尺寸（物理像素）按设备像素比放大
-    canvas.width = Math.round(window.innerWidth * ratio);
-    canvas.height = Math.round(window.innerHeight * ratio);
-    // CSS 尺寸保持逻辑像素，避免画布被放大显示
-    canvas.style.width = `${window.innerWidth}px`;
-    canvas.style.height = `${window.innerHeight}px`;
+    // 尺寸基准取**视口**：documentElement.clientWidth/Height 不含滚动条（innerWidth 含，
+    // 带滚动条的设备上会让画布比可视区域更宽 —— 就是「画布被拉伸得特别宽」那种样子）。
+    // 注意不能用画布容器的 clientHeight：容器是 height:100%、父级高度 auto 时，它的高度
+    // 由内容（画布自己）撑出来，拿它当尺寸就成了自反馈，画布会越走越怪
+    const viewWidth = document.documentElement.clientWidth || window.innerWidth;
+    const viewHeight = document.documentElement.clientHeight || window.innerHeight;
+    const cssWidth = Math.max(1, Math.round(viewWidth));
+    const cssHeight = Math.max(1, Math.round(viewHeight));
+    // CSS 尺寸就是显示尺寸（逻辑像素）
+    canvas.style.width = `${cssWidth}px`;
+    canvas.style.height = `${cssHeight}px`;
     const currentRect = canvas.getBoundingClientRect();
     canvasTop = currentRect.top;
     canvasLeft = currentRect.left;
     // 这里的宽高一律按 CSS 像素（逻辑坐标），绘制时由 drawContent 统一放大到物理像素
-    canvasWidth = currentRect.width || window.innerWidth;
-    canvasHeight = currentRect.height || window.innerHeight;
+    canvasWidth = cssWidth;
+    canvasHeight = cssHeight;
+    // 后备像素 × 像素比：这一次 resize 定下来的比例，绘制时用的就是它（见 canvasRatio）
+    canvasRatio = canvasPixelRatio();
+    canvas.width = Math.max(1, Math.round(canvasWidth * canvasRatio));
+    canvas.height = Math.max(1, Math.round(canvasHeight * canvasRatio));
     minMoveX = -500 - canvasWidth;
     minMoveY = -500 - canvasWidth;
     if (!viewportInitialized) {
@@ -140,6 +151,22 @@ function resizeCanvas() {
         transform.y += (canvasHeight - previousHeight) / 2;
     }
     drawContent()
+}
+
+/**
+ * 重新量一下画布在页面里的位置 过程函数
+ * 画布位置会因为页面滚动 / 上方元素高度变化 / 移动端地址栏收放而改变，而这些都不触发 window 的
+ * resize —— 位置陈旧时所有「clientX - canvasLeft」口径的点击/触摸都会整体偏移（就是"点不准"）。
+ * 按下 / 触摸开始时量一次即可，代价只有一次 getBoundingClientRect
+ */
+function refreshCanvasRect() {
+    const currentRect = canvas.getBoundingClientRect();
+    canvasLeft = currentRect.left;
+    canvasTop = currentRect.top;
+    // 尺寸也顺手校准：有些设备容器尺寸变了却不触发窗口 resize（换了手机 / 分屏 / 旋屏）
+    if (Math.abs(currentRect.width - canvasWidth) > 1 || Math.abs(currentRect.height - canvasHeight) > 1) {
+        resizeCanvas();
+    }
 }
 
 /**
@@ -457,9 +484,10 @@ function drawContent() {
     // 绘制背景颜色
     drawColor();
 
-    // 物理像素 → CSS 像素：之后都是逻辑坐标绘制
-    const ratio = canvasPixelRatio();
-    ct.scale(ratio, ratio);
+    // 物理像素 → CSS 像素：之后都是逻辑坐标绘制。
+    // 用 resize 时定下的 canvasRatio，而不是当场再读一次 devicePixelRatio —— 中途 dpr 变了
+    // （浏览器缩放 / 拖到另一块屏 / 移动端旋转）就会与后备像素分家：图形被拉伸失真、点击也跟着偏
+    ct.scale(canvasRatio, canvasRatio);
 
     // 应用变换
     ct.translate(transform.x, transform.y);
@@ -515,6 +543,8 @@ const previewShapes = {
     // 点 + 线混合的工具：先点了线之后，光标处的点补上，预览过它的平行线 / 垂线
     parallelLine: 'parallelLine',
     perpendicularLine: 'perpendicularLine',
+    // 切线：先点了点 → 光标靠近圆才预览（过该点的两条切线）；先点了圆 → 光标处补点预览切线
+    tangent: 'tangent',
 };
 
 /**
@@ -617,6 +647,24 @@ function toolPreviewState() {
         const bisectors = second ? previewTwoLineBisectors(first, second) : null;
         return bisectors ? {shape: 'twoLineBisector', coords: bisectors} : null;
     }
+    // 切线：先点了点 → 光标靠近一个圆时才预览（过该点的两条切线，圆上一条、圆内没有）；
+    // 先点了圆 → 光标处补一个点（像平行线 / 垂线那样），预览过它的两条切线
+    if (tool === 'tangent' || subTool === 'tangent') {
+        const pickedPoint = selected.find(item => item.getType() === 'point');
+        const pickedCircle = selected.find(item => item.getType() === 'circle');
+        if (pickedPoint) {
+            const [circleId] = geometryManager.near(rawCursor, ['circle'], 1);
+            const circle = circleId ? geometryManager.get(circleId) : null;
+            const lines = circle ? previewTangentLines(pickedPoint.getCoordinate(), circle) : null;
+            // coords 是「依次成对的点」的平铺（切点、远端、切点、远端…），绘制时按两个一组取
+            return lines && lines.length ? {shape: 'tangent', coords: lines.flat()} : null;
+        }
+        if (pickedCircle) {
+            const lines = previewTangentLines(cursor, pickedCircle);
+            return lines && lines.length ? {shape: 'tangent', coords: lines.flat()} : null;
+        }
+        return null;
+    }
     // 平行线 / 垂线：先点了线，光标处补一个点
     if (tool === 'parallelLine' || tool === 'perpendicularLine') {
         const line = selected.find(item => item.getType() === 'line');
@@ -661,6 +709,45 @@ function previewTwoLineBisectors(line1, line2) {
         .filter(item => item);
     if (!points.length) return null;
     return [apex].concat(points);
+}
+
+/**
+ * 过一点作圆的切线（预览用） 过程函数
+ * 与切线对象的算法同一口径（toolsFunction.js 的 tangent 分支）：起点都取切点，
+ * 点在圆上一条（逆时针切向）、圆外两条、圆内没有
+ * @param {number[]} from 过点（逻辑坐标）
+ * @param {Object} circle 切圆
+ * @returns {number[][]} 依次成对的点（切点、远端…），每条切线两个；没有切线时返回空数组
+ */
+function previewTangentLines(from, circle) {
+    const coord = circle?.getCoordinate?.();
+    if (!coord) return [];
+    const [cx, cy] = coord[0];
+    const radius = Math.hypot(coord[1][0] - cx, coord[1][1] - cy);
+    if (radius < 1e-12) return [];
+    const [ax, ay] = from;
+    const distance = Math.hypot(ax - cx, ay - cy);
+    if (distance < radius - 1e-10) return [];
+    const far = 10000;
+    // 切线用「切点 + 远端」两点表示（画的时候再按画布裁成一条线）
+    const lineAt = angle => {
+        const tx = cx + radius * Math.cos(angle);
+        const ty = cy + radius * Math.sin(angle);
+        const dx = tx - ax;
+        const dy = ty - ay;
+        const norm = Math.hypot(dx, dy);
+        if (norm < 1e-12) return null;
+        return [[tx, ty], [tx + dx / norm * far, ty + dy / norm * far]];
+    };
+    if (Math.abs(distance - radius) <= 1e-10) {
+        // 点在圆上：只有一条，方向与半径垂直（与切线对象 index 0 一致）
+        const dirX = (ay - cy) / radius;
+        const dirY = -(ax - cx) / radius;
+        return [[[ax - dirX * far, ay - dirY * far], [ax + dirX * far, ay + dirY * far]]];
+    }
+    const offset = Math.acos(radius / distance);
+    const base = Math.atan2(ay - cy, ax - cx);
+    return [base - offset, base + offset].map(lineAt).filter(item => item);
 }
 
 /**
@@ -785,6 +872,17 @@ function drawToolPreview() {
         }
     }else if (state.shape === 'middlePoint') {
         drawPreviewPoint([(first[0] + second[0]) / 2, (first[1] + second[1]) / 2]);
+    }else if (state.shape === 'tangent') {
+        // coords: 依次成对的点（切点、远端…），每条切线两个；点在圆上时只有一条
+        for (let index = 0; index + 1 < state.coords.length; index += 2) {
+            const from = state.coords[index];
+            const to = state.coords[index + 1];
+            const bounds = ToolsFunction.getLineBounds([from[0], from[1], to[0], to[1], canvasWidth, canvasHeight], transform);
+            ct.beginPath();
+            ct.moveTo(bounds.p1.x, bounds.p1.y);
+            ct.lineTo(bounds.p2.x, bounds.p2.y);
+            ct.stroke();
+        }
     }else if (state.shape === 'parallelLine' || state.shape === 'perpendicularLine') {
         // coords: [光标补的点, 线的两个定义点]
         const base = state.coords[0];
@@ -846,6 +944,27 @@ function drawToolPreview() {
         }
     }
     ct.restore();
+}
+
+// 这一下是手指点的还是鼠标点的：两边的吸附口径要分开 ——
+// 手指的落点比鼠标粗得多（指腹十几像素），「附近已有别的点就不在交点处造点」这类规则
+// 在触屏上才合理（见 geometryToolBag.js 的 revealHiddenIntersection）；鼠标精确，
+// 光标压在相交处就是想在那儿作交点，不该被旁边的点挡掉
+let touchInputAt = 0;
+/**
+ * 记下这一下来自触屏 过程函数（touchstart / touchmove / touchend 里调用）
+ */
+function markTouchInput() {
+    touchInputAt = Date.now();
+}
+/**
+ * 这一下是不是手指点的 过程函数
+ * 触摸端的浏览器在 tap 之后还会补发一串合成鼠标事件（mousedown / click…），
+ * 用一个时间窗把它们也算成触屏 —— 否则刚点完一下，规则就又切回鼠标口径了
+ * @returns {boolean}
+ */
+function pointerIsTouch() {
+    return Date.now() - touchInputAt < 700;
 }
 
 // 工具光标（橡皮擦 / 切换线类型 / 样式刷 / 隐藏刷的方块或圆环）是否该画：
@@ -1061,10 +1180,10 @@ function drawLabel(element) {
     const color = element.getColor();
     const backgroundColor = autoBackgroundColor(color);
     // 标签按**屏幕坐标**画、字号固定 20px（先退回 CSS 像素坐标系）：
-    // 浏览器画不出字形、只剩描边轮廓 —— 于是标签看着消失了、点的四周还留着一圈白边
-    const ratio = canvasPixelRatio();
+    // 浏览器画不出字形、只剩描边轮廓 —— 于是标签看着消失了、点的四周还留着一圈白边。
+    // 比例与 drawContent 用同一份（canvasRatio），否则标签会与图形错位
     ct.save();
-    ct.setTransform(ratio, 0, 0, ratio, 0, 0);
+    ct.setTransform(canvasRatio, 0, 0, canvasRatio, 0, 0);
     ct.font = `20px serif`;
     drawStrokedText(
         ct, 
@@ -1107,15 +1226,19 @@ function drawPoint(element) {
  * @param {Object} point
  */
 function drawChoicePoint(point) {
-    // 正好压在点的边缘上，看着就像没有选中效果
-    const bigRadius = POINT_RADIUS_BASE * Math.max(point.getWidth() || 1, 1) + 4;
+    // 选中环跟着**这个点自己的大小**走（与 drawPoint 同一份：外径 = POINT_RADIUS_BASE × 粗细）：
+    // 环贴在点的外沿再留一点余量，小点小环、大点大环。
+    // 原来余量固定、粗细还按 max(width, 1) 夹住，档位 1-2 的点都套同一个大环，
+    // 环离点很远，看着就像"没选中"
+    const width = point.getWidth() || 1;
+    const bigRadius = POINT_RADIUS_BASE * width + Math.max(2, 4 * width);
     const [x, y] = point.getCoordinate();
     const color = point.getColor();
 
     ct.strokeStyle = color;
     ct.beginPath();
     ct.arc(x, y, bigRadius / transform.scale, 0, Math.PI * 2);
-    ct.lineWidth = 2 / transform.scale;
+    ct.lineWidth = 2 * width / transform.scale;
     ct.stroke();
 }
 
@@ -1220,7 +1343,10 @@ function drawChoiceInfiniteLine(element) {
 
     const [startX, startY] = coordList[0];
     const [endX, endY] = coordList[1];
-    const bag = [startX, startY, endX, endY, canvasWidth, canvasHeight];
+    // 选中效果随图形大小走：两条选中线的间距与线宽都按这条线自己的粗细缩放（见 getChoiceLineBounds）
+    const width = element.getWidth() || 1;
+    const strokeWidth = 2 * width / transform.scale;
+    const bag = [startX, startY, endX, endY, canvasWidth, canvasHeight, width];
     const {
         p1,
         p2,
@@ -1238,14 +1364,14 @@ function drawChoiceInfiniteLine(element) {
         ct.moveTo(p1.x, p1.y);
         ct.lineTo(p2.x, p2.y);
         ct.strokeStyle = color;
-        ct.lineWidth = 2 / transform.scale;
+        ct.lineWidth = strokeWidth;
         ct.stroke();
         
         ct.beginPath();
         ct.moveTo(p3.x, p3.y);
         ct.lineTo(p4.x, p4.y);
         ct.strokeStyle = color;
-        ct.lineWidth = 2 / transform.scale;
+        ct.lineWidth = strokeWidth;
         ct.stroke();
     }else if (drawType === 'ray') {
         ct.beginPath();
@@ -1260,7 +1386,7 @@ function drawChoiceInfiniteLine(element) {
             ct.lineTo(p1.x, p1.y);
         }
         ct.strokeStyle = color;
-        ct.lineWidth = 2 / transform.scale;
+        ct.lineWidth = strokeWidth;
         ct.stroke();
         
         ct.beginPath();
@@ -1275,21 +1401,21 @@ function drawChoiceInfiniteLine(element) {
             ct.lineTo(p3.x, p3.y);
         }
         ct.strokeStyle = color;
-        ct.lineWidth = 2 / transform.scale;
+        ct.lineWidth = strokeWidth;
         ct.stroke();
     }else if (drawType === 'lineSegment') {
         ct.beginPath();
         ct.moveTo(p5.x, p5.y);
         ct.lineTo(p7.x, p7.y);
         ct.strokeStyle = color;
-        ct.lineWidth = 2 / transform.scale;
+        ct.lineWidth = strokeWidth;
         ct.stroke();
         
         ct.beginPath();
         ct.moveTo(p6.x, p6.y);
         ct.lineTo(p8.x, p8.y);
         ct.strokeStyle = color;
-        ct.lineWidth = 2 / transform.scale;
+        ct.lineWidth = strokeWidth;
         ct.stroke();
     }
 }
@@ -1334,19 +1460,22 @@ function drawChoiceCircle(element) {
     const dx = x1 - x2;
     const dy = y1 - y2;
     const distance = Math.hypot(dx, dy);
-    const offset = 6;
+    // 双环的间距与线宽都跟着圆的粗细走（细圆环窄、粗圆环宽），选中效果随图形大小变化
+    const width = element.getWidth() || 1;
+    const offset = 6 * width;
+    const strokeWidth = 2 * width / transform.scale;
 
     ct.beginPath();
     ct.strokeStyle = color;
     ct.arc(x1, y1, distance + offset / transform.scale, 0, 2 * Math.PI)
-    ct.lineWidth = 2 / transform.scale;
+    ct.lineWidth = strokeWidth;
     ct.stroke();
     
     if (distance - offset / transform.scale < 0) return;
     ct.beginPath();
     ct.strokeStyle = color;
     ct.arc(x1, y1, distance - offset / transform.scale, 0, 2 * Math.PI)
-    ct.lineWidth = 2 / transform.scale;
+    ct.lineWidth = strokeWidth;
     ct.stroke();
 }
 

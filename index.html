@@ -57,7 +57,23 @@
         @media (max-width: 420px) { .page { width: min(100% - 28px, 1080px); } .brand span { font-size: 16px; } .entry { min-height: 138px; padding: 16px; } .entry h3 { font-size: 18px; } }
         /* 项目说明弹窗 */
         .readme-mask { position: fixed; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(38, 50, 56, .45); }
-        .readme-dialog { display: flex; flex-direction: column; width: min(860px, 100%); max-height: min(86vh, 900px); border-radius: 12px; background: #fff; box-shadow: 0 24px 60px #26323833; overflow: hidden; }
+        .readme-dialog { position: relative; display: flex; flex-direction: column; width: min(860px, 100%); max-height: min(86vh, 900px); border-radius: 12px; background: #fff; box-shadow: 0 24px 60px #26323833; overflow: hidden; }
+        /* 弹窗背景：项目截图（src/static/images/1.jpg）虚化 + 压不透明度，只当纹理，不抢正文。
+           单独一层伪元素垫在正文下面（正文都在 .readme-dialog > *，见下面那条 z-index）；
+           放大一点点是为了把虚化后发白的边缘推到裁剪框外（弹窗自己是 overflow: hidden） */
+        .readme-dialog::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+            background: url(./src/static/images/1.jpg) center / cover no-repeat;
+            filter: blur(12px) saturate(.9);
+            opacity: .30;
+            transform: scale(1.08);
+            pointer-events: none;
+        }
+        /* 正文压在背景层之上（header 自带不透明底色，照旧盖住它） */
+        .readme-dialog > * { position: relative; z-index: 1; }
         .readme-dialog header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 20px; border-bottom: 1px solid var(--line); background: var(--paper); }
         .readme-dialog header strong { font-size: 16px; }
         .readme-tabs { display: flex; gap: 8px; }

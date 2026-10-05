@@ -18,6 +18,14 @@ const pager = document.getElementById('search-pager');
 let packScope = params.get('pack') || '';
 let currentPage = Math.max(Number(params.get('page')) || 1, 1);
 
+// 返回键：落点按「上一级」定 —— 从某个关卡包的关卡列表（pack.html?pack=…）进来的就回那个包，
+// 从关卡包总览（levels.html）进来的就回总览。不用 history.back()：直达才有确定的落点，
+// 刷新 / 直接打开搜索页时也不会退到站点外面去
+const backLink = document.getElementById('search-back');
+if (backLink) {
+    backLink.href = packScope ? `./pack.html?pack=${encodeURIComponent(packScope)}` : './levels.html';
+}
+
 /**
  * 搜索页地址 过程函数
  * @param {{q: string, pack: string, page: number}} state

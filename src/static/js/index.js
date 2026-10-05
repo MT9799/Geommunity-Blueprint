@@ -56,12 +56,12 @@ let transform = {
 };
 
 // 存储样式变量
-// width：点的大小 / 线圆的粗细（1 为默认）；showName：是否显示标签
-// 点默认显示标签（与 addObject 的默认策略一致），直线与圆默认不显示
+// width：点的大小 / 线圆的粗细（默认 0.75 = 档位 2「较小」，档位表见 stylePanel.js 的 styleWidths）；
+// showName：是否显示标签 —— 点默认显示标签（与 addObject 的默认策略一致），直线与圆默认不显示
 let geometryStyle = {
-    point: {colorChoice: "auto", color: "#191919", width: 1, showName: true}, 
-    line: {colorChoice: "auto", color: "#191919", width: 1, showName: false, dashed: false}, 
-    circle: {colorChoice: "auto", color: "#191919", width: 1, showName: false, dashed: false}
+    point: {colorChoice: "auto", color: "#191919", width: 0.75, showName: true}, 
+    line: {colorChoice: "auto", color: "#191919", width: 0.75, showName: false, dashed: false}, 
+    circle: {colorChoice: "auto", color: "#191919", width: 0.75, showName: false, dashed: false}
 };
 
 // 几何对象管理器
@@ -142,6 +142,12 @@ let panelState;
 function touchstartEventFunction(e) {
     // 事件预处理
     e.preventDefault();
+    // 同鼠标：触摸开始时也重量一次画布位置（移动端地址栏收放会改变画布在页面里的位置）
+    if (typeof refreshCanvasRect === 'function') refreshCanvasRect();
+    // 触摸没有 Ctrl：清掉上次鼠标留下的多选标记，免得点一下就变成加选
+    window.multiSelectModifier = false;
+    // 这一下是手指点的：吸附口径与鼠标分开（见 canvas.js 的 markTouchInput / pointerIsTouch）
+    if (typeof markTouchInput === 'function') markTouchInput();
     const touches = e.touches;
 
     // 起始点记录
@@ -164,6 +170,8 @@ function touchstartEventFunction(e) {
 function touchendEventFunction(e) {
     // 事件预处理
     e.preventDefault();
+    // 抬手这一下（多半就是一次点击）也是手指的：先记下来再走工具
+    if (typeof markTouchInput === 'function') markTouchInput();
     // 这一手势算不算拖动（在 touchmove 里移够距离才置位），要在复位之前取出来
     const dragged = isDragging;
     isDragging = false;
@@ -215,6 +223,8 @@ function touchcancelEventFunction(e) {
 function touchmoveEventFunction(e) {
     // 预处理
     e.preventDefault();
+    // 手指还按在屏幕上：拖拽过程中也要保持触屏口径（见 canvas.js 的 pointerIsTouch）
+    if (typeof markTouchInput === 'function') markTouchInput();
     const touches = e.touches;
     refreshToolFloating();
 
@@ -305,6 +315,8 @@ function touchmoveEventFunction(e) {
  */
 function mouseDownEventFunction(e) {
     e.preventDefault();
+    // 页面滚动 / 布局变化不会触发 window resize：按下前重量一次画布位置，点击才不会整体偏掉
+    if (typeof refreshCanvasRect === 'function') refreshCanvasRect();
     const x = e.clientX - canvasLeft;
     const y = e.clientY - canvasTop;
 
@@ -319,6 +331,8 @@ function mouseDownEventFunction(e) {
     if (typeof showPointerCursor === 'function') showPointerCursor();
     startTime = Date.now();
     mouseType = e.button;
+    // 按住 Ctrl / Cmd 点：移动工具加选（见 MoveTool.startEventFunctionMove）
+    window.multiSelectModifier = !!(e.ctrlKey || e.metaKey);
 
     // 左键作图：起点也先吸附（点在隐交点上时，工具才拿得到那个位置的对象）
     const snapStart = e.button === 0 && typeof snapCursorPosition === 'function' ? snapCursorPosition(x, y) : [x, y];
@@ -721,6 +735,9 @@ function refreshStorageButton() {
  */
 function cancelPendingToolDraw() {
     if (!hasPendingToolDraw()) return false;
+    // 先退掉「顺手」作出的东西（取点时现作的交点 / 顺手显示出来的隐藏交点）：
+    // 它们没有自己的历史格，这一步作废了就该原样回去（见 geometryToolBag.js 的 revertIncidentalDrawEffects）
+    if (typeof window.revertIncidentalDrawEffects === 'function') window.revertIncidentalDrawEffects();
     if (typeof tools[tool].clear === 'function') tools[tool].clear();
     // 工具自己的 clear 不一定清掉管理器缓存，兜底再清一次
     if (geometryManager.ifToolInCache(tool)) geometryManager.deleteTool(tool);
@@ -795,6 +812,8 @@ function redoStorage() {
 window.addEventListener("storage", () => {
     // 这次作图因为「图形画布上已经有了」而作废：不记撤销历史，只把画布上的半成品擦掉
     if (geometryManager.takeDuplicatedFlag()) {
+        // 整笔作废时，取点顺手作出的交点 / 顺手显示的隐藏交点也要原样退回去（它们没有历史格）
+        if (typeof window.revertIncidentalDrawEffects === 'function') window.revertIncidentalDrawEffects();
         drawContent();
         return;
     }
@@ -806,6 +825,8 @@ function storage() {
     if (typeof window.pruneMarks === 'function') window.pruneMarks();
     // 存储：几何对象 + 选定栏（标记等改动也能撤销）
     storageManager.append(collectStorageSnapshot());
+    // 这一步画完了：取点时「顺手」作出的交点 / 显示出来的隐藏交点已经并进这一格快照，忘掉即可
+    if (typeof window.clearIncidentalDrawEffects === 'function') window.clearIncidentalDrawEffects();
     refreshStorageButton();
     // 图形变了，已标记对象栏里的坐标 / 方程要跟着更新
     if (typeof refreshMarkEquations === 'function') refreshMarkEquations();
@@ -870,10 +891,10 @@ const infDict = {
     "parallelLine": {title: "平行线工具", context: ""},
     "perpendicularLine": {title: "垂线工具", context: ""},
     "perpendicularBisector": {title: "垂直平分线工具", context: ""},
-    "tangent": {title: "切线工具", context: "过圆外（或圆上）一点作圆的切线；点在圆外作出两条、圆上一条、圆内无解"},
-    "tangentParallel": {title: "平行切线工具", context: "作与一条直线平行的两条切线，分别切在圆的两侧"},
-    "angleBisector": {title: "角平分线工具", context: "有3点式和直线式两种构造模式"},
-    "compass": {title: "圆规工具", context: "有3点式和复制式两种构造模式"},
+    "tangent": {title: "切线工具", context: "过圆外或圆上一点作圆的切线"},
+    "tangentParallel": {title: "平行切线工具", context: "作与一条直线平行的两条切线。⚠ 制题器慎用：gmt 无法导出"},
+    "angleBisector": {title: "角平分线工具", context: ""},
+    "compass": {title: "圆规工具", context: ""},
     "middlePoint": {title: "中点工具", context: "构造两个点的中点，或构造圆心"},
     "threePointCircle": {title: "三点圆工具", context: "构造过三个点的圆"},
     "fixedAngle": {title: "定值角工具", context: "构造角的一边、角的顶点，顺时针另一边为指定角度的射线"},
@@ -1038,7 +1059,8 @@ function dataLoad() {
         element.modifyValid(valid);
         element.modifyShowName(showName);
         element.modifyColor(color);
-        element.modifyWidth(width || 1);
+        // 存档里没带粗细的按当前模式的默认（不再是写死的 1）
+        element.modifyWidth(typeof width === 'number' ? width : defaultElementWidth(type));
         return element;
     }
 }

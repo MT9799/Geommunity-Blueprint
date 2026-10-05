@@ -111,7 +111,7 @@ class ToolsFunction {
     
     /**
      * 计算选中直线与画布边界的交点 工具函数
-     * @param {number[]} bag [startX, startY, endX, endY, canvasWidth, canvasHeight]
+     * @param {number[]} bag [startX, startY, endX, endY, canvasWidth, canvasHeight, width?]
      * @param {Object} transform 当前画布变换参数
      * @return {{p1: {x: number, y: number}, p2: {x: number, y: number}, 
      *  p3: {x: number, y: number}, p4: {x: number, y: number}, 
@@ -121,7 +121,8 @@ class ToolsFunction {
     static getChoiceLineBounds(bag, transform) {
         const [startX, startY, endX, endY, canvasWidth, canvasHeight] = bag;
         const outCanvas = 20;
-        const offset = 6;
+        // 两条选中线之间的间距跟着**这条线自己的粗细**走（选中效果随图形大小变化）：细线窄、粗线宽
+        const offset = 6 * (typeof bag[6] === 'number' && bag[6] > 0 ? bag[6] : 1);
         
         const dx = endX - startX;
         const dy = endY - startY;
@@ -843,16 +844,8 @@ class ToolsFunction {
             // 垂线：coord = p1 + (value - 1) * (p2 - p1)，所以 value = 比例 + 1
             return proportion + 1;
         }
-        if (baseType === 'tangent') {
-            // 切线：coord = 切点 + 方向 * 半径 * value，渲染点是 [外点, 切点]，
-            // 于是 value = （点相对切点的距离）/ 半径
-            const circle = (element.getBase()?.figure || [])[1];
-            const circleCoord = circle && typeof circle.getCoordinate === 'function' ? circle.getCoordinate() : null;
-            const radius = circleCoord ? Math.hypot(circleCoord[1][0] - circleCoord[0][0], circleCoord[1][1] - circleCoord[0][1]) : 0;
-            if (radius < 1e-12) return proportion;
-            return (proportion - 1) * length / radius;
-        }
-        // 直线 / 射线 / 线段 / 平行线等：coord = scalePoint(p1, p2, value)，value 就是比例
+        // 直线 / 射线 / 线段 / 平行线 / 切线等：coord = scalePoint(p1, p2, value)，value 就是比例
+        // （切线也归到这里：它的渲染两点是 [切点, 切点 + 半径 × 方向]，比例就是「半径的倍数」）
         return proportion;
         }
 
@@ -1416,18 +1409,10 @@ class ToolsFunction {
                 // （参数 0 在 A 沿垂线方向退一个单位长的地方，单位长仍是被垂直的线的定义点距离）。
                 // 例：A=[-10,0]、B=[10,0]、Perp[A,Line[A,B]] 的 Linepoint 起点在 [-10,-20]、方向 +y、单位长 20
                 coord = {x: p1.x + (value - 1) * (p2.x - p1.x), y: p1.y + (value - 1) * (p2.y - p1.y)};
-            }else if (baseType === 'tangent') {
-                // 切线：以切点为起点、按线的方向与切圆半径的倍数
-                // 渲染出来的两个点是 [外点, 切点]（线的方向 = 外点 -> 切点），而起点在切点上，
-                // 所以原点取 p2，方向取线的方向（p1 -> p2 的反向即 p2 - p1）
-                const circle = (element.getBase()?.figure || [])[1];
-                const circleCoord = circle && typeof circle.getCoordinate === 'function' ? circle.getCoordinate() : null;
-                const radius = circleCoord ? Math.hypot(circleCoord[1][0] - circleCoord[0][0], circleCoord[1][1] - circleCoord[0][1]) : 0;
-                const length = Math.hypot(p2.x - p1.x, p2.y - p1.y);
-                coord = length > 0 && radius > 0
-                    ? {x: p2.x + (p2.x - p1.x) / length * radius * value, y: p2.y + (p2.y - p1.y) / length * radius * value}
-                    : p2;
             }else{
+                // 直线 / 射线 / 线段 / 平行线 / 切线：coord = scalePoint(p1, p2, value)。
+                // 切线的两个定义点就是 [切点, 切点 + 半径 × 方向]（见 updateLineTangentCoordinate），
+                // 于是 value 天然就是「切圆半径的倍数」，起点（value = 0）落在切点上
                 coord = ToolsFunction.scalePoint(p1, p2, value);
             }
         }else if (elementType === "circle") {
@@ -1561,29 +1546,42 @@ class ToolsFunction {
             const coordList = flagValue.value;
             return [[x2, y2], [coordList.x, coordList.y]];
         }else if (define.type === "tangent") {
-            // 过 figure[0] 作 figure[1] 的切线：figure[0] 是点时是两条切线，是直线时是与它平行的两条切线
+            // 过 figure[0] 作 figure[1] 的切线：figure[0] 是点时是两条切线，是直线时是与它平行的两条切线。
+            // 渲染的两个点统一写成 [切点, 切点 + 半径 × 方向]，于是 Linepoint[t,x] 就是
+            // 「以切点为起点、沿该方向每 1 个单位 = 切圆半径」—— 这是原版实测出来的口径
+            // （见仓库根目录的 tangent-probe.gmt）：
+            //   · 过点在圆外：方向 = 从过点指向切点（Linepoint -1 落在过点与切点之间）
+            //   · 过点在圆上：方向 = 逆时针切向（index 0），index 1 是它的反向
             const [target, circle] = define.figure;
             const coordList = circle.getCoordinate();
             if (!coordList) return null;
             const [cx, cy] = coordList[0];
             const [px, py] = coordList[1];
             const radius = Math.hypot(px - cx, py - cy);
+            // 由「切点 + 一个方向」组成渲染两点（方向会归一化再乘半径）
+            const fromTangentPoint = (tx, ty, dx, dy) => {
+                const norm = Math.hypot(dx, dy);
+                if (norm < 1e-20) return null;
+                return [[tx, ty], [tx + dx / norm * radius, ty + dy / norm * radius]];
+            };
             if (target.getType() === "point") {
                 const [ax, ay] = target.getCoordinate();
                 const distance = Math.hypot(ax - cx, ay - cy);
                 if (distance <= radius + 1e-10) {
-                    // 点在圆上：只有一条切线，方向与半径垂直；点在圆内：没有切线
+                    // 点在圆上：切线只有一条（index 只是选正反两个方向）；点在圆内：没有切线
                     if (Math.abs(distance - radius) > 1e-10) return null;
-                    return [[ax, ay], [ax - (ay - cy), ay + (ax - cx)]];
+                    // 逆时针切向：半径向量转 90°。画布 +y 朝下，屏幕上的逆时针是 (x, y) -> (y, -x)，
+                    // 于是 Q=[0,50]（圆心在原点）的切向落在 +x，与原版一致
+                    const sign = define.value ? -1 : 1;
+                    return fromTangentPoint(ax, ay, sign * (ay - cy), -sign * (ax - cx));
                 }
                 const offset = Math.acos(radius / distance);
                 // y 轴朝下：视觉上的逆时针对应 atan2 角度的减少方向；
-                // 定义顺序是「外点 -> 切点」：线的方向从外点指向切点，编号（Intersect[...] 的 0/1）
-                // 与别的工具求交时都按这个方向数，写反了会让整条构造链落到另一侧
+                // 编号（Intersect[...] 的 0/1）按「从圆心指向过点的方向」数，写反了会让整条构造链落到另一侧
                 const angle = Math.atan2(ay - cy, ax - cx) + (define.value ? offset : -offset);
                 const tangentX = cx + radius * Math.cos(angle);
                 const tangentY = cy + radius * Math.sin(angle);
-                return [[ax, ay], [tangentX, tangentY]];
+                return fromTangentPoint(tangentX, tangentY, tangentX - ax, tangentY - ay);
             }
             const lineCoord = target.getCoordinate();
             if (!lineCoord) return null;
@@ -1596,7 +1594,8 @@ class ToolsFunction {
             const sign = define.value ? -1 : 1;
             const baseX = cx + sign * radius * normalX;
             const baseY = cy + sign * radius * normalY;
-            return [[baseX, baseY], [baseX + (lx2 - lx1), baseY + (ly2 - ly1)]];
+            // 平行切线（工具暂时下线、gmt 也不支持）同样按「切点 + 半径 × 线的方向」写，口径统一
+            return fromTangentPoint(baseX, baseY, lx2 - lx1, ly2 - ly1);
         }else if (define.type === "polarLine") {
             // 点关于圆的极线：与连心线垂直，到圆心距离为 r^2 / |CP|
             const [point, circle] = define.figure;

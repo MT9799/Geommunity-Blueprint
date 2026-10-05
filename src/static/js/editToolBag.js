@@ -46,39 +46,59 @@ class MoveTool {
      * @param {number} y
      */
     startEventFunctionMove(x, y) {
-        geometryManager.deleteTool(this.toolName);
-    
-        if (subTool === "moveView") return;
-        
-        const [pointId] = geometryManager.near([x, y], ["point"]);
-        if (pointId) {
-            if (geometryManager.ifIdInCache(pointId)) {
-                geometryManager.deleteToolQuote(pointId);
+        if (subTool === "moveView") {
+            geometryManager.deleteTool(this.toolName);
+            return;
+        }
+        // 按住 Ctrl / Cmd 点：加选（不先清空选中栏），见下面
+        const multi = typeof window !== 'undefined' && !!window.multiSelectModifier;
+        // 点 / 线 / 圆放在一起比距离：光标压着哪个就拖哪个
+        //（原来点是「半径内有就先选」，于是光标明明压在线上，附近随便一个点也会把它抢走 ——
+        // 与 near 的距离优先口径统一）
+        const [pickedId] = geometryManager.near([x, y], ["point", "line", "circle"]);
+        if (!pickedId) {
+            // 点在空白处：清空选中栏（多选也一起清掉）
+            if (!multi) geometryManager.deleteTool(this.toolName);
+            return;
+        }
+        // 光标下是**已经在选中栏里**的对象：保留整条选中栏 —— 多选之后直接拖动就该一起走。
+        // 原来这里进门先清空再重选，于是拖其中一个就把多选丢了、只剩它自己动
+        const inSelection = geometryManager.ifIdInCache(this.toolName, pickedId);
+        if (!multi && !inSelection) geometryManager.deleteTool(this.toolName);
+        // 多选：再点一次已选中的就把它从选中栏里去掉，否则用下一个空闲键加进去
+        //（选中栏是一张 map，键不同就能并存：choice、choice2…，与网格那一块同一个机制）
+        if (multi) {
+            // ifIdInCache 是（tool, id）两个参数：只传 id 时 tool 会拿到对象 id，永远为 false
+            if (geometryManager.ifIdInCache(this.toolName, pickedId)) {
+                geometryManager.deleteToolQuote(this.toolName, pickedId);
             }else{
-                geometryManager.addToolObject(this.toolName, "choice", "quote", pointId);
+                const used = Object.keys(geometryManager.choice?.[this.toolName] || {});
+                const key = ['choice', 'choice2', 'choice3', 'choice4', 'choice5', 'choice6', 'choice7', 'choice8']
+                    .find(name => !used.includes(name)) || `choice${used.length + 1}`;
+                geometryManager.addToolObject(this.toolName, key, "quote", pickedId);
             }
             return;
         }
-        
-        const [elementId] = geometryManager.near([x, y], ["line", "circle"]);
-        if (elementId) {
-            if (geometryManager.ifIdInCache(elementId)) {
-                geometryManager.deleteToolQuote(elementId);
-            }else{
-                // 网格当作一整块：点到任意一条格线就把整块都选上（样式一次改一整块）
-                const gridIds = (typeof window.isGridObjectId === 'function' && window.isGridObjectId(elementId)
-                    && typeof geometryElementLists !== 'undefined' && geometryElementLists.grid)
-                    ? [...geometryElementLists.grid].filter(id => /^gS[XY]\d+$/.test(id))
-                    : [];
-                if (gridIds.length) {
-                    // 选中栏是一张 map：键不同就能并存（第一条用 choice，其余 choice2、choice3…）
-                    gridIds.forEach((id, index) => {
-                        geometryManager.addToolObject(this.toolName, index === 0 ? "choice" : `choice${index + 1}`, "quote", id);
-                    });
-                }else{
-                    geometryManager.addToolObject(this.toolName, "choice", "quote", elementId);
-                }
-            }
+        const picked = geometryManager.get(pickedId);
+        if (picked && picked.getType() === "point") {
+            // 已经选着它：保持整条选中栏不动（拖动时整批一起走；取消选中有「点空白」与 Ctrl 点两途）
+            if (inSelection) return;
+            geometryManager.addToolObject(this.toolName, "choice", "quote", pickedId);
+            return;
+        }
+        if (inSelection) return;
+        // 网格当作一整块：点到任意一条格线就把整块都选上（样式一次改一整块）
+        const gridIds = (typeof window.isGridObjectId === 'function' && window.isGridObjectId(pickedId)
+            && typeof geometryElementLists !== 'undefined' && geometryElementLists.grid)
+            ? [...geometryElementLists.grid].filter(id => /^gS[XY]\d+$/.test(id))
+            : [];
+        if (gridIds.length) {
+            // 选中栏是一张 map：键不同就能并存（第一条用 choice，其余 choice2、choice3…）
+            gridIds.forEach((id, index) => {
+                geometryManager.addToolObject(this.toolName, index === 0 ? "choice" : `choice${index + 1}`, "quote", id);
+            });
+        }else{
+            geometryManager.addToolObject(this.toolName, "choice", "quote", pickedId);
         }
     }
     
@@ -97,6 +117,24 @@ class MoveTool {
     }
     
     /**
+     * 选中栏里的全部对象 过程函数
+     * 移动工具支持多选（Ctrl+A 全选、按住 Ctrl 点加选）：选中栏是一张 map，键不同就能并存
+     * （choice / choice2 / choice3…，与网格那一块同一个机制）
+     * @returns {Object[]}
+     */
+    selectedElements() {
+        const dict = geometryManager.choice?.[this.toolName] || null;
+        if (!dict) return [];
+        const out = [];
+        Object.values(dict).forEach(entry => {
+            if (!entry || entry.type !== 'quote') return;
+            const item = geometryManager.get(entry.quote);
+            if (item) out.push(item);
+        });
+        return out;
+    }
+
+    /**
      * 拖拽 过程函数
      * @param {number} x
      * @param {number} y
@@ -107,7 +145,8 @@ class MoveTool {
             return;
         }
     
-        const choice = geometryManager.getToolKey(this.toolName, "choice");
+        const choices = this.selectedElements();
+        const choice = choices.length ? choices[0] : null;
     
         function drawCanvas() {
             // 拖拽画布
@@ -127,37 +166,42 @@ class MoveTool {
             drawCanvas();
             return;
         }
-        
-        const type = choice.getType();
-        if (type !== "point") {
-            // 定义点全是自由点的图形：直接拖着图形走（把这些点一起平移，图形跟着走）；
-            // 定义点里有点不动（交点、线上点…）或者还牵着别的图形的，照旧拖画布
-            const points = this.freeDefinitionPoints(choice);
-            if (!points.length) {
-                drawCanvas();
-                return;
-            }
-            const deltaX = (x - preX) / transform.scale;
-            const deltaY = (y - preY) / transform.scale;
-            points.forEach(point => {
-                const [pointX, pointY] = point.getCoordinate();
-                geometryManager.modifyPointCoordinate(point.getId(), pointX + deltaX, pointY + deltaY);
-            });
-            preX = x;
-            preY = y;
-            if (deltaX || deltaY) this.movedFlag = true;
+        // 只选了一个点：照老口径把它直接放到光标处（点跟着光标走，比按位移跟手）
+        if (choices.length === 1 && choice.getType() === "point") {
+            const logicX = (x - transform.x) / transform.scale;
+            const logicY = (y - transform.y) / transform.scale;
+            // 先记下拖之前的坐标：移不动的东西（构造出来的交点、被约束住的点…）拖了也白拖，
+            // 坐标没变就不算「移动过」，不该污染撤销/重做历史
+            const before = choice.getCoordinate();
+            geometryManager.modifyPointCoordinate(choice.getId(), logicX, logicY);
+            const after = choice.getCoordinate();
+            if (before && after && Math.hypot(after[0] - before[0], after[1] - before[1]) > 1e-9) this.movedFlag = true;
             return;
         }
-        // 拖拽点
-        const logicX = (x - transform.x) / transform.scale;
-        const logicY = (y - transform.y) / transform.scale;
-        const id = choice.getId();
-        // 先记下拖之前的坐标：移不动的东西（构造出来的交点、被约束住的点…）拖了也白拖，
-        // 坐标没变就不算「移动过」，不该污染撤销/重做历史
-        const before = choice.getCoordinate();
-        geometryManager.modifyPointCoordinate(id, logicX, logicY);
-        const after = choice.getCoordinate();
-        if (type === "point" && before && after && Math.hypot(after[0] - before[0], after[1] - before[1]) > 1e-9) this.movedFlag = true;
+        // 多选（Ctrl+A 全选 / 按住 Ctrl 点加选）与拖图形走同一条路：所有选中的点、
+        // 以及定义点全是自由点的图形，一起按同样的位移平移。
+        // 一个都动不了（构造出来的交点、被约束住的点、牵着别的图形的图形）时照旧拖画布
+        const movingPoints = new Map();
+        choices.forEach(item => {
+            if (item.getType() === "point") {
+                movingPoints.set(item.getId(), item);
+            }else{
+                this.freeDefinitionPoints(item).forEach(point => movingPoints.set(point.getId(), point));
+            }
+        });
+        if (!movingPoints.size) {
+            drawCanvas();
+            return;
+        }
+        const deltaX = (x - preX) / transform.scale;
+        const deltaY = (y - preY) / transform.scale;
+        movingPoints.forEach(point => {
+            const [pointX, pointY] = point.getCoordinate();
+            geometryManager.modifyPointCoordinate(point.getId(), pointX + deltaX, pointY + deltaY);
+        });
+        preX = x;
+        preY = y;
+        if (deltaX || deltaY) this.movedFlag = true;
     }
 
     /**

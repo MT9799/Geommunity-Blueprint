@@ -1,6 +1,6 @@
 {
   "name": "geommunity-blueprint",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "private": true,
   "description": "Geommunity Blueprint —— 欧几里得仿真的关卡库与在线作图板",
   "homepage": "https://github.com/MT9799/Geommunity-Blueprint",

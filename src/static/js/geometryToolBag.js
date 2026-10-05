@@ -658,9 +658,13 @@ class LineTypeTool {
         if (type !== "click") return;
         const x = (oriX - transform.x) / transform.scale;
         const y = (oriY - transform.y) / transform.scale;
-        const [id] = geometryManager.near([x, y], ['line']);
+        // 点 / 线 / 圆放在一起比距离：光标压在点（比如交点）上时就不该去换它下面那条线的类型
+        //（以前这里只取线，于是在交点上点一下会把 s1 的线型换掉）
+        const [id] = geometryManager.near([x, y], ['point', 'line', 'circle']);
         if (!id) return;
         const line = geometryManager.get(id);
+        // 只处理线：点和圆不是这一档的对象（取到了就什么也不做，不再顺延到别的线上）
+        if (!line || line.getType() !== 'line') return;
         // 只有「两点定的直线 / 射线 / 线段」能换类型：垂线、平行线、角平分线、定值角
         // 这些构造出来的线换了类型没有意义
         if (line.getBase()?.type !== 'twoPoints') return;
@@ -772,6 +776,54 @@ function isPlayMode() {
 }
 
 /**
+ * 「顺手」作出的东西 常量
+ * 非点 / 交点工具取点时，会把光标下的隐藏交点显示出来（revealed），或者现作一个交点（created）——
+ * 这些都不是用户要的「这一笔」，而是寄生在当前这一步作图里的副产品：
+ *   · 这一步画完了：它们已经随快照并进那一格历史（见 index.js / playPage 的 storage），忘掉即可；
+ *   · 这一步被撤销（半成品撤销，见 cancelPendingToolDraw）：它们必须原样退回去，
+ *     否则会留下一个撤不掉的点（它没有自己的历史格）
+ */
+const incidentalDrawEffects = [];
+/**
+ * 记一笔「顺手」的效果 过程函数
+ * @param {{kind: 'created'|'revealed', id: string}} effect
+ */
+function rememberIncidentalDrawEffect(effect) {
+    if (effect && effect.id) incidentalDrawEffects.push(effect);
+}
+/**
+ * 这一步作图画完了：效果已进历史，忘掉它们 过程函数（不回收对象）
+ */
+window.clearIncidentalDrawEffects = () => {
+    incidentalDrawEffects.length = 0;
+};
+/**
+ * 半成品被撤销：把「顺手」的效果退回去 过程函数
+ * 现作出来的交点删掉，顺手显示出来的交点重新藏起来（连带同步「隐藏」集合）
+ * @returns {boolean} 是否确实退回了什么
+ */
+window.revertIncidentalDrawEffects = () => {
+    if (!incidentalDrawEffects.length) return false;
+    // 后进先出：先作出来的点在后作出来的点下面，倒着退更稳（删对象会连带它的子对象）
+    [...incidentalDrawEffects].reverse().forEach(effect => {
+        const object = geometryManager.get(effect.id);
+        if (!object) return;
+        if (effect.kind === 'created') {
+            geometryManager.deleteObject(effect.id);
+            return;
+        }
+        if (typeof object.modifyVisible === 'function' && object.getVisible()) {
+            object.modifyVisible(false);
+            if (typeof geometryElementLists !== 'undefined' && geometryElementLists.hidden) {
+                geometryElementLists.hidden.add(effect.id);
+            }
+        }
+    });
+    incidentalDrawEffects.length = 0;
+    return true;
+};
+
+/**
  * 让一个点显示出来 过程函数
  * 隐藏的点对象（图形的定义点常常是隐藏的）在画布上看不见、也进不了 near 的吸附范围 ——
  * 点工具点上去时就该把它显示出来，而不是什么也不做
@@ -794,7 +846,12 @@ function revealHiddenPoint(point, ownStep = false) {
     }
     // 「在这儿放一个点」的那一路上，显示出来自己占一格历史：否则这个点会并进**下一个动作**的
     // 快照里，撤回那个动作时把它一起撤掉
-    if (ownStep && typeof notifyStorageChange === 'function') notifyStorageChange('point');
+    if (ownStep) {
+        if (typeof notifyStorageChange === 'function') notifyStorageChange('point');
+    }else{
+        // 别人顺手显示的点：记一笔，这一步被撤销时要重新藏回去（见 revertIncidentalDrawEffects）
+        rememberIncidentalDrawEffect({kind: 'revealed', id: point.getId()});
+    }
     return true;
 }
 
@@ -866,8 +923,12 @@ function revealHiddenIntersection(x, y, ownStep = false) {
     // 那个位置在 gmt 的编号规则里就是「已知交点」，硬建出来的点还会落到另一个候选上。
     // 隐藏点算不算「已有」？算 —— pointAtPosition 不看可见性，这里的口径跟它保持一致：
     // 上面能显示就显示，显示不出来（游玩模式）也不叠一个重合的新点。
-    const occupied = geometryManager.near([x, y], ["point"], 1);
-    if (occupied.length) return false;
+    //
+    // **只在触屏上认这一条**（见 canvas.js 的 pointerIsTouch）：手指落点粗，十几像素外的
+    // 已有点很可能就是玩家想选的那个；鼠标精确得多，光标压在相交处就是想在那儿作交点，
+    // 旁边有点也不该挡掉它（预览那边 board-tools.js 的 landingPickOf 用同一条件，两边始终一致）
+    if (typeof pointerIsTouch === 'function' && pointerIsTouch()
+        && geometryManager.near([x, y], ["point"], 1).length) return false;
     const point = geometryManager.createPoint(snap.x, snap.y);
     applyIntersectionBase(point, snap);
     snap.element1.addSuperstructure(point);
@@ -875,7 +936,12 @@ function revealHiddenIntersection(x, y, ownStep = false) {
     geometryManager.addObject(point);
     // 同 revealHiddenPoint：只有「这一下本来就是放个点」才自己占一格历史，
     // 其它工具顺手作出的交点跟着它那一步作图一起撤回（见 #「顺手造的交点」）
-    if (ownStep && typeof notifyStorageChange === 'function') notifyStorageChange('point');
+    if (ownStep) {
+        if (typeof notifyStorageChange === 'function') notifyStorageChange('point');
+    }else{
+        // 顺手作出的交点：记一笔，这一步被撤销时把它删掉（见 revertIncidentalDrawEffects）
+        rememberIncidentalDrawEffect({kind: 'created', id: point.getId()});
+    }
     return true;
 }
 

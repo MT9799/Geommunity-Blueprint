@@ -259,6 +259,9 @@
    * 工具缓存与工具自身的选中状态都清掉，否则它们还指着已经被清空的对象，之后作图会点击错位
    */
   window.resetToolState = () => {
+    // 丢掉画到一半的状态之前，先把取点时「顺手」作出的交点 / 显示出来的隐藏交点退回去 ——
+    // 它们没有自己的历史格，跟着这一步走（见 geometryToolBag.js 的 revertIncidentalDrawEffects）
+    if (typeof window.revertIncidentalDrawEffects === 'function') window.revertIncidentalDrawEffects();
     if (typeof tools !== 'undefined' && tools) {
       Object.values(tools).forEach(item => {
         if (item && typeof item.clear === 'function') item.clear();
@@ -1818,7 +1821,9 @@
 
     const createElement = (id, declaration) => {
       const {name, args} = declaration;
-      const baseDict = {id: id, name: id, showName: false, superstructureId: [], visible: true, valid: true, color: '#191919', width: 1};
+      // 不带 width：gmt 本来就不写粗细，读取时由各模式按自己的默认（档位 2「较小」）补，
+      // 原来这里写死 1（档位 3「中」），载入 gmt / 记录出来的图形比新画的粗一档
+      const baseDict = {id: id, name: id, showName: false, superstructureId: [], visible: true, valid: true, color: '#191919'};
       switch (name) {
         case 'Point': {
           const coord = args[0]?.match(/^\[\s*([-\d.eE+]+)\s*,\s*([-\d.eE+]+)\s*\]$/);
@@ -3962,6 +3967,21 @@
   // 当前标记的集合名（initial / named / movepoints / result / resultShown）与当前标记工具（given / goal）
   let marking = null;
   let markingTool = null;
+  /**
+   * 标记模式下「光标指着哪个对象」 过程函数（逻辑坐标）
+   * **点优先，其余按离光标最近**（near 本身是距离优先）。标记是逐个对象点的操作：
+   * 交点 / 线上的点常常正压在直线 / 圆上，纯按距离比的话点到线的距离更小，永远抢不过背后那条线
+   * —— 表现就是「标不了点，标到了后面的线和圆」。15px 半径内先找点、没有点再看线 / 圆
+   * @param {number} x 逻辑坐标
+   * @param {number} y 逻辑坐标
+   * @param {string[]} [ignore] 要跳过的对象 id（网格当作一整块排除）
+   * @returns {string|null}
+   */
+  const markTargetAt = (x, y, ignore = []) => {
+    // 与作图取对象同一套口径（点优先、其余按距离，见 geometry.js 的 near）
+    const [id] = geometryManager.near([x, y], ['point', 'line', 'circle'], 1, ignore);
+    return id || null;
+  };
   // 标记色与样式色分离：标记期间显示色固定为标记色，
   // 样式修改只记录在 markedStyles，取消标记时把样式色与标签状态一并写回
   const markedStyles = new Map();
@@ -4104,12 +4124,12 @@
     const rect = event.target.getBoundingClientRect();
     const x = (source.clientX - rect.left - transform.x) / transform.scale;
     const y = (source.clientY - rect.top - transform.y) / transform.scale;
-    // near() 内部已做点优先：交点不会被背后的直线 / 圆抢先命中。
+    // 取要标记的对象：点优先，其余按距离（见 markTargetAt）。
     // 网格当作一整块直接排除在命中之外（先忽略网格再找最近的图形）：否则点在格线附近会
     // 先选中网格、吃到「网格不能标记」的提示，反而选不到网格后面的图形（见 #8）
     const gridIds = (typeof geometryElementLists !== 'undefined' && geometryElementLists.grid)
       ? [...geometryElementLists.grid] : [];
-    const [id] = geometryManager.near([x, y], ['point', 'line', 'circle'], 1, gridIds);
+    const id = markTargetAt(x, y, gridIds);
     // 未命中对象时不拦截事件，交给画布拖拽（标记模式下当前工具已是「移动视图」）
     if (!id) {
       markingGesture = false;
@@ -4734,6 +4754,83 @@
    *   拖动画布            -> 抓手（grabbing，中键拖动时）
    *   作图有半成品        -> 十字（crosshair，提示正在等下一次点击）
    */
+  /**
+   * 电脑端快捷键 过程函数
+   * Ctrl/Cmd+Z 撤回、Ctrl/Cmd+Shift+Z 或 Ctrl/Cmd+Y 重做、Ctrl/Cmd+S 保存记录、
+   * 移动工具下 Ctrl/Cmd+A 全选（多选用「按住 Ctrl 点」）、Delete / Backspace 删除选中的图形。
+   * 正在输入框里打字（记录命名、坐标输入…）时一律让路，否则「撤回」会把输入内容吃掉
+   */
+  (() => {
+    const isTyping = target => !!target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA'
+      || target.tagName === 'SELECT' || target.isContentEditable);
+    const MOVE_KEYS = ['choice', 'choice2', 'choice3', 'choice4', 'choice5', 'choice6', 'choice7', 'choice8'];
+    const selectedOfMove = () => {
+      const dict = (typeof geometryManager !== 'undefined' && geometryManager.choice)
+        ? geometryManager.choice['move'] : null;
+      if (!dict) return [];
+      return Object.values(dict)
+        .filter(entry => entry && entry.type === 'quote')
+        .map(entry => geometryManager.get(entry.quote))
+        .filter(Boolean);
+    };
+    // 全选：画布上所有可见对象（网格不参与 —— 它是一整块背景，选中它没有意义）
+    const selectAll = () => {
+      if (typeof tool !== 'string' || tool !== 'move') return false;
+      geometryManager.deleteTool('move');
+      let index = 0;
+      geometryManager.getAllByOrder().forEach(item => {
+        if (!item.getValid() || !item.getVisible()) return;
+        if (typeof isGridId === 'function' && isGridId(item.getId())) return;
+        const key = MOVE_KEYS[index] || `choice${index + 1}`;
+        geometryManager.addToolObject('move', key, 'quote', item.getId());
+        index += 1;
+      });
+      return index > 0;
+    };
+    window.addEventListener('keydown', event => {
+      if (isTyping(event.target)) return;
+      const key = String(event.key || '').toLowerCase();
+      // Delete / Backspace：删除选中的图形（多选一起删）。走「删除选中对象」按钮同一条路 ——
+      // 关卡自带图形的保护、撤销历史、步数退回都在那边处理，这里不重复一套
+      if (key === 'delete' || key === 'backspace') {
+        if (event.altKey || event.ctrlKey || event.metaKey) return;
+        // 只有移动工具的选中栏才算「选中了图形」：作图工具里的 choice 是「这一笔已经点到的点」，
+        // 删它没有意义（半成品用撤销 / 取消）
+        if (typeof tool !== 'string' || tool !== 'move') return;
+        if (!selectedOfMove().length) return;
+        // Backspace 在部分浏览器里是「返回上一页」，一定要拦下来
+        event.preventDefault();
+        if (typeof clickToolFloatingButton === 'function') clickToolFloatingButton('deleteObject');
+        return;
+      }
+      const accel = event.ctrlKey || event.metaKey;
+      if (!accel || event.altKey) return;
+      if (key === 'z' && !event.shiftKey) {
+        event.preventDefault();
+        if (typeof restoreStorage === 'function') restoreStorage();
+        return;
+      }
+      if (key === 'y' || (key === 'z' && event.shiftKey)) {
+        event.preventDefault();
+        if (typeof redoStorage === 'function') redoStorage();
+        return;
+      }
+      if (key === 's') {
+        // 别弹出浏览器的「保存网页」：这儿存的是记录面板里那一条
+        event.preventDefault();
+        const button = document.getElementById('record-button-add');
+        if (button && !button.disabled) button.click();
+        return;
+      }
+      if (key === 'a' && selectAll()) {
+        event.preventDefault();
+        drawContent();
+        if (typeof refreshToolFloating === 'function') refreshToolFloating();
+      }
+    });
+    // 供外部（探针 / 调试）查一下当前选中栏里都选了谁
+    window.moveSelectedElements = () => selectedOfMove().map(item => item.getId());
+  })();
   (() => {
     const canvasElement = document.getElementById('canvas_id1');
     if (!canvasElement || typeof geometryManager === 'undefined') return;
@@ -4757,8 +4854,8 @@
       if (typeof transform === 'undefined') return null;
       const x = clientX - canvasLeft;
       const y = clientY - canvasTop;
-      const found = geometryManager.near([(x - transform.x) / transform.scale, (y - transform.y) / transform.scale], ['point', 'line', 'circle'], 1);
-      const id = found && found[0];
+      // 与点击同一份口径（点优先，见 markTargetAt）：悬停提示显示的就是这一下会标中的对象
+      const id = markTargetAt((x - transform.x) / transform.scale, (y - transform.y) / transform.scale);
       return id ? geometryManager.get(id) : null;
     };
     const refresh = (clientX, clientY) => {
@@ -4768,8 +4865,12 @@
         return;
       }
       const element = hoveredElement(clientX, clientY);
-      // 移动工具与标记模式下浮出对象信息（marking 是制题器 / 求解器的标记状态）
-      const moving = marking !== null || (typeof tool === 'string' && tool === 'move');
+      // 移动工具与标记模式下浮出对象信息（marking 是制题器 / 求解器的标记状态）。
+      // 游玩模式（关卡游玩 / 试玩）里移动工具不提示：那是作图时看对象用的，
+      // 关卡里多一层浮层既挡图形又容易和题目说明打架（光标形状照旧变化，能看到"指到了什么"）
+      const hoverTipAllowed = !(typeof isPlayMode === 'function' && isPlayMode());
+      const moving = marking !== null
+        || (hoverTipAllowed && typeof tool === 'string' && tool === 'move');
       if (element && moving) {
         tip.hidden = false;
         // 网格当作一整块：悬停在任意一条格线上都显示「格线」，不显示 gSY3 这种作图名
@@ -4891,17 +4992,66 @@
       if (typeof tool === 'string' && tool === 'intersection') {
         return intersectionSnapOf(logicalX, logicalY);
       }
-      let best = null;
-      const pointId = geometryManager.near([logicalX, logicalY], ['point'], 1)[0];
-      if (pointId) {
-        const coord = geometryManager.get(pointId).getCoordinate();
-        best = {x: coord[0], y: coord[1], distance: Math.hypot(coord[0] - logicalX, coord[1] - logicalY)};
-      }
-      // 本来就相交的位置（还没有交点对象的那种）也要能吸附 —— 和点同等优先，取更近的一个
-      const intersection = geometryManager.nearestIntersection(logicalX, logicalY);
-      if (intersection && (!best || intersection.distance < best.distance)) {
-        best = {x: intersection.x, y: intersection.y, distance: intersection.distance};
-      }
+      // 半径内离这个位置最近的已有点（各处口径统一：near 的默认吸附半径 15px）
+      const pointNear = (x, y) => {
+        const id = geometryManager.near([x, y], ['point'], 1)[0];
+        if (!id) return null;
+        const coord = geometryManager.get(id).getCoordinate();
+        return {x: coord[0], y: coord[1], distance: Math.hypot(coord[0] - x, coord[1] - y)};
+      };
+      /**
+       * 在某个位置按下时**最终会落在哪个对象上** 过程函数
+       * 与 board 的点击链完全同一套先后关系：snapCursorPosition（本函数）→
+       * revealHiddenIntersectionAtClick → 工具取点，三处都用 15px 半径，
+       * 所以这里也必须**从落点量**、按同样的先后折算：
+       *   · 落点半径内已有别的点 → 工具引用它（钩子也不会在交点处造点）
+       *   · 否则落点半径内有裸交点 → 钩子在交点处造点，工具随即引用它
+       * 少了这一层，只按「光标」判一次的话，光标一偏（哪怕仍在交点四周 15px 内），
+       * 预览吸在交点上、按下去却落到了交点的吸附半径里那个已有点（`A`）上
+       */
+      // 隐藏点（图形的定义点、预绘制的解）只有**点工具**会真的用上：它压在隐藏点上就把它显示出来
+      // （见 geometryToolBag.js 的 revealHiddenPoint 与 PointTool.createPoint），其它工具取点时
+      // 用的都是可见对象。游玩模式里连点工具都不翻隐藏点。这些场合都不该把预览吸到隐藏点上 ——
+      // 吸过去而按下去却在旁边新造一个点，比不吸更糟
+      const takesHiddenPoint = () => typeof tool === 'string' && tool === 'point'
+          && !(typeof isPlayMode === 'function' && isPlayMode());
+      const landingPickOf = (x, y) => {
+        // 「附近的点」这一档，按距离取最近的：已有点、还没显示出来的隐藏点、相交的位置
+        // （三者在同一档里比距离；点整体先于线 / 圆，见 geometry.js 的 near）
+        const candidates = [];
+        const point = pointNear(x, y);
+        if (point) candidates.push({x: point.x, y: point.y, distance: point.distance, kind: 0});
+        // 隐藏点：near 看不见它们（跳过不可见对象），点工具点上去会把它显示出来，
+        // 预览也得能吸过去，否则「预览吸在这儿、按下去却是旁边另一个对象」
+        if (takesHiddenPoint() && typeof nearestHiddenPoint === 'function') {
+          const hidden = nearestHiddenPoint(x, y);
+          const coord = hidden?.getCoordinate?.();
+          if (coord) {
+            candidates.push({
+              x: coord[0], y: coord[1],
+              distance: Math.hypot(coord[0] - x, coord[1] - y), kind: 1,
+            });
+          }
+        }
+        const intersection = geometryManager.nearestIntersection(x, y);
+        if (intersection) {
+          // 「交点的吸附半径里已经有点」只在触屏上算（见 geometryToolBag.js 的 revealHiddenIntersection）：
+          // 鼠标下交点照用，触屏下则取那个点 —— 两边条件必须一模一样，否则预览与落点又会错开
+          const shadow = typeof pointerIsTouch === 'function' && pointerIsTouch()
+              ? pointNear(intersection.x, intersection.y) : null;
+          const target = shadow
+              ? {x: shadow.x, y: shadow.y, distance: shadow.distance, kind: 0}
+              : {x: intersection.x, y: intersection.y, distance: intersection.distance, kind: 2};
+          candidates.push(target);
+        }
+        if (!candidates.length) return null;
+        // 距离一样近（含浮点噪声）时取更「实」的那个：已有点 → 隐藏点 → 交点位置
+        candidates.sort((one, two) => Math.abs(one.distance - two.distance) < 1e-6
+            ? one.kind - two.kind
+            : one.distance - two.distance);
+        return candidates[0];
+      };
+      let best = landingPickOf(logicalX, logicalY);
       // 没有点 / 交点时才吸附线 / 圆：把光标投到最近的线或圆上（点工具落在对象上就是这个位置）
       if (!best) {
         const elementId = geometryManager.near([logicalX, logicalY], ['line', 'circle'], 1)[0];
@@ -4920,7 +5070,10 @@
             const projected = ToolsFunction.radianToCoordinate(p1, p2, value);
             on = {x: projected.x, y: projected.y};
           }
-          if (on) best = {x: on.x, y: on.y, distance: Math.hypot(on.x - logicalX, on.y - logicalY)};
+          // 投影处也按「按下会落在哪」折算一遍：那儿若已有别的点、或钩子会顺手造出交点，
+          // 落点就不是投影位置本身了 —— 预览直接显示最终落点，免得按下时又偏出几像素
+          if (on) best = landingPickOf(on.x, on.y)
+              || {x: on.x, y: on.y, distance: Math.hypot(on.x - logicalX, on.y - logicalY)};
         }
       }
       if (!best) return {x: logicalX, y: logicalY, snapped: false};
@@ -4966,6 +5119,10 @@
       // · 复制圆规：还没点圆时下一步是「选一个圆」，点了圆之后下一步才是落圆心
       const hidePreviewPoint =
           ((tool === 'parallelLine' || tool === 'perpendicularLine') && !geometryManager.getToolKey(tool, 'line'))
+          // 切线：还没选图形时下一步是「选一个图形」；先选了点时下一步还是「选圆」（不落点）——
+          // 两种情况都不该画点预览。只有先选了**圆**，下一步才是「在光标处落一个点」，这时才画
+          // （与平行线 / 垂线的口径一致；图形预览见 canvas.js 的 previewShapes.tangent）
+          || ((tool === 'tangent' || subTool === 'tangent') && !geometryManager.getToolKey(tool, 'circle'))
           || subTool === 'twoLineAngleBisector'
           || (subTool === 'compassCopy' && !geometryManager.getToolKey(tool, 'circle'))
           // 样式刷 / 隐藏刷 / 切换线类型：光标自己已经画成圆环（或隐藏刷的方块）了，
@@ -4981,17 +5138,20 @@
         previewCanvas.hidden = true;
         return;
       }
-      const width = canvasElement.clientWidth;
-      const height = canvasElement.clientHeight;
-      const dpr = window.devicePixelRatio || 1;
+      // 尺寸与像素比都跟主画布**同一份**（canvasWidth/canvasHeight、canvasRatio）：
+      // 各自读一次（clientWidth / devicePixelRatio）时，两者一旦不一致预览点就会偏离光标
+      const width = typeof canvasWidth === 'number' ? canvasWidth : canvasElement.clientWidth;
+      const height = typeof canvasHeight === 'number' ? canvasHeight : canvasElement.clientHeight;
+      const dpr = typeof canvasRatio === 'number' ? canvasRatio : (window.devicePixelRatio || 1);
       if (previewCanvas.style.width !== `${width}px`) {
         previewCanvas.style.width = `${width}px`;
         previewCanvas.style.height = `${height}px`;
-        previewCanvas.style.left = `${canvasElement.offsetLeft}px`;
-        previewCanvas.style.top = `${canvasElement.offsetTop}px`;
         previewCanvas.width = Math.round(width * dpr);
         previewCanvas.height = Math.round(height * dpr);
       }
+      // 画布可能被页面滚动挪过位置（不触发 resize）：每帧都按当前位置对齐，代价只有两次属性写入
+      previewCanvas.style.left = `${canvasElement.offsetLeft}px`;
+      previewCanvas.style.top = `${canvasElement.offsetTop}px`;
       context.setTransform(dpr, 0, 0, dpr, 0, 0);
       context.clearRect(0, 0, width, height);
       const x = clientX - canvasLeft;

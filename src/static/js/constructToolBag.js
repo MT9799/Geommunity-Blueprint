@@ -108,6 +108,10 @@ class PerpendicularBisectorConstructTool {
 const tangent = 'tangent';
 const tangentParallel = 'tangentParallel';
 const TANGENT_DEGENERATE_EPSILON = 1e-10;
+// 「线圆平行切线」开关：暂时关闭 —— 它的 gmt 写法（Tangent[直线,圆]）原版游戏还不支持，
+// 导出的关卡导不进去。要恢复：这里改 true，再把 tool.js 的 toolItems.tangent.switch 加回 'tangentParallel'
+// （小项图标 svg-tangentParallel 已经在 board.html / level.html 里）
+const TANGENT_PARALLEL_ENABLED = false;
 class TangentConstructTool extends MixPointBaseToolTemplate {
     /**
      * @param {string} toolName
@@ -137,8 +141,9 @@ class TangentConstructTool extends MixPointBaseToolTemplate {
      * @param {number} oriY 原y坐标
      */
     toolEvent(type, oriX, oriY) {
-        // 只有明确选了「平行于直线」才走那个模式：其余（含小项停留在工具名的页面）都是「过点作切线」
-        if (subTool === tangentParallel) {
+        // 只有明确选了「平行于直线」才走那个模式：其余（含小项停留在工具名的页面）都是「过点作切线」。
+        // 平行切线暂时关闭（见 TANGENT_PARALLEL_ENABLED）
+        if (TANGENT_PARALLEL_ENABLED && subTool === tangentParallel) {
             this.parallelMode.toolEvent(type, oriX, oriY);
         }else{
             super.toolEvent(type, oriX, oriY);
@@ -161,7 +166,27 @@ class TangentConstructTool extends MixPointBaseToolTemplate {
         geometryManager.createGeometryElementInputTool(this.goalType, this.toolName, this.goal);
         const goal = geometryManager.getToolKey(this.toolName, this.goal);
         goal.modifyDefine(this.define, [point, circle]);
+        // 点在圆上时切线只有一条（就是 value = 0 这一条）：第二条与它重合，索性不创建 ——
+        // 交给 isDegenerateTangent 事后去丢的话，那一瞬它仍会进缓存，导出的 gmt 也可能多一行
+        if (this.isPointOnCircle(point, circle)) return;
         this.createSecondTangent(point, circle, goal);
+    }
+    /**
+     * 点是否落在圆上 过程函数
+     * 与 isPointInsideCircle 同一套一维判据（比「点到圆心的距离」与半径），
+     * 容差取「常量」与「半径 × 1e-9」中较大的那个 —— 半径大的圆上量出来的误差也大
+     * @param {Object} point 过点
+     * @param {Object} circle 切圆
+     * @returns {boolean}
+     */
+    isPointOnCircle(point, circle) {
+        const circleCoord = circle?.getCoordinate?.();
+        const pointCoord = point?.getCoordinate?.();
+        if (!Array.isArray(circleCoord) || !Array.isArray(pointCoord)) return false;
+        const [cx, cy] = circleCoord[0];
+        const radius = Math.hypot(circleCoord[1][0] - cx, circleCoord[1][1] - cy);
+        const distance = Math.hypot(pointCoord[0] - cx, pointCoord[1] - cy);
+        return Math.abs(distance - radius) <= Math.max(TANGENT_DEGENERATE_EPSILON, radius * 1e-9);
     }
     /**
      * 点是否严格落在圆内 过程函数

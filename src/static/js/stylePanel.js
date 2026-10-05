@@ -316,13 +316,24 @@ function openObjectStylePopup(anchor) {
     if (!button || !element) return;
     // 网格当作一整块：一次改动应用到所有格线；它不能隐藏、也不能改标签显示
     const isGrid = typeof window.isGridObjectId === 'function' && window.isGridObjectId(element.getId());
-    const targetsOf = () => (isGrid && typeof geometryElementLists !== 'undefined' && geometryElementLists.grid
-        ? [...geometryElementLists.grid].filter(id => /^gS[XY]\d+$/.test(id)).map(id => geometryManager.get(id)).filter(Boolean)
-        : [element]);
+    // 目标集合＝**选中栏里的全部对象**（移动工具支持多选：choice、choice2…，见 MoveTool.selectedElements），
+    // 一次调样式就一起改。原来非网格时只返回 [element]，多选后只有第一个跟着变。
+    // 按 id 现取一遍：撤销 / 重做会把图形整批重建，手里那个旧对象已经脱离画板
+    const targetsOf = () => {
+        if (isGrid && typeof geometryElementLists !== 'undefined' && geometryElementLists.grid) {
+            return [...geometryElementLists.grid].filter(id => /^gS[XY]\d+$/.test(id))
+                .map(id => geometryManager.get(id)).filter(Boolean);
+        }
+        const selected = typeof tools !== 'undefined' && tools.move && typeof tools.move.selectedElements === 'function'
+            ? tools.move.selectedElements() : [];
+        const list = selected.map(item => geometryManager.get(item.getId())).filter(Boolean);
+        return list.length ? list : [geometryManager.get(element.getId()) || element];
+    };
     openStylePopup({
         anchor: button,
         key: 'object',
-        isPoint: element.getType() === 'point',
+        // 全是点时才是「点」的界面（混选时按线 / 圆那套，能调虚线与标签）
+        isPoint: targetsOf().every(item => item.getType() === 'point'),
         // 这个弹层多一个「隐藏」开关（非游玩模式才能隐藏对象）—— 网格不给
         showHide: !isGrid,
         hideLabel: isGrid,

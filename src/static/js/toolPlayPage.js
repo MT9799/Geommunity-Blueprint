@@ -1,6 +1,9 @@
 /* tool.js */
 let tool, menuTool, subTool;
 const toolMenus = {
+    // 游玩（关卡游玩 / 试玩）不提供切线工具：切线是「题目条件 / 作图过程」里才会用到的高级作图，
+    // 原版游玩也不给玩家这个工具。要加的话得同时补 tools 表（playPage.js）、toolItems（下面）
+    // 与 constructionCostOfElement 里的 L / E 消耗，缺一样都会让步数统计出错 —— 所以这里不是漏了
     'standard': [
         'move', 'point', 'line', 'circle', 'intersection', 
         'parallelLine', 'perpendicularLine', 'perpendicularBisector', 'angleBisector',

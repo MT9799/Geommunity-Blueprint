@@ -221,8 +221,11 @@
             }
             const color = own ? own.color : (typeof item.getColor === 'function' ? item.getColor() : null);
             if (color && String(color).toLowerCase() !== '#191919') entry.color = color;
+            // 与默认比：默认不再是 1，而是当前模式的档位 2「较小」（见 geometry.js 的 defaultElementWidth）
             const width = typeof item.getWidth === 'function' ? item.getWidth() : null;
-            if (typeof width === 'number' && width !== 1) entry.width = width;
+            const defaultWidth = typeof defaultElementWidth === 'function'
+                ? defaultElementWidth(typeof item.getType === 'function' ? item.getType() : 'line') : 1;
+            if (typeof width === 'number' && Math.abs(width - defaultWidth) > 1e-6) entry.width = width;
             const showName = !!own ? own.showName : (typeof item.getShowName === 'function' && item.getShowName());
             const shownByDefault = typeof item.getType === 'function' && item.getType() === 'point' && labelShownByDefault;
             if (!!showName !== !!shownByDefault) entry.showName = !!showName;

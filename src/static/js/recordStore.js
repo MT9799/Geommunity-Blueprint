@@ -561,7 +561,8 @@
                         type: type,
                         valid: true,
                         color: '#191919',
-                        width: 1,
+                        // 老格式记录里没带粗细的对象：按当前模式的默认补（见 geometry.js 的 defaultElementWidth）
+                        width: typeof defaultElementWidth === 'function' ? defaultElementWidth(type) : 1,
                         showName: false,
                         visible: true,
                         base: {type: baseType, basesId: bases, value: value},

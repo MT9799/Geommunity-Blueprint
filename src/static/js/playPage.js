@@ -46,11 +46,12 @@ let transform = {
 };
 
 // 存储样式变量
-// width：点的大小 / 线圆的粗细（1 为默认）；showName：是否显示标签（未设置时沿用自动配色模式的默认标签策略）
+// width：点的大小 / 线圆的粗细（默认 0.75 = 档位 2「较小」，档位表见 stylePanel.js 的 styleWidths）；
+// showName：是否显示标签（未设置时沿用自动配色模式的默认标签策略）
 let geometryStyle = {
-    point: {colorChoice: "autoPlayMode", color: "#191919", width: 1}, 
-    line: {colorChoice: "autoPlayMode", color: "#191919", width: 1, dashed: false}, 
-    circle: {colorChoice: "autoPlayMode", color: "#191919", width: 1, dashed: false}
+    point: {colorChoice: "autoPlayMode", color: "#191919", width: 0.75}, 
+    line: {colorChoice: "autoPlayMode", color: "#191919", width: 0.75, dashed: false}, 
+    circle: {colorChoice: "autoPlayMode", color: "#191919", width: 0.75, dashed: false}
 };
 
 // 几何对象管理器
@@ -310,6 +311,12 @@ window.rebuildMovesHistoryForRecord = (listed, finalSteps) => {
 function touchstartEventFunction(e) {
     // 事件预处理
     e.preventDefault();
+    // 同鼠标：触摸开始时也重量一次画布位置（移动端地址栏收放会改变画布在页面里的位置）
+    if (typeof refreshCanvasRect === 'function') refreshCanvasRect();
+    // 触摸没有 Ctrl：清掉上次鼠标留下的多选标记，免得点一下就变成加选
+    window.multiSelectModifier = false;
+    // 这一下是手指点的：吸附口径与鼠标分开（见 canvas.js 的 markTouchInput / pointerIsTouch）
+    if (typeof markTouchInput === 'function') markTouchInput();
     const touches = e.touches;
 
     // 起始点记录
@@ -332,6 +339,8 @@ function touchstartEventFunction(e) {
 function touchendEventFunction(e) {
     // 事件预处理
     e.preventDefault();
+    // 抬手这一下（多半就是一次点击）也是手指的：先记下来再走工具
+    if (typeof markTouchInput === 'function') markTouchInput();
     // 这一手势算不算拖动（在 touchmove 里移够距离才置位），要在复位之前取出来
     const dragged = isDragging;
     isDragging = false;
@@ -386,6 +395,8 @@ function touchcancelEventFunction(e) {
 function touchmoveEventFunction(e) {
     // 预处理
     e.preventDefault();
+    // 手指还按在屏幕上：拖拽过程中也要保持触屏口径（见 canvas.js 的 pointerIsTouch）
+    if (typeof markTouchInput === 'function') markTouchInput();
     const touches = e.touches;
     refreshToolFloating();
 
@@ -490,6 +501,10 @@ function mouseDownEventFunction(e) {
     if (typeof showPointerCursor === 'function') showPointerCursor();
     startTime = Date.now();
     mouseType = e.button;
+    // 按住 Ctrl / Cmd 点：移动工具加选（见 MoveTool.startEventFunctionMove）
+    window.multiSelectModifier = !!(e.ctrlKey || e.metaKey);
+    // 页面滚动 / 布局变化不会触发 window resize：按下前重量一次画布位置，点击才不会整体偏掉
+    if (typeof refreshCanvasRect === 'function') refreshCanvasRect();
 
     // 左键作图：起点也先吸附（点在隐交点上时，工具才拿得到那个位置的对象）
     const snapStart = e.button === 0 && typeof snapCursorPosition === 'function' ? snapCursorPosition(x, y) : [x, y];
@@ -1234,6 +1249,9 @@ function hasPendingToolDraw() {
  */
 function cancelPendingToolDraw() {
     if (!hasPendingToolDraw()) return false;
+    // 先退掉「顺手」作出的东西（取点时现作的交点 / 顺手显示出来的隐藏交点）：
+    // 它们没有自己的历史格，这一步作废了就该原样回去（见 geometryToolBag.js 的 revertIncidentalDrawEffects）
+    if (typeof window.revertIncidentalDrawEffects === 'function') window.revertIncidentalDrawEffects();
     if (typeof tools[tool].clear === 'function') tools[tool].clear();
     // 工具自己的 clear 不一定清掉管理器缓存，兜底再清一次
     if (geometryManager.ifToolInCache(tool)) geometryManager.deleteTool(tool);
@@ -1308,6 +1326,8 @@ function redoStorage() {
 window.addEventListener("storage", (event) => {
     // 这次作图因为「图形画布上已经有了」而作废：不加步数（L/E）、不记撤销，只把半成品擦掉
     if (geometryManager.takeDuplicatedFlag()) {
+        // 整笔作废时，取点顺手作出的交点 / 顺手显示的隐藏交点也要原样退回去（它们没有历史格）
+        if (typeof window.revertIncidentalDrawEffects === 'function') window.revertIncidentalDrawEffects();
         drawContent();
         return;
     }
@@ -1320,6 +1340,8 @@ function storage() {
     if (typeof window.pruneMarks === 'function') window.pruneMarks();
     // 存储：几何对象 + 选定栏（标记等改动也能撤销）
     storageManager.append(collectStorageSnapshot());
+    // 这一步画完了：取点时「顺手」作出的交点 / 显示出来的隐藏交点已经并进这一格快照，忘掉即可
+    if (typeof window.clearIncidentalDrawEffects === 'function') window.clearIncidentalDrawEffects();
     refreshStorageButton();
 }
 
@@ -1761,7 +1783,9 @@ function loadGeometryElementsStorage() {
         const isVisible = elementDict.visible !== false && !geometryElementLists.hidden.has(id);
         element.modifyVisible(isVisible);
         element.modifyShowName(geometryElementLists.name.has(id));
-        element.modifyWidth(elementDict.width || 1);
+        // 关卡 gmt 不写粗细：按当前模式（游玩 / 试玩）的默认补上，不再是写死的 1
+        element.modifyWidth(typeof elementDict.width === 'number'
+            ? elementDict.width : defaultElementWidth(type));
         element.modifyName(name);
         element.modifyValid(valid);
         element.modifyColor(color);

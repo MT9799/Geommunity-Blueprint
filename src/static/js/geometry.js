@@ -543,6 +543,21 @@ class Circle extends GeometryElement {
  * 几何对象管理器类
  * @class
  */
+/**
+ * 当前模式默认的点线径 过程函数
+ * 载入 gmt / 存档 / 记录时，那些没带粗细的对象按它上样式。原来各处写死 `1`
+ * （= 档位 3「中」），与各模式已经改成的档位 2「较小」不一致 —— 载入出来的图形比新画的粗一档。
+ * 以本页的 geometryStyle 为准（index.js / playPage.js 里就是 0.75），拿不到时退回档位 2
+ * @param {string} type 'point' | 'line' | 'circle'
+ * @returns {number}
+ */
+function defaultElementWidth(type) {
+    const manager = typeof geometryManager !== 'undefined' && geometryManager ? geometryManager : null;
+    const style = manager && manager.geometryStyle ? manager.geometryStyle[type] : null;
+    if (style && typeof style.width === 'number') return style.width;
+    return 0.75;
+}
+
 class GeometryElementManager {
     /**
      * 数据格式
@@ -1186,77 +1201,71 @@ class GeometryElementManager {
         const container = new Array();
         const [x, y] = coord;
         const all = Object.values(this.repository);
-   
-        const scan = elementList => {
-            for (const element of elementList) {
-                if (container.length >= maxQuote) return;
-                if (!element.getValid()) continue;
-                if (!element.getVisible()) continue;
-                
-                const type = element.getType();
-                if (!types.includes(type)) continue;
-                
-                const reach = isGridElement(element) ? minDistance * gridReach : minDistance;
-                const id = type === "point" ? nearPoint(x, y, element, reach)
-                    : type === "line" ? nearLine(x, y, element, reach)
-                    : type === "circle" ? nearCircle(x, y, element, reach)
-                    : undefined;
-                if (ignore.includes(id)) continue;
-                if (id) container.push(id);
-            }
-        };
-        // 优先级（叠在一起时优先选范围更小、更靠上层的那个）：
-        // 先点（交点这类点常常正压在直线 / 圆上），再线段、射线、直线，最后圆；
-        // 同一档位里**后画的先被选到** —— 后画的图形盖在先画的上面，选中的也该是看得见的那个。
-        // 原来每一档都按插入顺序扫、先命中的返回，于是两条重叠的线段永远只能选到先画的那条。
-        // order 就是作图顺序，取它反向比较即可
+  
         const order = new Map(all.map((element, index) => [element, index]));
-        if (types.includes("point")) {
-            const points = all.filter(element => element.getType() === "point");
-            // 同一个位置压着好几个点时：先选自由点（能拖得动的那种，base.type === 'none'），
-            // 其余按作图倒序（后画的先被选到）。绘制顺序不在这里管，照旧按作图顺序画
-            const isFree = element => element.getBase()?.type === 'none' ? 1 : 0;
-            points.sort((a, b) => {
-                const freeA = isFree(a);
-                const freeB = isFree(b);
-                if (freeA !== freeB) return freeB - freeA;
-                return order.get(b) - order.get(a);
+        /**
+         * 选哪个（所有工具共用这一套口径）：
+         *   ① **点先于其他图形**：点又小又常常正压在直线 / 圆上（点到线的距离更小），
+         *      纯按距离比的话点永远选不中（标记不上、拖不动、擦不掉）；
+         *   ② 组内**离光标近的优先**（原来每一档按作图倒序扫、先命中的返回，于是压着圆也可能被
+         *      旁边那条线抢走）；
+         *   ③ 一样近（含浮点噪声）时才比档位 —— 点里先给能拖动的自由点，线里 线段 → 射线 → 直线，
+         *      最后圆；再一样才比作图倒序（后画的先被选到）。
+         *   网格是背景：整组排在用户自己画的图形之后（附近确实没有用户图形时才轮到它，照旧可点可改）
+         */
+        const collect = (elementList, groupOf, rankOf, measure) => {
+            elementList.forEach(element => {
+                if (!element.getValid()) return;
+                if (!element.getVisible()) return;
+                const type = element.getType();
+                if (!types.includes(type)) return;
+                const id = element.getId();
+                if (ignore.includes(id)) return;
+                const reach = isGridElement(element) ? minDistance * gridReach : minDistance;
+                const distance = measure(element, reach);
+                if (distance === null || distance === undefined) return;
+                container.push({
+                    id: id,
+                    group: isGridElement(element) ? 2 : groupOf(element),
+                    distance: distance,
+                    rank: rankOf(element),
+                    order: order.get(element) || 0,
+                });
             });
-            scan(points);
+        };
+        // 档位只在「一样近」时用：自由点 → （其它）点 → 线段 → 射线 → 直线 → 圆
+        const pointRank = element => element.getBase()?.type === 'none' ? 0 : 1;
+        const lineRank = element => {
+            const drawType = element.getDrawType();
+            return drawType === 'lineSegment' ? 2 : drawType === 'ray' ? 3 : 4;
+        };
+        if (types.includes("point")) {
+            collect(all.filter(element => element.getType() === "point"), () => 0, pointRank,
+                (element, reach) => nearPoint(x, y, element, reach));
         }
         if (types.includes("line")) {
-            // 网格是背景：与格线「重合」或「交叉」时优先选用户自己画的线段 / 射线 / 直线，
-            // 否则点在（压在格线上的）自己的图形上会选中后面的网格（见移动工具）。
-            // 用户线之间按 线段 → 射线 → 直线（范围小的优先），同一档里后画的优先，
-            // 网格的一律排在线族最末（只有附近确实没有用户线时才轮得到网格，网格照旧可点可改）
-            const lines = all.filter(element => element.getType() === "line");
-            const lineRank = element => {
-                const drawType = element.getDrawType();
-                const base = drawType === 'lineSegment' ? 0 : drawType === 'ray' ? 1 : 2;
-                return isGridElement(element) ? base + 3 : base;
-            };
-            lines.sort((one, two) => lineRank(one) - lineRank(two) || order.get(two) - order.get(one));
-            scan(lines);
+            collect(all.filter(element => element.getType() === "line"), () => 1, lineRank,
+                (element, reach) => nearLine(x, y, element, reach));
         }
         if (types.includes("circle")) {
-            // 圆同理：叠在一起时取后画的那个
-            const circles = all.filter(element => element.getType() === "circle");
-            circles.sort((one, two) => order.get(two) - order.get(one));
-            scan(circles);
+            collect(all.filter(element => element.getType() === "circle"), () => 1, () => 5,
+                (element, reach) => nearCircle(x, y, element, reach));
         }
-        return container;
+        // 「一样近」按浮点噪声也认：交点上压着的点与那条线，距离算出来可能是 1e-13 与 0 ——
+        // 不给一点容差的话，档位（点先于线）就永远轮不到，压在点上也照样选中下面的线
+        const sameDistance = (one, two) => Math.abs(one.distance - two.distance) < 1e-6;
+        container.sort((one, two) => one.group - two.group
+            || (sameDistance(one, two) ? 0 : one.distance - two.distance)
+            || one.rank - two.rank
+            || two.order - one.order);
+        return container.slice(0, maxQuote).map(item => item.id);
         
         
+        // 三个 nearXxx 返回**命中距离**（命中不到返回 null）：near 按距离排序，得拿到这个数
         function nearPoint(x, y, element, minDistance) {
             const [pointX, pointY] = element.getCoordinate();
-            const dx = x - pointX;
-            const dy = y - pointY;
-            const distance = Math.sqrt(dx*dx + dy*dy);
-    
-            if (distance < minDistance) {
-                const id = element.getId();
-                return id;
-            }
+            const distance = Math.hypot(x - pointX, y - pointY);
+            return distance < minDistance ? distance : null;
         }
         function nearLine(x, y, element, minDistance) {
             const coordList = element.getCoordinate();
@@ -1286,8 +1295,7 @@ class GeometryElementManager {
                     if (outside) return null;
                 }
             }
-            const id = element.getId();
-            return id;
+            return distance;
         }
         function nearCircle(x, y, element, minDistance) {
             const coordList = element.getCoordinate();
@@ -1296,11 +1304,9 @@ class GeometryElementManager {
             
             const radius = Math.hypot((centerX - pointX), (centerY - pointY));
             const distance = Math.hypot((centerX - x), (centerY - y));
-            
-            if (radius - minDistance < distance && distance < radius + minDistance) {
-                const id = element.getId();
-                return id;
-            }
+            // 到**圆周**的距离：在圆里 / 圆外都算
+            const offset = Math.abs(distance - radius);
+            return offset < minDistance ? offset : null;
         }
     }
     
@@ -1347,7 +1353,7 @@ class GeometryElementManager {
         }else if (style.colorChoice === "autoPlayMode") {
             pointObject.modifyColor("#808080");
         }
-        pointObject.modifyWidth(style.width || 1);
+        pointObject.modifyWidth(style.width || defaultElementWidth('point'));
         if (style.showName) pointObject.modifyShowName(true);
         return pointObject;
     }
@@ -1408,7 +1414,7 @@ class GeometryElementManager {
             }else if (style.colorChoice === "autoPlayMode") {
                 pointObject.modifyColor("#808080");
             }
-            pointObject.modifyWidth(style.width || 1);
+            pointObject.modifyWidth(style.width || defaultElementWidth(type));
             if (style.showName) pointObject.modifyShowName(true);
             this.addToolObject(tool, key, "append", pointObject);
         }else if (type === "line") {
@@ -1422,7 +1428,7 @@ class GeometryElementManager {
             }else if (style.colorChoice === "autoPlayMode") {
                 lineObject.modifyColor("#808080");
             }
-            lineObject.modifyWidth(style.width || 1);
+            lineObject.modifyWidth(style.width || defaultElementWidth(type));
             lineObject.modifyDashed(!!style.dashed);
             if (style.showName) lineObject.modifyShowName(true);
             this.addToolObject(tool, key, "append", lineObject);
@@ -1435,7 +1441,7 @@ class GeometryElementManager {
             }else if (style.colorChoice === "autoPlayMode") {
                 circleObject.modifyColor("#808080");
             }
-            circleObject.modifyWidth(style.width || 1);
+            circleObject.modifyWidth(style.width || defaultElementWidth(type));
             circleObject.modifyDashed(!!style.dashed);
             if (style.showName) circleObject.modifyShowName(true);
             this.addToolObject(tool, key, "append", circleObject);
@@ -1740,7 +1746,8 @@ class GeometryElementManager {
             element.modifyValid(valid);
             element.modifyShowName(showName);
             element.modifyColor(color);
-            element.modifyWidth(width || 1);
+            // 存档 / gmt / 记录里没带粗细的（gmt 本来就不写）用当前模式的默认，不再是写死的 1
+            element.modifyWidth(typeof width === 'number' ? width : defaultElementWidth(type));
             element.modifyDashed(!!elementDict.dashed);
             return element;
         }

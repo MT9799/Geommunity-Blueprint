@@ -1497,6 +1497,14 @@ textarea {
     height: 50px;
 }
 
+/* 详情标题行的返回键与一览的关闭键同尺寸：里面的图标一律按按钮的 70% 画（35px）。
+   不补这一条的话，一览的 ✕ 是 35px、详情的返回是撑满的 50px —— 两头切来切去图标一大一小。
+   只作用于详情标题行，不动别处（记录面板等）的返回键 */
+#geometry-item .item-container-title .item-container-button .svg-icon {
+    width: 70%;
+    height: 70%;
+}
+
 .panel-close-button {
     display: flex;
     align-items: center;

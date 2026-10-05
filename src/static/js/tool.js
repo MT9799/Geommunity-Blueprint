@@ -20,10 +20,11 @@ const toolMenus = {
         'perpendicularLine', 
         'perpendicularBisector', 
         'angleBisector',
-        'tangent',
         'compass', 
         'middlePoint', 
         'threePointCircle', 
+        // 切线挨着三点圆（都是「圆」这一类的高级作图），排在定值角之前
+        'tangent',
         "fixedAngle",
     ],
 }
@@ -95,8 +96,10 @@ const toolItems = {
         "choice": {"general": {"point1": 'point', "point2": 'point'}},
     }, 
     'tangent': {
-        // 两种取法：过点作切线（默认）/ 作与直线平行的切线；小项的图标是 svg-tangentParallel
-        'switch': ['tangent', 'tangentParallel'],
+        // 两种取法：过点作切线（默认）/ 作与直线平行的切线；小项的图标是 svg-tangentParallel。
+        // 「平行切线」暂时不列出来（开关见 constructToolBag.js 的 TANGENT_PARALLEL_ENABLED）：
+        // 它的 gmt 写法（Tangent[直线,圆]）原版游戏还不支持，导出的关卡导不进去
+        'switch': ['tangent'],
         "button": ["clear", "lineStyle"], 
         "choice": {"tangent": {"point": 'point', "circle": 'circle'},
             "tangentParallel": {"line": 'line', "circle": 'circle'}},
@@ -645,10 +648,17 @@ function clickToolFloatingButton(action, event) {
         event?.stopPropagation();
         openObjectStylePopup();
     }else if (action === 'deleteObject') {
-        // 删除移动工具选中的对象：连同它的所有子对象（依赖它作出来的图形）一起删，可撤销
-        const choice = geometryManager.getToolKey(tool, 'choice');
-        if (choice) {
-            geometryManager.deleteObject(choice.getId());
+        // 删除移动工具选中的对象：连同它的所有子对象（依赖它作出来的图形）一起删，可撤销。
+        // 多选时一次删掉整批（一次点击记一步历史）：原来只删选中栏里的第一个
+        const selected = typeof tools[tool]?.selectedElements === 'function' ? tools[tool].selectedElements() : [];
+        const ids = selected.map(item => item.getId());
+        if (!ids.length) {
+            const fallback = geometryManager.getToolKey(tool, 'choice');
+            if (fallback) ids.push(fallback.getId());
+        }
+        if (ids.length) {
+            // 先删的可能是后一个的父图形（子对象跟着一起没了）：删之前再确认一次还在不在
+            ids.forEach(id => { if (geometryManager.get(id)) geometryManager.deleteObject(id); });
             geometryManager.deleteTool(tool);
             window.dispatchEvent(new CustomEvent('storage', {detail: {type: 'delete'}}));
         }
