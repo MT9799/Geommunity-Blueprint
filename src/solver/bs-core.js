@@ -51,6 +51,158 @@ function normalizeOriginal(element) {
     element.c = CLEAN_ZERO(element.c);
 }
 
+/* ------------------------------------------------------------------
+ * 鲁棒求交 常量与工具（移植自 C++ 的 src/robust_intersections.hpp）
+ *
+ * 这里所有界都是**二进制换算误差尺度**（1 ulp ≈ 2.2e-16），
+ * 与应用侧几何容差 EPS（默认 1e-11，Worker 还会按图幅放大）是两码事，不能互相顶替。
+ * 目的：严格相切的两个圆 / 直线与圆，二进制系数的舍入本身就会产生一个很小的正判别式，
+ * 于是「凭空」多出两个交点 —— 假点会让搜索交出一个回放不过去的假解。
+ * 原则（保守）：
+ *   · 判别式落在误差带里（不确定接触）：只复用舍入误差内的**已知见证点**，
+ *     或在多项式于**存下来的系数**里精确为零时才产出这个切点；
+ *   · 判别式明确为正（良态交点）：照旧用原来的算式与顺序；
+ *   · 低于舍入不确定度的真实新交点可能被漏掉 —— 这是保守方向（宁可不产点，也不造假点）。
+ * ------------------------------------------------------------------ */
+const ROBUST_U = Number.EPSILON;
+/** 乘积下溢就不认展开有效（与 C++ 的 0x1p-900 同一量级） */
+const ROBUST_MIN_PRODUCT = 1e-270;
+/** Dekker 分裂常数 2^27 + 1 */
+const SPLITTER = 134217729;
+
+/** 无误差乘积 过程函数：JS 没有 fma，用 Dekker 分裂拿回乘积的舍入残差 */
+function twoProduct(x, y) {
+    const product = x * y;
+    const c = SPLITTER * x;
+    const xHigh = c - (c - x);
+    const xLow = x - xHigh;
+    const d = SPLITTER * y;
+    const yHigh = d - (d - y);
+    const yLow = y - yHigh;
+    const error = ((xHigh * yHigh - product) + xHigh * yLow + xLow * yHigh) + xLow * yLow;
+    return {product: product, error: error};
+}
+
+/**
+ * 误差无损的浮点和 过程函数（Shewchuk 展开）
+ * terms 里是互不重叠的部分和；isZero() 为真即「这一串运算的结果精确等于 0」
+ */
+class Expansion {
+    constructor(x = 0.0) {
+        this.terms = [];
+        this.valid = true;
+        if (x !== 0.0) this.terms.push(x);
+    }
+    addTerm(x) {
+        if (!this.valid || !isFinite(x)) {
+            this.valid = false;
+            return;
+        }
+        let carry = x;
+        const next = [];
+        for (const y of this.terms) {
+            const sum = carry + y;
+            if (!isFinite(sum)) {
+                this.valid = false;
+                return;
+            }
+            const bv = sum - carry;
+            const error = (carry - (sum - bv)) + (y - bv);
+            if (error !== 0.0) next.push(error);
+            carry = sum;
+        }
+        if (carry !== 0.0) next.push(carry);
+        this.terms = next;
+    }
+    add(other) {
+        for (const term of other.terms) this.addTerm(term);
+        return this;
+    }
+    sub(other) {
+        for (const term of other.terms) this.addTerm(-term);
+        return this;
+    }
+    mulDouble(s) {
+        const terms = this.terms.slice();
+        this.terms = [];
+        for (const term of terms) {
+            const product = term * s;
+            // 极端乘积（下溢到丢了残差）直接判无效，免得把「假相切」认证成精确零
+            if (!isFinite(product) || Math.abs(product) < ROBUST_MIN_PRODUCT) {
+                this.valid = false;
+                return this;
+            }
+            const split = twoProduct(term, s);
+            this.addTerm(split.error);
+            this.addTerm(split.product);
+        }
+        return this;
+    }
+    mul(other) {
+        const terms = this.terms.slice();
+        this.terms = [];
+        for (const x of terms) {
+            for (const y of other.terms) {
+                const product = x * y;
+                if (!isFinite(product) || Math.abs(product) < ROBUST_MIN_PRODUCT) {
+                    this.valid = false;
+                    return this;
+                }
+                const split = twoProduct(x, y);
+                this.addTerm(split.error);
+                this.addTerm(split.product);
+            }
+        }
+        return this;
+    }
+    isZero() {
+        return this.valid && this.terms.length === 0;
+    }
+}
+
+/** 两个圆是否在**存下来的二进制系数**上精确相切 过程函数 */
+function exactCircleContact(first, second) {
+    const x = new Expansion(second.a).sub(new Expansion(first.a));
+    const y = new Expansion(second.b).sub(new Expansion(first.b));
+    const d2 = x.mul(x).add(y.mul(y));
+    const n = d2.add(new Expansion(first.c)).sub(new Expansion(second.c));
+    const left = new Expansion(4.0).mul(d2).mul(new Expansion(first.c));
+    return left.sub(n.mul(n)).isZero();
+}
+
+/** 直线与圆是否在**存下来的二进制系数**上精确相切 过程函数 */
+function exactLineContact(line, circle) {
+    const a = new Expansion(line.a);
+    const b = new Expansion(line.b);
+    const d = a.mul(new Expansion(circle.a)).add(b.mul(new Expansion(circle.b)))
+        .sub(new Expansion(line.c));
+    const left = a.mul(a).add(b.mul(b)).mul(new Expansion(circle.c));
+    return left.sub(d.mul(d)).isZero();
+}
+
+/** 点是否落在元素的**换算误差尺度**内（不是 EPS 判等） 过程函数 */
+function robustIncident(p, e) {
+    let residual, scale;
+    if (e.type === TYPE_CIRCLE) {
+        const x = p.x - e.a;
+        const y = p.y - e.b;
+        const d2 = x * x + y * y;
+        residual = d2 - e.c;
+        scale = d2 + Math.abs(e.c);
+    } else {
+        const ax = e.a * p.x;
+        const by = e.b * p.y;
+        residual = (ax + by) - e.c;
+        scale = Math.abs(ax) + Math.abs(by) + Math.abs(e.c);
+    }
+    return isFinite(residual) && isFinite(scale) && Math.abs(residual) <= 16.0 * ROBUST_U * scale;
+}
+
+/** 点坐标是否都有限 过程函数 */
+function robustFinite(p) {
+    return isFinite(p.x) && isFinite(p.y);
+}
+
 /**
  * 由系数构造元素 过程函数
  * 圆：a,b 是圆心，c 是半径平方；直线/射线/线段：a·x + b·y = c
@@ -312,31 +464,114 @@ class Graph {
     }
 
     /**
+     * 不确定接触时的产出规则 过程函数（直线与圆、圆与圆共用）
+     * 先在**舍入误差**内找一个确实同时落在两个元素上的已知见证点（按存点顺序），
+     * 找不到再看多项式在存下来的系数里是否精确为零 —— 是才产出 foot，否则一个点都不产
+     * （对应 C++ 的 VisitUncertainContact）
+     */
+    visitUncertainContact(e1, e2, foot, uncertainty, exactZero, visitor) {
+        if (!robustFinite(foot) || !isFinite(uncertainty)) return false;
+        for (let i = 0; i < this.points.length; i++) {
+            const p = this.points[i];
+            const slack = uncertainty + 16.0 * ROBUST_U *
+                Math.max(Math.abs(p.x), Math.abs(p.y), Math.abs(foot.x), Math.abs(foot.y));
+            if (Math.abs(p.x - foot.x) <= slack && Math.abs(p.y - foot.y) <= slack &&
+                robustIncident(p, e1) && robustIncident(p, e2)) return visitor(p);
+        }
+        return exactZero() && visitor(foot);
+    }
+
+    /**
      * 直线与圆的交点遍历 过程函数
      * visitor 返回 true 表示提前结束（与 C++ 版约定一致）
+     * v12：判别式先和**换算误差界**比 —— 落进误差带就是「不确定接触」，
+     * 不再用 EPS 判零后直接产出切点（那会把舍入造出来的假交点当成真的）
      */
     visitLineCircle(line, circle, visitor) {
         const denom = SQ(line.a) + SQ(line.b);
-        if (IS_ZERO(denom)) return false;
-        const dist = line.a * circle.a + line.b * circle.b - line.c;
+        if (!(denom > 0.0) || !(circle.c >= 0.0)) return false;
+        const ax = line.a * circle.a;
+        const by = line.b * circle.b;
+        const dist = ax + by - line.c;
         const delta = denom * circle.c - SQ(dist);
-        if (IS_ZERO(delta)) {
-            const p = {x: circle.a - line.a * dist / denom, y: circle.b - line.b * dist / denom};
-            if (this.isInRange(line, p) && visitor(p)) return true;
-        } else if (delta > EPS) {
-            const root = Math.sqrt(delta);
-            const p1 = {
-                x: circle.a - (line.a * dist + line.b * root) / denom,
-                y: circle.b - (line.b * dist - line.a * root) / denom,
-            };
-            const p2 = {
-                x: circle.a - (line.a * dist - line.b * root) / denom,
-                y: circle.b - (line.b * dist + line.a * root) / denom,
-            };
-            if (this.isInRange(line, p1) && visitor(p1)) return true;
-            if (this.isInRange(line, p2) && visitor(p2)) return true;
+        const scale = Math.abs(ax) + Math.abs(by) + Math.abs(line.c);
+        const error = 32.0 * ROBUST_U *
+            (denom * circle.c + Math.abs(dist) * scale + ROBUST_U * SQ(scale));
+        if (!isFinite(delta) || !isFinite(error)) return false;
+        const emit = p => robustFinite(p) && this.isInRange(line, p) && visitor(p);
+        if (delta < -error) return false;
+        if (delta <= error) {
+            const foot = {x: circle.a - line.a * dist / denom, y: circle.b - line.b * dist / denom};
+            return this.visitUncertainContact(line, circle, foot, Math.sqrt(error) / denom,
+                () => exactLineContact(line, circle), emit);
         }
-        return false;
+        // 良态交点：保留原来的算式与 p1 / p2 顺序（不再有 EPS 量级的判别式夹取）
+        const root = Math.sqrt(delta);
+        const p1 = {
+            x: circle.a - (line.a * dist + line.b * root) / denom,
+            y: circle.b - (line.b * dist - line.a * root) / denom,
+        };
+        const p2 = {
+            x: circle.a - (line.a * dist - line.b * root) / denom,
+            y: circle.b - (line.b * dist + line.a * root) / denom,
+        };
+        if (emit(p1)) return true;
+        return emit(p2);
+    }
+
+    /**
+     * 两个圆的交点遍历 过程函数（对应 C++ 的 VisitCircleCircle）
+     * 用**局部**根轴方程（对平移稳定），同样区分良态交点与不确定接触
+     */
+    visitCircleCircle(e1, e2, visitor) {
+        if (!(e1.c >= 0.0) || !(e2.c >= 0.0)) return false;
+        const dx = e2.a - e1.a;
+        const dy = e2.b - e1.b;
+        const d2 = SQ(dx) + SQ(dy);
+        if (!(d2 > 0.0) || !isFinite(d2)) return false;
+        const n = d2 + (e1.c - e2.c);
+        const product = 4.0 * d2 * e1.c;
+        const delta = product - SQ(n);
+        const scale = d2 + e1.c + e2.c;
+        const error = 32.0 * ROBUST_U * (product + Math.abs(n) * scale + ROBUST_U * SQ(scale));
+        if (!isFinite(delta) || !isFinite(error)) return false;
+        if (delta < -error) return false;
+        const along = n / (2.0 * d2);
+        const foot = {x: e1.a + dx * along, y: e1.b + dy * along};
+        if (delta <= error) {
+            return this.visitUncertainContact(e1, e2, foot, Math.sqrt(error / d2) / 2.0,
+                () => exactCircleContact(e1, e2), visitor);
+        }
+        // 良态且平移不大时：仍走原来的「全局根轴」写法，保持代表元算式与产点顺序
+        const globalScale = SQ(e1.a) + SQ(e1.b) + SQ(e2.a) + SQ(e2.b);
+        if (delta > 1024.0 * error && globalScale <= 16.0 * scale) {
+            const a = 2.0 * (e1.a - e2.a);
+            const b = 2.0 * (e1.b - e2.b);
+            const c = SQ(e1.a) - SQ(e2.a) + SQ(e1.b) - SQ(e2.b) - e1.c + e2.c;
+            const symmetricZero = c === 0.0 && Math.abs(e1.a) === Math.abs(e2.a) &&
+                Math.abs(e1.b) === Math.abs(e2.b) && e1.c === e2.c;
+            const reliableConstant = symmetricZero ||
+                Math.abs(c) > 32.0 * ROBUST_U * (globalScale + e1.c + e2.c);
+            if (reliableConstant && (b === 0.0 || !IS_ZERO(b)) &&
+                (c === 0.0 || !IS_ZERO(c)) && (!IS_ZERO(a) || !IS_ZERO(b))) {
+                const radical = makeElementFromCoefficients(a, b, c, TYPE_LINE);
+                const denom = SQ(radical.a) + SQ(radical.b);
+                const dist = radical.a * e1.a + radical.b * e1.b - radical.c;
+                const oldDelta = denom * e1.c - SQ(dist);
+                if (oldDelta > EPS &&
+                    (radical.a !== 0.0 || a === 0.0) &&
+                    (radical.c !== 0.0 || c === 0.0)) {
+                    return this.visitLineCircle(radical, e1, visitor);
+                }
+            }
+        }
+        // 与旧版「规范化根轴法线」的符号一致，从而保持产点顺序
+        const sign = (!IS_ZERO(2.0 * dy) ? dy : dx) < 0.0 ? -1.0 : 1.0;
+        const across = sign * Math.sqrt(delta) / (2.0 * d2);
+        const p1 = {x: foot.x - dy * across, y: foot.y + dx * across};
+        const p2 = {x: foot.x + dy * across, y: foot.y - dx * across};
+        if (robustFinite(p1) && visitor(p1)) return true;
+        return robustFinite(p2) && visitor(p2);
     }
 
     /** 点是否已经是已知点 过程函数 */
@@ -420,14 +655,8 @@ class Graph {
     /** 不做网格过滤的求交遍历 过程函数 */
     visitUnclippedIntersections(e1, e2, visitor) {
         if (e1.type === TYPE_CIRCLE) {
-            if (e2.type === TYPE_CIRCLE) {
-                const a = 2.0 * (e1.a - e2.a);
-                const b = 2.0 * (e1.b - e2.b);
-                if (IS_ZERO(a) && IS_ZERO(b)) return false;
-                const c = SQ(e1.a) - SQ(e2.a) + SQ(e1.b) - SQ(e2.b) - e1.c + e2.c;
-                const radical = makeElementFromCoefficients(a, b, c, TYPE_LINE);
-                return this.visitLineCircle(radical, e1, visitor);
-            }
+            // 圆圆交给专有的局部根轴实现（v12 的 VisitCircleCircle）
+            if (e2.type === TYPE_CIRCLE) return this.visitCircleCircle(e1, e2, visitor);
             return this.visitLineCircle(e2, e1, visitor);
         }
         if (e2.type === TYPE_CIRCLE) return this.visitLineCircle(e1, e2, visitor);
@@ -673,7 +902,12 @@ class Graph {
             if (this.hasPoint(p)) continue;
             const existing = Math.min(2, this.existingSupportCount(p));
             const need = Math.max(0, 2 - existing);
-            if (need === remaining) out.push(i);
+            // 只剩 1 步时：**所有**还没取得的目标点都是必经点 —— 那唯一的一个新元素必须同时过它们。
+            // 原来的「支持数」算法把「同一条载线上的射线 + 付费延长直线」当成两个支持，
+            // 于是这种点在只剩 1E 时被排除在必经集合外，反向单步尾部直接报无解（漏解；
+            // 已验证的第 7 题 12E 做法就被这么误判过）。v9 修复 2，见 C++ geometry.hpp 的
+            // CollectForcedTailPointIndices（`if (remaining == 1 || need == remaining)`）
+            if (remaining === 1 || need === remaining) out.push(i);
         }
         return out;
     }

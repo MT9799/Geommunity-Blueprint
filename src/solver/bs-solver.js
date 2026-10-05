@@ -1,20 +1,189 @@
 /**
- * bs-solver.js —— 搜索主体（移植自 bs_v8.cpp 的 Solver 类）
+ * bs-solver.js —— 搜索主体（bs_v8.cpp 的 Solver 类移植，并按 v9 / v12 对齐）
  *
  * 搜索目标：在最多 limit 步（每步新作一条直线或圆）内，作出所有目标直线/圆/点。
- * 移植时保留了原版的全部剪枝策略：
+ * 剪枝策略：
  *   · 相邻两步的偏序（对称剪枝，靠 OperationKey 比较）
  *   · 缺要素个数下界（每次作图最多新增一个元素）
- *   · 目标点联合下界（先给每个缺的目标元素预留一步，再看剩下的够不够补目标点的两条支撑）
- *   · 末段强制目标 / 末段单步点补全 / 反向生成候选
+ *   · 末段强制目标 / 末段单步点补全 / 反向生成候选（都是**快路径**，见下）
  *   · 预先检查（最后一步的目标能否被当前候选补齐前提）
+ * 已经按 C++ v9 / v12 改掉的部分：
+ *   · v9-1：目标直线候选枚举**每一对**在线点并逐对复验「作出的就是目标线」（原来只拿第一个
+ *     通过 EPS 在线判断的点当前提，那个点可能只是近似在线，真实定义点对反而被漏掉）
+ *   · v9-2：只剩 1E 时所有还没取得的目标点都算必经点（原来「同一条载线的射线 + 延长直线」
+ *     被算成两个支撑，于是这种点被排除在必经集合外，反向单步尾部直接报无解 —— 见 bs-core.js）
+ *   · v12：「支撑数 / 目标此刻能否画出」这类**标量判据不再当必要条件**（会误剪），
+ *     反向尾搜降级为快路径、失败后回退真实已知点对流
  * 唯一未移植的是并行与置换表之外的 C++ 线程调度（JS 单线程），因此只保留 Search()；
  * 结构上保留 ProduceFrontierTasks/SearchPrefixTask 所需的字段，方便以后用嵌套 Worker 并行。
  */
 
-/* global EPS, IS_ZERO, SQ, SAME_ELEMENT, SAME_POINT, TYPE_LINE, TYPE_CIRCLE, NO_BOUND,
-   Graph, BoundedElementSet, TranspositionTable, SolutionCollector, ExactGridLineCache,
-   makeOperationKey, compareOperationKey, BoundedElementSet */
+/* global EPS, IS_ZERO, CLEAN_ZERO, SQ, SAME_ELEMENT, SAME_POINT, TYPE_LINE, TYPE_CIRCLE, NO_BOUND,
+  Graph, BoundedElementSet, TranspositionTable, SolutionCollector, ExactGridLineCache,
+  makeOperationKey, compareOperationKey, BoundedElementSet */
+
+/**
+ * 目标点对表示缓存 过程函数（C++ GoalPairCache）
+ *
+ * 只在同一个 DFS 父节点内有效：**有序点前缀**在子节点里只会追加或回滚，不会重排。
+ * 缓存里存的是「哪些已知点对能作出目标元素」这些**表示**，不是结论 ——
+ * 命中与否在**查询时**现判（含点出生步数、相邻操作偏序），所以缓存不会让结果变味。
+ * 前缀点数缩回去（回滚）时调用方必须 reset（见 goalPairCacheFor）。
+ */
+class GoalPairCache {
+    constructor() {
+        this.prefix = 0;
+        this.entries = [];
+    }
+    reset(prefix) {
+        this.prefix = prefix;
+        this.entries = [];
+    }
+    /**
+     * 查/建目标的点对表示，并逐个交给 accept 过程函数
+     * @returns {'accepted'|'exhausted'|'unavailable'|'cancelled'} 见 C++ 的 Result
+     */
+    visit(graph, goal, tool, stats, stop, accept) {
+        const MAX_TARGETS = 8;
+        const MAX_REPRESENTATIONS = 4096;
+        if (stop()) return 'cancelled';
+        if (goal.type !== TYPE_LINE && goal.type !== TYPE_CIRCLE) return 'unavailable';
+        if (this.prefix > graph.points.length) return 'unavailable';
+        const sameElements = (a, b) => a.type === b.type && a.bound === b.bound &&
+            rawWordKey(a.a) === rawWordKey(b.a) && rawWordKey(a.b) === rawWordKey(b.b) &&
+            rawWordKey(a.c) === rawWordKey(b.c);
+        let entry = null;
+        for (const old of this.entries) {
+            if (old.tool === tool && old.eps === EPS && sameElements(old.goal, goal)) {
+                entry = old;
+                break;
+            }
+        }
+        if (!entry) {
+            if (this.entries.length >= MAX_TARGETS) return 'unavailable';
+            entry = {goal: goal, tool: tool, eps: EPS, complete: false, overflow: false,
+                hits: [], centers: [], matches: []};
+            this.entries.push(entry);
+        }
+        if (entry.overflow) return 'unavailable';
+        const line = goal.type === TYPE_LINE;
+        if ((line && tool === 0) || (!line && tool === 1)) return 'exhausted';
+        if (!entry.complete) {
+            // 上一次构建被取消：部分正负结论都不许外泄，整份重建
+            entry.hits = [];
+            entry.centers = [];
+            entry.matches = [];
+            const incident = new Array(this.prefix).fill(false);
+            if (line) {
+                for (let i = 0; i < this.prefix; i++) {
+                    if (stop()) return 'cancelled';
+                    if (graph.pointOnElement(graph.points[i], goal)) {
+                        incident[i] = true;
+                        entry.hits.push(i);
+                    }
+                }
+            }
+            for (let i = 0; i < this.prefix; i++) {
+                if (stop()) return 'cancelled';
+                if (!line) {
+                    const p = graph.points[i];
+                    if (!SAME_POINT({x: CLEAN_ZERO(p.x), y: CLEAN_ZERO(p.y)}, {x: goal.a, y: goal.b})) continue;
+                    entry.centers.push(i);
+                }
+                for (let j = line ? i + 1 : 0; j < this.prefix; j++) {
+                    if (stop()) return 'cancelled';
+                    if (i === j) continue;
+                    const cand = line ? {i: i, j: j, tool: 2}
+                        : {i: Math.min(i, j), j: Math.max(i, j), tool: i < j ? 0 : 1};
+                    stats.rawCandidates++;
+                    const e = graph.makeCandidate(cand);
+                    if (!SAME_ELEMENT(e, goal)) continue;
+                    if (entry.matches.length >= MAX_REPRESENTATIONS) {
+                        entry.overflow = true;
+                        entry.matches = [];
+                        return 'unavailable'; // 退回未缓存的完整扫描
+                    }
+                    entry.matches.push({outer: i, inner: j, candidate: cand, element: e,
+                        incident: line && incident[i] && incident[j]});
+                }
+            }
+            entry.complete = true; // 含「扫过整个有序前缀、确认没有表示」这一结论
+        }
+
+        // 老外层点：先给缓存里的老-老配对，再给新的内层点；新外层点：重新检查全部内层选择。
+        // 这个合并顺序与未缓存时的点对顺序一致，且不会重扫已知的失败。
+        const n = graph.points.length;
+        const scan = (incidenceOnly, hits) => {
+            if (n === this.prefix) {
+                for (const old of entry.matches) {
+                    if (stop()) return 'cancelled';
+                    if ((!incidenceOnly || old.incident) && accept(old.candidate, old.element)) return 'accepted';
+                }
+                return 'exhausted';
+            }
+            let cached = 0;
+            const outerCount = incidenceOnly ? hits.length
+                : line ? n : entry.centers.length + n - this.prefix;
+            let newHitIndex = 0;
+            while (newHitIndex < hits.length && hits[newHitIndex] < this.prefix) newHitIndex++;
+            for (let a = 0; a < outerCount; a++) {
+                if (stop()) return 'cancelled';
+                const i = incidenceOnly ? hits[a]
+                    : line ? a
+                    : a < entry.centers.length ? entry.centers[a] : this.prefix + a - entry.centers.length;
+                if (!line && i >= this.prefix) {
+                    const p = graph.points[i];
+                    if (!SAME_POINT({x: CLEAN_ZERO(p.x), y: CLEAN_ZERO(p.y)}, {x: goal.a, y: goal.b})) continue;
+                }
+                while (cached < entry.matches.length && entry.matches[cached].outer < i) cached++;
+                while (cached < entry.matches.length && entry.matches[cached].outer === i) {
+                    if (stop()) return 'cancelled';
+                    const old = entry.matches[cached++];
+                    if ((!incidenceOnly || old.incident) && accept(old.candidate, old.element)) return 'accepted';
+                }
+                const first = incidenceOnly ? (i < this.prefix ? newHitIndex : a + 1)
+                    : line ? Math.max(i + 1, this.prefix) : (i < this.prefix ? this.prefix : 0);
+                const end = incidenceOnly ? hits.length : n;
+                for (let b = first; b < end; b++) {
+                    if (stop()) return 'cancelled';
+                    const j = incidenceOnly ? hits[b] : b;
+                    if (i === j) continue;
+                    const cand = line ? {i: i, j: j, tool: 2}
+                        : {i: Math.min(i, j), j: Math.max(i, j), tool: i < j ? 0 : 1};
+                    stats.rawCandidates++;
+                    const e = graph.makeCandidate(cand);
+                    if (SAME_ELEMENT(e, goal) && accept(cand, e)) return 'accepted';
+                }
+            }
+            return 'exhausted';
+        };
+        let hits = null;
+        if (line) {
+            hits = entry.hits.slice();
+            for (let i = this.prefix; i < n; i++) {
+                if (stop()) return 'cancelled';
+                if (graph.pointOnElement(graph.points[i], goal)) hits.push(i);
+            }
+            const fast = scan(true, hits);
+            if (fast !== 'exhausted') return fast;
+        }
+        return scan(false, hits || []);
+    }
+}
+
+/**
+ * 这个已知点能不能当目标圆的圆心 过程函数
+ * 这是**数值模型里的必要条件**（不是残差界）：圆规操作是「圆心 → 圆上一点」，
+ * 最后一步要作出目标圆，就得先有个已知点当圆心；FromPoints 存圆心系数时会 CleanZero，
+ * 所以这里先 CleanZero 再与目标圆心比点 —— 与 C++ solver.hpp 的 CanBeGoalCenter 同一判据。
+ * 目标直线 / 圆周在输入处的残差不构成必要条件，故这里不比。
+ * @param {Object} point 已知点
+ * @param {Object} goal 目标圆
+ * @returns {boolean}
+ */
+function canBeGoalCenter(point, goal) {
+    return SAME_POINT({x: CLEAN_ZERO(point.x), y: CLEAN_ZERO(point.y)}, {x: goal.a, y: goal.b});
+}
 
 const SOLVER_NOW = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
 
@@ -32,6 +201,8 @@ class Solver {
         this.timeoutPollCounter = 0;
         this.streamSeen = [];
         this.gridSeen = [];
+        // 每个深度一个目标点对缓存（C++ scratch_[depth].goalPairs）
+        this.goalPairCaches = [];
         this.oneStepSeen = new BoundedElementSet();
         this.transposition = new TranspositionTable();
         this.parallelControl = null;
@@ -422,64 +593,103 @@ class Solver {
     }
 
     /**
+     * 取本深度的目标点对缓存 过程函数（C++ TailPrefixScope 里 GoalPairCache 那一半）
+     * 同一个 DFS 深度上前缀只增不减，缓存可跨多次查询复用；一旦回滚到更短的前缀就重建。
+     * 条件与 C++ 一致：有目标元素、目标数 ≤ 8、点数 ≤ 1024。
+     */
+    goalPairCacheFor(depth, graph) {
+        if (!graph.goalElements.length || graph.goalElements.length > 8) return null;
+        if (graph.points.length > 1024) return null;
+        if (!this.goalPairCaches[depth]) this.goalPairCaches[depth] = new GoalPairCache();
+        const cache = this.goalPairCaches[depth];
+        if (cache.prefix > graph.points.length) {
+            cache.reset(graph.points.length); // 回滚过，索引已经不可信
+        } else if (cache.prefix === 0 && graph.points.length) {
+            cache.reset(graph.points.length); // 第一次用：以当前点数当有序前缀
+        }
+        return cache;
+    }
+
+    /**
      * 找出「一个」能用现有已知点作出目标元素的候选 过程函数
      * 同一几何元素的不同点对表示会走到同一个状态，找到第一个对称可行的即可
      */
     findGoalConstructionCandidate(graph, goal, depth, previous, forcedTailPoints, stats) {
+        // 先问目标点对缓存（命中与否仍然现判：对称剪枝在 accept 里照跑）
+        const pairCache = this.goalPairCacheFor(depth, graph);
+        if (pairCache) {
+            let found = null;
+            const result = pairCache.visit(graph, goal, this.toolType, stats,
+                () => this.checkTimeout(),
+                (candidate, e) => {
+                    if (this.symmetryPruned(graph, candidate, e, depth, previous, stats)) return false;
+                    stats.uniqueCandidates++;
+                    found = candidate;
+                    return true;
+                });
+            if (result !== 'unavailable') return found;
+            // 'unavailable' = 容量或取消：退回未缓存的完整扫描（C++ 同一处理）
+        }
         const n = graph.points.length;
 
         if (goal.type === TYPE_LINE) {
             if (this.toolType === 0) return null;
-            let firstHit = -1;
-            for (let i = 0; i < n; i++) {
-                if (!graph.pointOnElement(graph.points[i], goal)) continue;
-                if (firstHit < 0) {
-                    firstHit = i;
-                    continue;
-                }
-                // 第一个命中点分别与后面每个命中点配对，作出的都是同一条直线
+            // 枚举**每一对**在线点，并逐对**再验证**「作出的就是目标直线」。
+            // 原来只拿「第一个通过 EPS 在线判断的点」当前提、与后面每个在线点配对，
+            // 而那个点可能只是近似落在目标线上 —— 用它配出来的直线并不是目标线，
+            // 真实定义点对反而被漏掉（v9 修复 1，见 C++ solver.hpp 的 FindGoalConstructionCandidate）
+            const hits = [];
+            graph.visitPointIncidences(goal, i => hits.push(i));
+            const tryPair = (i, j) => {
+                if (i === j) return null;
                 stats.rawCandidates++;
-                const candidate = {i: firstHit, j: i, tool: 2};
+                const candidate = {i: Math.min(i, j), j: Math.max(i, j), tool: 2};
                 const e = graph.makeCandidate(candidate);
-                if (!graph.candidatePassesForcedTailPoints(e, forcedTailPoints)) {
-                    stats.forcedPointTailPruned++;
-                    return null;
-                }
-                if (this.symmetryPruned(graph, candidate, e, depth, previous, stats)) continue;
+                if (!SAME_ELEMENT(e, goal)) return null;
+                if (this.symmetryPruned(graph, candidate, e, depth, previous, stats)) return null;
                 stats.uniqueCandidates++;
                 return candidate;
+            };
+            for (let a = 0; a < hits.length; a++) {
+                for (let b = a + 1; b < hits.length; b++) {
+                    if (this.checkTimeout()) return null;
+                    const found = tryPair(hits[a], hits[b]);
+                    if (found) return found;
+                }
+            }
+            // 兜底：EPS 判等并不意味着「两个定义点上代入残差都小」，在线判断本身可能把真正的
+            // 定义点对漏掉 —— 那就再把**全部已知点对**过一遍，同样逐对验证（C++ 的第二轮循环）
+            for (let i = 0; i < n; i++) {
+                for (let j = i + 1; j < n; j++) {
+                    if (this.checkTimeout()) return null;
+                    const found = tryPair(i, j);
+                    if (found) return found;
+                }
             }
             return null;
         }
 
         if (goal.type === TYPE_CIRCLE) {
             if (this.toolType === 1 || IS_ZERO(goal.c)) return null;
-            let centerId = -1;
-            const center = {x: goal.a, y: goal.b};
-            for (let i = 0; i < n; i++) {
-                if (SAME_POINT(graph.points[i], center)) {
-                    centerId = i;
-                    break;
+            // 每个「能当目标圆心的已知点」都试一遍（原来只取第一个同坐标的点），
+            // 圆上那一点不预先用 pointOnElement 过滤 —— 一律以「作出的元素确实等于目标圆」为准
+            //（C++ 同一处：CanBeGoalCenter 过滤 + 逐对 MakeCandidate/SameElement 复验）
+            for (let centerId = 0; centerId < n; centerId++) {
+                if (this.checkTimeout()) return null;
+                if (!canBeGoalCenter(graph.points[centerId], goal)) continue;
+                for (let p = 0; p < n; p++) {
+                    if (p === centerId) continue;
+                    stats.rawCandidates++;
+                    const i = Math.min(centerId, p);
+                    const j = Math.max(centerId, p);
+                    const tool = (i === centerId) ? 0 : 1;
+                    const candidate = {i, j, tool};
+                    const e = graph.makeCandidate(candidate);
+                    if (!SAME_ELEMENT(e, goal)) continue;
+                    if (this.symmetryPruned(graph, candidate, e, depth, previous, stats)) continue;
+                    stats.uniqueCandidates++;
+                    return candidate;
                 }
-            }
-            if (centerId < 0) return null;
-
-            for (let p = 0; p < n; p++) {
-                if (p === centerId || !graph.pointOnElement(graph.points[p], goal)) continue;
-                stats.rawCandidates++;
-                const i = Math.min(centerId, p);
-                const j = Math.max(centerId, p);
-                const tool = (i === centerId) ? 0 : 1;
-                const candidate = {i, j, tool};
-                const e = graph.makeCandidate(candidate);
-                if (!SAME_ELEMENT(e, goal)) continue;
-                if (!graph.candidatePassesForcedTailPoints(e, forcedTailPoints)) {
-                    stats.forcedPointTailPruned++;
-                    return null;
-                }
-                if (this.symmetryPruned(graph, candidate, e, depth, previous, stats)) continue;
-                stats.uniqueCandidates++;
-                return candidate;
             }
         }
         return null;
@@ -982,27 +1192,14 @@ class Solver {
             return false;
         }
 
-        // 给每个缺的目标元素各留一步之后，剩下的步数还得够给每个目标点补足两条支撑
-        const auxiliaryBudget = remaining - missingGoalElements;
-        if (graph.requiredAuxiliaryStepsForGoalPoints() > auxiliaryBudget) {
-            stats.jointPointLowerBoundPruned++;
-            this.transposition.storeFailed(h1, h2, pointCount, elementCount, rem);
-            return false;
-        }
+        // v12：这里**不再**用「标量支撑数 / 目标此刻能不能画出来」当必要条件 ——
+        //   · 「给每个缺的目标元素各留一步之后，剩余步数还得够给每个目标点补两条支撑」这条联合下界
+        //     在 SamePoint 只保证坐标 EPS 盒、不保证代入残差的情形下会误剪（v10 的老问题）；
+        //   · 「缺的目标元素此刻能不能直接画出来」同样只是标量判据。
+        // 只保留「缺元素数 ≤ 剩余步」这条按定义成立的界，真正的可行性交给按已知点对的真实构造与求交检查。
+        // 见 C++ solver.hpp 的 DFS 注释「Scalar support counts … are not necessary conditions」
 
-        // 剩余步数正好等于缺的目标元素数时，每一步都必须是目标元素；一个都作不出来就是死结点
-        if (missingGoalElements === remaining && missingGoalElements > 0) {
-            const anyDrawable = remaining === 1
-                ? graph.missingGoalElementsDrawableInOneStep(this.toolType)
-                : graph.anyMissingGoalElementDrawableNow(this.toolType);
-            if (!anyDrawable) {
-                stats.exactReachabilityPruned++;
-                this.transposition.storeFailed(h1, h2, pointCount, elementCount, rem);
-                return false;
-            }
-        }
-
-        // 预先标出「最后一两步都必须过」的目标点，避免每个候选都去扫一遍元素表
+        // 标量支撑数只用来**挑反向搜索的候选**（提示），既不否决通用已知点对候选，也不代表尾部已穷尽
         const forcedTailPoints = [];
         if (remaining <= 2 && graph.goalPoints.length) {
             graph.collectForcedTailPointIndices(remaining, forcedTailPoints);
@@ -1017,7 +1214,13 @@ class Solver {
         }
 
         if (remaining === 1) {
-            const found = this.searchOneStepPointTail(graph, depth, previous, forcedTailPoints, stats);
+            // 只剩一步：先走反向点补全快路径（**只认成功**）。失败不等于穷尽 ——
+            // 反向几何固定的是输入坐标，而被接受的交点可以落在它 EPS 盒内的任意位置；
+            // 所以失败后必须回退到真实的已知点对流（带求交预览），不能直接宣判无解
+            // （C++ 同一处：SearchOneStepPointTail 失败后 return StreamCandidates(...)）
+            if (this.searchOneStepPointTail(graph, depth, previous, forcedTailPoints, stats)) return true;
+            if (this.timedOut) return false;
+            const found = this.streamCandidates(graph, remaining, depth, previous, stats);
             if (!found && !this.timedOut) {
                 this.transposition.storeFailed(h1, h2, pointCount, elementCount, rem);
             }
@@ -1026,11 +1229,13 @@ class Solver {
 
         let found = false;
         if (this.lowMemory) {
-            if (remaining === 2 && forcedTailPoints.length) {
-                found = this.streamForcedPointTailCandidates(graph, remaining, depth, previous, forcedTailPoints, stats);
-            } else {
-                found = this.streamCandidates(graph, remaining, depth, previous, stats);
+            // 反向强制点尾部也是快路径：没找着就继续通用流式枚举，不能就此收工
+            if (remaining === 2 && forcedTailPoints.length
+                && this.streamForcedPointTailCandidates(graph, remaining, depth, previous, forcedTailPoints, stats)) {
+                return true;
             }
+            if (this.timedOut) return false;
+            found = this.streamCandidates(graph, remaining, depth, previous, stats);
         } else {
             const candidates = this.generateUniqueCandidates(graph, stats);
             if (this.timedOut) return false;
@@ -1039,11 +1244,10 @@ class Solver {
                 if (this.checkTimeout()) return false;
                 const e = graph.makeCandidate(candidate);
                 if (this.symmetryPruned(graph, candidate, e, depth, previous, stats)) continue;
-                if (forcedTailPoints.length && !this.tailCandidateAllowed(graph, e, forcedTailPoints, stats)) continue;
-                if (remaining === 1 && !graph.isGoalDirected(e)) {
-                    stats.finalStepPruned++;
-                    continue;
-                }
+                // 这里原来还有两条「提示型」剪枝，v12 一并去掉了：
+                //   · 强制点提示（强制点只是反向搜索的候选提示，不能否决真实的已知点对构造）
+                //   · 「末步非目标元素」——末步那一个元素完全可能靠**交出新点**满足目标点，
+                //     却被 goalPriority 判成无关元素剪掉
                 // generateUniqueCandidates 已经保证 e 在本节点是新元素
                 if (this.tryCandidate(graph, e, remaining, depth, stats, preCtx)) {
                     found = true;

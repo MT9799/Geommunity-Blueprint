@@ -874,6 +874,9 @@ fill="transparent" stroke-width="10" stroke-linejoin="round"/>
     <script src="./static/js/constructToolBag.js"></script>
     <script src="./static/js/geometry.js"></script>
     <script src="./static/js/canvas.js"></script>
+<!-- 关系雷达的判定内核（面板本身在 board-tools.js 里，与画板上其它面板一致；
+     这一份放 solver/ 下，因为 worker 里的启发式打分以后也要用同一套判定，见 importScripts） -->
+<script src="./solver/bs-relations.js"></script>
     <script src="./static/js/tool.js"></script>
     <script src="./static/js/stylePanel.js"></script>
     <script src="./static/js/geometryItem.js"></script>

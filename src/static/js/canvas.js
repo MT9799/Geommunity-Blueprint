@@ -25,9 +25,16 @@ const maxMoveX = 500, // max是负的
     // 放在这里而不是各页脚本里：画板（index.js）与关卡游玩（playPage.js）共用一个值。
     initialScale = (Math.random() - 0.5) * 0.01 + 0.5;
 // 图形尺寸基准（宽度倍率为 1 时的像素值）：点的外径半径与线的粗细。
-// 预览（半成品草稿图、光标下的点预览）与选中圈都跟着这两个值走，改这里就一起变
+// 真实图形 = 基准 × 对象自己的粗细（见 drawPoint / drawLine / drawCircle）；
+// 预览（半成品草稿图、光标下的点预览）与选中圈同样要乘**当前档位**
+//（见 defaultElementWidth）—— 只乘基准的话预览永远按档位 3「中」画，比新画的图形粗一档
 const POINT_RADIUS_BASE = 6;
 const LINE_WIDTH_BASE = 3;
+
+/** 当前模式默认的点 / 线 / 圆粗细 过程函数（拿不到就退回档位 2「较小」） */
+function previewWidthOf(type) {
+    return typeof defaultElementWidth === 'function' ? defaultElementWidth(type) : 0.75;
+}
 // 虚线的划段：一段实线 / 一段空白，按线宽走（与线宽一样除以 scale，屏幕上是固定长短）
 const DASH_ON_RATIO = 4;
 const DASH_OFF_RATIO = 3;
@@ -186,6 +193,49 @@ const SOLVER_SOLUTION_ALPHA = 0.5;
  * 于是拖动手柄点时品红解法跟着变形。为空时才用上面的快照。
  */
 let solverSolutionPlan = null;
+
+/**
+ * 关系雷达的覆盖层 状态
+ * 由关系雷达面板写入（{entries: [...], tolerance, angleTolerance, span}，条目里存的是**画布对象 id**）；
+ * 这里每次重绘都拿那些 id 的**当前**坐标重算一遍（见 GeoRelations.evaluateOverlay），
+ * 于是图形被拖动时紫色高亮跟着走；算不出来的（对象被删 / 关系已不成立）就不画，
+ * 面板那边按 stale 下标把对应结果标成「已失效」。
+ * 与解法覆盖层一样：关系是「看」的，不是画布上的真对象，不参与选取与导出
+ */
+let relationRadarOverlay = null;
+/** 关系雷达的覆盖层颜色（紫色）与透明度 */
+const RELATION_RADAR_COLOR = '#8a2be2';
+const RELATION_RADAR_ALPHA = 0.5;
+
+/**
+ * 关系雷达复算时的对象查表 过程函数（全局：面板与画布共用同一份）
+ * 只给「纯几何」：点给坐标，直线 / 射线 / 线段给两个端点，圆给圆心与半径
+ * @param {string} id 画布对象 id
+ * @returns {Object|null} {kind, …}；对象不存在 / 不是这三类 / 已被删就给 null
+ */
+function relationRadarLookup(id) {
+    const item = typeof geometryManager !== 'undefined' ? geometryManager.get(id) : null;
+    if (!item) return null;
+    if (item.getValid && !item.getValid()) return null;
+    const type = item.getType();
+    const coordinate = item.getCoordinate?.();
+    if (!coordinate) return null;
+    if (type === 'point') {
+        const [x, y] = coordinate;
+        return Number.isFinite(x) && Number.isFinite(y) ? {kind: 'point', x: x, y: y} : null;
+    }
+    if (type === 'circle') {
+        const [[cx, cy], [px, py]] = coordinate;
+        const r = Math.hypot(px - cx, py - cy);
+        return r > 0 && Number.isFinite(r) ? {kind: 'circle', cx: cx, cy: cy, r: r} : null;
+    }
+    if (type === 'line') {
+        const [[x1, y1], [x2, y2]] = coordinate;
+        return Number.isFinite(x1) && Number.isFinite(y1) && Number.isFinite(x2) && Number.isFinite(y2)
+            ? {kind: 'line', x1: x1, y1: y1, x2: x2, y2: y2, drawType: item.getDrawType?.() || 'line'} : null;
+    }
+    return null;
+}
 
 /** 由两个点造直线方程 过程函数（不求规范化，够求交用） */
 function solverPlanLine(first, second) {
@@ -473,6 +523,66 @@ function drawSolverSolutionOverlay() {
     ct.restore();
 }
 
+/**
+ * 绘制关系雷达标出来的隐含关系 过程函数
+ * 存的是对象 id，每帧拿当前坐标重算（GeoRelations.evaluateOverlay）—— 图形一动，紫色标记跟着动；
+ * 算不出来的（对象被删、关系已不成立）不画，交给面板标「已失效」。
+ * 画在解法覆盖层之后（关系通常比解法更「宽」，压在上面看得清）
+ */
+function drawRelationRadarOverlay() {
+    if (!relationRadarOverlay || typeof GeoRelations === 'undefined') return;
+    const overlay = GeoRelations.evaluateOverlay(relationRadarOverlay, relationRadarLookup);
+    if (!overlay.lines.length && !overlay.circles.length && !overlay.arcs.length && !overlay.points.length) return;
+    ct.save();
+    ct.globalAlpha = RELATION_RADAR_ALPHA;
+    ct.strokeStyle = RELATION_RADAR_COLOR;
+    ct.fillStyle = RELATION_RADAR_COLOR;
+    ct.lineWidth = 2.5 / transform.scale;
+    ct.lineCap = 'round';
+    // 角 / 角平分线的弧：用虚线，与直线段区分开
+    const dash = [6 / transform.scale, 5 / transform.scale];
+    const drawCircle = circle => {
+        ct.beginPath();
+        ct.arc(circle.cx, circle.cy, circle.r, 0, Math.PI * 2);
+        ct.stroke();
+    };
+    const drawLine = line => {
+        let bounds;
+        if (line.segment) {
+            // 线上比：只连两点之间的线段，不延伸到画布边界
+            bounds = {p1: {x: line.x1, y: line.y1}, p2: {x: line.x2, y: line.y2}};
+        } else {
+            bounds = ToolsFunction.getLineBounds(
+                [line.x1, line.y1, line.x2, line.y2, canvasWidth, canvasHeight], transform);
+        }
+        ct.beginPath();
+        ct.moveTo(bounds.p1.x, bounds.p1.y);
+        ct.lineTo(bounds.p2.x, bounds.p2.y);
+        ct.stroke();
+    };
+    // 实线：平行 / 垂直的那两条线、紧圆规复制出来的圆
+    ct.setLineDash([]);
+    overlay.circles.filter(circle => !circle.dashed).forEach(drawCircle);
+    overlay.lines.filter(line => !line.dashed).forEach(drawLine);
+    // 虚线：多点共线 / 多点共圆 / 等距中心（见 bs-relations.js 的 DASHED_KINDS）
+    ct.setLineDash(dash);
+    overlay.circles.filter(circle => circle.dashed).forEach(drawCircle);
+    overlay.lines.filter(line => line.dashed).forEach(drawLine);
+    // 角 / 角平分线的弧：也是虚线，与直线段区分开
+    overlay.arcs.forEach(arc => {
+        ct.beginPath();
+        ct.arc(arc.cx, arc.cy, arc.r, arc.from, arc.from + arc.delta, arc.delta < 0);
+        ct.stroke();
+    });
+    ct.setLineDash([]);
+    overlay.points.forEach(point => {
+        ct.beginPath();
+        ct.arc(point.x, point.y, 4 / transform.scale, 0, Math.PI * 2);
+        ct.fill();
+    });
+    ct.restore();
+}
+
 function drawContent() {
     // 重置变换，按物理像素清屏
     ct.setTransform(1, 0, 0, 1, 0, 0);
@@ -499,6 +609,9 @@ function drawContent() {
     // 绘制求解器解法（品红覆盖层，画在图形之上）
     drawSolverSolutionOverlay();
 
+    // 绘制关系雷达标出来的隐含关系（紫色覆盖层，压在解法之上）
+    drawRelationRadarOverlay();
+
     // 绘制绘制中的半透明预览
     drawToolPreview();
 
@@ -507,6 +620,10 @@ function drawContent() {
 
     // 恢复状态
     ct.restore();
+
+    // 关系雷达的「已失效」标记跟着画布走：图形一动，某条关系可能就不成立了。
+    // 面板自己做了节流（面板在 board-tools.js 里），这里只负责喊一声
+    window.relationRadarAfterDraw?.();
 }
 
 /**
@@ -796,19 +913,20 @@ function previewCircumcenter(a, b, c) {
 
 /**
  * 绘制点的预览 过程函数
- * 与真实点一致：外径 POINT_RADIUS_BASE、白芯是它的一半，且是屏幕上的固定大小（除以 scale，跟 drawPoint 一样）；
- * 透明度也用光标下那个点预览的 0.5 —— 否则在 0.35 的半透明里会显得又小又淡
+ * 与真实点一致：外径 = POINT_RADIUS_BASE × **当前点档位**、白芯是它的一半，且是屏幕上的固定大小
+ * （除以 scale，跟 drawPoint 一样）；透明度也用光标下那个点预览的 0.5 —— 否则在 0.35 的半透明里会显得又小又淡
  * @param {number[]} coord 逻辑坐标
  */
 function drawPreviewPoint(coord) {
     const [x, y] = coord;
+    const outRadius = (POINT_RADIUS_BASE * previewWidthOf('point')) / transform.scale;
     ct.globalAlpha = 0.5;
     ct.beginPath();
-    ct.arc(x, y, POINT_RADIUS_BASE / transform.scale, 0, Math.PI * 2);
+    ct.arc(x, y, outRadius, 0, Math.PI * 2);
     ct.fillStyle = 'rgb(25, 25, 25)';
     ct.fill();
     ct.beginPath();
-    ct.arc(x, y, POINT_RADIUS_BASE / 2 / transform.scale, 0, Math.PI * 2);
+    ct.arc(x, y, outRadius / 2, 0, Math.PI * 2);
     ct.fillStyle = 'rgb(255, 255, 255)';
     ct.fill();
 }
@@ -825,7 +943,9 @@ function drawToolPreview() {
     ct.globalAlpha = 0.35;
     ct.strokeStyle = 'rgb(25, 25, 25)';
     ct.fillStyle = 'rgb(25, 25, 25)';
-    ct.lineWidth = LINE_WIDTH_BASE / transform.scale;
+    // 预览粗细同样乘当前档位（原来写死基准值 = 档位 3「中」，比新画的图形粗一档）
+    ct.lineWidth = (LINE_WIDTH_BASE * previewWidthOf(state.shape === 'circle' ? 'circle' : 'line'))
+        / transform.scale;
 
     if (state.shape === 'lineSegment') {
         ct.beginPath();

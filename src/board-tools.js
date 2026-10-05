@@ -2795,6 +2795,16 @@
     '<circle cx="128" cy="100" r="16" fill="#fff" stroke-width="12"/>' +
     '<circle cx="68" cy="150" r="16" fill="#fff" stroke-width="12"/></svg>';
 
+  /**
+   * 圆形按钮的图标：关系雷达（三角形内接于圆 —— 共线、共圆、各种隐含关系）
+   */
+  const radarSideIcon = () => '<svg class="svg-icon" viewBox="0 0 200 200">' +
+    '<circle cx="100" cy="100" r="66" fill="transparent" stroke-width="12"/>' +
+    '<path d="M100 34 L157 133 L43 133 Z" fill="transparent" stroke-width="12" stroke-linejoin="round"/>' +
+    '<circle cx="100" cy="34" r="15" fill="#fff" stroke-width="12"/>' +
+    '<circle cx="157" cy="133" r="15" fill="#fff" stroke-width="12"/>' +
+    '<circle cx="43" cy="133" r="15" fill="#fff" stroke-width="12"/></svg>';
+
   // 上拉栏 → 对应的圆形按钮（关闭时要把按钮的高亮一起收掉）
   const sheetButtons = new Map();
 
@@ -2989,6 +2999,474 @@
   // 供 setGridMeta 等更早定义的函数回调（那些函数不能直接引用这里的 const：初始化顺序在前）
   window.syncSolverGridOption = syncSolverGridOption;
 
+  /**
+   * 关系雷达的画板快照 过程函数
+   * 把画布上看得见、有效的点 / 直线射线线段 / 圆整理成 bs-relations 认的三张表（世界坐标）。
+   * 网格整块不算（铺进去会把「共线」刷成一堆没用的结论）；span 按**长度**量取（容差按它缩放，
+   * 与求解请求的 eps 同一口径：不拿未归一化的系数比大小）
+   * @returns {Object} {span, points, lines, circles}
+   */
+  const relationBoardSnapshot = () => {
+    const snapshot = {span: 1, points: [], lines: [], circles: []};
+    const stretch = value => {
+      if (Number.isFinite(value)) snapshot.span = Math.max(snapshot.span, Math.abs(value));
+    };
+    geometryManager.getAllByOrder().forEach(item => {
+      if (item.getValid && !item.getValid()) return;
+      if (item.getVisible && !item.getVisible()) return;
+      const id = item.getId();
+      if (typeof window.isGridObjectId === 'function' && window.isGridObjectId(id)) return;
+      const coordinate = item.getCoordinate?.();
+      if (!coordinate) return;
+      const type = item.getType();
+      if (type === 'point') {
+        const [x, y] = coordinate;
+        if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+        stretch(x);
+        stretch(y);
+        snapshot.points.push({id: id, x: x, y: y});
+        return;
+      }
+      if (type === 'circle') {
+        const [[cx, cy], [px, py]] = coordinate;
+        const radius = Math.hypot(px - cx, py - cy);
+        if (!(radius > 0) || !Number.isFinite(radius)) return;
+        stretch(cx + radius);
+        stretch(cy + radius);
+        // 圆心那个点对象：等距中心要据它判断「这两个点本来就在同一个圆上」（见 bs-relations 的 scanEquidistant）
+        const figure = item.getDefine?.();
+        const centerId = figure && figure[0] && figure[0].getType?.() === 'point' ? figure[0].getId() : null;
+        snapshot.circles.push({id: id, cx: cx, cy: cy, r: radius, centerId: centerId});
+        return;
+      }
+      if (type === 'line') {
+        const [[x1, y1], [x2, y2]] = coordinate;
+        if (![x1, y1, x2, y2].every(Number.isFinite)) return;
+        stretch(x1);
+        stretch(y1);
+        stretch(x2);
+        stretch(y2);
+        snapshot.lines.push({id: id, x1: x1, y1: y1, x2: x2, y2: y2, drawType: item.getDrawType?.() || 'line'});
+      }
+    });
+    return snapshot;
+  };
+
+  /**
+   * 造一块关系雷达面板 过程函数
+   * 与求解面板一样放在本文件里（画板上各面板都是这么办的）；只有判定内核 `solver/bs-relations.js`
+   * 是单独一份，因为 worker 里的启发式打分以后也要用它。
+   * @param {Object} config
+   *   config.t              i18n 取值函数
+   *   config.snapshot()     画板快照（见 bs-relations 的 board 结构）
+   *   config.draw()         重绘画布（写入覆盖层之后调）
+   *   config.lookup(id)     画布对象 → 纯几何（见 canvas.js 的 relationRadarLookup）
+   *   config.toolType()     当前可用工具（0 单规 / 1 单尺 / 2 尺规 / 3 网格）
+   *   config.nameOf(id)     画布对象的名字（结果里显示用）
+   * @returns {Object} {panel, scan, clear, refreshMode, state}
+   */
+  const createRelationRadarPanel = config => {
+    const t = config.t;
+    /** 一个勾选类别 → 扫描里的选项与结果分组（顺序即面板里的顺序：两列一行） */
+    const SPECS = [
+      {option: 'collinear', i18n: 'board.radarCollinear', groups: ['collinear'],
+        param: {i18n: 'board.radarMinPoints', type: 'number', min: 2, max: 12, key: 'collinear'}},
+      {option: 'concyclic', i18n: 'board.radarConcyclic', groups: ['concyclic'],
+        param: {i18n: 'board.radarMinPoints', type: 'number', min: 3, max: 20, key: 'concyclic'}},
+      {option: 'parallel', i18n: 'board.radarParallel', groups: ['parallel', 'perpendicular']},
+      {option: 'equidistant', i18n: 'board.radarEquidistant', groups: ['equidistant'],
+        param: {i18n: 'board.radarMinPoints', type: 'number', min: 2, max: 20, key: 'equidistant'}},
+      {option: 'angle', i18n: 'board.radarAngle', groups: ['angle'],
+        param: {i18n: 'board.radarAngleSpec', type: 'text', key: 'angle', hint: 'board.radarAngleSpecHint'}},
+      {option: 'bisector', i18n: 'board.radarBisector', groups: ['bisector']},
+      {option: 'ratio', i18n: 'board.radarRatio', groups: ['ratio'],
+        param: {i18n: 'board.radarRatioSpec', type: 'text', hint: 'board.radarRatioSpecHint'}},
+      // 紧圆规只在能作圆的模式（尺规 / 单规）下有意义，单尺模式下这一项是灰的
+      {option: 'radius', i18n: 'board.radarRadius', groups: ['radius'], compassOnly: true},
+    ];
+    /** 结果分组 → 标题文案 */
+    const GROUP_LABELS = {
+      collinear: 'board.radarCollinear',
+      concyclic: 'board.radarConcyclic',
+      parallel: 'board.radarParallelGroup',
+      perpendicular: 'board.radarPerpendicularGroup',
+      angle: 'board.radarAngle',
+      ratio: 'board.radarRatio',
+      equidistant: 'board.radarEquidistant',
+      bisector: 'board.radarBisector',
+      radius: 'board.radarRadius',
+    };
+    /** 一个分组最多列出多少条（再多只报个数） */
+    const MAX_ROWS_PER_GROUP = 60;
+    /** 数字的显示写法 过程函数 */
+    const formatNumber = value => {
+      if (!Number.isFinite(value)) return '—';
+      if (value === 0) return '0';
+      if (Math.abs(value) < 1e-3) return value.toExponential(2);
+      return String(Math.round(value * 1e4) / 1e4);
+    };
+
+    const defaults = GeoRelations.defaultOptions();
+    const panel = document.createElement('aside');
+    panel.className = 'solver-panel radar-panel';
+
+    // ① 容差档位
+    const toleranceOptions = ['strict', 'normal', 'loose'].map(level =>
+      `<option value="${level}"${defaults.tolerance === level ? ' selected' : ''}>`
+      + `${t('board.radarTolerance' + level.charAt(0).toUpperCase() + level.slice(1))}</option>`).join('');
+    const html = [`<label>${t('board.radarTolerance')}<select id="geb-radar-tolerance">${toleranceOptions}</select></label>`];
+
+    // ② 八个勾，两列一行（带参数的类别：勾上才显示参数输入，参数就放在同一格里）
+    html.push('<div class="radar-kinds">');
+    SPECS.forEach(spec => {
+      const checked = defaults.kinds[spec.option] ? ' checked' : '';
+      let cell = '<div class="radar-option">'
+        + `<label class="solver-check" title="${t(spec.i18n + 'Hint')}">`
+        + `<input id="geb-radar-${spec.option}" type="checkbox"${checked}><span>${t(spec.i18n)}</span></label>`;
+      if (spec.param) {
+        const param = spec.param;
+        const value = param.type === 'number'
+          ? String(defaults.minPoints[param.key])
+          : (param.key === 'angle' ? defaults.angleSpec : defaults.ratioSpec);
+        const attributes = param.type === 'number'
+          ? ` type="number" min="${param.min}" max="${param.max}" value="${value}"`
+          : ` type="text" value="${value}" spellcheck="false"`;
+        cell += `<label class="radar-field radar-field-off" id="geb-radar-${spec.option}-field"`
+          + `${param.hint ? ` title="${t(param.hint)}"` : ''}>`
+          + `<span>${t(param.i18n)}</span><input id="geb-radar-${spec.option}-param"${attributes}></label>`;
+      }
+      html.push(cell + '</div>');
+    });
+    html.push('</div>');
+
+    // ③ 按钮 + 状态 + 结果
+    html.push(`<button id="geb-radar-run">${t('board.radarRun')}</button>`);
+    html.push(`<button id="geb-radar-clear">${t('board.radarClear')}</button>`);
+    html.push(`<output id="geb-radar-status">${t('board.radarIdle')}</output>`);
+    html.push('<div class="radar-results" id="geb-radar-results"></div>');
+    panel.innerHTML = html.join('');
+
+    const toleranceSelect = panel.querySelector('#geb-radar-tolerance');
+    const runButton = panel.querySelector('#geb-radar-run');
+    const clearButton = panel.querySelector('#geb-radar-clear');
+    const status = panel.querySelector('#geb-radar-status');
+    const results = panel.querySelector('#geb-radar-results');
+    const fields = {};
+    SPECS.forEach(spec => {
+      fields[spec.option] = {
+        check: panel.querySelector(`#geb-radar-${spec.option}`),
+        field: panel.querySelector(`#geb-radar-${spec.option}-field`),
+        input: panel.querySelector(`#geb-radar-${spec.option}-param`),
+      };
+    });
+
+    // 面板状态：最近一次扫描 + 当前选中要标出来的条目（键 = 分组#下标）
+    // token：扫描放到下一帧跑，中途「清除结果」或再点一次探测时让旧的那一轮作废
+    const state = {result: null, selected: new Set(), snapshotProvider: config.snapshot, scanning: false, token: 0};
+
+    /** 勾选状态 → 参数输入的显隐 过程函数 */
+    const syncFields = () => {
+      SPECS.forEach(spec => {
+        const item = fields[spec.option];
+        if (!item.field) return;
+        item.field.classList.toggle('radar-field-off', !item.check.checked);
+      });
+    };
+
+    /** 「勾选 + 参数」的指纹 过程函数（变了就把上次的结果清掉：结果和勾选项对不上会误导） */
+    const configFingerprint = () => SPECS.map(spec => {
+      const item = fields[spec.option];
+      return `${spec.option}:${item.check.checked ? 1 : 0}:${item.input ? item.input.value : ''}`;
+    }).join('|') + `|${toleranceSelect.value}`;
+    let lastFingerprint = configFingerprint();
+
+    /** 读面板上的勾选与参数 过程函数 */
+    const readOptions = () => {
+      const options = GeoRelations.defaultOptions();
+      options.tolerance = toleranceSelect.value;
+      const minPoints = Object.assign({}, options.minPoints);
+      SPECS.forEach(spec => {
+        const item = fields[spec.option];
+        options.kinds[spec.option] = item.check.checked;
+        if (spec.option === 'parallel') options.kinds.perpendicular = item.check.checked;
+        if (!spec.param) return;
+        if (spec.param.type === 'number') {
+          const value = Math.max(spec.param.min, Math.min(spec.param.max, Number(item.input.value) || spec.param.min));
+          minPoints[spec.param.key] = Math.round(value);
+        }
+      });
+      options.minPoints = minPoints;
+      options.angles = GeoRelations.parseAngleList(fields.angle.input.value, GeoRelations.DEFAULT_ANGLES);
+      options.angleSpec = fields.angle.input.value;
+      options.ratioSpec = fields.ratio.input.value.trim() || GeoRelations.DEFAULT_RATIO_SPEC;
+      return options;
+    };
+
+    /** 一个对象 id 的显示名 过程函数 */
+    const nameOf = id => (config.nameOf ? config.nameOf(id) : null) || id;
+    const nameList = ids => ids.map(nameOf).join(t('board.radarSeparator'));
+
+    /** 一条结果怎么读 过程函数 */
+    const describe = entry => {
+      switch (entry.kind) {
+        case 'collinear':
+          return t('board.radarRowCollinear', {count: entry.count, list: nameList(entry.pointIds)});
+        case 'concyclic':
+          return t('board.radarRowConcyclic', {count: entry.count, list: nameList(entry.pointIds),
+            radius: formatNumber(entry.radius)});
+        case 'parallel':
+          return t('board.radarRowParallel', {first: nameOf(entry.lineIds[0]), second: nameOf(entry.lineIds[1])});
+        case 'perpendicular':
+          return t('board.radarRowPerpendicular', {first: nameOf(entry.lineIds[0]), second: nameOf(entry.lineIds[1])});
+        case 'angle':
+          return t('board.radarRowAngle', {vertex: nameOf(entry.vertexId),
+            first: nameOf(entry.lineIds[0]), second: nameOf(entry.lineIds[1]),
+            degrees: formatNumber(entry.degrees)});
+        case 'ratio':
+          return t('board.radarRowRatio', {first: nameOf(entry.pointIds[0]), second: nameOf(entry.pointIds[1]),
+            third: nameOf(entry.pointIds[2]), label: entry.label});
+        case 'equidistant':
+          return t('board.radarRowEquidistant', {center: nameOf(entry.centerId),
+            list: nameList(entry.pointIds), radius: formatNumber(entry.radius)});
+        case 'bisector':
+          return t('board.radarRowBisector', {vertex: nameOf(entry.vertexId),
+            bisector: nameOf(entry.bisectorId), first: nameOf(entry.lineIds[0]),
+            second: nameOf(entry.lineIds[1]), degrees: formatNumber(entry.degrees)});
+        case 'radius':
+          return t('board.radarRowRadius', {center: nameOf(entry.centerId),
+            through: nameOf(entry.throughId), source: nameOf(entry.sourceCircleId)});
+        default:
+          return entry.kind;
+      }
+    };
+
+    /** 把选中的条目写进画布覆盖层并重绘 过程函数 */
+    const applyOverlay = () => {
+      const result = state.result;
+      if (!result || !state.selected.size) {
+        relationRadarOverlay = null;
+        config.draw();
+        return;
+      }
+      const entries = [];
+      Object.keys(result.kind).forEach(kind => {
+        result.kind[kind].forEach((entry, index) => {
+          if (state.selected.has(`${kind}#${index}`)) entries.push(entry);
+        });
+      });
+      relationRadarOverlay = {
+        entries: entries,
+        tolerance: result.tolerance,
+        angleTolerance: result.angleTolerance,
+        span: result.span,
+      };
+      config.draw();
+    };
+
+    /** 结果里每条在画布上还成不成立 过程函数（给「已失效」标注用） */
+    const staleIndices = () => {
+      if (!state.result || !relationRadarOverlay) return new Set();
+      const overlay = GeoRelations.evaluateOverlay(relationRadarOverlay, config.lookup);
+      const stale = new Set();
+      // evaluateOverlay 的 stale 下标对应 overlay.entries 的顺序，这里换算回「分组#下标」
+      const order = [];
+      Object.keys(state.result.kind).forEach(kind => {
+        state.result.kind[kind].forEach((entry, index) => {
+          if (state.selected.has(`${kind}#${index}`)) order.push(`${kind}#${index}`);
+        });
+      });
+      overlay.stale.forEach(position => { if (order[position]) stale.add(order[position]); });
+      return stale;
+    };
+
+    /** 画结果列表 过程函数 */
+    const render = () => {
+      const result = state.result;
+      results.innerHTML = '';
+      if (!result) return;
+      const stale = staleIndices();
+      Object.keys(result.kind).forEach(kind => {
+        const entries = result.kind[kind];
+        const details = document.createElement('details');
+        details.className = 'radar-group';
+        details.open = entries.length > 0 && entries.length <= 12;
+        const summary = document.createElement('summary');
+        summary.textContent = `${t(GROUP_LABELS[kind] || kind)} · ${entries.length}${t('board.radarCountSuffix')}`;
+        details.appendChild(summary);
+        if (!entries.length) {
+          const empty = document.createElement('p');
+          empty.className = 'radar-empty';
+          empty.textContent = t('board.radarGroupEmpty');
+          details.appendChild(empty);
+        }
+        entries.slice(0, MAX_ROWS_PER_GROUP).forEach((entry, index) => {
+          const key = `${kind}#${index}`;
+          const row = document.createElement('button');
+          row.type = 'button';
+          row.className = 'radar-row' + (state.selected.has(key) ? ' active' : '') + (stale.has(key) ? ' stale' : '');
+          row.dataset.key = key;
+          const deviation = Number.isFinite(entry.deviation) && entry.deviation > 0
+            ? `　${t('board.radarDeviation', {value: formatNumber(entry.deviation)})}` : '';
+          // base 存正文：「已失效」这个尾巴由 refreshStale 加减，不用重建行
+          const base = describe(entry) + deviation;
+          row.dataset.base = base;
+          row.textContent = base + (stale.has(key) ? `　${t('board.radarStale')}` : '');
+          row.addEventListener('click', () => {
+            if (state.selected.has(key)) state.selected.delete(key);
+            else state.selected.add(key);
+            applyOverlay();
+            render();
+          });
+          details.appendChild(row);
+        });
+        if (entries.length > MAX_ROWS_PER_GROUP) {
+          const more = document.createElement('p');
+          more.className = 'radar-empty';
+          more.textContent = t('board.radarMoreRows', {count: entries.length - MAX_ROWS_PER_GROUP});
+          details.appendChild(more);
+        }
+        results.appendChild(details);
+      });
+      if (!Object.keys(result.kind).length) {
+        const none = document.createElement('p');
+        none.className = 'radar-empty';
+        none.textContent = t('board.radarNothingChecked');
+        results.appendChild(none);
+      }
+      runButton.textContent = t('board.radarRun');
+      runButton.classList.remove('running');
+      state.scanning = false;
+    };
+
+    /**
+     * 只刷「已失效」标记 过程函数（不重建列表）
+     * 画布每重绘一次喊一声（见 canvas.js 的 drawContent），这里节流到 200ms：
+     * 拖动图形时紫色高亮自动跟着走，走散了的那条关系在列表里也就地标成「已失效」
+     */
+    let lastStaleAt = 0;
+    const refreshStale = () => {
+      if (!state.result || !state.selected.size) return;
+      const now = Date.now();
+      if (now - lastStaleAt < 200) return;
+      lastStaleAt = now;
+      const stale = staleIndices();
+      results.querySelectorAll('.radar-row').forEach(row => {
+        const isStale = stale.has(row.dataset.key);
+        if (row.classList.contains('stale') === isStale) return;
+        row.classList.toggle('stale', isStale);
+        row.textContent = (row.dataset.base || '') + (isStale ? `　${t('board.radarStale')}` : '');
+      });
+    };
+    window.relationRadarAfterDraw = refreshStale;
+
+    /** 清空结果与高亮 过程函数 */
+    const clear = message => {
+      state.token++;              // 在跑的那一轮扫描就此作废
+      state.result = null;
+      state.selected.clear();
+      state.scanning = false;
+      results.innerHTML = '';
+      runButton.textContent = t('board.radarRun');
+      runButton.classList.remove('running');
+      relationRadarOverlay = null;
+      config.draw();
+      status.textContent = message || t('board.radarIdle');
+    };
+
+    /** 探一遍 过程函数 */
+    const scan = () => {
+      if (state.scanning) return null;
+      const options = readOptions();
+      if (!Object.keys(options.kinds).some(kind => options.kinds[kind])) {
+        clear(t('board.radarNothingChecked'));
+        return null;
+      }
+      let board = null;
+      try {
+        board = state.snapshotProvider();
+      } catch (error) {
+        board = null;
+      }
+      if (!board || !board.points.length) {
+        clear(t('board.radarEmptyBoard'));
+        return null;
+      }
+      state.scanning = true;
+      runButton.textContent = t('board.radarScanning');
+      runButton.classList.add('running');
+      status.textContent = t('board.radarScanning');
+      state.selected.clear();
+      relationRadarOverlay = null;
+      config.draw();
+      // 先让「探测中…」这一帧画出来再算（图形多时扫描要跑一会儿）
+      const token = ++state.token;
+      window.setTimeout(() => {
+        if (token !== state.token) return;   // 中途点了「清除结果」或又探了一次：这一轮作废
+        let result = null;
+        try {
+          result = GeoRelations.scan(board, options);
+        } catch (error) {
+          result = null;
+        }
+        if (!result) {
+          clear(t('board.radarFailed'));
+          return;
+        }
+        state.result = result;
+        lastFingerprint = configFingerprint();
+        status.textContent = (result.count
+          ? t('board.radarFound', {count: result.count})
+          : t('board.radarNone'))
+          + (result.truncated ? `　${t('board.radarTruncated')}` : '');
+        render();
+      }, 0);
+      return null;
+    };
+
+    // 交互接线
+    toleranceSelect.addEventListener('change', () => clear(t('board.radarConfigChanged')));
+    SPECS.forEach(spec => {
+      const item = fields[spec.option];
+      item.check.addEventListener('change', () => {
+        syncFields();
+        clear(t('board.radarConfigChanged'));
+      });
+      if (item.input) item.input.addEventListener('change', () => clear(t('board.radarConfigChanged')));
+    });
+    runButton.addEventListener('click', () => {
+      if (state.scanning) return;
+      scan();
+    });
+    clearButton.addEventListener('click', () => clear());
+    syncFields();
+
+    /** 单尺模式下紧圆规没有意义：勾不了，并给出说明 过程函数 */
+    const refreshMode = () => {
+      const compass = (config.toolType ? config.toolType() : 2) !== 1;
+      const item = fields.radius;
+      item.check.disabled = !compass;
+      if (!compass) item.check.checked = false;
+      item.check.parentElement.classList.toggle('radar-disabled', !compass);
+      item.check.parentElement.title = compass ? t('board.radarRadiusHint') : t('board.radarRadiusNoCompass');
+      syncFields();
+    };
+    refreshMode();
+
+    return {
+      panel: panel,
+      scan: scan,
+      clear: clear,
+      refreshMode: refreshMode,
+      setSnapshotProvider: provider => { state.snapshotProvider = provider; },
+      /** 供别的入口（如以后 worker 里的打分）读最近一次的结果 */
+      result: () => state.result,
+      /** 当前是否已经有高亮（关面板时用得上） */
+      hasHighlight: () => !!(relationRadarOverlay && relationRadarOverlay.entries.length),
+      state: state,
+      lastFingerprint: () => lastFingerprint,
+    };
+  };
+
   const solverPanel = () => {
     const panel = document.createElement('aside');
     panel.className = 'solver-panel';
@@ -2996,7 +3474,13 @@
     // 拿不到真实物理核），留一个核心给页面本身；上限 8（再多收益很小、内存翻倍）
     const hardwareCores = Math.max(2, Number(navigator.hardwareConcurrency) || 4);
     const recommendedThreads = Math.max(2, Math.min(8, hardwareCores - 1));
+    // 页签条：求解参数 / 关系雷达两块面板各在自己**内部**的顶部放一条（两条内容一样、联动切换）。
+    // 手机端这条由 CSS 收起来（那里是两个圆形按钮 + 各自的上拉栏）
+    const tabsHtml = '<div class="solver-tabs">'
+      + `<button type="button" data-panel="solver">${t('board.solverParams')}</button>`
+      + `<button type="button" data-panel="radar">${t('board.radarTitle')}</button></div>`;
     panel.innerHTML = [
+      tabsHtml,
       // 标题在上拉栏的标题栏里（见 wrapInSheet），这里只放设置项
       // 两两并排，省一半高度（见 index.css 的 .solver-field-row）
       '<div class="solver-field-row">' +
@@ -3019,13 +3503,20 @@
         '<polygon points="70 34, 152 100, 70 166" fill="transparent" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>' +
         '</svg>' +
         `${t('board.solverAdvanced')}</summary>` +
-        // 五个开关：前两个是「怎么搜」（逐步搜索 / 解法自检），后三个是内核原来的剪枝与内存选项
+        // 六个开关，按面板里的顺序排成「逐步搜索 / 解法自检」一行、「启发式搜索」一行、
+        // 「对称剪枝 / 目标优先」一行、「低内存」一行
         // 逐步搜索：1 步搜一遍、2 步搜一遍 …… 一直到设定步数（短解先出来，可随时停）
-        `<label class="solver-check" title="${t('board.solverStepwiseHint')}"><input id="geb-solver-stepwise" type="checkbox"><span>${t('board.solverStepwise')}</span></label>` +
         // 解法自检：默认关（每个解都要挪点重算一遍，慢一些；只在当前位置成立的特解会被剔掉）
-        `<label class="solver-check" title="${t('board.solverSelfCheckHint')}"><input id="geb-solver-generic" type="checkbox"><span>${t('board.solverSelfCheck')}</span></label>` +
-        `<label class="solver-check" title="${t('board.solverSymmetryHint')}"><input id="geb-solver-symmetry" type="checkbox" checked><span>${t('board.solverSymmetry')}</span></label>` +
-        `<label class="solver-check" title="${t('board.solverGoalFirstHint')}"><input id="geb-solver-goal-first" type="checkbox" checked><span>${t('board.solverGoalFirst')}</span></label>` +
+        '<div class="solver-check-row">' +
+          `<label class="solver-check" title="${t('board.solverStepwiseHint')}"><input id="geb-solver-stepwise" type="checkbox"><span>${t('board.solverStepwise')}</span></label>` +
+          `<label class="solver-check" title="${t('board.solverSelfCheckHint')}"><input id="geb-solver-generic" type="checkbox"><span>${t('board.solverSelfCheck')}</span></label>` +
+        '</div>' +
+        // 启发式搜索：默认关（内核见 solver/bs-heuristic.js）—— 先 beam 找一条，找不到再回退 DFS
+        `<label class="solver-check" title="${t('board.solverHeuristicHint')}"><input id="geb-solver-heuristic" type="checkbox"><span>${t('board.solverHeuristic')}</span></label>` +
+        '<div class="solver-check-row">' +
+          `<label class="solver-check" title="${t('board.solverSymmetryHint')}"><input id="geb-solver-symmetry" type="checkbox" checked><span>${t('board.solverSymmetry')}</span></label>` +
+          `<label class="solver-check" title="${t('board.solverGoalFirstHint')}"><input id="geb-solver-goal-first" type="checkbox" checked><span>${t('board.solverGoalFirst')}</span></label>` +
+        '</div>' +
         `<label class="solver-check" title="${t('board.solverLowMemoryHint')}"><input id="geb-solver-low-memory" type="checkbox" checked><span>${t('board.solverLowMemory')}</span></label>` +
         '<div class="solver-field-row">' +
           `<label title="${t('board.solverTtMbHint')}">${t('board.solverTtMb')}<input id="geb-solver-tt" type="number" min="0" max="512" value="8"></label>` +
@@ -3058,6 +3549,57 @@
     syncSolverGridOption(panel);
     // 收进底部上拉栏：画布上只留一个圆形按钮（见 addSideButton）
     addSideButton('solver-params', solverSideIcon(), t('board.solverParams'), wrapInSheet(panel, t('board.solverParams')));
+
+    // 关系雷达（面板就在本文件里，与画板上其它面板一致；判定在 solver/bs-relations.js）：
+    //   桌面端 —— 与求解面板共用右上角那一块浮层，靠面板顶部那条页签条切换（两块不能叠在一起）；
+    //   手机端 —— 在求解图标下面多一个圆形按钮，各自一块底部上拉栏
+    const radar = createRelationRadarPanel({
+      t: t,
+      snapshot: relationBoardSnapshot,
+      lookup: id => (typeof relationRadarLookup === 'function' ? relationRadarLookup(id) : null),
+      draw: () => drawContent(),
+      toolType: () => Number(panel.querySelector('#geb-solver-tool')?.value ?? 2),
+      nameOf: id => geometryManager.get(id)?.getName?.() || id,
+    });
+    // 雷达面板自己也放一条同样的页签条（两条内容一致，切换时一起变）
+    radar.panel.insertAdjacentHTML('afterbegin', tabsHtml);
+    addSideButton('radar', radarSideIcon(), t('board.radarTitle'), wrapInSheet(radar.panel, t('board.radarTitle')));
+    window.relationRadarPanel = radar;   // 调试 / 以后 worker 里的打分要读最近一次的结果
+    {
+      // 桌面端两块面板叠在同一处：页签切哪块就显示哪块
+      const showPanel = which => {
+        panel.classList.toggle('panel-tab-hidden', which !== 'solver');
+        radar.panel.classList.toggle('panel-tab-hidden', which !== 'radar');
+        document.querySelectorAll('.solver-tabs button').forEach(button =>
+          button.classList.toggle('active', button.dataset.panel === which));
+      };
+      // 与 index.css 里那档「手机布局」的媒体查询保持一致（窄屏或矮屏都算）
+      const narrowLayout = () => window.matchMedia('(max-width: 900px), (max-height: 600px)').matches;
+      const syncTabs = () => {
+        if (narrowLayout()) {
+          // 手机端两块面板各在自己的上拉栏里：谁都不该被页签藏起来
+          panel.classList.remove('panel-tab-hidden');
+          radar.panel.classList.remove('panel-tab-hidden');
+          document.querySelectorAll('.solver-tabs button').forEach(button => button.classList.remove('active'));
+          radar.refreshMode();
+          return;
+        }
+        const active = document.querySelector('.solver-tabs button.active');
+        showPanel(active ? active.dataset.panel : 'solver');
+      };
+      document.querySelectorAll('.solver-tabs').forEach(tabs => {
+        tabs.addEventListener('click', event => {
+          const button = event.target.closest('button[data-panel]');
+          if (button) showPanel(button.dataset.panel);
+        });
+      });
+      showPanel('solver');
+      window.addEventListener('resize', syncTabs);
+      // 可用工具改成单尺了：雷达里的「紧圆规」要跟着灰掉（单尺作不了圆，那一项没有意义）
+      panel.querySelector('#geb-solver-tool')?.addEventListener('change', () => radar.refreshMode());
+      // 切面板时雷达那侧的覆盖层不用动：它本来就按对象 id 在线复算
+      syncTabs();
+    }
 
     const status = panel.querySelector('#geb-solver-status');
     const list = panel.querySelector('#geb-solver-list');
@@ -3333,6 +3875,7 @@
       symmetry: panel.querySelector('#geb-solver-symmetry'),
       goalFirst: panel.querySelector('#geb-solver-goal-first'),
       lowMemory: panel.querySelector('#geb-solver-low-memory'),
+      heuristic: panel.querySelector('#geb-solver-heuristic'),
       ttMB: panel.querySelector('#geb-solver-tt'),
       streamDedup: panel.querySelector('#geb-solver-dedup'),
       threads: panel.querySelector('#geb-solver-threads'),
@@ -3356,6 +3899,8 @@
         // 逐步搜索：默认关（见 runStepwiseSearch）—— 少了这一项的话勾了等于没勾，
         // 「逐步搜索」会退化成一次普通搜索（8E 里那堆 8 步解就会把 7 步解挤掉）
         stepwise: advancedFields.stepwise.checked,
+        // 启发式搜索：默认关（见 solver/bs-heuristic.js；勾了就走 beam 找一个解，不做穷尽证明）
+        heuristic: advancedFields.heuristic.checked,
       };
       try { localStorage.setItem(ADVANCED_KEY, JSON.stringify(options)); } catch (error) { /* 隐私模式等忽略 */ }
       return options;
@@ -3375,6 +3920,8 @@
       advancedFields.generic.checked = saved.generic === true;
       // 逐步搜索同样默认关
       advancedFields.stepwise.checked = saved.stepwise === true;
+      // 启发式搜索也默认关：只有上次明确勾上过才勾回来
+      advancedFields.heuristic.checked = saved.heuristic === true;
       if (saved.open) panel.querySelector('#geb-solver-advanced').open = true;
     };
     restoreAdvanced();
@@ -3500,6 +4047,12 @@
           status.textContent = t('board.solverSelfCheckAllRejected', {count: result.selfCheckRejected});
           return;
         }
+        // 只有启发式跑过、又没找到解 ≠ 搜尽（它只**找**解）：文案必须说清楚，别让人以为这题无解。
+        // 已经回退跑过 DFS 的话就照常报「已搜尽 / 超时」，别加这层提示
+        if (result.heuristicOnly) {
+          status.textContent = t('board.solverHeuristicNoSolution', {seconds: seconds});
+          return;
+        }
         status.textContent = result.timedOut
           ? t('board.solverTimeoutNoSolution', {seconds: timeLimitSeconds})
           : t('board.solverNoSolution', {limit: limit, seconds: seconds});
@@ -3513,7 +4066,9 @@
           requested: result.requestedSolutions,
         })
         : t('board.solverFound', {count: result.solutionCount, seconds: seconds}))
-        + (result.selfCheckRejected ? t('board.solverSelfCheckNote', {count: result.selfCheckRejected}) : '');
+        + (result.selfCheckRejected ? t('board.solverSelfCheckNote', {count: result.selfCheckRejected}) : '')
+        // 只有启发式找到的（没跑兜底 DFS）才要提醒「这不是穷尽搜索的结论」
+        + (result.heuristicOnly ? t('board.solverHeuristicNote') : '');
       // 搜索途中已经边搜边显示了一些行：清掉，按这份完整解表重画（顺序也照这里的排）
       list.innerHTML = '';
       result.solutions.forEach(appendSolutionRow);
@@ -3545,6 +4100,8 @@
       lowMemory: advanced.lowMemory,
       ttMB: advanced.ttMB,
       streamDedup: advanced.streamDedup,
+      // 启发式搜索（测试）：worker 里走 solver/bs-heuristic.js 的 beam 路径
+      heuristic: advanced.heuristic === true,
     });
 
     /**
@@ -3881,7 +4438,10 @@
       drawContent();
       status.textContent = t('board.solverSearching');
 
-      const settings = {request, limit, toolType, timeLimitSeconds, solutions, advanced, threads: advanced.threads};
+      // 启发式搜索是单线程的（见 solver/bs-heuristic.js），而并行那套前缀切分走的仍是 DFS ——
+      // 勾了它就按 1 个线程算，免得同时跑两套引擎
+      const settings = {request, limit, toolType, timeLimitSeconds, solutions, advanced,
+        threads: advanced.heuristic ? 1 : advanced.threads};
       startSearchProgress({target: solutions, limitSeconds: timeLimitSeconds});
       // 逐步搜索（高级选项）：1 步搜一遍、2 步搜一遍 …… 到设定步数（见 runStepwiseSearch）
       if (advanced.stepwise) {
@@ -4734,11 +5294,14 @@
     refreshMarks();
   }
   // 求解器里「求解参数」按钮是先于「标记」按钮创建的，这里把顺序换过来：
-  // 上边是标记、下边是求解参数（与制题器一致）
+  // 上边是标记、下边是求解参数（与制题器一致），最下面是关系雷达
   if (mode === 'solver') {
     const sideBox = document.getElementById('side-buttons');
     const solverSideButton = document.getElementById('side-button-solver-params');
+    const radarSideButton = document.getElementById('side-button-radar');
     if (sideBox && solverSideButton) sideBox.appendChild(solverSideButton);
+    // 关系雷达紧跟在求解参数下面（上拉栏是纵向排列，DOM 次序就是上下次序）
+    if (sideBox && radarSideButton) sideBox.appendChild(radarSideButton);
   }
   // 关卡游玩：LE 计数器放在返回按钮下方（返回按钮此时已就位）
   if (typeof updateMovesCounterPosition === 'function') updateMovesCounterPosition();
@@ -5182,15 +5745,17 @@
         context.clearRect(0, 0, width, height);
         return;
       }
-      // 样式与点图形一致（外径 POINT_RADIUS_BASE + 一半大的白芯），但整体半透明：
-      // 它只是「将要落在哪里」的预览，还没有真正落下
+      // 样式与点图形一致（外径 = POINT_RADIUS_BASE × **当前点档位** + 一半大的白芯），但整体半透明：
+      // 它只是「将要落在哪里」的预览，还没有真正落下。
+      // 这块画布用的是屏幕像素（只按 dpr 缩放，没乘 transform.scale），所以半径不用再除 scale
+      const previewRadius = POINT_RADIUS_BASE * previewWidthOf('point');
       context.globalAlpha = 0.5;
       context.beginPath();
-      context.arc(previewPoint.x, previewPoint.y, POINT_RADIUS_BASE, 0, Math.PI * 2);
+      context.arc(previewPoint.x, previewPoint.y, previewRadius, 0, Math.PI * 2);
       context.fillStyle = 'rgb(25, 25, 25)';
       context.fill();
       context.beginPath();
-      context.arc(previewPoint.x, previewPoint.y, POINT_RADIUS_BASE / 2, 0, Math.PI * 2);
+      context.arc(previewPoint.x, previewPoint.y, previewRadius / 2, 0, Math.PI * 2);
       context.fillStyle = 'rgb(255, 255, 255)';
       context.fill();
       // 交点工具：这一对图形的其他候选交点也画出来（点一下会全部标出，预览只画一个会让人以为只标一个）
@@ -5201,11 +5766,11 @@
           const py = transform.y + item.y * transform.scale;
           if (Math.hypot(px - previewPoint.x, py - previewPoint.y) < 1) return;
           context.beginPath();
-          context.arc(px, py, POINT_RADIUS_BASE, 0, Math.PI * 2);
+          context.arc(px, py, previewRadius, 0, Math.PI * 2);
           context.fillStyle = 'rgb(25, 25, 25)';
           context.fill();
           context.beginPath();
-          context.arc(px, py, POINT_RADIUS_BASE / 2, 0, Math.PI * 2);
+          context.arc(px, py, previewRadius / 2, 0, Math.PI * 2);
           context.fillStyle = 'rgb(255, 255, 255)';
           context.fill();
         });

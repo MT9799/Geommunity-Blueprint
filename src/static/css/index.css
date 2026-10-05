@@ -946,9 +946,9 @@ textarea {
     z-index: 4;
     display: grid;
     gap: 10px;
-    width: 210px;
+    width: 240px;
     /* 解多时面板会很长，限高后自己滚，免得出画面 */
-    max-height: calc(100vh - 400px);
+    max-height: calc(100vh - 379px);
     overflow-y: auto;
     /* 给滚动条常驻预留一条槽位：滚动条出现 / 消失时内容宽度不再变，也就不会压住内容 */
     scrollbar-gutter: stable;
@@ -959,7 +959,7 @@ textarea {
 }
 .solver-panel label { display: grid; gap: 5px; }
 
-/* 求解参数：电脑端一列一项（面板够宽，两两并排反而挤） */
+/* 求解参数：一列一项（两两并排时「时间上限（秒）」「并行线程数（推荐：8）」这些标题会被挤断） */
 .solver-field-row { display: grid; gap: 10px; }
 .solver-panel input, .solver-panel select, .solver-panel button { width: 100%; min-height: 32px; border: none; border-radius: 5px; background-color: rgb(240, 240, 240); padding: 4px 7px; font: inherit; }
 .solver-panel button { cursor: pointer; }
@@ -1009,6 +1009,21 @@ textarea {
     font-size: 13px;
 }
 
+/* 两个勾选项并排一行（逐步搜索 / 解法自检、对称剪枝 / 目标优先）；
+   单独成行的（启发式、低内存）不套这一层 */
+.solver-advanced .solver-check-row {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    margin-top: 8px;
+}
+
+.solver-advanced .solver-check-row > .solver-check {
+    margin-top: 0;
+    flex: 1 1 0;
+    min-width: 0;
+}
+
 .solver-panel .solver-check input[type="checkbox"] {
     width: 15px;
     height: 15px;
@@ -1034,9 +1049,11 @@ textarea {
 .solver-panel::-webkit-scrollbar-track {
     background-color: transparent;
 }
-/* 开始求解：绿调；搜索进行中换成下面红调的「停止求解」，两个状态一眼可辨 */
-.solver-panel #geb-solver-run { background-color: rgb(232, 245, 233); box-shadow: inset 0 0 0 2px #2e7d32; }
-.solver-panel #geb-solver-run.running { background-color: rgb(251, 234, 230); box-shadow: inset 0 0 0 2px #d84b35; }
+/* 开始求解 / 开始探测：绿调；进行中换成下面红调（「停止求解」/「探测中…」），两个状态一眼可辨 */
+.solver-panel #geb-solver-run,
+.solver-panel #geb-radar-run { background-color: rgb(232, 245, 233); box-shadow: inset 0 0 0 2px #2e7d32; }
+.solver-panel #geb-solver-run.running,
+.solver-panel #geb-radar-run.running { background-color: rgb(251, 234, 230); box-shadow: inset 0 0 0 2px #d84b35; }
 /* 求解结果列表：一行一个解，左边选解、右边看文字步骤（当前画出的那个用解法色标出来） */
 .solver-solution-list { display: grid; gap: 6px; }
 .solver-solution-list:empty { display: none; }
@@ -1048,6 +1065,67 @@ textarea {
 .solver-step-row { display: flex; align-items: center; gap: 5px; }
 .solver-step-row button { width: auto; flex: 0 0 auto; font-size: 12px; padding: 4px 6px; }
 .solver-step-row span { flex: 1 1 auto; text-align: center; font-size: 12px; color: #191919; }
+
+/* 关系雷达（面板在 board-tools.js 里，与求解面板同款外表）。桌面端两块面板（求解参数 / 关系雷达）
+   叠在右上角同一处，靠**面板内部顶部**这条页签条切换：没选中的一块整块藏起来（.panel-tab-hidden）。
+   手机端这条页签条不显示 —— 那里是求解图标下面的第二个圆形按钮 + 各自的上拉栏 */
+.solver-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: -2px;
+}
+.solver-tabs button {
+    flex: 1 1 0;
+    min-height: 28px;
+    padding: 4px 8px;
+    font-size: 13px;
+    white-space: nowrap;
+}
+.solver-tabs button.active { background-color: #d7e8eb; box-shadow: inset 0 0 0 2px #277f96; }
+/* !important：面板自己是 display: grid，普通规则压不过 */
+.solver-panel.panel-tab-hidden { display: none !important; }
+/* 雷达面板与求解面板同宽（两块叠在同一处，宽度一致才不会切页签时跳一下） */
+.radar-panel { width: 240px; }
+/* 八个勾：一列一项（与求解参数一致；两列时标题会被挤断） */
+.radar-kinds { display: grid; gap: 6px; }
+.radar-option { display: grid; gap: 3px; min-width: 0; }
+/* 勾选框与标题同一行、不换行（标题挤不下就省略号，不要折行） */
+.radar-panel .solver-check { display: flex; align-items: center; gap: 4px; white-space: nowrap; overflow: hidden; }
+.radar-panel .solver-check span { overflow: hidden; text-overflow: ellipsis; }
+/* 勾上才显示的参数输入，就放在同一格里 */
+.radar-panel .radar-field { display: grid; gap: 2px; }
+.radar-panel .radar-field span { font-size: 11px; color: #4a4a50; }
+.radar-panel .radar-field input { min-height: 26px; padding: 3px 5px; font-size: 12px; }
+.radar-panel .radar-field-off { display: none; }
+/* 单尺模式下「紧圆规」没有意义：整行灰掉 */
+.radar-panel .solver-check.radar-disabled { opacity: 0.45; }
+.radar-panel output { color: #191919; }
+.radar-results { display: grid; gap: 6px; }
+.radar-results:empty { display: none; }
+.radar-group { border-top: 1px solid rgb(200, 200, 206); padding-top: 4px; }
+.radar-group summary { font-size: 13px; cursor: pointer; }
+.radar-group[open] summary { margin-bottom: 4px; }
+/* 一条结果：整行可点，点中就在画布上标出来（紫色与画布上的关系覆盖层同色）。
+   选择器带 .radar-panel 前缀：面板里那条 .solver-panel button 的通用规则权重更高 */
+.radar-panel .radar-row {
+    display: block;
+    width: 100%;
+    min-height: 0;
+    margin-bottom: 3px;
+    padding: 5px 7px;
+    border: none;
+    border-radius: 5px;
+    background-color: rgb(240, 240, 240);
+    font: inherit;
+    font-size: 12px;
+    line-height: 1.4;
+    text-align: left;
+    cursor: pointer;
+}
+.radar-panel .radar-row.active { background-color: rgb(238, 226, 250); box-shadow: inset 0 0 0 2px #8a2be2; }
+/* 画布上已经不成立（对象被删 / 关系被拖散了） */
+.radar-panel .radar-row.stale { color: #8a8a90; text-decoration: line-through; }
+.radar-empty { margin: 2px 0 4px; font-size: 12px; color: #6a6a70; }
 /* 文字步骤弹框：等宽字体、可滚动 */
 .board-dialog-report { margin: 0; max-height: 60vh; overflow: auto; padding: 10px; border-radius: 8px; background-color: rgb(240, 240, 240); font-family: ui-monospace, Consolas, monospace; font-size: 13px; line-height: 1.6; white-space: pre-wrap; }
 
@@ -2444,6 +2522,12 @@ textarea {
     .complete-steps {
         font-size: 12px;
     }
+    /* 关系雷达在手机端走「第二个圆形按钮 + 自己那块上拉栏」：桌面端那条页签条不显示。
+       这里再兜一手 .panel-tab-hidden —— 万一窗口是从桌面尺寸拖进来的（JS 的 resize 同步没跑到），
+       也不能让页签的隐藏状态把面板整块藏在上拉栏里 */
+    .solver-tabs { display: none; }
+    .solver-panel.panel-tab-hidden { display: grid !important; }
+
     /* 手机端：设置面板收进「左上角两个圆形按钮 + 底部上拉栏」（桌面端仍旧浮在画布上） */
     .side-buttons {
         display: flex;
@@ -2490,10 +2574,11 @@ textarea {
         height: 96px;
         pointer-events: auto;
     }
-    /* 手机端上拉栏里空间窄：求解参数两两并排省高度 */
-    .panel-sheet .solver-field-row {
+    /* 手机端上拉栏里空间窄：求解参数两两并排省高度；关系雷达的八个勾也一样（电脑端是一列一项） */
+    /*.panel-sheet .solver-field-row,
+    .panel-sheet .radar-kinds {
         grid-template-columns: 1fr 1fr;
-    }
+    }*/
     .panel-sheet-head {
         display: flex;
         flex-shrink: 0;

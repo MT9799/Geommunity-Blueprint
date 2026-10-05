@@ -22,7 +22,7 @@
  *      页面按「平均每个情况多大」外推总量，画「已搜情况数 / 预估总情况数」的进度条
  */
 
-importScripts('bs-core.js', 'bs-sets.js', 'bs-solver.js', 'bs-report.js');
+importScripts('bs-core.js', 'bs-sets.js', 'bs-solver.js', 'bs-heuristic.js', 'bs-report.js');
 
 const WORKER_NOW = () => performance.now();
 
@@ -383,29 +383,93 @@ function countFrontierTasks(request, depth) {
     return overflow ? 0 : count;
 }
 
+/** 读启发式参数 过程函数（页面只给一个开关，其余用内核默认值） */
+function readHeuristicOptions(request) {
+    const source = request.heuristicOptions || {};
+    const options = {};
+    for (const key of ['beamWidth', 'branchLimit', 'restarts', 'seed', 'tailSeconds', 'tailCandidates',
+        'adaptive', 'structural', 'prerequisites']) {
+        if (typeof source[key] === typeof HEURISTIC_DEFAULT_OPTIONS[key]) options[key] = source[key];
+    }
+    return options;
+}
+
+/** 搜索统计合并 过程函数（启发式与兜底 DFS 两段跑在同一份统计上） */
+function mergeSearchStats(target, source) {
+    for (const key of Object.keys(target)) {
+        if (typeof source[key] === 'number' && typeof target[key] === 'number') target[key] += source[key];
+    }
+    target.maxPoints = Math.max(target.maxPoints || 0, source.maxPoints || 0);
+    target.maxElements = Math.max(target.maxElements || 0, source.maxElements || 0);
+}
+
+/**
+ * 启发式那一趟能花掉总预算的比例 过程函数常量
+ * 剩下的留给兜底 DFS：勾上开关只是「先想办法快点找到」，而不是把穷举那条路挤掉
+ */
+const HEURISTIC_BUDGET_SHARE = 0.55;
+
 /** 跑一次搜索并组织返回值 过程函数 */
 function runSearch(request, id) {
-    const {limit, graph, givenPointCount, collector, solver} = createSolver(request);
+    const {limit, graph, givenPointCount, collector, solver, settings} = createSolver(request);
     // 一找到解就往页面发一条，不必等这次搜索收尾
     attachSolutionStream(collector, id, graph, givenPointCount);
-    // 进度条（页面侧见 board-tools.js 的 refreshSearchProgress）：
-    //   ① 先数一遍「搜索树在边界层有多少个情况」当分母（这一趟只走不搜，几毫秒到几百毫秒）；
-    //   ② 再让内核边搜边报「已搜多少个节点 / 已经搜完几个情况」，页面按平均规模外推总量
-    const progressDepth = progressDepthOf(request);
-    const totalTasks = countFrontierTasks(request, progressDepth) || countFrontierTasks(request, 1);
-    if (totalTasks > 0) {
-        solver.progressDepth = progressDepth;
-        solver.progressTotalTasks = totalTasks;
-        solver.onProgress = payload => self.postMessage(Object.assign({type: 'progress', id: id}, payload));
-    }
-    const stats = makeSearchStats();
 
     const startedAt = WORKER_NOW();
-    solver.search(graph, limit, stats);
+    const deadline = startedAt + settings.timeLimitSeconds * 1000;
+    const stats = makeSearchStats();
+    let timedOut = false;
+    let heuristicMetrics = null;
+    let heuristicOnly = false;
+    let engine = 'bs v8 (JS)';
+
+    if (request.heuristic) {
+        // 启发式先跑（高级选项「启发式搜索（测试）」，默认关）：只**找**解、不证明穷尽。
+        // 它是加速器，不是替代品 —— 拿掉一部分预算，没找到就把剩下的交给兜底 DFS
+        const control = {
+            stop: false,
+            found: false,
+            timedOut: false,
+            deadline: startedAt + settings.timeLimitSeconds * 1000 * HEURISTIC_BUDGET_SHARE,
+        };
+        const engineSolver = new HeuristicSolver(graph, limit, solver.toolType,
+            readHeuristicOptions(request), collector, control);
+        const outcome = engineSolver.run();
+        mergeSearchStats(stats, engineSolver.stats);
+        heuristicMetrics = outcome.metrics;
+        timedOut = outcome.timedOut;
+        engine = 'bs v12 heuristic (JS)';
+        heuristicOnly = true;
+    }
+
+    // 还没交出一条解、时间也还有剩 → 兜底 DFS（没勾启发式时，这就是唯一那一趟）
+    if (!collector.entries.length && WORKER_NOW() < deadline - 50) {
+        if (heuristicMetrics) {
+            heuristicOnly = false;
+            engine = 'bs v12 heuristic (JS) → bs v8 (JS)';
+            // 预算里扣掉启发式花掉的那部分；这一趟不再数「一共有多少个情况」
+            //（那是额外一整趟只走不搜的遍历，会白白吃掉剩下的时间），进度条只按已搜节点走
+            solver.timeLimitSeconds = Math.max(0.05, (deadline - WORKER_NOW()) / 1000);
+        } else {
+            // 进度条（页面侧见 board-tools.js 的 refreshSearchProgress）：
+            //   ① 先数一遍「搜索树在边界层有多少个情况」当分母（这一趟只走不搜，几毫秒到几百毫秒）；
+            //   ② 再让内核边搜边报「已搜多少个节点 / 已经搜完几个情况」，页面按平均规模外推总量
+            const progressDepth = progressDepthOf(request);
+            const totalTasks = countFrontierTasks(request, progressDepth) || countFrontierTasks(request, 1);
+            if (totalTasks > 0) {
+                solver.progressDepth = progressDepth;
+                solver.progressTotalTasks = totalTasks;
+            }
+        }
+        solver.onProgress = payload => self.postMessage(Object.assign({type: 'progress', id: id}, payload));
+        solver.search(graph, limit, stats);
+        // 这一趟跑完了（没超时）就说明搜索树真的搜穷了 —— 不管启发式那趟超没超时，
+        // 结论都以 DFS 为准
+        timedOut = solver.isTimedOut();
+    }
     const seconds = (WORKER_NOW() - startedAt) / 1000;
 
     const solutions = collectSolutions(collector, givenPointCount);
-    const settings = makeSettings(request);
 
     // 旧协议：points / elements 是「给定 + 新作」的整表，页面自己跳过头几个
     const first = solutions.length ? solutions[0] : null;
@@ -422,12 +486,17 @@ function runSearch(request, id) {
         solutionCount: solutions.length,
         requestedSolutions: settings.requestedSolutions,
         quotaReached: solutions.length >= settings.requestedSolutions,
-        timedOut: solver.isTimedOut(),
+        timedOut: timedOut,
         initialElementCount: graph.initialElementCount,
         initialPointCount: givenPointCount,
         newElementCount: first ? first.newElementCount : 0,
         stats,
-        engine: 'bs v8 (JS)',
+        // 启发式模式才有：重启 / beam / 截断 / 尾助搜等诊断量
+        heuristic: heuristicMetrics,
+        // true = 这一趟只有启发式跑过（找到解，或时间被它用完了）——
+        // 页面据此决定「未找到解」的文案要不要说「这不代表无解」
+        heuristicOnly: heuristicOnly,
+        engine: engine,
     };
     return result;
 }
