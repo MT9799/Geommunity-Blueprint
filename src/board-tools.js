@@ -236,11 +236,24 @@
     return {elements: geometryManager.toStorage(), lists: lists, grid: gridMetaSnapshot()};
   };
   /**
+   * 几何被整体替换（载入历史记录 / 撤销重做 / 导入 gmt / 清空画布 / 从游玩返回）时，
+   * 自动清空求解器里「求解」「探测」两块的结果 —— 它们都指着旧几何，留着会误导
+   * （非求解器模式下两个全局句柄都是 undefined，这里直接跳过，是安全无操作）
+   */
+  const clearSolverOutputs = () => {
+    if (window.relationRadarPanel && typeof window.relationRadarPanel.clear === 'function') {
+      window.relationRadarPanel.clear();
+    }
+    if (typeof window.solverSolveClear === 'function') window.solverSolveClear();
+  };
+  /**
    * 清空所有画布管理器 过程函数
    * 关卡游玩里有「结果 / 探索」两个管理器持有同一批对象，清空画布时只清当前这一个的话，
    * 重新载入关卡图形时同一个 ID 会被当成重复而改名，之后选定栏、判定与显示全乱套
    */
   window.clearAllCanvases = () => {
+    // 画布都要清空了，求解 / 探测的结果自然作废
+    clearSolverOutputs();
     const managers = [
       typeof geometryManagerResult !== 'undefined' ? geometryManagerResult : null,
       typeof geometryManagerExplore !== 'undefined' ? geometryManagerExplore : null,
@@ -387,6 +400,8 @@
     // 选中被清掉了（快照里不含选定栏），浮动栏的按钮要跟着重新判断可用性：
     // 不刷新的话「调整对象样式」「删除选中对象」「清空选择」还亮着，点了没反应
     if (typeof refreshToolFloating === 'function') refreshToolFloating();
+    // 几何被整套替换（载入记录 / 撤销重做 / 从游玩返回），求解与探测结果一并清空
+    clearSolverOutputs();
   };
   /**
    * 重置撤销/重做历史 过程函数
@@ -2034,6 +2049,8 @@
     // 导入的关卡按 gmt 顺序成为历史：可以一步步撤回
     if (typeof resetStorageHistoryInSteps === 'function') resetStorageHistoryInSteps();
     else resetStorageHistory();
+    // 导入 gmt 换掉了整套图形，求解 / 探测的结果一并清空
+    clearSolverOutputs();
     return true;
   };
   const saveGmtFile = () => download('custom-level.gmt', gmtText(), 'text/plain');
@@ -3162,7 +3179,7 @@
 
     // 面板状态：最近一次扫描 + 当前选中要标出来的条目（键 = 分组#下标）
     // token：扫描放到下一帧跑，中途「清除结果」或再点一次探测时让旧的那一轮作废
-    const state = {result: null, selected: new Set(), snapshotProvider: config.snapshot, scanning: false, token: 0};
+    const state = {result: null, selected: new Set(), snapshotProvider: config.snapshot, scanning: false, token: 0, groupOpen: {}, resultRendered: false};
 
     /** 勾选状态 → 参数输入的显隐 过程函数 */
     const syncFields = () => {
@@ -3282,6 +3299,12 @@
     /** 画结果列表 过程函数 */
     const render = () => {
       const result = state.result;
+      // 同一次结果的刷新（点条目会触发）才保留各分组的展开/收起状态；
+      // 新一次扫描要重置成 autoOpen（见 scan 里把 resultRendered 置回 false）。
+      // 注意：<details> 的 toggle 事件是异步派发的，所以直接读 DOM 的 open 才是当下真实状态
+      if (state.resultRendered) {
+        results.querySelectorAll('.radar-group').forEach(d => { if (d.dataset.kind) state.groupOpen[d.dataset.kind] = d.open; });
+      }
       results.innerHTML = '';
       if (!result) return;
       const stale = staleIndices();
@@ -3289,7 +3312,10 @@
         const entries = result.kind[kind];
         const details = document.createElement('details');
         details.className = 'radar-group';
-        details.open = entries.length > 0 && entries.length <= 12;
+        details.dataset.kind = kind;
+        // 条目一多默认收起；同次结果刷新时按用户手动状态保留
+        const autoOpen = entries.length > 0 && entries.length <= 12;
+        details.open = (kind in state.groupOpen) ? state.groupOpen[kind] : autoOpen;
         const summary = document.createElement('summary');
         summary.textContent = `${t(GROUP_LABELS[kind] || kind)} · ${entries.length}${t('board.radarCountSuffix')}`;
         details.appendChild(summary);
@@ -3333,6 +3359,7 @@
         none.textContent = t('board.radarNothingChecked');
         results.appendChild(none);
       }
+      state.resultRendered = true;
       runButton.textContent = t('board.radarRun');
       runButton.classList.remove('running');
       state.scanning = false;
@@ -3364,6 +3391,8 @@
       state.token++;              // 在跑的那一轮扫描就此作废
       state.result = null;
       state.selected.clear();
+      state.groupOpen = {};
+      state.resultRendered = false;
       state.scanning = false;
       results.innerHTML = '';
       runButton.textContent = t('board.radarRun');
@@ -3413,6 +3442,9 @@
           return;
         }
         state.result = result;
+        // 新一轮探测：展开记忆清空，分组回到默认（<12 展开、>12 收起），不再沿用上轮遗留的收起态
+        state.groupOpen = {};
+        state.resultRendered = false;
         lastFingerprint = configFingerprint();
         status.textContent = (result.count
           ? t('board.radarFound', {count: result.count})
@@ -4510,7 +4542,8 @@
       showStep(currentIndex, currentStep + 1);
     });
 
-    panel.querySelector('#geb-solver-clear').addEventListener('click', () => {
+    // 清空求解结果（手动点按钮与「几何被外部替换」自动触发都用它）
+    const clearSolve = () => {
       // 还搜着就先停掉，免得停了之后又冒出一堆解法
       stopSearch();
       resetSearchProgress();
@@ -4522,7 +4555,10 @@
       list.innerHTML = '';
       clearSolverSolution();
       status.textContent = t('board.solverCleared');
-    });
+    };
+    panel.querySelector('#geb-solver-clear').addEventListener('click', clearSolve);
+    // 暴露给 clearSolverOutputs：载入记录 / 撤销重做 / 导入 gmt / 清空画布时自动清求解结果
+    window.solverSolveClear = clearSolve;
   };
   // 当前标记的集合名（initial / named / movepoints / result / resultShown）与当前标记工具（given / goal）
   let marking = null;

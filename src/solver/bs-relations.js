@@ -673,6 +673,22 @@ const GeoRelations = (function () {
     }
 
     /**
+     * 合并重合点 过程函数
+     * 同一处落了多个点（精确重合或误差内重合）时只留**最早创建**的那个（数组里最靠前），
+     * 否则雷达会把同一个点反复算进共线 / 线上比 / 等距… 里，虚标一堆几乎相同的关系
+     * @param {Object} board 扫描用的画板快照（会就地替换 points）
+     * @param {number} tolLength 长度容差（重合判定用，与全雷达一致）
+     */
+    function dedupeCoincidentPoints(board, tolLength) {
+        const source = board.points || [];
+        const kept = [];
+        source.forEach(point => {
+            if (!kept.some(canon => distance(canon, point) <= tolLength)) kept.push(point);
+        });
+        board.points = kept;
+    }
+
+    /**
      * 扫一遍画板快照 过程函数
      * @param {Object} board {span, points:[{id,x,y}], lines:[{id,x1,y1,x2,y2,drawType}], circles:[{id,cx,cy,r,centerId}]}
      * @param {Object} [options] 见 defaultOptions
@@ -685,6 +701,8 @@ const GeoRelations = (function () {
         const angleTolerance = opts.angleTolerance === null || opts.angleTolerance === undefined
             ? (ANGLE_TOLERANCE[opts.tolerance] || ANGLE_TOLERANCE.normal)
             : opts.angleTolerance;
+        // 先合并重合点：同一处的多个点当成一个（保留最早创建的），免得后面各种扫描重复计入
+        dedupeCoincidentPoints(board, tolLength);
         const stats = {truncated: false};
         const kinds = {};
         // 共线组无论勾没勾都要算：线上比就架在它上面
