@@ -2,6 +2,12 @@
 
 本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)，条目按 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 组织。
 
+## [1.2.4] - 2026-10-07
+
+### 变更
+
+- 调整了项目说明的背景图。
+
 ## [1.2.3] - 2026-10-06
 
 ### 新增
