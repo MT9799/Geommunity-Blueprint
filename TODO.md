@@ -4,14 +4,6 @@
 
 ## 1. 补全关卡信息
 
-### 1.1 缺答案图
-
-- `straightedge-only-pzls`：circumcenter-isosceles150、point-on-radical-axis、isosceles-double-circle
-
-### 1.3 缺步数 targetSteps
-
-- `straightedge-only-pzls`：circumcenter-isosceles150、point-on-radical-axis、isosceles-double-circle
-
 ### 1.4 缺说明 subtitle
 
 除 `ewp`（99）、`xmath`（25）之外的 7 个包整包都没有：`c-s-pzls-other`（59）、`xeuclidea-puzzle`（56）、`straightedge-only-pzls`（36）、`from-baidu-tieba`（34）、`mingjing-forum`（16）、`euc-addit`（10）、`sprfes`（10）。逐关的 id 清单需要时再列。

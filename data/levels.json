@@ -7451,7 +7451,7 @@
         "file": "levels/straightedge-only-pzls/024.circumcenter-isosceles150.gmt",
         "title": "12.外心等腰150",
         "subtitle": "",
-        "targetSteps": "",
+        "targetSteps": "15E",
         "diagram": "diagrams/straightedge-only-pzls/024.circumcenter-isosceles150.png",
         "note": "",
         "tools": "straightedge",
@@ -7460,7 +7460,16 @@
             "外心",
             "等腰三角形"
         ],
-        "solutions": []
+        "solutions": [
+            {
+                "file": "answers/straightedge-only-pzls/024.circumcenter-isosceles150/circumcenter-isosceles150_15e.jpg",
+                "star": "15"
+            },
+            {
+                "file": "answers/straightedge-only-pzls/024.circumcenter-isosceles150/circumcenter-isosceles150_15e_2.jpg",
+                "star": "15"
+            }
+        ]
     },
     {
         "id": "point-on-radical-axis",
@@ -7468,14 +7477,23 @@
         "file": "levels/straightedge-only-pzls/025.point-on-radical-axis.gmt",
         "title": "13.根轴上点找心",
         "subtitle": "",
-        "targetSteps": "",
+        "targetSteps": "21E",
         "diagram": "diagrams/straightedge-only-pzls/025.point-on-radical-axis.png",
         "note": "",
         "tools": "straightedge",
         "keywords": [
             "Straightedge-only-Pzls"
         ],
-        "solutions": []
+        "solutions": [
+            {
+                "file": "answers/straightedge-only-pzls/025.point-on-radical-axis/point-on-radical-axis_21e.jpg",
+                "star": "21"
+            },
+            {
+                "file": "answers/straightedge-only-pzls/025.point-on-radical-axis/point-on-radical-axis_21e_2.jpg",
+                "star": "21"
+            }
+        ]
     },
     {
         "id": "5points1circle",
@@ -7504,7 +7522,7 @@
         "file": "levels/straightedge-only-pzls/027.isosceles-double-circle.gmt",
         "title": "15.双圆等腰找心",
         "subtitle": "",
-        "targetSteps": "",
+        "targetSteps": "26E",
         "diagram": "diagrams/straightedge-only-pzls/027.isosceles-double-circle.png",
         "note": "",
         "tools": "straightedge",
@@ -7512,7 +7530,16 @@
             "Straightedge-only-Pzls",
             "等腰三角形"
         ],
-        "solutions": []
+        "solutions": [
+            {
+                "file": "answers/straightedge-only-pzls/027.isosceles-double-circle/isosceles-double-circle_26e.jpg",
+                "star": "26"
+            },
+            {
+                "file": "answers/straightedge-only-pzls/027.isosceles-double-circle/isosceles-double-circle_26e_2.jpg",
+                "star": "26"
+            }
+        ]
     },
     {
         "id": "equal-chord",
