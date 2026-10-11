@@ -30,6 +30,7 @@ function renderMarkdown(text) {
     const html = [];
     let index = 0;
     let listType = null;
+    let closeSecondHeading = true;
     const closeList = () => {
         if (listType) html.push(`</${listType}>`);
         listType = null;
@@ -60,14 +61,33 @@ function renderMarkdown(text) {
             const head = cells(line);
             index += 2;
             const body = [];
+            html.push('<div class="table-roll-container">');
+            html.push('<div class="table-container">');
             while (index < lines.length && /^\s*\|/.test(lines[index])) body.push(cells(lines[index++]));
             html.push('<table><thead><tr>' + head.map(cell => `<th>${renderInline(cell)}</th>`).join('') + '</tr></thead><tbody>' +
                 body.map(row => '<tr>' + row.map(cell => `<td>${renderInline(cell)}</td>`).join('') + '</tr>').join('') + '</tbody></table>');
+            html.push('</div>');
+            html.push('</div>');
             continue;
         }
         // 标题
         const heading = /^(#{1,6})\s+(.*)$/.exec(line);
-        if (heading) {
+        const secondHeading = /^(##)\s+(.*)$/.exec(line);
+        if (secondHeading) {
+            closeList();
+            const level = heading[1].length;
+            if (!closeSecondHeading) {
+                html.push("</div>");
+                html.push("</details>");
+            }
+            html.push("<details>");
+            html.push(`<summary>${renderInline(heading[2])}</summary>`);
+            html.push("<div class='container'>");
+            index++;
+            if (closeSecondHeading) closeSecondHeading = false;
+            continue;
+        }
+        else if (heading) {
             closeList();
             const level = heading[1].length;
             html.push(`<h${level}>${renderInline(heading[2])}</h${level}>`);
@@ -114,6 +134,8 @@ function renderMarkdown(text) {
         html.push(`<p>${renderInline(paragraph.join(' '))}</p>`);
     }
     closeList();
+    html.push("</div>");
+    html.push("</details>");
     return html.join('\n');
 }
 

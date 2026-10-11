@@ -155,6 +155,66 @@
         .rec-dialog-actions { display: flex; justify-content: flex-end; gap: 8px; }
         .rec-dialog-actions button { padding: 7px 14px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); font: inherit; font-size: 13px; cursor: pointer; }
         .rec-dialog-actions button:hover { border-color: var(--blue); color: var(--blue); }
+        
+        @media (max-width: 420px) {
+            .table-roll-container {
+                max-width: 100%; 
+                overflow: auto;
+            }
+            .table-container {
+                width: 120vw; 
+            }
+        }
+        
+        summary {
+          list-style: none;
+          cursor: pointer;
+          /* 标题样式 */
+          font-size: 19px; 
+          margin: 24px 0 10px; 
+          padding-bottom: 6px; 
+          border-bottom: 1px solid var(--line);
+          
+          font-weight: bold;
+          /*color: #2c3e50;
+          padding: 8px 0;*/
+          border-bottom: 1px solid #eee;
+        }
+        
+        summary::after {
+          content: "▼";
+          color: #7C8185;
+          display: inline-block;
+          margin-left: 8px;
+          font-size: 20px;
+          transition: transform 0.2s;
+        }
+        
+        details[open] summary::after {
+          transform: rotate(180deg);
+        }
+        
+        details { 
+            max-height: 100px; 
+            transition: max-height .25s;
+            overflow: auto;
+        }
+        details[open] { 
+            max-height: 1000px;
+            transition: max-height .25s;
+        }
+        details .container { 
+            overflow: auto;
+            max-height: 900px;
+        }
+        @media (max-width: 420px) {
+            details[open] { 
+                max-height: 500px;
+            }
+            details .container { 
+                max-height: 400px;
+            }
+        }
     </style>
 </head>
 <body>
