@@ -3630,12 +3630,15 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/001.Conway Circle.gmt",
         "title": "Conway Circle",
-        "subtitle": "",
+        "subtitle": "构造三角形的康威圆",
         "targetSteps": "5L / 10E",
         "diagram": "diagrams/c-s-pzls-other/001.Conway Circle.jpg",
         "note": "",
         "keywords": [
-            "C-s-Pzls-Other"
+            "C-s-Pzls-Other",
+            "三角形",
+            "圆",
+            "等长"
         ],
         "solutions": [
             {
@@ -3657,12 +3660,15 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/002.Malfatti's Problem.gmt",
         "title": "Malfatti's Problem",
-        "subtitle": "",
+        "subtitle": "马尔法蒂问题",
         "targetSteps": "23L / 31E",
         "diagram": "diagrams/c-s-pzls-other/002.Malfatti's Problem.png",
         "note": "",
         "keywords": [
-            "C-s-Pzls-Other"
+            "C-s-Pzls-Other",
+            "三角形",
+            "圆",
+            "相切"
         ],
         "solutions": [
             {
@@ -3676,13 +3682,15 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/003.IncOrthoc ReTriangle.gmt",
         "title": "IncOrthoc ReTriangle",
-        "subtitle": "",
+        "subtitle": "给定一三角形的内心、垂心和一边所在直线 复原这个三角形",
         "targetSteps": "13L / 15E",
         "diagram": "diagrams/c-s-pzls-other/003.IncOrthoc ReTriangle.png",
         "note": "",
         "keywords": [
             "C-s-Pzls-Other",
-            "三角形"
+            "三角形",
+            "内心",
+            "垂心"
         ],
         "solutions": [
             {
@@ -3696,13 +3704,15 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/004.IncCircmc ReTriangle.gmt",
         "title": "IncCircmc ReTriangle",
-        "subtitle": "",
+        "subtitle": "给定一三角形的内心、外心和一边所在直线 复原这个三角形",
         "targetSteps": "8L / 14E",
         "diagram": "diagrams/c-s-pzls-other/004.IncCircmc ReTriangle.png",
         "note": "",
         "keywords": [
             "C-s-Pzls-Other",
-            "三角形"
+            "三角形",
+            "内心",
+            "外心"
         ],
         "solutions": [
             {
@@ -3720,12 +3730,15 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/005.regular-octagon.gmt",
         "title": "Regular-octagon",
-        "subtitle": "",
+        "subtitle": "构造圆内接正八边形",
         "targetSteps": "10L / 13E",
         "diagram": "diagrams/c-s-pzls-other/005.regular-octagon.png",
         "note": "",
         "keywords": [
-            "C-s-Pzls-Other"
+            "C-s-Pzls-Other",
+            "圆",
+            "内接",
+            "正八边形"
         ],
         "solutions": [
             {
@@ -3747,12 +3760,16 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/006.i-h-o-linear-retri.gmt",
         "title": "I-H-O-Linear-ReTri",
-        "subtitle": "",
+        "subtitle": "给定一等腰三角形的外心 内心I、垂心H，复原这个三角形",
         "targetSteps": "9L / 10E",
         "diagram": "diagrams/c-s-pzls-other/006.i-h-o-linear-retri.png",
         "note": "",
         "keywords": [
-            "C-s-Pzls-Other"
+            "C-s-Pzls-Other",
+            "等腰三角形",
+            "外心",
+            "内心",
+            "垂心"
         ],
         "solutions": [
             {
@@ -3770,13 +3787,17 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/007.squaresum.gmt",
         "title": "SquareSum",
-        "subtitle": "",
+        "subtitle": "已知点A和B，和长度为c的线段， 求作点P的轨迹，使得等式成立: AP^2+BP^2=c^2",
         "targetSteps": "6L / 14E",
         "diagram": "diagrams/c-s-pzls-other/007.squaresum.jpg",
         "note": "",
         "keywords": [
             "C-s-Pzls-Other",
-            "正方形"
+            "线段",
+            "长度",
+            "等式",
+            "平方",
+            "轨迹"
         ],
         "solutions": [
             {
@@ -3790,13 +3811,15 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/008.tri-area-peri-bisect.gmt",
         "title": "Tri-Area-Peri-Bisect",
-        "subtitle": "",
+        "subtitle": "在三角形以A为端点的两边上各找一点并连 接，使其同时平分三角形的周长和面积。",
         "targetSteps": "6L / 13E",
         "diagram": "diagrams/c-s-pzls-other/008.tri-area-peri-bisect.png",
         "note": "",
         "keywords": [
             "C-s-Pzls-Other",
-            "面积",
+            "三角形",
+            "平分周长",
+            "平分面积",
             "多解"
         ],
         "solutions": [
@@ -3815,13 +3838,14 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/009.mixtilinear-incircle.gmt",
         "title": "Mixtilinear-Incircle",
-        "subtitle": "",
+        "subtitle": "构造三角形的伪内切圆",
         "targetSteps": "5L / 12E",
         "diagram": "diagrams/c-s-pzls-other/009.mixtilinear-incircle.png",
         "note": "",
         "keywords": [
             "C-s-Pzls-Other",
-            "内切圆"
+            "三角形",
+            "伪内切圆"
         ],
         "solutions": [
             {
@@ -3839,13 +3863,16 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/010.apollonius-ppc.gmt",
         "title": "Apollonius-PPC",
-        "subtitle": "",
+        "subtitle": "阿波罗尼奥斯问题-点点圆",
         "targetSteps": "8L / 12E",
         "diagram": "diagrams/c-s-pzls-other/010.apollonius-ppc.jpg",
         "note": "",
         "keywords": [
             "C-s-Pzls-Other",
-            "多解"
+            "阿波罗尼奥斯问题",
+            "相切",
+            "多解",
+            "圆过点"
         ],
         "solutions": [
             {
@@ -3867,12 +3894,14 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/011.apollonius-llc.gmt",
         "title": "Apollonius-LLC",
-        "subtitle": "",
+        "subtitle": "阿波罗尼奥斯问题-线线圆",
         "targetSteps": "7L / 12E",
         "diagram": "diagrams/c-s-pzls-other/011.apollonius-llc.png",
         "note": "",
         "keywords": [
             "C-s-Pzls-Other",
+            "阿波罗尼奥斯问题",
+            "相切",
             "多解"
         ],
         "solutions": [
@@ -3899,13 +3928,14 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/012.quadrilateral-g-center.gmt",
         "title": "Quadrilateral-G-Center",
-        "subtitle": "",
+        "subtitle": "构造四边形的面基质心",
         "targetSteps": "7L / 11E",
         "diagram": "diagrams/c-s-pzls-other/012.quadrilateral-g-center.png",
         "note": "",
         "keywords": [
             "C-s-Pzls-Other",
-            "四边形"
+            "四边形",
+            "面基质心"
         ],
         "solutions": [
             {
@@ -3923,12 +3953,14 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/013.first-lemoine-circle.gmt",
         "title": "First-Lemoine-Circle",
-        "subtitle": "",
+        "subtitle": "构造三角形的第一莱莫恩圆",
         "targetSteps": "10L / 21E",
         "diagram": "diagrams/c-s-pzls-other/013.first-lemoine-circle.png",
         "note": "",
         "keywords": [
-            "C-s-Pzls-Other"
+            "C-s-Pzls-Other",
+            "三角形",
+            "第一莱莫恩圆"
         ],
         "solutions": [
             {
@@ -3942,12 +3974,16 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/014.mixtilinear-hexagon.gmt",
         "title": "Mixtilinear-Hexagon",
-        "subtitle": "",
+        "subtitle": "给定圆上点A，构造正六边形ABCDEF，使得点C在圆上，边DE与圆相切",
         "targetSteps": "15L / 15E",
         "diagram": "diagrams/c-s-pzls-other/014.mixtilinear-hexagon.jpg",
         "note": "",
         "keywords": [
             "C-s-Pzls-Other",
+            "圆",
+            "正六边形",
+            "顶点接圆",
+            "相切",
             "多解"
         ],
         "solutions": [
@@ -3966,12 +4002,15 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/015.penta-trans-squ.gmt",
         "title": "Penta-Trans-Squ",
-        "subtitle": "",
+        "subtitle": "作一正方形与给定正五边形等面积，其中一 端点与A重合，一边在AB所在直线上，且和 正五边形同侧",
         "targetSteps": "19L / 19E",
         "diagram": "diagrams/c-s-pzls-other/015.penta-trans-squ.jpg",
         "note": "",
         "keywords": [
-            "C-s-Pzls-Other"
+            "C-s-Pzls-Other",
+            "面积",
+            "正五边形",
+            "正方形"
         ],
         "solutions": [
             {
@@ -3985,13 +4024,15 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/016.min-insc-chord.gmt",
         "title": "Min-Insc-Chord",
-        "subtitle": "",
+        "subtitle": "作一过两点的圆，使其在给定直线上所截的 弦最短",
         "targetSteps": "4L / 8E",
         "diagram": "diagrams/c-s-pzls-other/016.min-insc-chord.jpg",
         "note": "",
         "keywords": [
             "C-s-Pzls-Other",
-            "弦"
+            "弦",
+            "极小值",
+            "圆过点"
         ],
         "solutions": [
             {
@@ -4005,13 +4046,15 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/017.min-insc-chord-2.gmt",
         "title": "Min-Insc-Chord-2",
-        "subtitle": "",
+        "subtitle": "圆内外各有一点，作一过两点的圆，使其与 给定圆公共弦的长度最小(无需连接弦)",
         "targetSteps": "6L / 8E",
         "diagram": "diagrams/c-s-pzls-other/017.min-insc-chord-2.jpg",
         "note": "",
         "keywords": [
             "C-s-Pzls-Other",
-            "弦"
+            "弦",
+            "极小值",
+            "圆过点"
         ],
         "solutions": [
             {
@@ -4025,13 +4068,15 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/018.diameter-circle.gmt",
         "title": "Diameter-Circle",
-        "subtitle": "",
+        "subtitle": "构造圆心在直线上的圆，过给定点，与给定圆正交",
         "targetSteps": "6L / 7E",
         "diagram": "diagrams/c-s-pzls-other/018.diameter-circle.jpg",
         "note": "",
         "keywords": [
             "C-s-Pzls-Other",
-            "直径"
+            "直径",
+            "正交",
+            "圆过点"
         ],
         "solutions": [
             {
@@ -4049,14 +4094,16 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/019.half-perp-chord.gmt",
         "title": "Half-Perp-Chord",
-        "subtitle": "",
+        "subtitle": "构造与给定弦垂直的弦，且长度为前者的一半",
         "targetSteps": "4L / 11E",
         "diagram": "diagrams/c-s-pzls-other/019.half-perp-chord.jpg",
         "note": "",
         "keywords": [
             "C-s-Pzls-Other",
             "弦",
-            "多解"
+            "多解",
+            "垂直",
+            "长度关系"
         ],
         "solutions": [
             {
@@ -4078,13 +4125,14 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/020.copy-angle.gmt",
         "title": "Copy-Angle",
-        "subtitle": "",
+        "subtitle": "在射线顶点处构造相同大小的角",
         "targetSteps": "4L / 5E",
         "diagram": "diagrams/c-s-pzls-other/020.copy-angle.jpg",
         "note": "",
         "keywords": [
             "C-s-Pzls-Other",
-            "多解"
+            "多解",
+            "相同角度"
         ],
         "solutions": [
             {
@@ -4106,12 +4154,16 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/021.min60.gmt",
         "title": "Min60",
-        "subtitle": "",
+        "subtitle": "LBAC,B为定点，尺规在线段AB,射线AC 上作点E,D，使得2EDB＝60°此时BE有 最小值 B",
         "targetSteps": "5L / 5E",
         "diagram": "diagrams/c-s-pzls-other/021.min60.jpg",
         "note": "",
         "keywords": [
-            "C-s-Pzls-Other"
+            "C-s-Pzls-Other",
+            "角",
+            "60度",
+            "长度",
+            "极小值"
         ],
         "solutions": [
             {
@@ -4129,13 +4181,14 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/022.ppc-orthogonal.gmt",
         "title": "PPC-Orthogonal",
-        "subtitle": "",
+        "subtitle": "作一圆，过两给定点，且与给定的圆正交 (在交点的切线互相垂直)",
         "targetSteps": "6L / 10E",
         "diagram": "diagrams/c-s-pzls-other/022.ppc-orthogonal.png",
         "note": "",
         "keywords": [
             "C-s-Pzls-Other",
-            "垂线"
+            "正交",
+            "圆过点"
         ],
         "solutions": [
             {
@@ -4149,14 +4202,17 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/023.parallel-4equseg.gmt",
         "title": "Parallel-4EquSeg",
-        "subtitle": "",
+        "subtitle": "已知两平行线上各有A,B两点，在三条线上各作 C,D,E，使得AC=CD=DE=EB",
         "targetSteps": "10L / 15E",
         "diagram": "diagrams/c-s-pzls-other/023.parallel-4equseg.png",
         "note": "",
         "keywords": [
             "C-s-Pzls-Other",
             "平行线",
-            "多解"
+            "多解",
+            "4节棍",
+            "等长",
+            "线段"
         ],
         "solutions": [
             {
@@ -4174,14 +4230,16 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/024.parallel-segp-isosc.gmt",
         "title": "Parallel-SegP-Isosc",
-        "subtitle": "",
+        "subtitle": "已知两平行线及两点，过其中一点P作直线 与平行线的两交点到另一给定点等距",
         "targetSteps": "5L / 7E",
         "diagram": "diagrams/c-s-pzls-other/024.parallel-segp-isosc.png",
         "note": "",
         "keywords": [
             "C-s-Pzls-Other",
             "平行线",
-            "多解"
+            "多解",
+            "等长",
+            "直线过点"
         ],
         "solutions": [
             {
@@ -4207,14 +4265,18 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/025.chordeuqseg-thp.gmt",
         "title": "025.ChordEuqSeg-ThP",
-        "subtitle": "",
+        "subtitle": "已知一点、圆、线段，构造长度等于给 定线段的弦，使得弦所在直线过给定点",
         "targetSteps": "5L / 11E",
         "diagram": "diagrams/c-s-pzls-other/025.chordeuqseg-thp.jpg",
         "note": "",
         "keywords": [
             "C-s-Pzls-Other",
             "弦",
-            "多解"
+            "多解",
+            "圆",
+            "长度相等",
+            "直线过点",
+            "割线"
         ],
         "solutions": [
             {
@@ -4236,12 +4298,18 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/026.tri-3distsum-seg.gmt",
         "title": "Tri-3distSum-Seg",
-        "subtitle": "",
+        "subtitle": "过A作一线段，使得对于线段上的 任一点，到三角形三边距离和恒等",
         "targetSteps": "5L / 8E",
         "diagram": "diagrams/c-s-pzls-other/026.tri-3distsum-seg.jpg",
         "note": "",
         "keywords": [
-            "C-s-Pzls-Other"
+            "C-s-Pzls-Other",
+            "三角形",
+            "点线距离",
+            "等式",
+            "和",
+            "轨迹",
+            "恒定"
         ],
         "solutions": [
             {
@@ -4259,13 +4327,16 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/027.tangent-equaldist.gmt",
         "title": "Tangent-EqualDist",
-        "subtitle": "",
+        "subtitle": "已知圆和直线上一点，构造直线 上另外一点，使得两点距离等于 构造点与圆的切线长",
         "targetSteps": "3L / 4E",
         "diagram": "diagrams/c-s-pzls-other/027.tangent-equaldist.jpg",
         "note": "",
         "keywords": [
             "C-s-Pzls-Other",
-            "切线"
+            "切线",
+            "圆",
+            "直线",
+            "长度相等"
         ],
         "solutions": [
             {
@@ -4283,12 +4354,17 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/028.insctri-squsum-min.gmt",
         "title": "InscTri-SquSum-Min",
-        "subtitle": "",
+        "subtitle": "构造三角形的内接三角形，使得 该三角形三边平方和最小",
         "targetSteps": "12L / 26E",
         "diagram": "diagrams/c-s-pzls-other/028.insctri-squsum-min.jpg",
         "note": "",
         "keywords": [
-            "C-s-Pzls-Other"
+            "C-s-Pzls-Other",
+            "三角形",
+            "内接",
+            "边长度",
+            "平方和",
+            "极小值"
         ],
         "solutions": [
             {
@@ -4302,12 +4378,17 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/029.2angles-diff-45.gmt",
         "title": "2Angles-Diff-45",
-        "subtitle": "",
+        "subtitle": "在给定直线上作一点C， 使得△CAB-CBA=45°",
         "targetSteps": "7L / 10E",
         "diagram": "diagrams/c-s-pzls-other/029.2angles-diff-45.png",
         "note": "",
         "keywords": [
-            "C-s-Pzls-Other"
+            "C-s-Pzls-Other",
+            "直线",
+            "45度",
+            "角度",
+            "等式",
+            "角度差"
         ],
         "solutions": [
             {
@@ -4325,12 +4406,16 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/030.oncircle-c-orthoc.gmt",
         "title": "OnCircle-C-Orthoc",
-        "subtitle": "",
+        "subtitle": "在圆上找两点与给定点构成锐角三角形，且圆 心为其垂心",
         "targetSteps": "8L / 11E",
         "diagram": "diagrams/c-s-pzls-other/030.oncircle-c-orthoc.png",
         "note": "",
         "keywords": [
-            "C-s-Pzls-Other"
+            "C-s-Pzls-Other",
+            "圆",
+            "锐角三角形",
+            "垂心",
+            "圆心"
         ],
         "solutions": [
             {
@@ -4360,13 +4445,15 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/031.midp-windmill.gmt",
         "title": "MidP-Windmill",
-        "subtitle": "",
+        "subtitle": "如图，已知三点，求作另外三点，使得这 三点依次为每条连接一给定点的线段的顶 点和下一条这样的线段的中点。",
         "targetSteps": "9L / 10E",
         "diagram": "diagrams/c-s-pzls-other/031.midp-windmill.png",
         "note": "",
         "keywords": [
             "C-s-Pzls-Other",
-            "多解"
+            "多解",
+            "点集",
+            "中点"
         ],
         "solutions": [
             {
@@ -4388,13 +4475,16 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/032.doublec-equchord.gmt",
         "title": "DoubleC-EquChord",
-        "subtitle": "",
+        "subtitle": "如图，已知两相离的圆及圆外一点， 过给定点求作一直线，使其被两圆截 得的两线段相等.",
         "targetSteps": "9L / 13E",
         "diagram": "diagrams/c-s-pzls-other/032.doublec-equchord.png",
         "note": "",
         "keywords": [
             "C-s-Pzls-Other",
-            "弦"
+            "弦",
+            "长度相等",
+            "直线过点",
+            "割线"
         ],
         "solutions": [
             {
@@ -4416,13 +4506,19 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/033.diamp-tanl-c.gmt",
         "title": "DiamP-TanL-C",
-        "subtitle": "",
+        "subtitle": "如图，已知一圆和圆外一点，求作过给定点的 与给定圆外切的圆，及两圆的公切线，使得公 切线切点与给定点为所求圆的对径点（连成 的线段为所求圆的直径）.",
         "targetSteps": "10L / 15E",
         "diagram": "diagrams/c-s-pzls-other/033.diamp-tanl-c.png",
         "note": "",
         "keywords": [
             "C-s-Pzls-Other",
-            "多解"
+            "多解",
+            "对径点",
+            "相切",
+            "公切线",
+            "切点",
+            "圆",
+            "圆过点"
         ],
         "solutions": [
             {
@@ -4444,12 +4540,17 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/034.vp-tan-inangle.gmt",
         "title": "VP-Tan-InAngle",
-        "subtitle": "",
+        "subtitle": "圆0与角A的两边相切，B为圆0上一点，求作 一圆经过AB，且与角A两边相交形成的线段与圆0相切",
         "targetSteps": "8L / 12E",
         "diagram": "diagrams/c-s-pzls-other/034.vp-tan-inangle.png",
         "note": "",
         "keywords": [
-            "C-s-Pzls-Other"
+            "C-s-Pzls-Other",
+            "角",
+            "圆",
+            "相切",
+            "截弦",
+            "圆过点"
         ],
         "solutions": [
             {
@@ -4467,13 +4568,18 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/035.side-1-2-onangle.gmt",
         "title": "Side-1-2-OnAngle",
-        "subtitle": "",
+        "subtitle": "过点作一直线交角的两边于A、B两 点，使得AB:(OA+OB)=1:2。",
         "targetSteps": "5L / 10E",
         "diagram": "diagrams/c-s-pzls-other/035.side-1-2-onangle.png",
         "note": "",
         "keywords": [
             "C-s-Pzls-Other",
-            "多解"
+            "多解",
+            "截线",
+            "直线过点",
+            "长度",
+            "等式",
+            "比例"
         ],
         "solutions": [
             {
@@ -4495,13 +4601,16 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/036.p-3lines-midp.gmt",
         "title": "P-3Lines-MidP",
-        "subtitle": "",
+        "subtitle": "过点作一直线，使其被给定三不共 点的直线截得的两线段等长",
         "targetSteps": "11L / 16E",
         "diagram": "diagrams/c-s-pzls-other/036.p-3lines-midp.jpg",
         "note": "",
         "keywords": [
             "C-s-Pzls-Other",
-            "多解"
+            "多解",
+            "直线过点",
+            "截线",
+            "长度相等"
         ],
         "solutions": [
             {
@@ -4527,13 +4636,16 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/037.2v-euline-retri.gmt",
         "title": "2V-EuLine-ReTri",
-        "subtitle": "",
+        "subtitle": "已知三角形的两顶点及其欧拉线， 作其第三个顶点",
         "targetSteps": "6L / 8E",
         "diagram": "diagrams/c-s-pzls-other/037.2v-euline-retri.jpg",
         "note": "",
         "keywords": [
             "C-s-Pzls-Other",
-            "多解"
+            "多解",
+            "三角形",
+            "顶点",
+            "欧拉线"
         ],
         "solutions": [
             {
@@ -4551,13 +4663,16 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/038.paral-3equalr.gmt",
         "title": "Paral-3EqualR",
-        "subtitle": "",
+        "subtitle": "在三角形内找一点，使得从该点出发的顺次平行 于各边的且被下一边截得的线段等长",
         "targetSteps": "5L / 10E",
         "diagram": "diagrams/c-s-pzls-other/038.paral-3equalr.png",
         "note": "",
         "keywords": [
             "C-s-Pzls-Other",
-            "多解"
+            "多解",
+            "三角形",
+            "平行",
+            "长度相等"
         ],
         "solutions": [
             {
@@ -4583,13 +4698,18 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/039.tgt-online-pt90.gmt",
         "title": "Tgt-onLine-Pt90",
-        "subtitle": "",
+        "subtitle": "在给定直线上找一点，使得该点给定点连 线与该点作给定圆一条切线夹角为90°",
         "targetSteps": "9L / 14E",
         "diagram": "diagrams/c-s-pzls-other/039.tgt-online-pt90.jpg",
         "note": "",
         "keywords": [
             "C-s-Pzls-Other",
-            "多解"
+            "多解",
+            "直线",
+            "圆",
+            "切线",
+            "90度",
+            "垂直"
         ],
         "solutions": [
             {
@@ -4611,13 +4731,16 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/040.3c-ctan-p.gmt",
         "title": "3C-CTan-P",
-        "subtitle": "",
+        "subtitle": "以给定的圆心作三个圆，使其两两公切线共给 定点",
         "targetSteps": "18L / 20E",
         "diagram": "diagrams/c-s-pzls-other/040.3c-ctan-p.png",
         "note": "",
         "keywords": [
             "C-s-Pzls-Other",
-            "多解"
+            "多解",
+            "圆",
+            "公切线",
+            "交点"
         ],
         "solutions": [
             {
@@ -4635,14 +4758,15 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/041.rhombus-tri-side.gmt",
         "title": "Rhombus-Tri-Side",
-        "subtitle": "",
+        "subtitle": "作一个菱形，其一边在三角形一边上， 另两个顶点在三角形另两边上",
         "targetSteps": "6L / 9E",
         "diagram": "diagrams/c-s-pzls-other/041.rhombus-tri-side.jpg",
         "note": "",
         "keywords": [
             "C-s-Pzls-Other",
             "菱形",
-            "多解"
+            "多解",
+            "三角形"
         ],
         "solutions": [
             {
@@ -4664,14 +4788,16 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/042.inversion-on-tri.gmt",
         "title": "Inversion-on-Tri",
-        "subtitle": "",
+        "subtitle": "在AB上作出D，使得AD·BD=CD²",
         "targetSteps": "5L / 11E",
         "diagram": "diagrams/c-s-pzls-other/042.inversion-on-tri.jpg",
         "note": "",
         "keywords": [
             "C-s-Pzls-Other",
             "反演",
-            "多解"
+            "多解",
+            "等式",
+            "距离"
         ],
         "solutions": [
             {
@@ -4685,12 +4811,15 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/043.abisect-on-fielda.gmt",
         "title": "ABisect-on-FieldA",
-        "subtitle": "",
+        "subtitle": "给定角O，点P和点C,求作过点P的直线交角O于A,B， 使得角ACB被CO平分.",
         "targetSteps": "6L / 6E",
         "diagram": "diagrams/c-s-pzls-other/043.abisect-on-fielda.jpg",
         "note": "",
         "keywords": [
-            "C-s-Pzls-Other"
+            "C-s-Pzls-Other",
+            "角",
+            "交点",
+            "角平分线"
         ],
         "solutions": [
             {
@@ -4704,15 +4833,16 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/044.pararetcir.gmt",
         "title": "pararetcir",
-        "subtitle": "",
+        "subtitle": "构造平行线与圆相交组成直角三角形",
         "targetSteps": "19L / 35E",
         "diagram": "diagrams/c-s-pzls-other/044.pararetcir.png",
         "note": "",
         "keywords": [
             "C-s-Pzls-Other",
             "平行线",
-            "三角形",
-            "多解"
+            "直角三角形",
+            "多解",
+            "交点"
         ],
         "solutions": [
             {
@@ -4734,7 +4864,7 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/045.rhorectwi.gmt",
         "title": "rhorectwi",
-        "subtitle": "",
+        "subtitle": "构造矩形的外接菱形，使得菱形边长为矩 形任一边长的两倍",
         "targetSteps": "12E",
         "diagram": "diagrams/c-s-pzls-other/045.rhorectwi.png",
         "note": "",
@@ -4742,7 +4872,10 @@
             "C-s-Pzls-Other",
             "菱形",
             "矩形",
-            "多解"
+            "多解",
+            "外接",
+            "长度",
+            "比例"
         ],
         "solutions": [
             {
@@ -4760,13 +4893,18 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/046.equtriintripbisetroupoi.gmt",
         "title": "EquTriInTriPBiseTrouPoi",
-        "subtitle": "",
+        "subtitle": "构造内接等边三角形，使得正三 角形其中 一边的垂直平分线过给定点",
         "targetSteps": "23L / 51E",
         "diagram": "diagrams/c-s-pzls-other/046.equtriintripbisetroupoi.png",
         "note": "",
         "keywords": [
             "C-s-Pzls-Other",
-            "多解"
+            "多解",
+            "三角形",
+            "直线过点",
+            "正三角形",
+            "内接",
+            "垂直平分线"
         ],
         "solutions": [
             {
@@ -4784,13 +4922,17 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/047.pararetincir.gmt",
         "title": "ParaRetInCir",
-        "subtitle": "",
+        "subtitle": "给定两圆的公切线和交点B，构造平行于切 线的直线，与两圆交点CD，使得BCD为B 直角的直角三角形",
         "targetSteps": "9L / 11E",
         "diagram": "diagrams/c-s-pzls-other/047.pararetincir.png",
         "note": "",
         "keywords": [
             "C-s-Pzls-Other",
-            "多解"
+            "平行线",
+            "直角三角形",
+            "多解",
+            "交点",
+            "公切线"
         ],
         "solutions": [
             {
@@ -4808,13 +4950,19 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/048.segcir.gmt",
         "title": "SegCir",
-        "subtitle": "",
+        "subtitle": "构造过交点C的直线，截两圆于点AB，使 得AB与给定线段长度相等",
         "targetSteps": "4L / 9E",
         "diagram": "diagrams/c-s-pzls-other/048.segcir.png",
         "note": "",
         "keywords": [
             "C-s-Pzls-Other",
-            "多解"
+            "多解",
+            "圆",
+            "相等",
+            "交点",
+            "直线过点",
+            "长度相等",
+            "截弦"
         ],
         "solutions": [
             {
@@ -4836,13 +4984,17 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/049.squsym.gmt",
         "title": "SquSym",
-        "subtitle": "",
+        "subtitle": "角AOB，角上一点C，构造正方形CDEF 使得EF过O，DE与OB交于点G，使得△FC O=LGCO",
         "targetSteps": "10L / 17E",
         "diagram": "diagrams/c-s-pzls-other/049.squsym.png",
         "note": "",
         "keywords": [
             "C-s-Pzls-Other",
-            "多解"
+            "多解",
+            "角正方形",
+            "直线过点",
+            "交点",
+            "角度相等"
         ],
         "solutions": [
             {
@@ -4864,13 +5016,18 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/050.rettwiang.gmt",
         "title": "RetTwiAng",
-        "subtitle": "",
+        "subtitle": "C为直角的直角三角形ABC，AB中点为D 构造AC边上一点E，使得2LCBE=LAED",
         "targetSteps": "5L / 6E",
         "diagram": "diagrams/c-s-pzls-other/050.rettwiang.png",
         "note": "",
         "keywords": [
             "C-s-Pzls-Other",
-            "多解"
+            "多解",
+            "直角三角形",
+            "中点",
+            "角度",
+            "等式",
+            "比例"
         ],
         "solutions": [
             {
@@ -4888,12 +5045,16 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/051.miha.gmt",
         "title": "MIHa",
-        "subtitle": "",
+        "subtitle": "给定质心M，内心I，顶点A的垂足Ha，还 原三角形",
         "targetSteps": "28E",
         "diagram": "diagrams/c-s-pzls-other/051.miha.png",
         "note": "",
         "keywords": [
-            "C-s-Pzls-Other"
+            "C-s-Pzls-Other",
+            "质心",
+            "内心",
+            "垂足",
+            "三角形"
         ],
         "solutions": [
             {
@@ -4911,13 +5072,18 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/052.cirsegequ.gmt",
         "title": "CirSegEqu",
-        "subtitle": "",
+        "subtitle": "构造过交点的截弦，与给定线段长度相等",
         "targetSteps": "7L / 18E",
         "diagram": "diagrams/c-s-pzls-other/052.cirsegequ.png",
         "note": "",
         "keywords": [
             "C-s-Pzls-Other",
-            "多解"
+            "多解",
+            "圆",
+            "线段",
+            "交点",
+            "长度相等",
+            "截弦"
         ],
         "solutions": [
             {
@@ -4935,13 +5101,18 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/053.concirtan.gmt",
         "title": "ConCirTan",
-        "subtitle": "",
+        "subtitle": "给定角内切圆，角平分线上一点P 构造圆的切线，与以角的两边为渐近线、 点P为焦点的双曲线相切",
         "targetSteps": "9L / 13E",
         "diagram": "diagrams/c-s-pzls-other/053.concirtan.png",
         "note": "",
         "keywords": [
             "C-s-Pzls-Other",
-            "多解"
+            "多解",
+            "角",
+            "圆",
+            "相切",
+            "双曲线",
+            "切线"
         ],
         "solutions": [
             {
@@ -4959,12 +5130,16 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/054.isotricir.gmt",
         "title": "IsoTriCir",
-        "subtitle": "",
+        "subtitle": "构造等腰三角形ABC，使各边各过一点 点AB在圆上",
         "targetSteps": "8E",
         "diagram": "diagrams/c-s-pzls-other/054.isotricir.png",
         "note": "",
         "keywords": [
-            "C-s-Pzls-Other"
+            "C-s-Pzls-Other",
+            "等腰三角形",
+            "圆",
+            "顶点接圆",
+            "直线过点"
         ],
         "solutions": [
             {
@@ -4978,13 +5153,17 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/055.anglin.gmt",
         "title": "AngLin",
-        "subtitle": "",
+        "subtitle": "构造过点的直线，使得交角交点连线交点 在圆上",
         "targetSteps": "14E",
         "diagram": "diagrams/c-s-pzls-other/055.anglin.png",
         "note": "",
         "keywords": [
             "C-s-Pzls-Other",
-            "多解"
+            "多解",
+            "角",
+            "圆",
+            "交点",
+            "直线过点"
         ],
         "solutions": [
             {
@@ -5002,13 +5181,16 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/056.paracirrit.gmt",
         "title": "ParaCirRit",
-        "subtitle": "",
+        "subtitle": "构造平行线，交两圆交点与点C形成直角 三角形",
         "targetSteps": "18L / 34E",
         "diagram": "diagrams/c-s-pzls-other/056.paracirrit.png",
         "note": "",
         "keywords": [
             "C-s-Pzls-Other",
-            "多解"
+            "平行线",
+            "直角三角形",
+            "多解",
+            "交点"
         ],
         "solutions": [
             {
@@ -5030,13 +5212,19 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/057.equalanglepoint.gmt",
         "title": "EqualAnglePoint",
-        "subtitle": "",
+        "subtitle": "构造一点P，使得圆心在直线上，与圆相切 的圆与直线两边交点为AB，<APB恒为定 值",
         "targetSteps": "6L / 8E",
         "diagram": "diagrams/c-s-pzls-other/057.equalanglepoint.png",
         "note": "",
         "keywords": [
             "C-s-Pzls-Other",
-            "多解"
+            "多解",
+            "圆",
+            "直线",
+            "相切",
+            "交点",
+            "角度",
+            "恒定"
         ],
         "solutions": [
             {
@@ -5054,12 +5242,18 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/058.incen2polarprestorebicenqua.gmt",
         "title": "Incen2PolarPRestoreBicenQua",
-        "subtitle": "",
+        "subtitle": "双心四边形ABCD的内心I，A C对外接圆切线交于E，B D对外接圆切线交于F。 给定E F I三点还原ABCD",
         "targetSteps": "13L / 15E",
         "diagram": "diagrams/c-s-pzls-other/058.incen2polarprestorebicenqua.png",
         "note": "",
         "keywords": [
-            "C-s-Pzls-Other"
+            "C-s-Pzls-Other",
+            "双心四边形",
+            "外接圆",
+            "切线",
+            "内心",
+            "交点",
+            "顶点"
         ],
         "solutions": [
             {
@@ -5073,13 +5267,18 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/059.paraangle.gmt",
         "title": "ParaAngle",
-        "subtitle": "",
+        "subtitle": "构造平行线，截角两边AB，使得APB=30°",
         "targetSteps": "7L / 10E",
         "diagram": "diagrams/c-s-pzls-other/059.paraangle.png",
         "note": "",
         "keywords": [
             "C-s-Pzls-Other",
-            "多解"
+            "多解",
+            "平行线",
+            "角",
+            "交点",
+            "角度",
+            "30度"
         ],
         "solutions": [
             {
