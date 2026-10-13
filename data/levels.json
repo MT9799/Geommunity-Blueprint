@@ -5300,14 +5300,17 @@
         "pack": "euc-addit",
         "file": "levels/euc-addit/001.inc-circumc-re-trapezoid.gmt",
         "title": "双圆梯形",
-        "subtitle": "",
+        "subtitle": "给定平行线及其之间的一条腰， 作一个既有外接圆又有内切圆的梯形",
         "targetSteps": "4L / 6E",
         "diagram": "diagrams/euc-addit/001.inc-circumc-re-trapezoid.png",
         "note": "",
         "keywords": [
             "Euc-Addit",
             "梯形",
-            "多解"
+            "多解",
+            "平行线",
+            "外接圆",
+            "内切圆"
         ],
         "solutions": [
             {
@@ -5329,14 +5332,20 @@
         "pack": "euc-addit",
         "file": "levels/euc-addit/002.abisect-in-quadrilateral.gmt",
         "title": "四边形角分线",
-        "subtitle": "",
+        "subtitle": "给一四边形，构造直线。 使这条线要使对边等比例平分， 并与另一组对边的内夹角相等",
         "targetSteps": "5L / 7E",
         "diagram": "diagrams/euc-addit/002.abisect-in-quadrilateral.png",
         "note": "",
         "keywords": [
             "Euc-Addit",
             "四边形",
-            "多解"
+            "多解",
+            "角平分线",
+            "比例",
+            "等式",
+            "比例相等",
+            "平行",
+            "交点"
         ],
         "solutions": [
             {
@@ -5358,12 +5367,17 @@
         "pack": "euc-addit",
         "file": "levels/euc-addit/003.segment-equal-l.gmt",
         "title": "等截直线",
-        "subtitle": "",
+        "subtitle": "有三条直线交于一点，作一条过一定点（可视为角的 一边）的直线，使得与不共直线的两个角的所截线段 两两相等",
         "targetSteps": "6L / 10E",
         "diagram": "diagrams/euc-addit/003.segment-equal-l.png",
         "note": "",
         "keywords": [
-            "Euc-Addit"
+            "Euc-Addit",
+            "共点",
+            "直线过点",
+            "交点",
+            "截线",
+            "长度相等"
         ],
         "solutions": [
             {
@@ -5381,12 +5395,14 @@
         "pack": "euc-addit",
         "file": "levels/euc-addit/004.root-axis.gmt",
         "title": "根轴",
-        "subtitle": "",
+        "subtitle": "构造相离两圆的根轴",
         "targetSteps": "5L / 6E",
         "diagram": "diagrams/euc-addit/004.root-axis.png",
         "note": "",
         "keywords": [
-            "Euc-Addit"
+            "Euc-Addit",
+            "圆",
+            "根轴"
         ],
         "solutions": [
             {
@@ -5404,14 +5420,18 @@
         "pack": "euc-addit",
         "file": "levels/euc-addit/005.equal-area-tr-in-angle.gmt",
         "title": "等积三角形",
-        "subtitle": "",
+        "subtitle": "给定角上的一个三角形，过定点 作直线,使其与角所截的三角形与原三 角形面积相等。",
         "targetSteps": "9L / 13E",
         "diagram": "diagrams/euc-addit/005.equal-area-tr-in-angle.png",
         "note": "",
         "keywords": [
             "Euc-Addit",
             "三角形",
-            "多解"
+            "多解",
+            "直线过点",
+            "面积",
+            "面积相等",
+            "交点"
         ],
         "solutions": [
             {
@@ -5441,13 +5461,17 @@
         "pack": "euc-addit",
         "file": "levels/euc-addit/006.TripleAngle.gmt",
         "title": "3倍角",
-        "subtitle": "",
+        "subtitle": "有一条直线垂直于A,B两点的连 线，试在该直线上找一点C， 使得△CAB= 3LCBA。",
         "targetSteps": "7L / 8E",
         "diagram": "diagrams/euc-addit/006.TripleAngle.jpg",
         "note": "",
         "keywords": [
             "Euc-Addit",
-            "多解"
+            "多解",
+            "垂直",
+            "角度",
+            "等式",
+            "角度比例"
         ],
         "solutions": [
             {
@@ -5469,12 +5493,15 @@
         "pack": "euc-addit",
         "file": "levels/euc-addit/007.4pointcircle.gmt",
         "title": "4PointCircle",
-        "subtitle": "",
+        "subtitle": "以4点为圆心构造4个圆，交出4个交点，且这4个交点分别位于3个构造圆上",
         "targetSteps": "9L / 13E",
         "diagram": "diagrams/euc-addit/007.4pointcircle.png",
         "note": "",
         "keywords": [
-            "Euc-Addit"
+            "Euc-Addit",
+            "圆",
+            "圆心",
+            "共点"
         ],
         "solutions": [
             {
@@ -5508,13 +5535,16 @@
         "pack": "euc-addit",
         "file": "levels/euc-addit/008.4linkagemechanism.gmt",
         "title": "4LinkageMechanism",
-        "subtitle": "",
+        "subtitle": "求作MN两点使得MALNB,MA=NB MCLND, MC=ND。",
         "targetSteps": "9L / 15E",
         "diagram": "diagrams/euc-addit/008.4linkagemechanism.png",
         "note": "",
         "keywords": [
             "Euc-Addit",
-            "多解"
+            "多解",
+            "垂直",
+            "距离",
+            "长度相等"
         ],
         "solutions": [
             {
@@ -5544,14 +5574,18 @@
         "pack": "euc-addit",
         "file": "levels/euc-addit/009.PerpEquSegOnCircle.gmt",
         "title": "PerpEquSegOnCircle",
-        "subtitle": "",
+        "subtitle": "作折线段ACDB，使得AC⊥且=BD",
         "targetSteps": "9L / 23E",
         "diagram": "diagrams/euc-addit/009.PerpEquSegOnCircle.jpg",
         "note": "",
         "keywords": [
             "Euc-Addit",
             "垂线",
-            "多解"
+            "多解",
+            "圆",
+            "长度相等",
+            "线段",
+            "垂直"
         ],
         "solutions": [
             {
@@ -5573,12 +5607,15 @@
         "pack": "euc-addit",
         "file": "levels/euc-addit/010.unnper.gmt",
         "title": "UnnPer",
-        "subtitle": "",
+        "subtitle": "给定点A在BC上的垂足D, 以及BC的中点分别在AB,AC上的垂足E,F, 补全三角形ABC.",
         "targetSteps": "11L / 15E",
         "diagram": "diagrams/euc-addit/010.unnper.jpg",
         "note": "",
         "keywords": [
-            "Euc-Addit"
+            "Euc-Addit",
+            "三角形",
+            "垂足",
+            "中点"
         ],
         "solutions": [
             {
@@ -5604,12 +5641,14 @@
         "pack": "from-baidu-tieba",
         "file": "levels/from-baidu-tieba/001.024length.gmt",
         "title": "2.024Length",
-        "subtitle": "",
+        "subtitle": "已知射线顶点处有一条长度为1的线段 求作射线上一点，使得距离射线顶点长度为2.024",
         "targetSteps": "8L / 9E",
         "diagram": "diagrams/from-baidu-tieba/001.024length.jpg",
         "note": "",
         "keywords": [
-            "From-Baidu-Tieba"
+            "From-Baidu-Tieba",
+            "射线",
+            "长度"
         ],
         "solutions": [
             {
@@ -5627,13 +5666,17 @@
         "pack": "from-baidu-tieba",
         "file": "levels/from-baidu-tieba/002.diamend-2pt-equal.gmt",
         "title": "DiamEnd-2Pt-Equal",
-        "subtitle": "",
+        "subtitle": "已知一圆和A,B两点，求作一直径CD使 得AC=BD。",
         "targetSteps": "4L / 6E",
         "diagram": "diagrams/from-baidu-tieba/002.diamend-2pt-equal.png",
         "note": "",
         "keywords": [
             "From-Baidu-Tieba",
-            "多解"
+            "多解",
+            "圆",
+            "直径",
+            "距离",
+            "长度相等"
         ],
         "solutions": [
             {
@@ -5651,13 +5694,15 @@
         "pack": "from-baidu-tieba",
         "file": "levels/from-baidu-tieba/003.perp-midpoint.gmt",
         "title": "Perp-Midpoint",
-        "subtitle": "",
+        "subtitle": "作给定点到给定直线垂线段的中点",
         "targetSteps": "2L / 5E",
         "diagram": "diagrams/from-baidu-tieba/003.perp-midpoint.png",
         "note": "",
         "keywords": [
             "From-Baidu-Tieba",
-            "中点"
+            "中点",
+            "垂线",
+            "直线"
         ],
         "solutions": [
             {
@@ -5675,12 +5720,14 @@
         "pack": "from-baidu-tieba",
         "file": "levels/from-baidu-tieba/004.p-c-root-axis.gmt",
         "title": "P-C-Root-Axis",
-        "subtitle": "",
+        "subtitle": "点圆根轴",
         "targetSteps": "4L / 6E",
         "diagram": "diagrams/from-baidu-tieba/004.p-c-root-axis.png",
         "note": "",
         "keywords": [
-            "From-Baidu-Tieba"
+            "From-Baidu-Tieba",
+            "圆",
+            "根轴"
         ],
         "solutions": [
             {
@@ -5694,13 +5741,18 @@
         "pack": "from-baidu-tieba",
         "file": "levels/from-baidu-tieba/005.p-p-l-1to2.gmt",
         "title": "P-P-L-1to2",
-        "subtitle": "",
+        "subtitle": "如图，已知定点A、B,定直线I, 求作圆0（仅限无刻度直尺与圆规) 使得圆O过A,B且被直线I截得的弧长之比为1:2",
         "targetSteps": "8L / 11E",
         "diagram": "diagrams/from-baidu-tieba/005.p-p-l-1to2.jpg",
         "note": "",
         "keywords": [
             "From-Baidu-Tieba",
-            "多解"
+            "多解",
+            "直线",
+            "相交",
+            "弧长",
+            "比例",
+            "圆过点"
         ],
         "solutions": [
             {
@@ -5722,13 +5774,15 @@
         "pack": "from-baidu-tieba",
         "file": "levels/from-baidu-tieba/006.isosv-inangle-concyclic.gmt",
         "title": "IsosV-inAngle-Concyclic",
-        "subtitle": "",
+        "subtitle": "角的一边上有一点A，另一边上有2点 B,C，已知AB=AC，在A所在边上求作第四 点使其与A,B,C共圆",
         "targetSteps": "3L / 3E",
         "diagram": "diagrams/from-baidu-tieba/006.isosv-inangle-concyclic.png",
         "note": "",
         "keywords": [
             "From-Baidu-Tieba",
-            "共圆"
+            "共圆",
+            "角",
+            "等距"
         ],
         "solutions": [
             {
@@ -5746,12 +5800,16 @@
         "pack": "from-baidu-tieba",
         "file": "levels/from-baidu-tieba/007.2sider-eulerl-retri.gmt",
         "title": "2SideR-EulerL-ReTri",
-        "subtitle": "",
+        "subtitle": "给定一角和一定直线，作出一三角形，两边为角的两边，且其欧 拉线为给定直线",
         "targetSteps": "5L / 9E",
         "diagram": "diagrams/from-baidu-tieba/007.2sider-eulerl-retri.png",
         "note": "",
         "keywords": [
-            "From-Baidu-Tieba"
+            "From-Baidu-Tieba",
+            "角",
+            "直线",
+            "三角形",
+            "欧拉线"
         ],
         "solutions": [
             {
@@ -5765,14 +5823,17 @@
         "pack": "from-baidu-tieba",
         "file": "levels/from-baidu-tieba/008.parallel-bounce-lines.gmt",
         "title": "Parallel-Bounce-Lines",
-        "subtitle": "",
+        "subtitle": "已知圆0及一点A。求作垂直于连线OA的直线1 直线1与圆0交于点P，且两条直线AP和I的角平 分线过点0。",
         "targetSteps": "8L / 12E",
         "diagram": "diagrams/from-baidu-tieba/008.parallel-bounce-lines.jpg",
         "note": "",
         "keywords": [
             "From-Baidu-Tieba",
-            "平行线",
-            "多解"
+            "圆",
+            "多解",
+            "反射",
+            "垂直",
+            "垂线"
         ],
         "solutions": [
             {
@@ -5790,13 +5851,16 @@
         "pack": "from-baidu-tieba",
         "file": "levels/from-baidu-tieba/009.bicentric-quad-by-3v.gmt",
         "title": "Bicentric-Quad-by-3V",
-        "subtitle": "",
+        "subtitle": "已知一双心四边形（既有外接圆又有内切圆的四边形）的三个 顶点，求作第四个顶点",
         "targetSteps": "8L / 11E",
         "diagram": "diagrams/from-baidu-tieba/009.bicentric-quad-by-3v.png",
         "note": "",
         "keywords": [
             "From-Baidu-Tieba",
-            "多解"
+            "多解",
+            "四边形",
+            "外接圆",
+            "内切圆"
         ],
         "solutions": [
             {
@@ -5818,14 +5882,17 @@
         "pack": "from-baidu-tieba",
         "file": "levels/from-baidu-tieba/010.inangle-collinear-concyclic.gmt",
         "title": "InAngle-Collinear-Concyclic",
-        "subtitle": "",
+        "subtitle": "已知角内两点D,E，过E作十 -条直线，使其 与角两边的交点、角的顶点和点D四点共圆",
         "targetSteps": "6L / 13E",
         "diagram": "diagrams/from-baidu-tieba/010.inangle-collinear-concyclic.png",
         "note": "",
         "keywords": [
             "From-Baidu-Tieba",
             "共圆",
-            "多解"
+            "多解",
+            "角",
+            "直线过点",
+            "交点"
         ],
         "solutions": [
             {
@@ -5847,13 +5914,18 @@
         "pack": "from-baidu-tieba",
         "file": "levels/from-baidu-tieba/011.p-c-center-onc-tan.gmt",
         "title": "P-C-Center-OnC-Tan",
-        "subtitle": "",
+        "subtitle": "已知圆O内有弦AB，圆AC。 求作一个圆心在圆0上的 圆PB，使得两个圆AC和PB 相切。",
         "targetSteps": "4L / 6E",
         "diagram": "diagrams/from-baidu-tieba/011.p-c-center-onc-tan.jpg",
         "note": "",
         "keywords": [
             "From-Baidu-Tieba",
-            "多解"
+            "多解",
+            "圆",
+            "弦",
+            "相切",
+            "圆心",
+            "圆过点"
         ],
         "solutions": [
             {
@@ -5871,13 +5943,19 @@
         "pack": "from-baidu-tieba",
         "file": "levels/from-baidu-tieba/012.rtri-p-on-perp.gmt",
         "title": "RTri-P-On-Perp",
-        "subtitle": "",
+        "subtitle": "已知三角形ABC，垂线CD，线段CD上 有一点E。求作一条直线过点E，交三角 形两边分别为点P和Q，使得角度PDQ为 90度。",
         "targetSteps": "9L / 15E",
         "diagram": "diagrams/from-baidu-tieba/012.rtri-p-on-perp.jpg",
         "note": "",
         "keywords": [
             "From-Baidu-Tieba",
-            "多解"
+            "多解",
+            "三角形",
+            "垂线",
+            "直线过点",
+            "交点",
+            "角度",
+            "90度"
         ],
         "solutions": [
             {
@@ -5899,13 +5977,15 @@
         "pack": "from-baidu-tieba",
         "file": "levels/from-baidu-tieba/013.3diams-intriangle.gmt",
         "title": "3Diams-InTriangle",
-        "subtitle": "",
+        "subtitle": "已知：给定的一个非钝角△ABC 求作：一圆，与△ABC三边都相交，而且六个交点可以连成三条直径",
         "targetSteps": "8L / 15E",
         "diagram": "diagrams/from-baidu-tieba/013.3diams-intriangle.jpg",
         "note": "",
         "keywords": [
             "From-Baidu-Tieba",
-            "三角形"
+            "三角形",
+            "圆",
+            "直径"
         ],
         "solutions": [
             {
@@ -5923,12 +6003,16 @@
         "pack": "from-baidu-tieba",
         "file": "levels/from-baidu-tieba/014.2equal-insc-c.gmt",
         "title": "2Equal-Insc-C",
-        "subtitle": "",
+        "subtitle": "Inscribe two equal circles in the two parts of the triangle divided from a vertex.",
         "targetSteps": "8L / 15E",
         "diagram": "diagrams/from-baidu-tieba/014.2equal-insc-c.png",
         "note": "",
         "keywords": [
-            "From-Baidu-Tieba"
+            "From-Baidu-Tieba",
+            "三角形",
+            "内切圆",
+            "直线过点",
+            "长度相等"
         ],
         "solutions": [
             {
@@ -5946,13 +6030,16 @@
         "pack": "from-baidu-tieba",
         "file": "levels/from-baidu-tieba/015.miquel-point-simtri.gmt",
         "title": "Miquel-Point-SimTri",
-        "subtitle": "",
+        "subtitle": "给定A、B、C、D四点，求作一点E，使得 △ABE和△CDE相似，且△AEB=△CED，旦 两三角形能仅通过位似和旋转重合",
         "targetSteps": "8L / 16E",
         "diagram": "diagrams/from-baidu-tieba/015.miquel-point-simtri.png",
         "note": "",
         "keywords": [
             "From-Baidu-Tieba",
-            "多解"
+            "多解",
+            "相似",
+            "角度相等",
+            "顺相似"
         ],
         "solutions": [
             {
@@ -5970,13 +6057,15 @@
         "pack": "from-baidu-tieba",
         "file": "levels/from-baidu-tieba/016.dumpty-point-simtri.gmt",
         "title": "Dumpty-Point-SimTri",
-        "subtitle": "",
+        "subtitle": "在三角形ABC内作一点P，使得三角 形ABP,BCP,CAP中存在两个三角形是 相似的。",
         "targetSteps": "5L / 11E",
         "diagram": "diagrams/from-baidu-tieba/016.dumpty-point-simtri.jpg",
         "note": "",
         "keywords": [
             "From-Baidu-Tieba",
-            "多解"
+            "多解",
+            "三角形",
+            "相似"
         ],
         "solutions": [
             {
@@ -5994,13 +6083,16 @@
         "pack": "from-baidu-tieba",
         "file": "levels/from-baidu-tieba/017.sperp-tri-area-bisect.gmt",
         "title": "SPerp-Tri-Area-Bisect",
-        "subtitle": "",
+        "subtitle": "作一与三角形的AB边垂直的直线，等分三角 形的面积",
         "targetSteps": "5L / 10E",
         "diagram": "diagrams/from-baidu-tieba/017.sperp-tri-area-bisect.png",
         "note": "",
         "keywords": [
             "From-Baidu-Tieba",
-            "面积"
+            "面积",
+            "垂线",
+            "平分面积",
+            "三角形"
         ],
         "solutions": [
             {
@@ -6022,13 +6114,17 @@
         "pack": "from-baidu-tieba",
         "file": "levels/from-baidu-tieba/018.inangle-segmentequal.gmt",
         "title": "InAngle-SegmentEqual",
-        "subtitle": "",
+        "subtitle": "已知两直线上各有一点B和C，直线间有一点A 求作过点A的直线，截两直线分别于点D和E，使得 DB=CE",
         "targetSteps": "7L / 15E",
         "diagram": "diagrams/from-baidu-tieba/018.inangle-segmentequal.png",
         "note": "",
         "keywords": [
             "From-Baidu-Tieba",
-            "多解"
+            "多解",
+            "角",
+            "直线过点",
+            "交点",
+            "长度相等"
         ],
         "solutions": [
             {
@@ -6058,12 +6154,18 @@
         "pack": "from-baidu-tieba",
         "file": "levels/from-baidu-tieba/019.segmentsum-on3ray.gmt",
         "title": "SegmentSum-on3Ray",
-        "subtitle": "",
+        "subtitle": "从顶点A出发的三射线，1上给定P点，过P作一直线 交射线2于Q，射线3于R，使得AP+AQ=AR",
         "targetSteps": "9L / 14E",
         "diagram": "diagrams/from-baidu-tieba/019.segmentsum-on3ray.png",
         "note": "",
         "keywords": [
-            "From-Baidu-Tieba"
+            "From-Baidu-Tieba",
+            "角",
+            "共点",
+            "直线过点",
+            "交点",
+            "长度",
+            "等式"
         ],
         "solutions": [
             {
@@ -6089,13 +6191,16 @@
         "pack": "from-baidu-tieba",
         "file": "levels/from-baidu-tieba/020.equitri-v-inangle.gmt",
         "title": "EquiTri-V-InAngle",
-        "subtitle": "",
+        "subtitle": "角内给出一顶点，以此作出正三角形，且另两顶点分别 在角的两边上",
         "targetSteps": "8L / 8E",
         "diagram": "diagrams/from-baidu-tieba/020.equitri-v-inangle.png",
         "note": "",
         "keywords": [
             "From-Baidu-Tieba",
-            "多解"
+            "多解",
+            "角",
+            "正三角形",
+            "顶点"
         ],
         "solutions": [
             {
@@ -6113,14 +6218,19 @@
         "pack": "from-baidu-tieba",
         "file": "levels/from-baidu-tieba/021.p-p-l-equalchord.gmt",
         "title": "P-P-L-EqualChord",
-        "subtitle": "",
+        "subtitle": "构造过两给定点的圆，且截给定直线的弦长等于给定线段",
         "targetSteps": "8L / 26E",
         "diagram": "diagrams/from-baidu-tieba/021.p-p-l-equalchord.png",
         "note": "",
         "keywords": [
             "From-Baidu-Tieba",
             "弦",
-            "多解"
+            "多解",
+            "圆",
+            "圆过点",
+            "截弦",
+            "长度相等",
+            "线段"
         ],
         "solutions": [
             {
@@ -6142,13 +6252,17 @@
         "pack": "from-baidu-tieba",
         "file": "levels/from-baidu-tieba/022.equang-of-2seg.gmt",
         "title": "EquAng-of-2Seg",
-        "subtitle": "",
+        "subtitle": "给定共线线段AB和CD，直线l，构造直线上一点P，使得角APB=角CPD",
         "targetSteps": "10L / 10E",
         "diagram": "diagrams/from-baidu-tieba/022.equang-of-2seg.png",
         "note": "",
         "keywords": [
             "From-Baidu-Tieba",
-            "多解"
+            "多解",
+            "线段",
+            "共线",
+            "直线",
+            "角度相等"
         ],
         "solutions": [
             {
@@ -6170,14 +6284,17 @@
         "pack": "from-baidu-tieba",
         "file": "levels/from-baidu-tieba/023.insc-chord-mpoint.gmt",
         "title": "Insc-Chord-MPoint",
-        "subtitle": "",
+        "subtitle": "给定圆上两点AB和弦上一点G，构造圆上一点P，使得直线AP，BP与弦的两个交点关于G对称",
         "targetSteps": "6L / 10E",
         "diagram": "diagrams/from-baidu-tieba/023.insc-chord-mpoint.png",
         "note": "",
         "keywords": [
             "From-Baidu-Tieba",
             "弦",
-            "多解"
+            "多解",
+            "圆",
+            "长度相等",
+            "交点"
         ],
         "solutions": [
             {
@@ -6207,12 +6324,16 @@
         "pack": "from-baidu-tieba",
         "file": "levels/from-baidu-tieba/024.v-h-i-retri.gmt",
         "title": "V-H-I-ReTri",
-        "subtitle": "",
+        "subtitle": "给定垂心、内心和顶点，还原三角形",
         "targetSteps": "16L / 19E",
         "diagram": "diagrams/from-baidu-tieba/024.v-h-i-retri.png",
         "note": "",
         "keywords": [
-            "From-Baidu-Tieba"
+            "From-Baidu-Tieba",
+            "三角形",
+            "垂心",
+            "内心",
+            "顶点"
         ],
         "solutions": [
             {
@@ -6234,13 +6355,16 @@
         "pack": "from-baidu-tieba",
         "file": "levels/from-baidu-tieba/025.tri-peri-bisect-of-point.gmt",
         "title": "Tri-Peri-Bisect-of-Point",
-        "subtitle": "",
+        "subtitle": "过给定点作直线，使其与三角形以A为端点的两边相交， 且平分三角形的周长",
         "targetSteps": "12L / 26E",
         "diagram": "diagrams/from-baidu-tieba/025.tri-peri-bisect-of-point.png",
         "note": "",
         "keywords": [
             "From-Baidu-Tieba",
-            "多解"
+            "多解",
+            "三角形",
+            "直线过点",
+            "平分周长"
         ],
         "solutions": [
             {
@@ -6262,14 +6386,17 @@
         "pack": "from-baidu-tieba",
         "file": "levels/from-baidu-tieba/026.perptri-equarea.gmt",
         "title": "PerpTri-EquArea",
-        "subtitle": "",
+        "subtitle": "构造三角形边上一点X，使其与另外两边垂足形成的三角形与给定三角形的垂足三角形面积相等",
         "targetSteps": "5L / 15E",
         "diagram": "diagrams/from-baidu-tieba/026.perptri-equarea.png",
         "note": "",
         "keywords": [
             "From-Baidu-Tieba",
             "面积",
-            "多解"
+            "多解",
+            "面积相等",
+            "垂足",
+            "三角形"
         ],
         "solutions": [
             {
@@ -6291,12 +6418,15 @@
         "pack": "from-baidu-tieba",
         "file": "levels/from-baidu-tieba/027.parainsctri-equseg.gmt",
         "title": "ParaInscTri-EquSeg",
-        "subtitle": "",
+        "subtitle": "找到一点P，使得过P的 与三边平行的直线被三 角形截得的线段皆相等",
         "targetSteps": "7L / 12E",
         "diagram": "diagrams/from-baidu-tieba/027.parainsctri-equseg.png",
         "note": "",
         "keywords": [
-            "From-Baidu-Tieba"
+            "From-Baidu-Tieba",
+            "平行",
+            "三角形",
+            "长度相等"
         ],
         "solutions": [
             {
@@ -6318,12 +6448,17 @@
         "pack": "from-baidu-tieba",
         "file": "levels/from-baidu-tieba/028.min-peri-inangle.gmt",
         "title": "Min-Peri-InAngle",
-        "subtitle": "",
+        "subtitle": "过角内一点A作直线交角两边于B,C，使△OBC周长最小",
         "targetSteps": "6L / 10E",
         "diagram": "diagrams/from-baidu-tieba/028.min-peri-inangle.png",
         "note": "",
         "keywords": [
-            "From-Baidu-Tieba"
+            "From-Baidu-Tieba",
+            "角",
+            "直线过点",
+            "周长",
+            "极小值",
+            "三角形"
         ],
         "solutions": [
             {
@@ -6341,12 +6476,18 @@
         "pack": "from-baidu-tieba",
         "file": "levels/from-baidu-tieba/029.min-2rayseg-inangle.gmt",
         "title": "Min-2RaySeg-InAngle",
-        "subtitle": "",
+        "subtitle": "过角内一点A作直线交角两边于B,C，使 OB+OC的值最小",
         "targetSteps": "7L / 12E",
         "diagram": "diagrams/from-baidu-tieba/029.min-2rayseg-inangle.png",
         "note": "",
         "keywords": [
-            "From-Baidu-Tieba"
+            "From-Baidu-Tieba",
+            "角",
+            "直线过点",
+            "交点",
+            "长度",
+            "代数式",
+            "极小值"
         ],
         "solutions": [
             {
@@ -6380,13 +6521,17 @@
         "pack": "from-baidu-tieba",
         "file": "levels/from-baidu-tieba/030.apol-midp-equcc.gmt",
         "title": "Apol-MidP-EquCC",
-        "subtitle": "",
+        "subtitle": "作一圆与给定圆相切，圆心在给定直线上且 过直线上的一点",
         "targetSteps": "3L / 7E",
         "diagram": "diagrams/from-baidu-tieba/030.apol-midp-equcc.png",
         "note": "",
         "keywords": [
             "From-Baidu-Tieba",
-            "多解"
+            "多解",
+            "圆",
+            "直线",
+            "相切",
+            "圆心"
         ],
         "solutions": [
             {
@@ -6408,13 +6553,16 @@
         "pack": "from-baidu-tieba",
         "file": "levels/from-baidu-tieba/031.insc-pedal-tri.gmt",
         "title": "Insc-Pedal-Tri",
-        "subtitle": "",
+        "subtitle": "构造内接三角形，使每一边都与给定三角形的边分别垂直",
         "targetSteps": "7L / 17E",
         "diagram": "diagrams/from-baidu-tieba/031.insc-pedal-tri.jpg",
         "note": "",
         "keywords": [
             "From-Baidu-Tieba",
-            "多解"
+            "多解",
+            "三角形",
+            "内接",
+            "垂直"
         ],
         "solutions": [
             {
@@ -6432,12 +6580,16 @@
         "pack": "from-baidu-tieba",
         "file": "levels/from-baidu-tieba/032.fisheye-perspective.gmt",
         "title": "Fisheye-Perspective",
-        "subtitle": "",
+        "subtitle": "给定两点及一圆，作一个过两点的圆，使其与 给定圆的交弦过给定圆心",
         "targetSteps": "7L / 11E",
         "diagram": "diagrams/from-baidu-tieba/032.fisheye-perspective.png",
         "note": "",
         "keywords": [
-            "From-Baidu-Tieba"
+            "From-Baidu-Tieba",
+            "圆",
+            "圆过点",
+            "直径",
+            "交点"
         ],
         "solutions": [
             {
@@ -6451,12 +6603,15 @@
         "pack": "from-baidu-tieba",
         "file": "levels/from-baidu-tieba/033.tri-trans-equitri.gmt",
         "title": "Tri-Trans-EquiTri",
-        "subtitle": "",
+        "subtitle": "作一正三角形与给定三角形等面积，其中一端 点与A重合，一边在AB所在直线方向上，且和 给定三角形同侧",
         "targetSteps": "12L / 12E",
         "diagram": "diagrams/from-baidu-tieba/033.tri-trans-equitri.png",
         "note": "",
         "keywords": [
-            "From-Baidu-Tieba"
+            "From-Baidu-Tieba",
+            "三角形",
+            "正三角形",
+            "面积相等"
         ],
         "solutions": [
             {
@@ -6470,13 +6625,17 @@
         "pack": "from-baidu-tieba",
         "file": "levels/from-baidu-tieba/034.retequincir.gmt",
         "title": "RetEquInCir",
-        "subtitle": "",
+        "subtitle": "直角三角形ABC中，A为直角，分别过B， C作两条线BD，CE与对边分别 交于D，E，记BD和CE的交点为F，使 得四边形ADFE的内切圆和三角形BFC 的内切圆相等。",
         "targetSteps": "11L / 23E",
         "diagram": "diagrams/from-baidu-tieba/034.retequincir.jpg",
         "note": "",
         "keywords": [
             "From-Baidu-Tieba",
-            "多解"
+            "多解",
+            "直角三角形",
+            "内切圆",
+            "长度相等",
+            "直线过点"
         ],
         "solutions": [
             {
