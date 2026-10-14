@@ -6653,13 +6653,17 @@
         "pack": "mingjing-forum",
         "file": "levels/mingjing-forum/equcir.gmt",
         "title": "EquCir",
-        "subtitle": "",
+        "subtitle": "三角形ABC中，分别过B， C作两条线BD，CE与对边分别 交于D，E，记BD和CE的交点为F，使 得四边形ADFE的内切圆和三角形BFC 的内切圆相等。",
         "targetSteps": "11L / 23E",
         "diagram": "diagrams/mingjing-forum/equcir.jpg",
         "note": "",
         "keywords": [
             "Mingjing-Forum",
-            "多解"
+            "多解",
+            "三角形",
+            "内切圆",
+            "长度相等",
+            "直线过点"
         ],
         "solutions": [
             {
@@ -6677,13 +6681,17 @@
         "pack": "mingjing-forum",
         "file": "levels/mingjing-forum/secpara.gmt",
         "title": "SecPara",
-        "subtitle": "",
+        "subtitle": "构造过点的割线，使与圆的两个交点分别与圆上另外两点的连线平行",
         "targetSteps": "5L / 6E",
         "diagram": "diagrams/mingjing-forum/secpara.jpg",
         "note": "",
         "keywords": [
             "Mingjing-Forum",
-            "多解"
+            "多解",
+            "圆",
+            "割线",
+            "直线过点",
+            "平行"
         ],
         "solutions": [
             {
@@ -6705,13 +6713,19 @@
         "pack": "mingjing-forum",
         "file": "levels/mingjing-forum/mfp15.gmt",
         "title": "MFP15",
-        "subtitle": "",
+        "subtitle": "给定射线Al，线段AO，圆O。构造AO上一点，使与圆的切线长度相等于与射线的距离",
         "targetSteps": "3L / 7E",
         "diagram": "diagrams/mingjing-forum/mfp15.jpg",
         "note": "",
         "keywords": [
             "Mingjing-Forum",
-            "多解"
+            "多解",
+            "射线",
+            "线段",
+            "圆",
+            "长度相等",
+            "切线",
+            "点线距离"
         ],
         "solutions": [
             {
@@ -6729,13 +6743,19 @@
         "pack": "mingjing-forum",
         "file": "levels/mingjing-forum/mfp19.1.gmt",
         "title": "MFP19.1",
-        "subtitle": "",
+        "subtitle": "构造过点A的直线，与两个同心圆O分别交于点B,C，使得长度AB=AC",
         "targetSteps": "4L / 5E",
         "diagram": "diagrams/mingjing-forum/mfp19.1.jpg",
         "note": "",
         "keywords": [
             "Mingjing-Forum",
-            "多解"
+            "多解",
+            "圆",
+            "同心圆",
+            "直线过点",
+            "交点",
+            "长度",
+            "长度相等"
         ],
         "solutions": [
             {
@@ -6769,13 +6789,19 @@
         "pack": "mingjing-forum",
         "file": "levels/mingjing-forum/mfp19.2.gmt",
         "title": "MFP19.2",
-        "subtitle": "",
+        "subtitle": "构造过点A的直线，与两个同心圆O分别交于点B,C，使得角AOB=角AOC",
         "targetSteps": "7L / 11E",
         "diagram": "diagrams/mingjing-forum/mfp19.2.jpg",
         "note": "",
         "keywords": [
             "Mingjing-Forum",
-            "多解"
+            "多解",
+            "圆",
+            "同心圆",
+            "直线过点",
+            "交点",
+            "角度",
+            "角度相等"
         ],
         "solutions": [
             {
@@ -6809,13 +6835,16 @@
         "pack": "mingjing-forum",
         "file": "levels/mingjing-forum/mfp26.gmt",
         "title": "MFP26",
-        "subtitle": "",
+        "subtitle": "由垂心及两边中点还原三角形",
         "targetSteps": "11L / 13E",
         "diagram": "diagrams/mingjing-forum/mfp26.jpg",
         "note": "",
         "keywords": [
             "Mingjing-Forum",
-            "多解"
+            "多解",
+            "三角形",
+            "垂心",
+            "中点"
         ],
         "solutions": [
             {
@@ -6833,13 +6862,15 @@
         "pack": "mingjing-forum",
         "file": "levels/mingjing-forum/mfp38.gmt",
         "title": "MFP38",
-        "subtitle": "",
+        "subtitle": "给定线段AB及两点CD，构造线段上点P，使得角ACP=角BDP",
         "targetSteps": "7L / 10E",
         "diagram": "diagrams/mingjing-forum/mfp38.jpg",
         "note": "",
         "keywords": [
             "Mingjing-Forum",
-            "多解"
+            "多解",
+            "线段",
+            "角度相等"
         ],
         "solutions": [
             {
@@ -6861,13 +6892,17 @@
         "pack": "mingjing-forum",
         "file": "levels/mingjing-forum/mfp39.gmt",
         "title": "MFP39",
-        "subtitle": "",
+        "subtitle": "给定平行线l1,l2及l1上一点A，任意点B。构造过点B的直线，与平行线l1,l2分别交于点C,D，使得距离AC=AD",
         "targetSteps": "2L / 4E",
         "diagram": "diagrams/mingjing-forum/mfp39.jpg",
         "note": "",
         "keywords": [
             "Mingjing-Forum",
-            "多解"
+            "多解",
+            "平行线",
+            "直线过点",
+            "距离相等",
+            "交点"
         ],
         "solutions": [
             {
@@ -6885,13 +6920,18 @@
         "pack": "mingjing-forum",
         "file": "levels/mingjing-forum/mfp42.gmt",
         "title": "MFP42",
-        "subtitle": "",
+        "subtitle": "由给定梯形的腰构造梯形，使得另一腰的两个顶点分别位于同心圆中不同圆上",
         "targetSteps": "7L / 21E",
         "diagram": "diagrams/mingjing-forum/mfp42.jpg",
         "note": "",
         "keywords": [
             "Mingjing-Forum",
-            "多解"
+            "多解",
+            "圆",
+            "同心圆",
+            "线段",
+            "梯形",
+            "顶点接圆"
         ],
         "solutions": [
             {
@@ -6909,13 +6949,17 @@
         "pack": "mingjing-forum",
         "file": "levels/mingjing-forum/mfp49.gmt",
         "title": "MFP49",
-        "subtitle": "",
+        "subtitle": "给点3条直线a,b,c及a上3点D,E,F。构造过点D的直线，使得与直线b,c分别交于点F,G，BCFG共圆",
         "targetSteps": "7L / 10E",
         "diagram": "diagrams/mingjing-forum/mfp49.jpg",
         "note": "",
         "keywords": [
             "Mingjing-Forum",
-            "多解"
+            "多解",
+            "直线",
+            "直线过点",
+            "交点",
+            "共圆"
         ],
         "solutions": [
             {
@@ -6937,13 +6981,17 @@
         "pack": "mingjing-forum",
         "file": "levels/mingjing-forum/mfp59.gmt",
         "title": "MFP59",
-        "subtitle": "",
+        "subtitle": "如图，CO⊥CD ，BD⊥CD， BD=CD， 过B求作一直线， 使得EF等于已知定长",
         "targetSteps": "6L / 16E",
         "diagram": "diagrams/mingjing-forum/mfp59.jpg",
         "note": "",
         "keywords": [
             "Mingjing-Forum",
-            "多解"
+            "多解",
+            "垂直",
+            "直线过点",
+            "截线",
+            "长度相等"
         ],
         "solutions": [
             {
@@ -6961,12 +7009,15 @@
         "pack": "mingjing-forum",
         "file": "levels/mingjing-forum/mfp65.gmt",
         "title": "MFP65",
-        "subtitle": "",
+        "subtitle": "已知弓形AB 如何作出C点,使得 CB=CD=DA",
         "targetSteps": "4L / 4E",
         "diagram": "diagrams/mingjing-forum/mfp65.jpg",
         "note": "",
         "keywords": [
-            "Mingjing-Forum"
+            "Mingjing-Forum",
+            "圆",
+            "交点",
+            "长度相等"
         ],
         "solutions": [
             {
@@ -6996,13 +7047,17 @@
         "pack": "mingjing-forum",
         "file": "levels/mingjing-forum/mfp70.gmt",
         "title": "MFP70",
-        "subtitle": "",
+        "subtitle": "给定角O、点P、点Q，和某个角度a，求作过点P的直线与角分别交于点T、U,使角TQU=a.",
         "targetSteps": "12L / 14E",
         "diagram": "diagrams/mingjing-forum/mfp70.jpg",
         "note": "",
         "keywords": [
             "Mingjing-Forum",
-            "多解"
+            "多解",
+            "角",
+            "直线过点",
+            "角度相等",
+            "交点"
         ],
         "solutions": [
             {
@@ -7020,13 +7075,16 @@
         "pack": "mingjing-forum",
         "file": "levels/mingjing-forum/mfp72.gmt",
         "title": "MFP72",
-        "subtitle": "",
+        "subtitle": "已知：直线I,m, n,点A 。求：在l,m 上分别取点B,C 。满足：BC=BA，且BC平行n",
         "targetSteps": "7L / 9E",
         "diagram": "diagrams/mingjing-forum/mfp72.jpg",
         "note": "",
         "keywords": [
             "Mingjing-Forum",
-            "多解"
+            "多解",
+            "直线",
+            "平行",
+            "长度相等"
         ],
         "solutions": [
             {
@@ -7048,13 +7106,18 @@
         "pack": "mingjing-forum",
         "file": "levels/mingjing-forum/mfp74.gmt",
         "title": "MFP74",
-        "subtitle": "",
+        "subtitle": "已知:圆O1，其外一点A 求作：过A作直线AC，使得以BC为直径的圆与AO1相切",
         "targetSteps": "5L / 9E",
         "diagram": "diagrams/mingjing-forum/mfp74.jpg",
         "note": "",
         "keywords": [
             "Mingjing-Forum",
-            "多解"
+            "多解",
+            "圆",
+            "直线过点",
+            "直径",
+            "相切",
+            "交点"
         ],
         "solutions": [
             {
@@ -7072,12 +7135,15 @@
         "pack": "mingjing-forum",
         "file": "levels/mingjing-forum/mfp126.gmt",
         "title": "MFP126",
-        "subtitle": "",
+        "subtitle": "已知D、E、F三定点并且DE⊥DF 请问如何作出△ABC，使得角平分线AD、BE、CF与对应边的交点落在图 中的D、E、F上",
         "targetSteps": "7L / 7E",
         "diagram": "diagrams/mingjing-forum/mfp126.jpg",
         "note": "",
         "keywords": [
-            "Mingjing-Forum"
+            "Mingjing-Forum",
+            "三角形",
+            "角平分线",
+            "垂直"
         ],
         "solutions": [
             {
@@ -7091,12 +7157,15 @@
         "pack": "sprfes",
         "file": "levels/sprfes/sprfes2024-01.gmt",
         "title": "sprfes2024-01",
-        "subtitle": "",
+        "subtitle": "在适合的长方形上作五折线，每段长度相等",
         "targetSteps": "9L / 10E",
         "diagram": "diagrams/sprfes/sprfes2024-01.png",
         "note": "",
         "keywords": [
-            "SprFes"
+            "SprFes",
+            "长方形",
+            "折线",
+            "长度相等"
         ],
         "solutions": [
             {
@@ -7110,12 +7179,15 @@
         "pack": "sprfes",
         "file": "levels/sprfes/sprfes2024-02.gmt",
         "title": "sprfes2024-02",
-        "subtitle": "",
+        "subtitle": "构造圆内接正十边形",
         "targetSteps": "15L / 15E",
         "diagram": "diagrams/sprfes/sprfes2024-02.png",
         "note": "",
         "keywords": [
-            "SprFes"
+            "SprFes",
+            "圆",
+            "内接",
+            "正十边形"
         ],
         "solutions": [
             {
@@ -7129,13 +7201,16 @@
         "pack": "sprfes",
         "file": "levels/sprfes/sprfes2024-03.gmt",
         "title": "sprfes2024-03",
-        "subtitle": "",
+        "subtitle": "给定一角和角内一点A，作直角三角形ABC，面积和OBC相等",
         "targetSteps": "8L / 11E",
         "diagram": "diagrams/sprfes/sprfes2024-03.png",
         "note": "",
         "keywords": [
             "SprFes",
-            "多解"
+            "多解",
+            "角",
+            "直角三角形",
+            "面积相等"
         ],
         "solutions": [
             {
@@ -7157,12 +7232,15 @@
         "pack": "sprfes",
         "file": "levels/sprfes/sprfes2024-04.gmt",
         "title": "sprfes2024-04",
-        "subtitle": "",
+        "subtitle": "由质心、内心及一边所在直线还原三角形",
         "targetSteps": "12L / 16E",
         "diagram": "diagrams/sprfes/sprfes2024-04.png",
         "note": "",
         "keywords": [
-            "SprFes"
+            "SprFes",
+            "质心",
+            "内心",
+            "三角形"
         ],
         "solutions": [
             {
@@ -7176,13 +7254,17 @@
         "pack": "sprfes",
         "file": "levels/sprfes/sprfes2024-05.gmt",
         "title": "sprfes2024-05",
-        "subtitle": "",
+        "subtitle": "给定三角形及其外接圆，作圆外切三角形， 使每个顶点恰在原三角形一条角平分线上",
         "targetSteps": "11L / 15E",
         "diagram": "diagrams/sprfes/sprfes2024-05.png",
         "note": "",
         "keywords": [
             "SprFes",
-            "多解"
+            "多解",
+            "圆",
+            "三角形",
+            "角平分线",
+            "外切三角形"
         ],
         "solutions": [
             {
@@ -7204,12 +7286,16 @@
         "pack": "sprfes",
         "file": "levels/sprfes/sprfes2025-01.gmt",
         "title": "sprfes2025-01",
-        "subtitle": "",
+        "subtitle": "空间中圆O外存在垂直于屏幕的匀强磁场，圆0 内无磁场。圆外一点 A可以发射接收速度不同带电粒 子，一粒子发射后经过点O，最终回到点 A被接收， 求作任意一条满足条件的粒子轨迹。",
         "targetSteps": "11E",
         "diagram": "diagrams/sprfes/sprfes2025-01.jpg",
         "note": "",
         "keywords": [
-            "SprFes"
+            "SprFes",
+            "圆",
+            "正交",
+            "物理",
+            "磁场与粒子"
         ],
         "solutions": [
             {
@@ -7223,13 +7309,17 @@
         "pack": "sprfes",
         "file": "levels/sprfes/sprfes2025-02.gmt",
         "title": "sprfes2025-02",
-        "subtitle": "",
+        "subtitle": "给定圆O内一点A，求作如图等长三折线，首尾为 圆O某条直径的两端点。",
         "targetSteps": "9E",
         "diagram": "diagrams/sprfes/sprfes2025-02.jpg",
         "note": "",
         "keywords": [
             "SprFes",
-            "多解"
+            "多解",
+            "圆",
+            "直径",
+            "线段相等",
+            "折线"
         ],
         "solutions": [
             {
@@ -7247,12 +7337,17 @@
         "pack": "sprfes",
         "file": "levels/sprfes/sprfes2025-03.gmt",
         "title": "sprfes2025-03",
-        "subtitle": "",
+        "subtitle": "给定圆O上一点A和弦BC，求作圆上一点D，使 得线段 AD交BC于E且CD+ED=BD。",
         "targetSteps": "8E",
         "diagram": "diagrams/sprfes/sprfes2025-03.jpg",
         "note": "",
         "keywords": [
-            "SprFes"
+            "SprFes",
+            "圆",
+            "弦",
+            "交点",
+            "长度",
+            "等式"
         ],
         "solutions": [
             {
@@ -7270,12 +7365,14 @@
         "pack": "sprfes",
         "file": "levels/sprfes/sprfes2025-04.gmt",
         "title": "sprfes2025-04",
-        "subtitle": "",
+        "subtitle": "直线|两侧分别有AB和CD两点,求作|上两点PQ, 使得对应角相等。",
         "targetSteps": "18E",
         "diagram": "diagrams/sprfes/sprfes2025-04.jpg",
         "note": "",
         "keywords": [
-            "SprFes"
+            "SprFes",
+            "直线",
+            "角度相等"
         ],
         "solutions": [
             {
@@ -7289,13 +7386,17 @@
         "pack": "sprfes",
         "file": "levels/sprfes/sprfes2025-05.gmt",
         "title": "sprfes2025-05",
-        "subtitle": "",
+        "subtitle": "给定相切两圆AB，求作每个圆的一条切线，使得 两切线垂直，且存在一圆与两线两圆相切。",
         "targetSteps": "19E",
         "diagram": "diagrams/sprfes/sprfes2025-05.jpg",
         "note": "",
         "keywords": [
             "SprFes",
-            "多解"
+            "多解",
+            "圆",
+            "相切",
+            "切线",
+            "垂直"
         ],
         "solutions": [
             {
