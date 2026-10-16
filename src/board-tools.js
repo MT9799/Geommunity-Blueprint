@@ -1687,7 +1687,7 @@
    * 缩放一路拽小；它们的定义点本身也是画布上的点，已经在范围里了
    * @returns {{minX: number, maxX: number, minY: number, maxY: number}|null}
    */
-  const visibleBounds = () => {
+  const visibleBounds = (extraItems) => {
     if (typeof geometryManager === 'undefined' || !geometryManager) return null;
     let minX = Infinity;
     let maxX = -Infinity;
@@ -1700,13 +1700,18 @@
       minY = Math.min(minY, y);
       maxY = Math.max(maxY, y);
     };
-    geometryManager.getAllByOrder().forEach(item => {
+    // 把一个对象的坐标撑进范围：点取坐标，圆取「圆心 ± 半径」，线段取两端。
+    // 射线 / 直线不封口（它们的延伸定义点会一路把缩放拽小，但定义点本身已是画布上的点，已在范围内）。
+    // force=true 时跳过可见性 / 有效性检查，强制计入（用于关卡「所求」点：普通模式被藏起也要入画幅）
+    const collect = (item, force) => {
       if (!item || typeof item.getType !== 'function') return;
       if (isGridId(item.getId())) return;
-      if (typeof item.getVisible === 'function' && !item.getVisible()) return;
-      if (typeof item.getValid === 'function' && !item.getValid()) return;
-      // 无穷远点：坐标在很远处，画出来会让画布糊掉一大片（见 loadGmt）
-      if (item.getBase?.()?.type === 'edgePoint') return;
+      if (!force) {
+        if (typeof item.getVisible === 'function' && !item.getVisible()) return;
+        if (typeof item.getValid === 'function' && !item.getValid()) return;
+        // 无穷远点：坐标在很远处，画出来会让画布糊掉一大片（见 loadGmt）
+        if (item.getBase?.()?.type === 'edgePoint') return;
+      }
       if (item.getType() === 'point') {
         const [x, y] = item.getCoordinate() || [];
         include(x, y);
@@ -1726,7 +1731,11 @@
         include(first[0], first[1]);
         include(second[0], second[1]);
       }
-    });
+    };
+    geometryManager.getAllByOrder().forEach(item => collect(item, false));
+    // 额外要纳入画幅的对象（如关卡所求点 explore）：不查可见性，强制计入，
+    // 这样即便答案点在普通模式被藏起，进入关卡时画幅也会把它们罩进去
+    (extraItems || []).forEach(item => collect(item, true));
     return Number.isFinite(minX) ? {minX: minX, maxX: maxX, minY: minY, maxY: maxY} : null;
   };
 
@@ -1737,8 +1746,8 @@
    * 扣掉浮层占的地方、留 30% 边距、最多放大 2 倍
    * @returns {boolean} 有没有动过视图（画布上一个能看的图形都没有时不动）
    */
-  const fitViewToElements = () => {
-    const bounds = visibleBounds();
+  const fitViewToElements = (extraItems) => {
+    const bounds = visibleBounds(extraItems);
     if (!bounds) return false;
     const viewWidth = (typeof canvas !== 'undefined' && canvas ? canvas.clientWidth : 0) || 1280;
     const viewHeight = (typeof canvas !== 'undefined' && canvas ? canvas.clientHeight : 0) || 720;
@@ -1762,8 +1771,8 @@
    * 有网格就适配到网格范围（网格就是作答范围），没有网格就适配到图形本身
    * @returns {{centerX: number, centerY: number, scale: number}|null} 逻辑中心与比例
    */
-  const fitViewToContent = () => {
-    const view = gridMeta ? fitViewToGrid(gridMeta) : fitViewToElements();
+  const fitViewToContent = (extraItems) => {
+    const view = gridMeta ? fitViewToGrid(gridMeta) : fitViewToElements(extraItems);
     // 记下这一刻的视图：「还原画布变化量」照它复位（有网格就是网格范围，没网格就是适配过的图形）
     if (view) boardInitialView = {centerX: view.centerX, centerY: view.centerY, scale: view.scale};
     return view;
@@ -2434,7 +2443,7 @@
      * 导入 gmt / 载入记录用它；游玩页的「初始图形适配」也用它（见 playPage 的 fitInitialView），
      * 那边拿返回的逻辑中心与比例记「初始视图」，供「还原视图」按钮回到这里
      */
-    fitView: () => fitViewToContent(),
+    fitView: (extraItems) => fitViewToContent(extraItems),
     /**
      * 画板侧记下的「初始视图」 过程函数（逻辑中心 + 比例，或 null）
      * 「还原画布变化量」照它复位（见 index.js 的 resetTransform）；null 表示还没适配过内容，
@@ -5537,8 +5546,32 @@
     const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
       + `-${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
     const name = mode === 'level' ? `${params.get('id') || 'level'}_${stamp}` : `${mode}_${stamp}`;
+    // 关卡游玩：L / E 步数是独立 DOM（不在画板 canvas 内），直接导 canvas 会丢掉，
+    // 这里把画板复制到一张同样尺寸的画布上，把当前 L/E 直接写在图上底部居中（不另加白条，
+    // 免得像把底下线条截断）；描一圈淡白光晕保证压在深色图形上也看得清。复制而非改动原画布，
+    // 否则文字会残留在屏幕上直到下次重绘
+    let imageCanvas = canvas;
+    if (mode === 'level') {
+      const composed = document.createElement('canvas');
+      composed.width = canvas.width;
+      composed.height = canvas.height;
+      const ctx = composed.getContext('2d');
+      ctx.drawImage(canvas, 0, 0);
+      const movesText = (document.getElementById('moves')?.textContent || '').trim();
+      if (movesText) {
+        const fontSize = Math.max(20, Math.round(canvas.height * 0.035));
+        ctx.font = `${fontSize}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.shadowColor = 'rgba(255, 255, 255, 0.9)';
+        ctx.shadowBlur = Math.round(fontSize * 0.5);
+        ctx.fillStyle = '#191919';
+        ctx.fillText(movesText, composed.width / 2, composed.height - fontSize);
+      }
+      imageCanvas = composed;
+    }
     const link = document.createElement('a');
-    link.href = canvas.toDataURL('image/png');
+    link.href = imageCanvas.toDataURL('image/png');
     link.download = `${name}.png`;
     link.click();
     if (typeof boardToast === 'function') boardToast(t('board.screenshotSaved'));

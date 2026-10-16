@@ -60,7 +60,7 @@ loadLevelsData().then(({ packs, levels }) => {
             .map((level, index) => levelRowHTML(level, {index: start + index, packName: packOf(level.pack), levelFrom: searchURL({q: input.value.trim(), pack: packScope, page: page})}))
             .join('');
         pager.innerHTML = pagerHTML(page, matched.length, target =>
-            searchURL({q: input.value.trim(), pack: packScope, page: target}));
+            searchURL({q: input.value.trim(), pack: packScope, page: target}), true);
         observeLevelThumbs();
         if (terms.length || packScope) summary.textContent = t('search.found', {count: matched.length});
         else summary.textContent = t('search.all', {count: levels.length});

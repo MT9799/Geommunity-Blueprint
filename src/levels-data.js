@@ -241,9 +241,10 @@ function observeLevelThumbs() {
  * @param {(page: number) => string} hrefOf 生成某页链接
  * @returns {string}
  */
-function pagerHTML(page, total, hrefOf) {
+function pagerHTML(page, total, hrefOf, showSinglePage) {
     const totalPages = Math.max(Math.ceil(total / LEVELS_PAGE_SIZE), 1);
-    if (totalPages < 2) return '';
+    if (total < 1) return '';                       // 没关卡就不画翻页条
+    if (totalPages < 2 && !showSinglePage) return ''; // 单页默认不画；关卡选择页要求始终显示
     const items = [];
     const addPage = (label, target, active, disable) => {
         const className = `pager-item${active ? ' active' : ''}${disable ? ' disable' : ''}`;

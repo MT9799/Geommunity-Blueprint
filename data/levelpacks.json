@@ -2,7 +2,7 @@
     {
         "id": "ewp",
         "name": "EWP",
-        "description": "EWP 题库，取自原始资料 ref/Euclidea-EWP。侵删。",
+        "description": "Euclidea Weekly Puzzle 中的作图题。侵删。",
         "cover": "packcovers/ewp.jpg",
         "icon": "diagrams/ewp/ewp11.png",
         "source": "ref\\Euclidea-EWP"
@@ -10,55 +10,55 @@
     {
         "id": "xmath",
         "name": "XMath",
-        "description": "XMath 题库，取自原始资料 ref/Euclidea-Xmath。侵删。",
+        "description": "历年的 XMath Contest。侵删。",
         "cover": "packcovers/xmath.jpg",
         "icon": "",
         "source": "ref\\Euclidea-Xmath"
     },
     {
         "id": "c-s-pzls-other",
-        "name": "C-s-Pzls-Other",
-        "description": "取自原始资料 ref/Extra/C-s-Pzls-Other。",
+        "name": "尺规散题集锦",
+        "description": "从各处收集的有趣的尺规作图题。",
         "cover": "packcovers/c-s-pzls-other.png",
         "icon": "",
         "source": "ref/Extra/C-s-Pzls-Other"
     },
     {
         "id": "euc-addit",
-        "name": "Euc-Addit",
-        "description": "取自原始资料 ref/Extra/Euc-Addit。",
+        "name": "欧几里得补充包",
+        "description": "铃声末响春日暖的精选集。",
         "cover": "",
         "icon": "",
         "source": "ref/Extra/Euc-Addit"
     },
     {
         "id": "from-baidu-tieba",
-        "name": "From-Baidu-Tieba",
-        "description": "取自原始资料 ref/Extra/From-Baidu-Tieba。",
+        "name": "贴吧精选集",
+        "description": "来自百度贴吧的几何作图题。",
         "cover": "",
         "icon": "",
         "source": "ref/Extra/From-Baidu-Tieba"
     },
     {
         "id": "mingjing-forum",
-        "name": "Mingjing-Forum",
-        "description": "取自原始资料 ref/Extra/Mingjing-Forum。",
+        "name": "明经精选集",
+        "description": "来自明经论坛-几何算法板块的几何作图题。",
         "cover": "",
         "icon": "",
         "source": "ref/Extra/Mingjing-Forum"
     },
     {
         "id": "sprfes",
-        "name": "SprFes",
-        "description": "取自原始资料 ref/Extra/SprFes。",
+        "name": "跨年赛",
+        "description": "作图群跨年赛历年真题。",
         "cover": "",
         "icon": "",
         "source": "ref/Extra/SprFes"
     },
     {
         "id": "straightedge-only-pzls",
-        "name": "Straightedge-only-Pzls",
-        "description": "取自原始资料 ref/Extra/Straightedge-only-Pzls。",
+        "name": "纯单尺精选集",
+        "description": "单尺作图-从入门到入土。",
         "cover": "",
         "icon": "",
         "source": "ref/Extra/Straightedge-only-Pzls"
@@ -66,7 +66,7 @@
     {
         "id": "xeuclidea-puzzle",
         "name": "XEuclidea-Puzzle",
-        "description": "取自原始资料 ref/Extra/XEuclidea-Puzzle。",
+        "description": "特普的尺规作图标准题集。",
         "cover": "",
         "icon": "",
         "source": "ref/Extra/XEuclidea-Puzzle"
@@ -74,7 +74,7 @@
     {
         "id": "xewpc",
         "name": "XEWPC",
-        "description": "XEuclidea-Puzzle 里的 XEWPC 系列，取自原始资料 ref/Extra/XEuclidea-Puzzle。",
+        "description": "XEuclidea-Puzzle 里的 XEWPC 系列。",
         "cover": "",
         "icon": "",
         "source": "ref/Extra/XEuclidea-Puzzle"

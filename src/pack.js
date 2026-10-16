@@ -33,7 +33,7 @@ loadLevelsData().then(({ packs }) => {
         .map((level, index) => levelRowHTML(level, {index: start + index, page: page}))
         .join('');
     pager.innerHTML = pagerHTML(page, levels.length, target =>
-        `./pack.html?pack=${encodeURIComponent(packId)}&page=${target}`);
+        `./pack.html?pack=${encodeURIComponent(packId)}&page=${target}`, true);
     observeLevelThumbs();
     // 从关卡返回时停在原来那一屏，而不是回到列表顶部
     restoreListScroll();

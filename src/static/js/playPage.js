@@ -1609,7 +1609,16 @@ function fitInitialView() {
     // 适配口径与画板 / 记录载入完全共用（board-tools.js 的 fitViewToContent）：
     // 有网格就适配到网格范围，没有网格就按可见图形的外接矩形适配 ——
     // 扣掉浮层占的地方、留 30% 边距、最多放大 2 倍（旧的那套是 1.6 边距、非网格关卡不扣浮层）
-    const view = typeof window.boardGmt?.fitView === 'function' ? window.boardGmt.fitView() : null;
+    // 所求点（explore）也纳入画幅：进入关卡时玩家就能看清整个作答区域，
+    // 而非只框住给定点后被答案点甩在视野外（普通模式下它们被藏起，这里强制计入）
+    const extraItems = [];
+    if (geometryElementLists && geometryElementLists.explore) {
+        geometryElementLists.explore.forEach(id => {
+            const item = geometryManagerExplore.get(id) || geometryManagerResult.get(id);
+            if (item) extraItems.push(item);
+        });
+    }
+    const view = typeof window.boardGmt?.fitView === 'function' ? window.boardGmt.fitView(extraItems) : null;
     if (!view) return;
     // 记下关卡载入时的视图：这就是「初始视图」，还原画布变化量要回到它，
     // 而不是通用的 initialScale（那是 0.5，小图形会被适配放大，还原时会看着缩小一圈）。
