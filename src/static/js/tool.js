@@ -3,8 +3,9 @@ let tool, menuTool, subTool;
 const toolMenus = {
     // 样式刷是全局性的操作（给任意图形刷样式），挂在通用档、紧挨橡皮擦，
     // 后面用一条分隔线跟「作图类」工具分开（见 toolMenuDividers）
+    // 橡皮擦已并进「刷/擦」工具的浮层（样式刷的第 3 项），这里不再单列
     'general': [
-        'move', 'eraser', 'styleBrush', 'point', 'line', 'circle', 'lineSegment', 'compass', 'intersection'
+        'move', 'styleBrush', 'point', 'line', 'circle', 'lineSegment', 'compass', 'intersection'
     ],
     'point': [
         'point', 'intersection'
@@ -47,10 +48,11 @@ const toolItems = {
         "button": ["restoreTransform", "objectStyle", "deleteObject", "clear"],
     },
     'styleBrush': {
-        // 两种模式，在浮动栏里用两个按钮切换（图标 svg-brushStyle / svg-brushHidden）：
-        // 样式刷＝先点一个图形当样式来源，之后点到的图形套用它的颜色 / 粗细 / 标签显示；
-        // 隐藏刷＝点到的图形直接隐藏（光标与橡皮擦一致）
-        'switch': ["brushStyle", "brushHidden"],
+        // 「刷 / 擦」工具栏（浮层）：四种模式，按 隐藏刷 / 样式刷 / 橡皮 / 点擦橡皮 排列
+        //   隐藏刷＝点到的图形直接隐藏（光标与橡皮一致）；
+        //   样式刷＝先点一个图形当样式来源，之后点到的图形套用它的颜色 / 粗细 / 标签显示；
+        //   橡皮＝点 / 拖擦掉任意图形；点擦橡皮＝只擦点
+        'switch': ["brushHidden", "brushStyle", "eraser", "pointEraser"],
         "button": ["clear"],
     },
     'eraser': {
@@ -145,7 +147,10 @@ function generateTool(selectMenuTool) {
     toolbar.innerHTML= '';
 
     // 遍历添加文档元素
-    const toolsList = toolMenus[selectMenuTool];
+    // 精简画板（答案的「逐步绘制」）只用得上移动工具：工具栏里就一个 move，
+    // 这样这条工具栏可以留着显示（比整条藏起来更自然，见 index.css 的 .mode-stepview）
+    const stepview = document.body.classList.contains('mode-stepview');
+    const toolsList = stepview ? ['move'] : toolMenus[selectMenuTool];
     toolsList.forEach((item) => {
         const toolDocumentElement = document.createElement('button');
         toolDocumentElement.classList.add('tool-item');
@@ -170,7 +175,7 @@ function generateTool(selectMenuTool) {
     toolbar.style.display = 'none';
     toolbar.offsetHeight;
     toolbar.style.display = 'flex';
-    choiceTool(toolMenuDefaultValue[selectMenuTool]);
+    choiceTool(stepview ? 'move' : toolMenuDefaultValue[selectMenuTool]);
 }
 
 /**
@@ -179,7 +184,10 @@ function generateTool(selectMenuTool) {
 function loadToolSwitchButton(tool) {
     const toolSwitchButton = document.getElementById("floating-bar-buttons");
     const toolSwitchs = toolItems[tool]?.switch;
-    const toolButtons = toolItems[tool]?.button;
+    // 精简画板（答案的「逐步绘制」）：浮动栏不要「调整对象样式」—— 那是编辑图形用的，
+    // 这个窗口只用来一步步看 / 撤回解法
+    const stepview = document.body.classList.contains('mode-stepview');
+    const toolButtons = (toolItems[tool]?.button || []).filter(name => !(stepview && name === 'objectStyle'));
     toolSwitchButton.innerHTML = "";
     
     if (toolSwitchs) {

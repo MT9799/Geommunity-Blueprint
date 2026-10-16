@@ -116,6 +116,16 @@ const circle = (id, cx, cy, r, centerId) => ({id: id, cx: cx, cy: cy, r: r, cent
     const own = GeoRelations.scan(board([point('a', 0, 0), point('b', 2, 0), point('p', 5, 5), point('q', 5, 7)],
         [], [circle('g1', 0, 0, 2, 'a')]), {kinds: {radius: true}});
     check('⑧ 紧圆规：排除该圆自己的两点', own.kind.radius.map(entry => [entry.centerId, entry.throughId]), [['p', 'q']]);
+    // 与「等距中心」重复的排除：半径相等的两段共用一个端点（AB = AC）说的就是「那个端点到两点等距」，
+    // 等距中心那一栏已经报了，紧圆规不该再报。A 为心过 B 的两点圆（半径 |AB|）与「A 为心过 C」（|AC|=|AB|）
+    // 共用 A，应当被排除；另放一组不共点的 (X,Y) 配半径 5 的真实圆，验证**不共点**的关系仍保留
+    const dup = GeoRelations.scan(board(
+        [point('A', 0, 0), point('B', 2, 0), point('C', 0, 2), point('X', 50, 0), point('Y', 55, 0)],
+        [], [circle('o', 20, 20, 5, 'o')]),
+        {kinds: {radius: true}});
+    check('⑧ 紧圆规：排除 AB=AC（与等距中心重复）', dup.kind.radius.filter(e => e.centerId === 'A' && e.throughId === 'C').length, 0);
+    // 不共点的关系（X→Y 复制半径 5 的真实圆 o）仍保留
+    check('⑧ 紧圆规：不共点的关系保留', dup.kind.radius.filter(e => e.centerId === 'X' && e.throughId === 'Y').length, 1);
 }
 
 // ⑨ 在线复算：移动点后关系失效 / 仍在容差内
@@ -154,6 +164,89 @@ const circle = (id, cx, cy, r, centerId) => ({id: id, cx: cx, cy: cy, r: r, cent
     // 1..10 互质对 + √1..√10 互质对（两段各约 60 项，重合的会去重）
     check('⑩ 比值表：条数在一个合理量级', table.length > 60 && table.length <= 400, true);
     check('⑩ 比值表：√10..√10 只取一个值', GeoRelations.parseRatioSpec('√10..√10', '').length, 1);
+}
+
+// ⑪ 第 10 / 11 条：交点当点、任意两点当线 / 圆
+{
+    // 交点：竖直线 v 与水平线段 h 交于 (2,0)；A、B 与这个交点在 y=0 上共线
+    // （h 是线段，A 落在它范围外，所以这条共线不算「已有线串起来」，应当报出）
+    const result = GeoRelations.scan(board(
+        [point('A', 0, 0), point('B', 4, 0)],
+        [line('h', 1, 0, 3, 0, 'lineSegment'), line('v', 2, -1, 2, 1)]),
+        {kinds: {collinear: true}});
+    check('⑪ 交点并入扫描（共线含交点）', result.kind.collinear.map(entry => entry.pointIds.join(',')),
+        ['A,B,@ix:h|v|0']);
+
+    // 任意两点当线：A(0,0) B(1,0) C(0,1) D(1,1) → AB ∥ CD、AC ∥ BD
+    const parallel = GeoRelations.scan(board(
+        [point('A', 0, 0), point('B', 1, 0), point('C', 0, 1), point('D', 1, 1)]), []);
+    check('⑪ 两点连线参与平行', parallel.kind.parallel.map(entry => entry.lineIds.join(',')),
+        ['@seg:A|B,@seg:C|D', '@seg:A|C,@seg:B|D']);
+}
+{
+    // ⑪ 合成 id 的在线复算
+    const live = {
+        h: {kind: 'line', x1: 1, y1: 0, x2: 3, y2: 0, drawType: 'lineSegment'},
+        v: {kind: 'line', x1: 2, y1: -1, x2: 2, y2: 1, drawType: 'line'},
+        A: {kind: 'point', x: 0, y: 0},
+        B: {kind: 'point', x: 3, y: 4},
+    };
+    const lookup = id => GeoRelations.resolveSyntheticId(lookup, id) || live[id] || null;
+    check('⑪ 合成 id：交点', lookup('@ix:h|v|0'), {kind: 'point', x: 2, y: 0});
+    check('⑪ 合成 id：两点连线', lookup('@seg:A|B'), {kind: 'line', x1: 0, y1: 0, x2: 3, y2: 4, drawType: 'line'});
+    check('⑪ 合成 id：两点圆', lookup('@circ:A|B'), {kind: 'circle', cx: 0, cy: 0, r: 5});
+    check('⑪ 合成 id：对象没了给 null', lookup('@seg:A|Z'), null);
+}
+
+{
+    // ⑫ 载线按几何去重：K 在 IJ 上时，「I→K」与「I→J」是同一条线 ——
+    // 不去重的话「IC 平分 IJ 与 IK」这类凭空关系会冒出来（两条相同的边配任何一条都「平分」）
+    const bisector = GeoRelations.scan(board(
+        [point('I', 0, 0), point('J', 4, 0), point('K', 2, 0), point('C', 0, 4)], []),
+        {kinds: {bisector: true}});
+    check('⑫ 相同载线不重复（K 在 IJ 上不该报平分线）', bisector.kind.bisector.length, 0);
+}
+{
+    // ⑫ 合成 id 的嵌套：两点连线的端点本身可以是交点，按语法递归解析（以前一刀切开就拆错了）
+    const live = {
+        h: {kind: 'line', x1: 1, y1: 0, x2: 3, y2: 0, drawType: 'lineSegment'},
+        v: {kind: 'line', x1: 2, y1: -1, x2: 2, y2: 1, drawType: 'line'},
+        G: {kind: 'point', x: 5, y: 5},
+    };
+    const lookup = id => GeoRelations.resolveSyntheticId(lookup, id) || live[id] || null;
+    const nested = lookup('@seg:@ix:h|v|0|G');
+    check('⑫ 嵌套合成 id：两端点能解出来', nested && [nested.x1, nested.y1, nested.x2, nested.y2], [2, 0, 5, 5]);
+    const nameOf = id => id;
+    check('⑫ 嵌套合成 id：显示名（交点套括号）', GeoRelations.syntheticName('@seg:@ix:h|v|0|G', nameOf), '(h∩v)G');
+    check('⑫ 第二个交点带序号', GeoRelations.syntheticName('@ix:h|v|1', nameOf), 'h∩v(2)');
+    check('⑫ 普通 id 不当合成 id 处理', GeoRelations.syntheticName('s1', nameOf), null);
+}
+
+{
+    // ⑬ 标出的点只取「真作出的点」：垂 / 平 / 定点角 / 平分线用来定方向的那一端是单位长度点，不标
+    // 垂线 perp 渲染坐标 [-10,-20]->[-10,0]，真实定义点只有 A=[-10,0]；单位长度端 [-10,-20] 不标
+    // 基本线段 basic (0,0)->(4,0)，两端都是作出的点，照标
+    const live = {
+        perp: {kind: 'line', x1: -10, y1: -20, x2: -10, y2: 0, drawType: 'perpendicular', basePoints: [[-10, 0]]},
+        basic: {kind: 'line', x1: 0, y1: 0, x2: 4, y2: 0, drawType: 'lineSegment', basePoints: [[0, 0], [4, 0]]},
+    };
+    const lookup = id => live[id] || null;
+    const overlay = {
+        tolerance: 1e-9, span: 10, angleTolerance: 1e-6,
+        entries: [{kind: GeoRelations.KIND.perpendicular, lineIds: ['perp', 'basic']}],
+    };
+    const drawn = GeoRelations.evaluateOverlay(overlay, lookup);
+    check('⑬ 垂线：只标真实定义点、不标单位长度点',
+        drawn.points.map(p => p.x + ',' + p.y).sort(), ['-10,0', '0,0', '4,0']);
+    // 没有 basePoints（老 lookup / 测试简版）时退回「两端都标」，行为不退化
+    const live2 = {
+        perp: {kind: 'line', x1: -10, y1: -20, x2: -10, y2: 0, drawType: 'perpendicular'},
+        basic: {kind: 'line', x1: 0, y1: 0, x2: 4, y2: 0, drawType: 'lineSegment'},
+    };
+    const lookup2 = id => live2[id] || null;
+    const drawn2 = GeoRelations.evaluateOverlay(overlay, lookup2);
+    check('⑬ 退回两端都标（无 basePoints）',
+        drawn2.points.map(p => p.x + ',' + p.y).sort(), ['-10,-20', '-10,0', '0,0', '4,0']);
 }
 
 console.log(failures ? `\n${failures} 项未通过` : '\n全部通过');

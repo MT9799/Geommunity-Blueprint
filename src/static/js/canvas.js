@@ -214,6 +214,12 @@ const RELATION_RADAR_ALPHA = 0.5;
  * @returns {Object|null} {kind, …}；对象不存在 / 不是这三类 / 已被删就给 null
  */
 function relationRadarLookup(id) {
+    // 合成 id（交点 @ix: / 两点连线 @seg: / 两点圆 @circ:）：不在画布对象表里，交给内核现算
+    // （第 10 / 11 条：交点是伪点、任意两点连线 / 圆也不是真对象）
+    if (typeof GeoRelations !== 'undefined' && typeof GeoRelations.resolveSyntheticId === 'function') {
+        const synthetic = GeoRelations.resolveSyntheticId(relationRadarLookup, id);
+        if (synthetic) return synthetic;
+    }
     const item = typeof geometryManager !== 'undefined' ? geometryManager.get(id) : null;
     if (!item) return null;
     if (item.getValid && !item.getValid()) return null;
@@ -231,8 +237,23 @@ function relationRadarLookup(id) {
     }
     if (type === 'line') {
         const [[x1, y1], [x2, y2]] = coordinate;
-        return Number.isFinite(x1) && Number.isFinite(y1) && Number.isFinite(x2) && Number.isFinite(y2)
-            ? {kind: 'line', x1: x1, y1: y1, x2: x2, y2: y2, drawType: item.getDrawType?.() || 'line'} : null;
+        if (![x1, y1, x2, y2].every(Number.isFinite)) return null;
+        const result = {kind: 'line', x1: x1, y1: y1, x2: x2, y2: y2, drawType: item.getDrawType?.() || 'line'};
+        // 把「定义这条线的真实点」也带上：垂 / 平 / 定点角 / 平分线这类线，用来定方向的那一端是
+        // 单位长度点、并不是作出的点；雷达要标的是真作出的那端，所以把定义点坐标一并给内核比对
+        const base = item.getBase ? item.getBase() : null;
+        const figure = base && base.figure;
+        if (Array.isArray(figure)) {
+            const pts = [];
+            for (const el of figure) {
+                if (el && el.getType && el.getType() === 'point') {
+                    const c = el.getCoordinate && el.getCoordinate();
+                    if (c && Number.isFinite(c[0]) && Number.isFinite(c[1])) pts.push([c[0], c[1]]);
+                }
+            }
+            if (pts.length) result.basePoints = pts;
+        }
+        return result;
     }
     return null;
 }
@@ -1115,9 +1136,12 @@ function hidePointerCursor() {
 function drawPointer() {
     // 手指抬起后先不画（见 hidePointerCursor）
     if (!pointerCursorVisible) return;
-    // 隐藏刷的光标与橡皮擦一致（方块）：都是「点一下就把它去掉」
-    const hiddenBrush = tool === 'styleBrush' && typeof subTool !== 'undefined' && subTool === 'brushHidden';
-    if (tool === "eraser" || hiddenBrush) {
+    // 刷/擦工具里「点一下就把它去掉」的模式（隐藏刷 / 橡皮 / 点擦橡皮）都用橡皮方块光标；
+    // 游玩模式的「隐藏刷模式」同理（见 toolPlayPage.js 的 window.playHideBrushMode）
+    const eraseCursor = (tool === 'styleBrush' && typeof subTool !== 'undefined'
+        && (subTool === 'brushHidden' || subTool === 'eraser' || subTool === 'pointEraser'))
+        || (typeof window.playHideBrushMode === 'function' && window.playHideBrushMode());
+    if (tool === "eraser" || eraseCursor) {
         const width = 16 / transform.scale;
         const x = (pointerPosition.x - transform.x) / transform.scale - width / 2;
         const y = (pointerPosition.y - transform.y) / transform.scale - width / 2;
@@ -1128,7 +1152,7 @@ function drawPointer() {
         ct.strokeStyle = 'rgb(25, 25, 25)';
         ct.lineWidth = 3 / transform.scale;
         ct.strokeRect(x, y, width, width);
-    }else if (tool === 'lineType' || (tool === 'styleBrush' && !hiddenBrush)) {
+    }else if (tool === 'lineType' || (tool === 'styleBrush' && !eraseCursor)) {
         // 切换线类型 / 样式刷：光标画成一个圆环，提示「点这里就换类型 / 刷样式」。
         // 圆环半径（屏幕像素）：外圈与内圈，两圈之差就是环的粗细（这里 4px）
         const ringOuter = 11;

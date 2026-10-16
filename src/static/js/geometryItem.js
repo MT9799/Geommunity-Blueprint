@@ -8,15 +8,45 @@ let openedGeometryItemId = null;
 let overviewListMinHeight = 0;
 /**
  * 把量好的最小高度写到一览与详情两个容器上 过程函数
+ * 贴的是**当前窗口高度折算过**的值：详情容器的上限是 40vh（见 index.css 的 .item-container），
+ * 而一览那边没有这个上限 —— 窗口变矮后 40vh 会小于记下来的像素值，详情被裁矮、一览照旧，
+ * 两边就不再同高（见 refreshOverviewHeightOnResize）
  */
 function applyOverviewMinHeight() {
     if (overviewListMinHeight <= 0) return;
-    const height = `${overviewListMinHeight}px`;
+    const cap = Math.round(window.innerHeight * 0.4);
+    const height = `${Math.max(1, Math.min(overviewListMinHeight, cap))}px`;
     const listMode = document.getElementById("geometry-item-list");
     const viewerMode = document.getElementById("geometry-item");
     if (listMode) listMode.style.minHeight = height;
     if (viewerMode) viewerMode.style.minHeight = height;
 }
+/** 窗口尺寸变化的防抖定时器（拖窗口时 resize 很密集，量高度会连着触发重排） */
+let overviewResizeTimer = null;
+/**
+ * 窗口尺寸变了重新对齐（并折算上限）过程函数
+ * 一览的高度跟窗口走：详情开着时它被 display:none 藏起来了，量不到 —— 先借它的布局量一次再还原
+ * （用 visibility 藏住量，不会闪），量到的就当新的共同高度
+ */
+function refreshOverviewHeightOnResize() {
+    if (overviewListMinHeight <= 0) return;
+    const listMode = document.getElementById("geometry-item-list");
+    const viewerMode = document.getElementById("geometry-item");
+    const viewerShown = !!viewerMode && viewerMode.style.display !== "none";
+    if (listMode && viewerShown && getComputedStyle(listMode).display === "none") {
+        listMode.style.visibility = "hidden";
+        listMode.style.display = "block";
+        const height = Math.round(listMode.getBoundingClientRect().height);
+        listMode.style.display = "none";
+        listMode.style.visibility = "";
+        if (height > 0) overviewListMinHeight = height;
+    }
+    applyOverviewMinHeight();
+}
+window.addEventListener('resize', () => {
+    clearTimeout(overviewResizeTimer);
+    overviewResizeTimer = setTimeout(refreshOverviewHeightOnResize, 150);
+});
 /**
  * 记下刚画好的详情有多高 过程函数
  * 详情（三列那块）画完之后量一次，取见过的最高那个，写回两个容器的 min-height
@@ -26,6 +56,20 @@ function syncOverviewListHeight(viewerMode) {
     const height = Math.round(viewerMode.getBoundingClientRect().height);
     if (height <= 0) return;
     overviewListMinHeight = Math.max(overviewListMinHeight, height);
+    applyOverviewMinHeight();
+}
+/**
+ * 按「一览此刻有多高」重新对齐共同的最小高度 过程函数
+ * 一览的高度跟窗口大小走（里面的网格有 22vh 的上限），窗口放大后它会变高；
+ * 而最小高度是**旧窗口**量出来的像素值，不重新对齐就会出现
+ * 「一览变高了 → 点进详情还是矮窗口时的高度」。点进详情之前先对齐一次（见 show）
+ */
+function syncOverviewMinHeightFromList() {
+    const listMode = document.getElementById("geometry-item-list");
+    if (!listMode || getComputedStyle(listMode).display === "none") return;
+    const height = Math.round(listMode.getBoundingClientRect().height);
+    if (height <= 0) return;
+    overviewListMinHeight = height;
     applyOverviewMinHeight();
 }
 /**
@@ -334,7 +378,13 @@ function loadGeometryElements() {
         if (overviewPanelSelect === 'hidden') {
             // 「隐藏」档看的是元素**实际**的显示状态：导入的 gmt 里预绘制的解是靠自身 visible=false
             // 隐藏的，不一定登记在 hidden 集合里，查集合会一个都不亮
-            if (!element.getVisible()) item.classList.add('select');
+            const canHide = typeof window.boardHideAllowed === 'function' ? window.boardHideAllowed(id) : true;
+            // 题面对象（给定 / 所求 / 关卡自带）不给玩家动：整格变灰（隐藏中的再套红框）
+            if (!canHide) item.classList.add('pre-hidden');
+            if (!element.getVisible()) {
+                item.classList.add('select');
+                if (canHide) item.classList.add('player-hidden');
+            }
         }else if (overviewPanelSelect === 'result') {
             // 「所求」档把**所有解**的所求判定都标出来，不只是第 1 个解
             if (overviewResultJudgedSets().some(set => set.has(id))) item.classList.add('select');
@@ -375,6 +425,9 @@ function selectElementByOverview(event) {
         openedGeometryItemId = id;
         const overviewMode = document.getElementById("geometry-item-list");
         const viewerMode = document.getElementById("geometry-item");
+        // 切进详情前先按一览**此刻**的高度对齐两者的共同最小高度：
+        // 一览随窗口变高（网格有 22vh 上限），不重量的话放大窗口后详情还是旧高度、比一览矮一截
+        syncOverviewMinHeightFromList();
         overviewMode.style.display = "none";
         viewerMode.style.display = "flex";
         viewerMode.innerHTML = "";
@@ -861,15 +914,19 @@ function selectElementByOverview(event) {
         // 「隐藏」档：以元素实际的显示状态为准来切换，并把 hidden 集合一起同步，
         // 这样撤销 / 存读档、重新导入之后列表与画布仍然对得上
         if (overviewPanelSelect === 'hidden') {
-            // 试玩（mode-maker-play）里也只当「看」用：点不动（与关卡游玩一致），
-            // 制题器 / 求解器里照旧点一下切换显示 / 隐藏
-            if (document.body.classList.contains('mode-maker-play')) return;
+            // 玩家自己画的图形：点一下切换显示 / 隐藏（画板 / 制题器 / 求解器 / 试玩都一样）；
+            // 题面对象（给定 / 所求 / 关卡自带）点不动（那一格整格变灰，见 renderOverview）
             const geometryElement = geometryManager.get(id);
+            if (!geometryElement) return;
+            const canHide = typeof window.boardHideAllowed === 'function' ? window.boardHideAllowed(id) : true;
+            if (!canHide) return;
             const wasHidden = !geometryElement.getVisible();
             geometryElement.modifyVisible(wasHidden);
             if (wasHidden) set.delete(id);
             else set.add(id);
-            target.classList.toggle('select', !geometryElement.getVisible());
+            const hiddenNow = !geometryElement.getVisible();
+            target.classList.toggle('select', hiddenNow);
+            target.classList.toggle('player-hidden', hiddenNow);
             drawContent();
             return;
         }

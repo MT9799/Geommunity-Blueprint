@@ -67,7 +67,7 @@ body.mode-level .moves-layout {
     position: absolute;
     top: 2vh;
     left: 2vw;
-    z-index: 5;
+    z-index: 8;
     width: 40vw;
     max-width: 300px;
     aspect-ratio: 4 / 3;
@@ -669,6 +669,13 @@ textarea {
     background-color: #277f96;
 }
 
+/* 不可用的开关（元素详情只读档里：题面对象、关卡自己藏起来的图形的「隐藏」）：整块置灰、点不动 */
+.style-popup-switch.disable {
+    opacity: 0.4;
+    cursor: default;
+    pointer-events: none;
+}
+
 /* 取色输入：藏在视口外但保留在文档中，避免取色过程中被移除导致 change 事件丢失。
    不能加 pointer-events: none —— 手机端对不可交互的元素不会弹原生取色器 */
 .style-color-input {
@@ -819,6 +826,8 @@ textarea {
 }
 
 .answer-figure {
+    /* relative：给「逐步绘制」按钮定位用 */
+    position: relative;
     display: flex;
     flex-direction: column;
     gap: 6px;
@@ -840,12 +849,52 @@ textarea {
 .answer-figure figcaption {
     font-size: 12px;
     color: #4a4a4a;
-    text-align: center;
+    margin-left: 6px;
+    /* text-align: center; */
 }
 
 .answer-figure img:active {
     /* 点一下就是「开大图」，给个按下反馈（大图见 .image-zoom） */
     opacity: 0.85;
+}
+
+/* 答案图的「图片框」 */
+.answer-figure-image {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+/* 「逐步绘制」 */
+.answer-stepview-button {
+    position: absolute;
+    right: 8px;
+    bottom: 6px;
+    padding: 2px 10px;
+    border: none;
+    border-radius: 6px;
+    background-color: rgb(60, 120, 220);
+    color: #fff;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.answer-stepview-button:active {
+    opacity: 0.85;
+}
+
+/* 精简画板（mode=stepview，答案的「逐步绘制」窗口）：只留移动工具 + 撤销重做 + 返回。
+   收掉工具分类 / 元素一览 / 记录面板，以及「菜单」「生成网格」两个按钮。
+   注意 #container_toolbar **保留**：里面只有一个移动工具（见 tool.js 的 generateTool） */
+body.mode-stepview #menu_toolbar,
+body.mode-stepview #overviewPanel,
+body.mode-stepview #recordPanel,
+body.mode-stepview #container_more [data-action="open-menu"],
+body.mode-stepview #container_more [data-action="make-grid"] {
+    display: none !important;
 }
 
 /* gmt 代码框（制题器「查看 / 导入 gmt 代码」、记录面板导出 / 导入的代码）：
@@ -1105,6 +1154,10 @@ textarea {
 .radar-group { border-top: 1px solid rgb(200, 200, 206); padding-top: 4px; }
 .radar-group summary { font-size: 13px; cursor: pointer; }
 .radar-group[open] summary { margin-bottom: 4px; }
+/* 一类里条目多时的分块（每 60 条一块，点开才列） */
+.radar-chunk { margin: 2px 0 4px 8px; }
+.radar-chunk summary { font-size: 12px; color: #6a6a70; cursor: pointer; }
+.radar-chunk[open] summary { margin-bottom: 2px; }
 /* 一条结果：整行可点，点中就在画布上标出来（紫色与画布上的关系覆盖层同色）。
    选择器带 .radar-panel 前缀：面板里那条 .solver-panel button 的通用规则权重更高 */
 .radar-panel .radar-row {
@@ -1264,6 +1317,15 @@ textarea {
     align-self: center;
 }
 
+/* 标记工具容器（board-tools 的 addMarkTools）：桌面端只是菜单栏里横着的一段，
+   间距与 #menu_toolbar 的 .row-direction 保持一致；手机端由下面的媒体查询挪到屏幕右侧 */
+.mark-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-shrink: 0;
+}
+
 .svg-icon {
     width: 100%;
     height: 100%;
@@ -1418,6 +1480,15 @@ textarea {
     background-color: #fef7e5; /* 悬停效果 */
 }
 
+/* 生效中的浮动按钮（游玩模式「隐藏刷」开着 / 选中的图形已隐藏）：底色压深、图标变绿 */
+.floating-svg-button.active {
+    background-color: #d7e8eb;
+}
+
+.floating-svg-button.active .svg-icon {
+    stroke: #0fd869;
+}
+
 .floating-svg-button.disable {
     background-color: rgb(100, 100, 100);
     cursor: default;
@@ -1531,6 +1602,20 @@ textarea {
 
 .overview-item.select {
     border: 2px solid;
+}
+
+/* 元素一览「隐藏」档：
+   · 题面对象（给定 / 所求 / 关卡自带，.pre-hidden）不给玩家动 —— 整格变灰，点不动；
+     其中隐藏中的再套红框（.pre-hidden.select）区分「关卡藏起来的」与「玩家藏起来的」；
+   · 玩家自己隐藏的（.player-hidden）：黑框，点一下显示回来。
+   画板 / 制题器 / 求解器与游玩页共用这一套（见 geometryItem.js / geometryItemPlayPage.js） */
+#container_overview .overview-item.pre-hidden {
+    opacity: 0.45;
+    cursor: default;
+}
+
+#container_overview .overview-item.pre-hidden.select {
+    border-color: #e53935;
 }
 
 /* 非「隐藏」档（初始 / 可动点 / 所求 / 探索…）看的是标记：被标出的那几格用红框，
@@ -1731,7 +1816,7 @@ textarea {
 .floating-bar {
     width: 100%;
     display: flex;
-    justify-content: space-between;
+    align-items: center;
     gap: 5vw;
     pointer-events: none;
 }
@@ -1741,10 +1826,19 @@ textarea {
     pointer-events: auto;
 }
 
+/* 选中栏靠右：原来是 .floating-bar 的 space-between 撑开的，改成 margin-left: auto ——
+   这样再多一个「贴右」的容器（#floating-bar-right，游玩模式的隐藏按钮）时它才是整条的最右，
+   选中栏也不会被挤到中间（只有两个子元素时效果与原来的 space-between 一致） */
 #floating-bar-elements {
     display: flex;
     flex-direction: row-reverse;
     max-width: 80vw;
+    margin-left: auto;
+    pointer-events: auto;
+}
+
+/* 浮动栏最右那格（游玩模式的隐藏按钮，见 toolPlayPage 的 loadToolSwitchButton） */
+#floating-bar-right {
     pointer-events: auto;
 }
 
@@ -2541,6 +2635,39 @@ textarea {
     .side-button {
         width: 40px;
         height: 40px;
+    }
+    /* 标记工具按钮：手机端从顶部菜单栏挪到屏幕右侧，竖排一列
+       （与左侧的「已标记对象」圆形按钮相对；桌面端仍排在菜单栏里，见 board-tools 的 addMarkTools）。
+       top 比左侧那一列再低一点：右上角是 vConsole 的开关按钮，贴太靠上会被它压住 */
+    .mark-toolbar {
+        display: flex;
+        position: fixed;
+        top: 102px;
+        right: 8px;
+        z-index: 6;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+    }
+    /* 这几个按钮和左侧的圆形按钮同一副样子：圆形、尺寸固定，点一下不会变宽。
+       触摸屏上 :hover 会「粘住」，原来 .svg-button:hover 会把宽度从 45px 顶到 70px，
+       竖排这一列就会跟着左右晃、还容易压到别的按钮 */
+    .mark-toolbar .svg-button,
+    .mark-toolbar .svg-button:hover {
+        width: 40px;
+        height: 40px;
+        background-color: rgb(235, 235, 240);
+        /* border-radius: 50%; */
+    }
+    .mark-toolbar .svg-button .svg-icon {
+        width: 30px;
+        height: 30px;
+    }
+    /* 桌面端那条竖排分隔线在这里换成一条短横线 */
+    .mark-toolbar .tool-separator {
+        width: 26px;
+        height: 2px;
+        margin: 2px 0;
     }
     .side-button .svg-icon {
         width: 22px;

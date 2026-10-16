@@ -467,8 +467,9 @@ function touchmoveEventFunction(e) {
         if (typeof previewPointerMoved === 'function') previewPointerMoved(x, y);
         // 手指还在移动：工具光标该显示（force = 触摸自己的动作，不受「刚抬手」的忽略窗口影响）
         if (typeof showPointerCursor === 'function') showPointerCursor(true);
-        // 橡皮擦的方块光标、切换线类型 / 样式刷的圆环光标都跟着指针走，要重绘
-        if (tool === 'eraser' || tool === 'lineType' || tool === 'styleBrush') drawContent();
+        // 橡皮擦的方块光标、切换线类型 / 样式刷的圆环光标、以及隐藏刷的方块光标都跟着指针走，要重绘
+        if (tool === 'eraser' || tool === 'lineType' || tool === 'styleBrush'
+            || (typeof window.playHideBrushMode === 'function' && window.playHideBrushMode())) drawContent();
 
         // 拖拽判定：移够距离才算拖动（手抖不算）
         if (Math.abs(deltaX) > dragThreshold || Math.abs(deltaY) > dragThreshold) {
@@ -529,8 +530,9 @@ function mouseMoveEventFunction(e) {
     // 鼠标动了：工具光标该显示（刚触摸抬手时的合成鼠标事件会被 showPointerCursor 忽略）
     if (typeof showPointerCursor === 'function') showPointerCursor();
     // 预览消失的那一帧也要重绘（needRedrawForPreview 里管这件事）；
-    // 橡皮擦的方块光标、切换线类型 / 样式刷的圆环光标都跟着指针走
-    if (tool === 'eraser' || tool === 'lineType' || tool === 'styleBrush' || needRedrawForPreview()) drawContent();
+    // 橡皮擦的方块光标、切换线类型 / 样式刷的圆环光标、隐藏刷的方块光标都跟着指针走
+    if (tool === 'eraser' || tool === 'lineType' || tool === 'styleBrush' || needRedrawForPreview()
+        || (typeof window.playHideBrushMode === 'function' && window.playHideBrushMode())) drawContent();
 
     // 拖拽判定：没按着键时的移动只是悬停（startX / startY 还停在上一次按下的位置，
     // 不加这一层的话，点完一下再随手挪动就会被当成拖动）；按着左键还要移够距离才算
@@ -1355,6 +1357,7 @@ const infDict = {
     "switch-overview": {title: "几何元素一览面板", context: "可以查看所有的元素，快速编辑"},
     "switch-record": {title: "记录", context: "查看与载入作图记录"},
     "clear-canvas": {title: "清空画布", context: ""},
+    "screenshot": {title: "截图", context: "把画板区域导出成 PNG（不含界面）"},
     "help": {title: "帮助", context: "说明当前界面的用法"},
     "view-answer": {title: "查看答案", context: "查看本关收录的解法图"},
     "close-menu": {title: "关闭菜单", context: "收起这个菜单"},
@@ -1405,6 +1408,7 @@ const infDict = {
     "pointStyle": {title: "配置点样式", context: "设置后续绘制的点的颜色、大小与标签显示"},
     "objectStyle": {title: "调整对象样式", context: "用移动工具选中对象后，可修改它的颜色、粗细、标签显示，直线与圆还可切成虚线"},
     "deleteObject": {title: "删除选中对象", context: "删除移动工具选中的对象，连同由它作出来的所有子对象"},
+    "hideToggle": {title: "隐藏 / 隐藏刷", context: "没选中图形时：点一下进入隐藏刷（之后点画布上的图形就把它藏起来，再点退出）；选中图形时：点一下隐藏 / 显示它"},
     "any": {title: "任意对象", context: "可选中任意几何对象"},
     "choicePoint": {title: "点对象", context: "仅选中点对象"},
     "style": {title: "样式刷", context: "拖拽以配置直线的样式为当前线工具样式"},
@@ -2261,16 +2265,20 @@ function DOMLoaded() {
     canvas.addEventListener("mousemove", mouseMoveEventFunction);
     canvas.addEventListener("mouseup", mouseUpEventFunction);
     document.addEventListener("mouseleave", mouseCancelEventFunction);
-    canvas.addEventListener("wheel", wheelEventFunction);
+    canvas.addEventListener("wheel", wheelEventFunction, {passive: false});
     // 触摸事件
-    canvas.addEventListener("touchstart", touchstartEventFunction);
+    // touchstart / touchmove 要 preventDefault（挡掉页面滚动与缩放），显式写明 passive: false：
+    // 不写的话浏览器会按「可能是滚动阻塞」记一条 [Violation] 警告
+    canvas.addEventListener("touchstart", touchstartEventFunction, {passive: false});
     canvas.addEventListener("touchend", touchendEventFunction);
-    canvas.addEventListener("touchmove", touchmoveEventFunction);
+    canvas.addEventListener("touchmove", touchmoveEventFunction, {passive: false});
     canvas.addEventListener("touchcancel", touchcancelEventFunction);
     // 点击事件绑定
     choiceToolMenu('standard');
     document.getElementById("container_toolbar").addEventListener("click", toolbarChoice);
-    document.getElementById("floating-bar-buttons").addEventListener("click", toolSwitchChoice);
+    // 委托挂在 .floating-bar 上：隐藏按钮被挪到了「贴右」容器 #floating-bar-right 里，
+    // 挂在 #floating-bar-buttons 上收不到它的点击（表现：点它没反应）
+    document.querySelector(".floating-bar").addEventListener("click", toolSwitchChoice);
     document.getElementById("container_more").addEventListener("click", morebarChoice);
     document.getElementById("container_overview").addEventListener("click", selectElementByOverview);
     document.getElementById("geometry-item").addEventListener("click", geometryItemClick);

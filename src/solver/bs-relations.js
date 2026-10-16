@@ -34,10 +34,24 @@ const GeoRelations = (function () {
         bisector: 'bisector',
         radius: 'radius',
     };
-    /** 容差档位：相对图幅的比例（实际长度容差 = 比例 × 图幅） */
-    const TOLERANCE_LEVELS = {strict: 1e-9, normal: 1e-7, loose: 1e-5};
-    /** 角度容差（度），与上面三档对应（长度容差换算不成角度，单独给一套） */
-    const ANGLE_TOLERANCE = {strict: 1e-3, normal: 0.01, loose: 0.1};
+    /**
+     * 容差档位：相对图幅的比例（实际长度容差 = 比例 × 图幅）
+     * 卡得很紧是有意的：这个工具找的是**真正成立**的隐含关系，浮点误差量级在 1e-13 / 图幅 上下，
+     * 而「只是看着像」的关系（坐标被四舍五入过、随手点出来的角）误差要到 1e-5 / 1e-4 图幅 ——
+     * 旧值（normal 1e-7）正好把这些近似关系全放进来了，结果满屏「低精度的错误关系」
+     */
+    const TOLERANCE_LEVELS = {strict: 1e-11, normal: 1e-9, loose: 1e-7};
+    /**
+     * 角度容差（度），与上面三档对应（长度容差换算不成角度，单独给一套）
+     * 同理卡紧：真关系的角度误差在 1e-10 度以下，而「凑巧差一点」的角差 1e-4 度起
+     */
+    const ANGLE_TOLERANCE = {strict: 1e-7, normal: 1e-6, loose: 1e-4};
+    /**
+     * 「同一个位置」的合并比例（相对图幅）：与上面的关系容差**分开**
+     * 关系判定要卡紧，但「判定这是同一个点」得放宽 —— 容差收紧后，近切交点这种相差 1e-5
+     * 的两个候选会被当成两个点同时进组（看着就是同一点数了两遍）
+     */
+    const COINCIDENT_RATIO = 1e-8;
     /** 定点角默认查哪些角（与面板里的默认值一致） */
     const DEFAULT_ANGLES = [15, 30, 45, 60, 75];
     /** 线上比默认范围：1..10 : 1..10 与 √1..√10 : √1..√10 */
@@ -49,12 +63,28 @@ const GeoRelations = (function () {
     const MAX_RADIUS_FACTOR = 1e6;       // 共圆：半径超过 图幅 × 这个数 当「近乎直线」丢掉
     const MAX_RESULTS_PER_KIND = 400;    // 每类的硬上限（面板还能再调小）
     const ARC_RADIUS_RATIO = 0.12;       // 角 / 角平分线的弧半径 = 图幅 × 这个比例
+    // 第 10 / 11 条（交点、任意两点连线 / 圆）带来的组合量很大，各自给预算
+    const MAX_INTERSECTION_COMBOS = 20000;   // 交点枚举：线 / 圆两两组合的上限
+    const MAX_LINE_CARRIERS = 600;           // 平行垂直 / 角：载线（已有线 + 任意两点连线）条数上限
+    const MAX_PAIR_COMBOS = 400000;          // 平行垂直：载线两两组合的上限
+    const MAX_ANGLE_COMBOS = 400000;         // 定点角：过顶点的线两两组合的上限
+    const MAX_BISECTOR_COMBOS = 400000;      // 角平分线：过顶点的线三三组合的上限
+    const MAX_RADIUS_SOURCES = 400;          // 紧圆规：半径来源（已有圆 + 任意两点圆）条数上限
+    // 合成对象（交点 / 任意两点连线 / 任意两点圆）的 id 前缀：页面侧据此现算几何（见 resolveSyntheticId）
+    const IX_PREFIX = '@ix:';
+    const SEG_PREFIX = '@seg:';
+    const CIRC_PREFIX = '@circ:';
+    const ID_SEP = '|';
     /**
      * 这几类在画布上画成**虚线**
-     * 共线 / 共圆 / 等距中心说的都是「一串点落在同一个东西上」，画实线会跟画布上本来就有的
-     * 那条线 / 那个圆混在一起；虚线一眼就能看出这是雷达标出来的
+     * 共线 / 共圆 / 等距中心 / 线上比说的都是「一串点落在同一个东西上」，平行 / 垂直说的
+     * 是「两条线的关系」—— 画实线都会跟画布上本来就有的那条线 / 那个圆混在一起；
+     * 虚线一眼就能看出这是雷达标出来的
      */
-    const DASHED_KINDS = {collinear: true, concyclic: true, equidistant: true, ratio: true};
+    const DASHED_KINDS = {
+        collinear: true, concyclic: true, equidistant: true, ratio: true,
+        parallel: true, perpendicular: true,
+    };
 
     /* ------------------------------------------------------------------
      * 基础数学（都只看长度与无量纲量）
@@ -114,6 +144,256 @@ const GeoRelations = (function () {
         const slack = tolLength / Math.max(line.length, tolLength);
         if (drawType === 'ray') return t >= -slack;
         return t >= -slack && t <= 1 + slack;
+    }
+
+    /* ------------------------------------------------------------------
+     * 合成对象（第 10 / 11 条）
+     *   · @ix:<A>|<B>|<k>   A、B 两个图形的第 k 个交点（k 从 0 起）；
+     *   · @seg:<P>|<Q>       P、Q 两点确定的直线；
+     *   · @circ:<P>|<Q>      P 为心、过 Q 的圆（半径 |PQ|）。
+     * id 只用字符串描述，几何一律**现算**（扫描用快照、画布侧用 relationRadarLookup），
+     * 于是拖动时紫色高亮照样跟着走；算不出来的报 stale（对象被删 / 关系不再成立）。
+     * 同类的两两组合一律按 id 排序取定顺序，保证「扫描」与「在线复算」给出的候选顺序一致。
+     * ------------------------------------------------------------------ */
+
+    /** 交点的合成 id 过程函数 */
+    function intersectionId(idA, idB, index) {
+        const first = idA <= idB ? idA : idB;
+        const second = idA <= idB ? idB : idA;
+        return `${IX_PREFIX}${first}${ID_SEP}${second}${ID_SEP}${index}`;
+    }
+    /** 「两点连线」的合成 id 过程函数（无序，按 id 排序） */
+    function segmentId(idA, idB) {
+        return idA <= idB ? `${SEG_PREFIX}${idA}${ID_SEP}${idB}` : `${SEG_PREFIX}${idB}${ID_SEP}${idA}`;
+    }
+    /** 「两点圆」的合成 id 过程函数（有序：心在前、过点在后） */
+    function virtualCircleId(centerId, throughId) {
+        return `${CIRC_PREFIX}${centerId}${ID_SEP}${throughId}`;
+    }
+
+    /** 两直线求交 过程函数（都当无限长直线；返回 0 或 1 个点） */
+    function lineLineCandidates(a, b) {
+        const u = makeLine(a.x1, a.y1, a.x2, a.y2);
+        const v = makeLine(b.x1, b.y1, b.x2, b.y2);
+        if (!(u.length > 0) || !(v.length > 0)) return [];
+        const denom = u.dx * v.dy - u.dy * v.dx;
+        if (Math.abs(denom) <= 1e-12 * u.length * v.length) return [];
+        const t = ((v.px - u.px) * v.dy - (v.py - u.py) * v.dx) / denom;
+        return [{x: u.px + t * u.dx, y: u.py + t * u.dy}];
+    }
+
+    /** 直线与圆求交 过程函数（0 / 1 / 2 个点，顺序固定） */
+    function lineCircleCandidates(line, circle) {
+        const u = makeLine(line.x1, line.y1, line.x2, line.y2);
+        if (!(u.length > 0) || !(circle.r > 0)) return [];
+        const fx = u.px - circle.cx;
+        const fy = u.py - circle.cy;
+        const A = u.dx * u.dx + u.dy * u.dy;
+        const B = 2 * (fx * u.dx + fy * u.dy);
+        const C = fx * fx + fy * fy - circle.r * circle.r;
+        const disc = B * B - 4 * A * C;
+        if (disc < 0) return [];
+        const root = Math.sqrt(Math.max(0, disc));
+        const out = [];
+        const ts = [(-B - root) / (2 * A), (-B + root) / (2 * A)];
+        ts.forEach(t => out.push({x: u.px + t * u.dx, y: u.py + t * u.dy}));
+        return out;
+    }
+
+    /** 两圆求交 过程函数（0 / 1 / 2 个点，顺序固定） */
+    function circleCircleCandidates(a, b) {
+        const dx = b.cx - a.cx;
+        const dy = b.cy - a.cy;
+        const d = Math.hypot(dx, dy);
+        if (!(d > 0) || d > a.r + b.r || d < Math.abs(a.r - b.r)) return [];
+        const t = (a.r * a.r - b.r * b.r + d * d) / (2 * d);
+        const h2 = a.r * a.r - t * t;
+        const h = h2 > 0 ? Math.sqrt(h2) : 0;
+        const mx = a.cx + t * dx / d;
+        const my = a.cy + t * dy / d;
+        if (!(h > 0)) return [{x: mx, y: my}];
+        const rx = -dy * (h / d);
+        const ry = dx * (h / d);
+        return [{x: mx + rx, y: my + ry}, {x: mx - rx, y: my - ry}];
+    }
+
+    /**
+     * 两个图形的所有交点 过程函数
+     * 顺序**规范**（线一律在前；同类按 id 排序）——扫描与在线复算都走这里，
+     * 第 k 个候选才稳定对应，否则「点击高亮」的 index 会对错位置
+     * @param {Object} a {kind:'line'|'circle', id, …}
+     * @param {Object} b {kind:'line'|'circle', id, …}
+     * @returns {Array<{x:number,y:number}>}
+     */
+    function intersectionCandidates(a, b) {
+        if (!a || !b) return [];
+        let first = a;
+        let second = b;
+        if (first.kind === 'circle' && second.kind === 'line') { first = b; second = a; }
+        else if (first.kind === second.kind && first.id && second.id && first.id > second.id) { first = b; second = a; }
+        if (first.kind === 'line' && second.kind === 'line') return lineLineCandidates(first, second);
+        if (first.kind === 'line' && second.kind === 'circle') return lineCircleCandidates(first, second);
+        if (first.kind === 'circle' && second.kind === 'circle') return circleCircleCandidates(first, second);
+        return [];
+    }
+
+    /* ------------------------------------------------------------------
+     * 合成 id 的解析 / 拼回 / 显示名
+     *
+     * 合成 id 会**嵌套**：两点连线的端点、交点那两个图形，本身都可能是合成 id，
+     * 而嵌套用的分隔符跟内层一样都是 `|` —— 所以不能简单 split（`@seg:@ix:a|b|0|c`
+     * 一刀切开会得到四段，末端那个 `undefined` 就是这么来的）。按语法递归下降：
+     *   @ix:A|B|k   k 是纯数字（候选交点的序号），A / B 是图形 id
+     *   @seg:P|Q    两点连线
+     *   @circ:C|T   以 C 为心、过 T 的圆
+     * 普通 id 里不会出现 `|`，所以这段解析没有二义性。
+     * ------------------------------------------------------------------ */
+
+    /** 合成 id 的解析 过程函数（不是合成 id / 语法不对时给 null） */
+    function parseSyntheticId(id) {
+        if (typeof id !== 'string') return null;
+        let at = 0;
+        /** 读一个 id：合成 id 递归读下去，普通 id 读到分隔符 / 结尾 */
+        const readId = () => {
+            if (id.slice(at, at + IX_PREFIX.length) === IX_PREFIX) return readComposite(IX_PREFIX, 3);
+            if (id.slice(at, at + SEG_PREFIX.length) === SEG_PREFIX) return readComposite(SEG_PREFIX, 2);
+            if (id.slice(at, at + CIRC_PREFIX.length) === CIRC_PREFIX) return readComposite(CIRC_PREFIX, 2);
+            const end = id.indexOf(ID_SEP, at);
+            const plain = end < 0 ? id.slice(at) : id.slice(at, end);
+            if (!plain) return null;
+            at += plain.length;
+            return plain;
+        };
+        /** 读一个合成 id：prefix 之后按分隔符分段，@ix 的最后一段是纯数字序号 */
+        const readComposite = (prefix, count) => {
+            at += prefix.length;
+            const parts = [];
+            for (let i = 0; i < count; i++) {
+                if (i) {
+                    if (id[at] !== ID_SEP) return null;
+                    at++;
+                }
+                if (prefix === IX_PREFIX && i === count - 1) {
+                    const end = id.indexOf(ID_SEP, at);
+                    const text = end < 0 ? id.slice(at) : id.slice(at, end);
+                    if (!/^\d+$/.test(text)) return null;
+                    at += text.length;
+                    parts.push(Number(text));
+                    continue;
+                }
+                const inner = readId();
+                if (inner === null) return null;
+                parts.push(inner);
+            }
+            return {prefix: prefix, parts: parts};
+        };
+        const parsed = readId();
+        return parsed && typeof parsed === 'object' && at === id.length ? parsed : null;
+    }
+
+    /** 合成 id 的规范文本 过程函数（从解析树拼回，用于比对与传给下层） */
+    function composeSyntheticId(node) {
+        const text = part => (typeof part === 'string' ? part : composeSyntheticId(part));
+        if (node.prefix === IX_PREFIX) {
+            return `${IX_PREFIX}${text(node.parts[0])}${ID_SEP}${text(node.parts[1])}${ID_SEP}${node.parts[2]}`;
+        }
+        if (node.prefix === SEG_PREFIX) return `${SEG_PREFIX}${text(node.parts[0])}${ID_SEP}${text(node.parts[1])}`;
+        return `${CIRC_PREFIX}${text(node.parts[0])}${ID_SEP}${text(node.parts[1])}`;
+    }
+
+    /**
+     * 合成 id 的显示名 过程函数
+     * 交点写成「a∩b」，两点连线写成「AB」，两点圆写成「⊙(A,B)」；嵌套的套一层括号
+     * （`(a∩b)G`）。同一对图形的第二个交点带序号，不然两个交点同名分不清
+     * @param {string} id
+     * @param {Function} nameOf 普通 id → 名字（页面提供）
+     * @returns {string|null} 不是合成 id 时给 null
+     */
+    function syntheticName(id, nameOf) {
+        const parsed = parseSyntheticId(id);
+        if (!parsed) return null;
+        const label = part => {
+            if (typeof part === 'string') return nameOf(part) || part;
+            const inner = syntheticName(composeSyntheticId(part), nameOf);
+            return inner ? `(${inner})` : '?';
+        };
+        if (parsed.prefix === IX_PREFIX) {
+            const base = `${label(parsed.parts[0])}∩${label(parsed.parts[1])}`;
+            return parsed.parts[2] > 0 ? `${base}(${parsed.parts[2] + 1})` : base;
+        }
+        if (parsed.prefix === SEG_PREFIX) return `${label(parsed.parts[0])}${label(parsed.parts[1])}`;
+        return `⊙(${label(parsed.parts[0])},${label(parsed.parts[1])})`;
+    }
+
+    /**
+     * 按合成 id 现算几何 过程函数（供画布侧 relationRadarLookup 调用）
+     * @param {Function} lookup id → 画布对象的纯几何（页面提供；只认真 id）
+     * @param {string} id 可能是 @ix: / @seg: / @circ: 的合成 id（可嵌套）
+     * @returns {Object|null} {kind:'point'|'line'|'circle', …}
+     */
+    function resolveSyntheticId(lookup, id) {
+        const parsed = parseSyntheticId(id);
+        if (!parsed) return null;
+        /** 解析树上的一个 id → 它的规范文本（交点候选要靠它保持编号顺序稳定） */
+        const text = part => (typeof part === 'string' ? part : composeSyntheticId(part));
+        const resolveNode = node => {
+            const value = part => (typeof part === 'string' ? lookup(part) : resolveNode(part));
+            if (node.prefix === IX_PREFIX) {
+                const a = value(node.parts[0]);
+                const b = value(node.parts[1]);
+                if (!a || !b) return null;
+                const list = intersectionCandidates(
+                    Object.assign({id: text(node.parts[0])}, a),
+                    Object.assign({id: text(node.parts[1])}, b));
+                const point = list[node.parts[2]];
+                return point ? {kind: 'point', x: point.x, y: point.y} : null;
+            }
+            if (node.prefix === SEG_PREFIX) {
+                const p = value(node.parts[0]);
+                const q = value(node.parts[1]);
+                if (!p || !q || p.kind !== 'point' || q.kind !== 'point') return null;
+                if (!(Math.hypot(p.x - q.x, p.y - q.y) > 0)) return null;
+                return {kind: 'line', x1: p.x, y1: p.y, x2: q.x, y2: q.y, drawType: 'line'};
+            }
+            const center = value(node.parts[0]);
+            const through = value(node.parts[1]);
+            if (!center || !through || center.kind !== 'point' || through.kind !== 'point') return null;
+            const r = Math.hypot(center.x - through.x, center.y - through.y);
+            return r > 0 ? {kind: 'circle', cx: center.x, cy: center.y, r: r} : null;
+        };
+        return resolveNode(parsed);
+    }
+
+    /**
+     * 把「所有相交位置」补成伪点喂进快照 过程函数（第 10 条）
+     * 线 × 线 / 线 × 圆 / 圆 × 圆 两两求交；与已有真点重合的跳过（那个点本来就在画板上）。
+     */
+    function augmentWithIntersections(board, tolLength) {
+        const objects = [];
+        board.lines.forEach(line => objects.push({id: line.id, kind: 'line', x1: line.x1, y1: line.y1, x2: line.x2, y2: line.y2}));
+        board.circles.forEach(circle => objects.push({id: circle.id, kind: 'circle', cx: circle.cx, cy: circle.cy, r: circle.r}));
+        // 「是不是同一个位置」用合并口径，不跟着关系容差一起收紧（见 COINCIDENT_RATIO）
+        const merge = Math.max(tolLength, (board.span || 0) * COINCIDENT_RATIO);
+        const collected = [];
+        let combos = 0;
+        for (let i = 0; i < objects.length; i++) {
+            for (let j = i + 1; j < objects.length; j++) {
+                if (++combos > MAX_INTERSECTION_COMBOS) return;
+                const list = intersectionCandidates(objects[i], objects[j]);
+                list.forEach((point, index) => {
+                    // 与已有「真点」重合：那个点已经在画板上了，不再当作交点
+                    if (board.points.some(p => Math.abs(p.x - point.x) <= merge && Math.abs(p.y - point.y) <= merge)) return;
+                    collected.push({id: intersectionId(objects[i].id, objects[j].id, index), x: point.x, y: point.y});
+                });
+            }
+        }
+        // 多组图形交于同一点时只留最早的（近切的两个候选同位置，也在这里并掉）
+        const kept = [];
+        collected.forEach(point => {
+            if (kept.some(existing => Math.abs(existing.x - point.x) <= merge && Math.abs(existing.y - point.y) <= merge)) return;
+            kept.push(point);
+        });
+        board.points = board.points.concat(kept);
     }
 
     /** 三点定圆 过程函数（共线 / 退化时给 null） */
@@ -305,11 +585,19 @@ const GeoRelations = (function () {
             buckets.add(key);
             unique.push(carrier);
         });
-        /** 这组点是不是已经落在某条已有直线 / 射线 / 线段上（含射线 / 线段的范围） */
+        /**
+         * 这组点是不是已经落在某条已有直线 / 射线 / 线段上 过程函数
+         * 直线：全部成员都落在上面就算（共线一眼看得到）。
+         * 射线 / 线段：只要有 minPoints 个成员落在它的**范围内**就算 —— 那条线已经把它们串起来了，
+         * 范围外的只是它的延长线上的点，不该为它们再报一条「隐含共线」
+         * （否则一条 `FixAngle` 射线会带着它延长线上所有交点凑出一条十几点共线）
+         */
         const alreadyOnBoard = (carrier, members) => board.lines.some(line => {
             const existing = makeLine(line.x1, line.y1, line.x2, line.y2);
             if (!sameCarrier(carrier, existing, tol, tolLength)) return false;
-            return members.every(i => inRangeOf(existing, points[i].x, points[i].y, line.drawType, tolLength));
+            const inRange = members.filter(i => inRangeOf(existing, points[i].x, points[i].y, line.drawType, tolLength));
+            if (line.drawType === 'ray' || line.drawType === 'lineSegment') return inRange.length >= minPoints;
+            return inRange.length === members.length;
         });
         // 每条载线收集落在其上的点
         const groups = [];
@@ -420,14 +708,39 @@ const GeoRelations = (function () {
         return kept;
     }
 
-    /** 平行 / 垂直扫描 过程函数（线对，方向看单位化后的叉积 / 点积） */
-    function scanParallelism(board, tol, stats) {
+    /**
+     * 平行 / 垂直扫描 过程函数
+     * 载线 = 画布上已有的线 **加上任意两点连线**（第 11 条：两点连起来就是一条线）。
+     * 点数 / 线数多时按预算截断（truncated）。
+     */
+    function scanParallelism(board, tol, tolLength, stats) {
         const parallel = [];
         const perpendicular = [];
-        for (let i = 0; i < board.lines.length; i++) {
-            for (let j = i + 1; j < board.lines.length; j++) {
-                const first = board.lines[i];
-                const second = board.lines[j];
+        const carriers = board.lines.map(line => ({id: line.id, x1: line.x1, y1: line.y1, x2: line.x2, y2: line.y2}));
+        const points = board.points;
+        // 两点连线：与画布上某条已有线重合的跳过（那条线已经覆盖了，再算会得到重复的结果）
+        const onBoardLine = (p, q) => board.lines.some(line => {
+            const carrier = makeLine(line.x1, line.y1, line.x2, line.y2);
+            return carrier.length > 0
+                && offsetToLine(carrier, p.x, p.y) <= tolLength
+                && offsetToLine(carrier, q.x, q.y) <= tolLength;
+        });
+        outer:
+        for (let i = 0; i < points.length; i++) {
+            for (let j = i + 1; j < points.length; j++) {
+                if (distance(points[i], points[j]) <= 0) continue;
+                if (onBoardLine(points[i], points[j])) continue;
+                if (carriers.length >= MAX_LINE_CARRIERS) { stats.truncated = true; break outer; }
+                carriers.push({id: segmentId(points[i].id, points[j].id),
+                    x1: points[i].x, y1: points[i].y, x2: points[j].x, y2: points[j].y});
+            }
+        }
+        let combos = 0;
+        for (let i = 0; i < carriers.length; i++) {
+            for (let j = i + 1; j < carriers.length; j++) {
+                if (++combos > MAX_PAIR_COMBOS) { stats.truncated = true; return {parallel: parallel, perpendicular: perpendicular}; }
+                const first = carriers[i];
+                const second = carriers[j];
                 const u = makeLine(first.x1, first.y1, first.x2, first.y2);
                 const v = makeLine(second.x1, second.y1, second.x2, second.y2);
                 if (!(u.length > 0) || !(v.length > 0)) continue;
@@ -443,16 +756,55 @@ const GeoRelations = (function () {
         return {parallel: parallel, perpendicular: perpendicular};
     }
 
-    /** 定点角扫描 过程函数（顶点 + 过它的两条线，取锐角 / 钝角与目标表比对） */
-    function scanAngle(board, tolLength, targets, angleTolerance) {
+    /**
+     * 过某顶点、可当作「边」的所有线 过程函数
+     * 画布上过它的真线 + 顶点到**其它任意点**的连线（第 11 条）；条数超预算就截断
+     */
+    function linesThroughVertex(board, vertex, tolLength, stats) {
+        const used = [];
+        // 载线按「几何」去重，不按 id：同一个方向上的多个点（K 是 IJ 的中点 → I→K 与 I→J 同一条线）
+        // 会给出两条一模一样的载线，于是「平分线」判定里两条相同的边配任何一条都能「平分」
+        // （|first - second| 恒为 0），凭空冒出一堆 `AI 平分 IJ 与 IK`
+        const keys = new Set();
+        const pushCarrier = carrier => {
+            const key = lineKey(makeLine(carrier.x1, carrier.y1, carrier.x2, carrier.y2), tolLength);
+            if (keys.has(key)) return false;
+            keys.add(key);
+            used.push(carrier);
+            return true;
+        };
+        board.lines.forEach(line => {
+            const carrier = makeLine(line.x1, line.y1, line.x2, line.y2);
+            if (carrier.length > 0 && offsetToLine(carrier, vertex.x, vertex.y) <= tolLength) {
+                pushCarrier({id: line.id, x1: line.x1, y1: line.y1, x2: line.x2, y2: line.y2});
+            }
+        });
+        // 顶点到其它点的连线：与画布上某条已有线重合的跳过（那条线已经在这个列表里了）
+        const onBoardLine = (p, q) => board.lines.some(line => {
+            const carrier = makeLine(line.x1, line.y1, line.x2, line.y2);
+            return carrier.length > 0
+                && offsetToLine(carrier, p.x, p.y) <= tolLength
+                && offsetToLine(carrier, q.x, q.y) <= tolLength;
+        });
+        board.points.forEach(other => {
+            if (other.id === vertex.id) return;
+            if (!(distance(vertex, other) > 0)) return;
+            if (onBoardLine(vertex, other)) return;
+            if (used.length >= MAX_LINE_CARRIERS) { stats.truncated = true; return; }
+            pushCarrier({id: segmentId(vertex.id, other.id), x1: vertex.x, y1: vertex.y, x2: other.x, y2: other.y});
+        });
+        return used;
+    }
+
+    /** 定点角扫描 过程函数（顶点 + 过它的两条线，取锐角 / 钝角与目标表比对；边含任意两点连线） */
+    function scanAngle(board, tolLength, targets, angleTolerance, stats) {
         const found = [];
+        let combos = 0;
         board.points.forEach(vertex => {
-            const through = board.lines.filter(line => {
-                const carrier = makeLine(line.x1, line.y1, line.x2, line.y2);
-                return carrier.length > 0 && offsetToLine(carrier, vertex.x, vertex.y) <= tolLength;
-            });
+            const through = linesThroughVertex(board, vertex, tolLength, stats);
             for (let i = 0; i < through.length - 1; i++) {
                 for (let j = i + 1; j < through.length; j++) {
+                    if (++combos > MAX_ANGLE_COMBOS) { stats.truncated = true; return; }
                     const u = makeLine(through[i].x1, through[i].y1, through[i].x2, through[i].y2);
                     const v = makeLine(through[j].x1, through[j].y1, through[j].x2, through[j].y2);
                     const acute = acuteDegrees(u, v);
@@ -478,17 +830,16 @@ const GeoRelations = (function () {
      * 过同一顶点的三条线里，中间那条把另两条的夹角分成两半
      * （原版比的是 |cos| 的差；这里比角度差，免得夹角趋近 0 / 180 时判不出）
      */
-    function scanBisector(board, tolLength, angleTolerance) {
+    function scanBisector(board, tolLength, angleTolerance, stats) {
         const found = [];
         const signatures = new Set();
+        let combos = 0;
         board.points.forEach(vertex => {
-            const through = board.lines.filter(line => {
-                const carrier = makeLine(line.x1, line.y1, line.x2, line.y2);
-                return carrier.length > 0 && offsetToLine(carrier, vertex.x, vertex.y) <= tolLength;
-            });
+            const through = linesThroughVertex(board, vertex, tolLength, stats);
             for (let i = 0; i < through.length - 2; i++) {
                 for (let j = i + 1; j < through.length - 1; j++) {
                     for (let k = j + 1; k < through.length; k++) {
+                        if (++combos > MAX_BISECTOR_COMBOS) { stats.truncated = true; return; }
                         const triple = [through[i], through[j], through[k]];
                         for (let middle = 0; middle < 3; middle++) {
                             const sides = triple.filter((line, index) => index !== middle);
@@ -602,26 +953,56 @@ const GeoRelations = (function () {
      */
     function scanRadius(board, tolLength, stats) {
         const found = [];
+        // 半径来源：画布上已有的圆 + 任意两点确定的圆（第 11 条：两点就是一个圆）
+        const sources = [];
+        board.circles.forEach(circle => {
+            if (circle.r > tolLength) sources.push({id: circle.id, cx: circle.cx, cy: circle.cy, r: circle.r, virtual: false});
+        });
+        outerRadius:
+        for (let i = 0; i < board.points.length; i++) {
+            for (let j = i + 1; j < board.points.length; j++) {
+                const r = distance(board.points[i], board.points[j]);
+                if (!(r > tolLength)) continue;
+                // 与画布上某个已有的圆重合（心同、半径同）：那个真圆已经覆盖了，不再当虚拟来源
+                const coincidesReal = board.circles.some(circle =>
+                    Math.abs(circle.cx - board.points[i].x) <= tolLength
+                    && Math.abs(circle.cy - board.points[i].y) <= tolLength
+                    && Math.abs(circle.r - r) <= tolLength);
+                if (coincidesReal) continue;
+                if (sources.length >= MAX_RADIUS_SOURCES) { stats.truncated = true; break outerRadius; }
+                sources.push({id: virtualCircleId(board.points[i].id, board.points[j].id),
+                    cx: board.points[i].x, cy: board.points[i].y, r: r, virtual: true,
+                    defineIds: [board.points[i].id, board.points[j].id]});
+            }
+        }
         let combos = 0;
-        for (let ci = 0; ci < board.circles.length; ci++) {
-            const source = board.circles[ci];
-            if (!(source.r > tolLength)) continue;
+        for (let si = 0; si < sources.length; si++) {
+            const source = sources[si];
             const sourceCenter = {x: source.cx, y: source.cy};
             const atCenter = p => distance(p, sourceCenter) <= tolLength;
             const onSource = p => Math.abs(distance(p, sourceCenter) - source.r) <= tolLength;
             for (let i = 0; i < board.points.length; i++) {
                 const center = board.points[i];
                 for (let j = i + 1; j < board.points.length; j++) {
-                    combos++;
-                    if (combos > MAX_RADIUS_COMBOS) {
-                        stats.truncated = true;
-                        return found;
-                    }
+                    if (++combos > MAX_RADIUS_COMBOS) { stats.truncated = true; return found; }
                     const through = board.points[j];
                     const radius = distance(center, through);
                     if (Math.abs(radius - source.r) > tolLength) continue;
-                    // 该圆自己的「圆心 + 圆上一点」
-                    if ((atCenter(center) && onSource(through)) || (atCenter(through) && onSource(center))) continue;
+                    if (source.virtual) {
+                        // 虚拟圆（两点圆）的定义点对本身（|PQ| 当然等于自己的半径）不算：那是废话
+                        const define = source.defineIds;
+                        const pair = [center.id, through.id];
+                        if (define[0] === pair[0] && define[1] === pair[1]) continue;
+                        if (define[0] === pair[1] && define[1] === pair[0]) continue;
+                        // 与「等距中心」重复的排除：半径相等的两段只要**共用一个端点**，
+                        // 说的就是「那个端点到另外两点等距」（AB = AC），等距中心那一栏已经报了。
+                        // 例如圆心 P、过 Q 的两点圆 = 半径 |PQ|；结果「以 P 为心过 R」就是「P 到 Q、R 等距」
+                        if (center.id === define[0] || center.id === define[1]
+                            || through.id === define[0] || through.id === define[1]) continue;
+                    } else if ((atCenter(center) && onSource(through)) || (atCenter(through) && onSource(center))) {
+                        // 该真圆自己的「圆心 + 圆上一点」
+                        continue;
+                    }
                     // 已经存在同一个圆（同心同半径）
                     const existing = board.circles.some(circle =>
                         Math.abs(circle.cx - center.x) <= tolLength && Math.abs(circle.cy - center.y) <= tolLength
@@ -681,9 +1062,11 @@ const GeoRelations = (function () {
      */
     function dedupeCoincidentPoints(board, tolLength) {
         const source = board.points || [];
+        // 同上：判「同一个点」用合并口径，别跟着关系容差一起收紧
+        const merge = Math.max(tolLength, (board.span || 0) * COINCIDENT_RATIO);
         const kept = [];
         source.forEach(point => {
-            if (!kept.some(canon => distance(canon, point) <= tolLength)) kept.push(point);
+            if (!kept.some(canon => distance(canon, point) <= merge)) kept.push(point);
         });
         board.points = kept;
     }
@@ -701,7 +1084,10 @@ const GeoRelations = (function () {
         const angleTolerance = opts.angleTolerance === null || opts.angleTolerance === undefined
             ? (ANGLE_TOLERANCE[opts.tolerance] || ANGLE_TOLERANCE.normal)
             : opts.angleTolerance;
-        // 先合并重合点：同一处的多个点当成一个（保留最早创建的），免得后面各种扫描重复计入
+        // 第 10 条：画布上「所有相交的位置」也当成交点，补成伪点一起参与扫描
+        // （与已有真点重合的不重复加；拖动时这些伪点按 @ix: id 在线复算，见 evaluateEntry）
+        augmentWithIntersections(board, tolLength);
+        // 再合并重合点：同一处的多个点当成一个（保留最早创建的），免得后面各种扫描重复计入
         dedupeCoincidentPoints(board, tolLength);
         const stats = {truncated: false};
         const kinds = {};
@@ -737,7 +1123,7 @@ const GeoRelations = (function () {
             })), entry => entry.count);
         }
         if (opts.kinds.parallel || opts.kinds.perpendicular) {
-            const pair = scanParallelism(board, tolerance, stats);
+            const pair = scanParallelism(board, tolerance, tolLength, stats);
             if (opts.kinds.parallel) {
                 push(KIND.parallel, pair.parallel.map(item => ({
                     kind: KIND.parallel, lineIds: [item.first, item.second], deviation: item.deviation,
@@ -750,7 +1136,7 @@ const GeoRelations = (function () {
             }
         }
         if (opts.kinds.angle) {
-            push(KIND.angle, scanAngle(board, tolLength, opts.angles, angleTolerance).map(item => ({
+            push(KIND.angle, scanAngle(board, tolLength, opts.angles, angleTolerance, stats).map(item => ({
                 kind: KIND.angle, vertexId: item.vertexId, lineIds: [item.firstId, item.secondId],
                 degrees: item.degrees, measured: item.measured, deviation: item.deviation,
             })), () => 0);
@@ -769,7 +1155,7 @@ const GeoRelations = (function () {
             })), entry => entry.count);
         }
         if (opts.kinds.bisector) {
-            push(KIND.bisector, scanBisector(board, tolLength, angleTolerance).map(item => ({
+            push(KIND.bisector, scanBisector(board, tolLength, angleTolerance, stats).map(item => ({
                 kind: KIND.bisector, vertexId: item.vertexId, bisectorId: item.bisectorId,
                 lineIds: item.sideIds, degrees: item.degrees, deviation: item.deviation,
             })), () => 0);
@@ -817,6 +1203,33 @@ const GeoRelations = (function () {
         const line = makeLine(item.x1, item.y1, item.x2, item.y2);
         if (!(line.length > 0)) return null;
         return {item: item, line: line};
+    }
+
+    /**
+     * 关系里涉及的点都要标出来 过程函数
+     * 平行 / 垂直 / 角 / 平分线牵涉的线，其端点可能是**隐交点**那种画布上根本没有的点 ——
+     * 不标出来就看不出这条关系说的是哪几个点，所以线一画出来就把两端标上。
+     * 但垂 / 平 / 定点角 / 平分线这类线，用来定方向的那一端是「单位长度点」（不是作出的点），
+     * 不标；只标与真实定义点（lookup 给的 basePoints）重合的端点，基本线型（线段 / 射线 / 直线）
+     * 两端都是作出的点，照标
+     * @param {Object} out evaluateEntry 的画法收集器
+     * @param {Object} line makeLine 的结果（px/py 一端、px+dx 另一端）
+     * @param {Object} [item] lookup 返回的线对象（可能带 basePoints：定义这条线的真实点）
+     * @param {number} [tolLength] 长度容差
+     */
+    function markLineEnds(out, line, item, tolLength) {
+        const ends = [{x: line.px, y: line.py}, {x: line.px + line.dx, y: line.py + line.dy}];
+        // 只有「真作出来的点」才标：lookup 给的 basePoints 是定义这条线的真实点，
+        // 端点与之重合才标；没有 basePoints（如测试里的简版 lookup）按老规矩两端都标
+        const base = item && item.basePoints;
+        if (!base || !base.length) {
+            ends.forEach(p => out.points.push(p));
+            return;
+        }
+        const tol = Math.max(tolLength || 0, 1e-9);
+        for (const end of ends) {
+            if (base.some(([bx, by]) => Math.hypot(end.x - bx, end.y - by) <= tol)) out.points.push(end);
+        }
     }
 
     /**
@@ -873,10 +1286,13 @@ const GeoRelations = (function () {
             // 叉积 / 点积是**无量纲**的（sin / cos），所以和比例容差比，不与长度容差比
             const value = entry.kind === KIND.parallel ? cross : dot;
             if (value > tolerance) return null;
-            [first, second].forEach(item => out.lines.push({
-                x1: item.line.px, y1: item.line.py,
-                x2: item.line.px + item.line.dx, y2: item.line.py + item.line.dy,
-            }));
+            [first, second].forEach(item => {
+                out.lines.push({
+                    x1: item.line.px, y1: item.line.py,
+                    x2: item.line.px + item.line.dx, y2: item.line.py + item.line.dy,
+                });
+                markLineEnds(out, item.line, item.item, tolLength);
+            });
             return out;
         }
         if (entry.kind === KIND.angle || entry.kind === KIND.bisector) {
@@ -887,6 +1303,16 @@ const GeoRelations = (function () {
             if (offsetToLine(first.line, vertex.x, vertex.y) > tolLength) return null;
             if (offsetToLine(second.line, vertex.x, vertex.y) > tolLength) return null;
             out.points.push({x: vertex.x, y: vertex.y});
+            // 角的两条边画成**虚线**：它们只是「这个角是由哪两条线构成的」，
+            // 画实线会跟画布上本来就有的线混在一起（虚线由 DASHED_KINDS 之外逐条指定）
+            [first, second].forEach(item => {
+                out.lines.push({
+                    x1: item.line.px, y1: item.line.py,
+                    x2: item.line.px + item.line.dx, y2: item.line.py + item.line.dy,
+                    dashed: true,
+                });
+                markLineEnds(out, item.line, item.item, tolLength);
+            });
             if (entry.kind === KIND.bisector) {
                 const bisector = lineOf(lookup, entry.bisectorId);
                 if (!bisector || offsetToLine(bisector.line, vertex.x, vertex.y) > tolLength) return null;
@@ -895,6 +1321,7 @@ const GeoRelations = (function () {
                 if (Math.abs(sideA - sideB) > angleTolerance) return null;
                 out.lines.push({x1: bisector.line.px, y1: bisector.line.py,
                     x2: bisector.line.px + bisector.line.dx, y2: bisector.line.py + bisector.line.dy});
+                markLineEnds(out, bisector.line, bisector.item, tolLength);
                 out.arcs.push(arcBetween(vertex, first.line, second.line, sideA + sideB, arcRadius));
                 return out;
             }
@@ -924,7 +1351,10 @@ const GeoRelations = (function () {
             if (!center || !through || !source) return null;
             const radius = distance(center, through);
             if (Math.abs(radius - source.r) > tolLength) return null;
+            // 涉及的点都标出来：以 center 为心过 through 的圆，半径取自源圆（source 的圆心）
             out.points.push({x: center.x, y: center.y});
+            out.points.push({x: through.x, y: through.y});
+            out.points.push({x: source.cx, y: source.cy});
             // 两点确定的复制圆画虚线
             out.circles.push({cx: center.x, cy: center.y, r: radius, dashed: true});
             // 提供半径的那个源圆画实线（条目级 dashed 为 false，这里不带 dashed 即实线）
@@ -1001,5 +1431,10 @@ const GeoRelations = (function () {
         parseRatioSpec: parseRatioSpec,
         scan: scan,
         evaluateOverlay: evaluateOverlay,
+        // 合成 id（交点 @ix: / 两点连线 @seg: / 两点圆 @circ:）的在线解析：
+        // 画布的 relationRadarLookup 遇到这类 id 就调它现算几何（第 10 / 11 条）
+        resolveSyntheticId: resolveSyntheticId,
+        // 合成 id 的显示名：交点「a∩b」、两点连线「AB」、两点圆「⊙(A,B)」，嵌套的套括号
+        syntheticName: syntheticName,
     };
 })();

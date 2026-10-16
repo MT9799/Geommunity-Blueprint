@@ -965,6 +965,10 @@ class GeometryElementManager {
                 value.modifyId(id);
                 value.modifyName(id);
             }
+            // 顺手点出来的点（自由点 / 线上的点）在这一刻就按自动配色上色：
+            // 工厂建点时先涂了灰，原本要等构造完成、进仓库时 addObject 才重新上色 ——
+            // 那样「点下去是灰的、画完才变红」，与鼠标刚落下的直觉不符（交点等构造点仍是灰，不受影响）
+            if (value.getType() === "point") this.applyAutoStyle(value);
             const tmp = {type: 'create', quote: null, create: value};
             this.choice[tool][key] = tmp;
         }

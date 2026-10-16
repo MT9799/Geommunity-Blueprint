@@ -1190,15 +1190,42 @@ class StyleBrushTool {
      * @param {number} oriY 原y坐标
      */
     toolEvent(type, oriX, oriY) {
-        if (type !== "click") return;
+        if (type !== "click" && type !== "draw") return;
         const x = (oriX - transform.x) / transform.scale;
         const y = (oriY - transform.y) / transform.scale;
-        // 浮动栏里切到「隐藏刷」时隐藏对象，其余情况复制样式
-        if (typeof subTool !== 'undefined' && subTool === 'brushHidden') {
+        const mode = typeof subTool === 'undefined' ? '' : subTool;
+        // 浮层里的四种模式：隐藏刷 / 橡皮 / 点擦橡皮 都是「点一下就把它去掉」，与橡皮光标一致
+        if (mode === 'brushHidden') {
             this.hideEventFunction(x, y);
             return;
         }
+        if (mode === 'eraser' || mode === 'pointEraser') {
+            this.eraseEventFunction(x, y, mode === 'pointEraser');
+            return;
+        }
+        // 样式刷只在点击时生效（没有拖拽语义）
+        if (type !== "click") return;
         this.clickEventFunctionStyleBrush(x, y);
+    }
+
+    /**
+     * 擦除 过程函数（橡皮模式：擦点 / 线 / 圆；点擦橡皮模式：只擦点）
+     * 与独立的 EraserTool 同一套行为：关卡自带的图形不给擦
+     * @param {number} x
+     * @param {number} y
+     * @param {boolean} pointsOnly 只擦点
+     */
+    eraseEventFunction(x, y, pointsOnly) {
+        const [id] = geometryManager.near([x, y], pointsOnly ? ["point"] : ["point", "line", "circle"]);
+        if (!id) return;
+        if (typeof window.isGridObjectId === 'function' && window.isGridObjectId(id)) return;
+        if (typeof isProtectedElement === 'function' && isProtectedElement(id)) {
+            if (typeof boardToast === 'function') boardToast('这是关卡给定的图形，不能删除');
+            return;
+        }
+        geometryManager.deleteObject(id);
+        // 触发存储事件（与 EraserTool 一致：detail.type 用 "point"）
+        window.dispatchEvent(new CustomEvent("storage", {detail: {type: "point"}}));
     }
 
     /**

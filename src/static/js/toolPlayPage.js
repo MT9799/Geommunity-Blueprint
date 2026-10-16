@@ -1,5 +1,57 @@
 /* tool.js */
 let tool, menuTool, subTool;
+/**
+ * 游玩模式的「隐藏刷」是否开着（浮动栏最右那个按钮，未选中图形时的作用）。
+ * 开着时：点画布上的图形就把它藏起来；再点一次按钮退出。
+ */
+let hideBrushMode = false;
+
+/**
+ * 一个对象能不能被玩家隐藏 / 显示 过程函数
+ * 关卡自带的图形（给定 / 预绘制）是题目的一部分，不给动
+ * @param {string} id
+ * @returns {boolean}
+ */
+function playHideAllowed(id) {
+    if (!id || typeof geometryManager === 'undefined') return false;
+    if (typeof isProtectedElement === 'function' && isProtectedElement(id)) return false;
+    if (typeof window.isGridObjectId === 'function' && window.isGridObjectId(id)) return false;
+    return true;
+}
+
+/**
+ * 隐藏 / 显示一个对象（游玩模式） 过程函数
+ * 与元素一览的「隐藏」档同一个口径：写进 geometryElementLists.hidden，并记一步撤销
+ * @param {Object} element
+ * @param {boolean} visible
+ */
+function setPlayElementVisible(element, visible) {
+    if (!element) return;
+    if (!playHideAllowed(element.getId())) {
+        if (typeof boardToast === 'function') boardToast('这是关卡给定的图形，不能隐藏');
+        return;
+    }
+    if (typeof setElementVisible === 'function') setElementVisible(element, visible);
+    window.dispatchEvent(new CustomEvent('storage', {detail: {type: 'style'}}));
+}
+
+/** 隐藏刷模式的开关状态（画布光标也认它，见 canvas.js 的 drawPointer） */
+window.playHideBrushMode = () => hideBrushMode;
+
+/**
+ * 隐藏刷：把光标下的图形藏起来 过程函数
+ * @param {number} x 画布坐标（相对画布左上角）
+ * @param {number} y
+ */
+function playHideBrushClick(x, y) {
+    const lx = (x - transform.x) / transform.scale;
+    const ly = (y - transform.y) / transform.scale;
+    const [id] = geometryManager.near([lx, ly], ['point', 'line', 'circle']);
+    if (!id) return;
+    const item = geometryManager.get(id);
+    if (!item || !item.getVisible()) return;
+    setPlayElementVisible(item, false);
+}
 const toolMenus = {
     // 游玩（关卡游玩 / 试玩）不提供切线工具：切线是「题目条件 / 作图过程」里才会用到的高级作图，
     // 原版游玩也不给玩家这个工具。要加的话得同时补 tools 表（playPage.js）、toolItems（下面）
@@ -16,7 +68,9 @@ const toolMenuDefaultValue = {
 const toolItems = {
     'move': {
         'switch': ["choiceDraw", "moveView"],
-        "button": ["restoreTransform", "objectStyle", "deleteObject", "clear"],
+        // hideToggle 排在最后（浮动栏最右）：未选中图形时是「隐藏刷」开关，
+        // 选中图形时是「隐藏 / 显示这个图形」按钮（见 refreshHideToggleAble）
+        "button": ["restoreTransform", "objectStyle", "deleteObject", "clear", "hideToggle"],
     },
     'point': {
         "button": ["pointStyle"],
@@ -172,6 +226,24 @@ function loadToolSwitchButton(tool) {
         });
     }
 
+    // 「隐藏」按钮挪到浮动栏最右：浮动栏是「按钮组（左）｜选中栏（右）」两端对齐，
+    // 只按 DOM 次序它只会排在按钮组的最右、仍在选中栏左边；挪进一个贴右的容器才是整条的最右。
+    // 注意：挪出去的按钮不会被上面的 innerHTML = "" 清掉，所以每次重建都要先把旧按钮清干净，
+    // 否则切几次工具就会攒出好几个（现象：点一下移动工具就多一个）
+    let rightBox = document.getElementById('floating-bar-right');
+    if (rightBox) rightBox.innerHTML = '';
+    const hideButton = toolSwitchButton.querySelector(`#button-${tool}-hideToggle`);
+    if (hideButton) {
+        if (!rightBox) {
+            rightBox = document.createElement('div');
+            rightBox.id = 'floating-bar-right';
+            rightBox.className = 'row-direction';
+            const bar = document.querySelector('.floating-bar');
+            if (bar) bar.appendChild(rightBox);
+        }
+        rightBox.appendChild(hideButton);
+    }
+
     refreshToolFloating();
     toolSwitchButton.style.display = 'none';
     toolSwitchButton.offsetHeight;
@@ -303,6 +375,9 @@ function choiceTool(selectTool) {
     // 切工具时先把上一个工具已经选中的图形清掉：画到一半的状态不该跨工具留着
     const previousTool = typeof tool === 'undefined' ? null : tool;
     if (previousTool && previousTool !== selectTool) clearPendingToolChoice(previousTool);
+    // 隐藏刷是移动工具浮动栏上的模式：换了工具（或重选）就退出，
+    // 否则拿着别的工具还会莫名其妙地把点到的图形藏起来
+    if (hideBrushMode) hideBrushMode = false;
     
     if (selectTool) {
         const buttons = document.querySelectorAll('.tool-item');
@@ -345,6 +420,8 @@ function choiceToolSwitch(selectTool) {
     });
 
     if (subTool === 'choiceDraw') showMovePoints(false);
+    // 换小工具（点选 / 视图）也退出隐藏刷：它与「选中 / 拖动图形」本来就互斥
+    if (hideBrushMode) hideBrushMode = false;
     subTool = selectTool;
     document.getElementById(`button-${tool}-${selectTool}`).classList.add('active');
     if (subTool === 'choiceDraw') showMovePoints(true);
@@ -411,6 +488,8 @@ function refreshToolFloating() {
                 setObjectStyleAble(item);
             }else if (item === 'deleteObject'){
                 setDeleteObjectAble(item);
+            }else if (item === 'hideToggle'){
+                refreshHideToggleAble(item);
             }
         })
     }
@@ -620,6 +699,41 @@ function refreshToolFloating() {
 }
 
 /**
+ * 刷新「隐藏 / 隐藏刷」按钮的可用与点亮状态 过程函数
+ * 选中了图形：按钮＝隐藏（图形已隐藏时点亮）；没选中：按钮＝隐藏刷开关（开着时点亮）
+ * @param {string} item 按钮标识（hideToggle）
+ */
+function refreshHideToggleAble(item) {
+    const buttonDE = document.getElementById(`button-${tool}-${item}`);
+    if (!buttonDE) return;
+    const selected = typeof getSelectedElement === 'function' ? getSelectedElement() : null;
+    // 图标跟着这一下的作用换：没选中图形＝「隐藏刷」（眼睛 + 斜杠，与画板的隐藏刷同款），
+    // 选中了图形＝「隐藏对象」（方块 + 斜杠）
+    const iconId = selected ? 'svg-hideObject' : 'svg-hideToggle';
+    if (buttonDE.dataset.icon !== iconId) {
+        const template = document.getElementById(iconId);
+        if (template) {
+            buttonDE.innerHTML = template.innerHTML;
+            buttonDE.dataset.icon = iconId;
+        }
+    }
+    const svg = buttonDE.querySelector('svg');
+    // 关卡给定的图形不能隐藏：按钮置灰
+    const disabled = !!selected && !playHideAllowed(selected.getId());
+    buttonDE.classList.toggle('disable', disabled);
+    if (svg) svg.classList.toggle('disable', disabled);
+    // 亮起：隐藏刷开着（未选中时），或选中的图形已经被藏起来
+    const active = selected ? !selected.getVisible() : hideBrushMode;
+    buttonDE.classList.toggle('active', !!active && !disabled);
+    // 隐藏刷与移动互斥：开着的时候浮动栏里的「点选 / 视图」不该还亮着（看着像移动工具在生效），
+    // 退出隐藏刷再把高亮还给当前小工具 —— choiceToolSwitch 只管切换那一刻
+    document.querySelectorAll('.tool-switch-item').forEach(other => {
+        const isCurrent = other.id === `button-${tool}-${subTool}`;
+        other.classList.toggle('active', !hideBrushMode && isCurrent);
+    });
+}
+
+/**
  * 绘制样式按钮 过程函数
  * 样式按钮本身就是当前样式的预览：颜色、粗细（点的大小）、是否带标签
  * @param {string} type 'point' | 'line' | 'circle'
@@ -665,6 +779,17 @@ function clickToolFloatingButton(action, event) {
             geometryManager.deleteTool(tool);
             window.dispatchEvent(new CustomEvent('storage', {detail: {type: 'delete', refund: refund}}));
         }
+    }else if (action === 'hideToggle') {
+        // 选中了图形：隐藏 / 显示它；没选中：开关「隐藏刷」模式
+        const selected = typeof getSelectedElement === 'function' ? getSelectedElement() : null;
+        if (selected) {
+            setPlayElementVisible(selected, !selected.getVisible());
+        }else{
+            hideBrushMode = !hideBrushMode;
+            if (typeof boardToast === 'function') {
+                boardToast(hideBrushMode ? '隐藏刷：点画布上的图形就把它藏起来（再点按钮退出）' : '已退出隐藏刷');
+            }
+        }
     }
     drawContent();
     refreshToolFloating();
@@ -677,6 +802,19 @@ function clickToolFloatingButton(action, event) {
  * @param {number} y
  */
 function operateEventFunction(type, x, y) {
+    // 隐藏刷与移动互斥：开着隐藏刷时这一下只用来「把点到的图形藏起来」，
+    // 不做选中、也不拖动图形。start / draw / drawComplete 都要拦 ——
+    // 只拦 click 的话，按下那一下（start）移动工具已经把图形选中了，
+    // 接着拖动还会把选中的图形拖走（看着就是「隐藏刷怎么在选图形」）。
+    // 放在最前面：越界提示、隐交点显示这些都不该在擦除时插一脚
+    if (hideBrushMode) {
+        // 点一下 / 拖过去都把它藏起来（像橡皮那样一路擦过去）；已经藏起来的会被 near 跳过
+        if (type === 'click' || type === 'draw') playHideBrushClick(x, y);
+        drawContent();
+        refreshToolFloating();
+        refreshStorageButton();
+        return;
+    }
     // 游玩模式（关卡游玩 / 试玩）里网格就是作答范围：点只能取在网格那一块闭矩形里
     // （与求解内核的点域一致）；画板 / 制题器 / 求解器不限制（见 tool.js）。
     // 例外：移动工具、以及「这一下本就落在点上」的点法不受限制（见 window.gridClickAllowedOutside）

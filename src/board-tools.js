@@ -10,7 +10,9 @@
   // 而试玩返回制题器要靠 makerBackup 还原编辑状态，所以这时不能清制题器的编辑状态
   // （从首页直接进画板这类「新开」的入口才清，免得残留上一次的旧图形）
   const roundTrip = !!params.get('from');
-  if (!isLevel && mode !== 'maker-play' && !restoreMaker && !roundTrip) ['elements', 'geometryElementLists', 'thumbnail', 'constructRecord', 'makerBackup', 'gridMeta'].forEach(key => sessionStorage.removeItem(key));
+  // 精简画板（答案的「逐步绘制」）也带 from（返回要回到关卡页），但它要自己载入那份记录，
+  // 不能让上一页残留的图形先冒出来，所以照「新开」处理、照样清一遍
+  if (!isLevel && mode !== 'maker-play' && !restoreMaker && (!roundTrip || mode === 'stepview')) ['elements', 'geometryElementLists', 'thumbnail', 'constructRecord', 'makerBackup', 'gridMeta'].forEach(key => sessionStorage.removeItem(key));
   // 仅当从画板主动跳转进入 solver（restore=1）时沿用图形，其余入口（首页等）清空画板
   if (!restoreSolver) sessionStorage.removeItem('solverElements');
   // 自制/求解模式的几何默认样式与关卡游玩模式保持一致（初始点红色、构造出的点与线圆灰色）
@@ -78,6 +80,10 @@
   // 当前画布上的网格信息（没有网格时为 null）：{m, n, unit, style, ids: Set}。
   // 声明放在前面：快照（collectStorageSnapshot）在页面初始化时就会被调用
   let gridMeta = null;
+  // 精简画板（答案的「逐步绘制」）里「解题者自己作的图形」的 id 集合：
+  // 由 buildStorageHistoryFromList 按记录的 undolist 记下，判定「所求作出来了没有」时用来排除预绘制图形
+  // （与游玩模式按 geometryElementLists.level 排除同一口径，见 stepviewResultProduced）
+  let stepviewPlayerIds = null;
   /** 网格信息（去掉 ids），供快照 / 记录使用 过程函数 */
   const gridMetaSnapshot = () => (gridMeta
     ? {m: gridMeta.m, n: gridMeta.n, unit: gridMeta.unit, style: gridMeta.style}
@@ -122,7 +128,80 @@
    * 其他工具下默认解 1 的判定亮（探索显示另有自己的高亮规则）
    * @returns {{index: number, judged: boolean, shown: boolean}}
    */
+  /**
+   * 精简画板里某个所求判定对象是否已「作出来」 过程函数
+   * 与游玩模式载入记录后那次判定**同一口径**（见 playPage 的 isResultProduced / segmentEndpointsProduced）：
+   * 判定对象自身不算、关卡预绘制的图形也不算（这里按记录的 undolist 认定预绘制），
+   * 画布上另有等价图形才算作出来了。于是「撤回解法 = 等价图形被撤掉」→ 判定不成立 →
+   * 所求显示跟着消失，与游玩模式里一步步撤回的手感完全一致。
+   * @param {string} id 所求判定对象 id
+   * @returns {boolean}
+   */
+  const stepviewResultProduced = id => {
+    const target = geometryManager.get(id);
+    if (!target) return false;
+    const type = target.getType();
+    const equative = type === 'point' ? ToolsFunction.pointEquative
+      : type === 'line' ? ToolsFunction.lineEquative
+      : type === 'circle' ? ToolsFunction.circleEquative : null;
+    if (!equative) return false;
+    return geometryManager.getAllByOrder().some(element => {
+      if (element.getType() !== type) return false;
+      const otherId = element.getId();
+      if (otherId === id) return false;                                 // 判定对象自身不算
+      if (stepviewPlayerIds && !stepviewPlayerIds.has(otherId)) return false;   // 预绘制的不算
+      if (!equative(target, element)) return false;
+      return stepviewSegmentEndpointsProduced(target);
+    });
+  };
+  /**
+   * 判定的线段两个端点是否都作出来了 过程函数
+   * 同 playPage 的 segmentEndpointsProduced：光有「所在直线」不算，两个端点得真的看得见
+   * @param {Object} target 所求判定里的线段
+   * @returns {boolean}
+   */
+  const stepviewSegmentEndpointsProduced = target => {
+    if (typeof target.getDrawType !== 'function' || target.getDrawType() !== 'lineSegment') return true;
+    const figures = target.getBase()?.figure || [];
+    if (figures.length < 2) return false;
+    const drawnPoint = end => {
+      if (end.getVisible && end.getVisible() && !(end.getValid && !end.getValid())) return true;
+      const coordinate = end.getCoordinate?.();
+      if (!coordinate) return false;
+      const [ex, ey] = coordinate;
+      return geometryManager.getAllByOrder().some(element => {
+        if (element.getType() !== 'point') return false;
+        if (element.getVisible && !element.getVisible()) return false;
+        if (element.getValid && !element.getValid()) return false;
+        const other = element.getCoordinate?.();
+        if (!other) return false;
+        return Math.hypot(other[0] - ex, other[1] - ey) < 1e-6;
+      });
+    };
+    return figures.every(drawnPoint);
+  };
+  /**
+   * 精简画板里已经作出来的解的分组下标 过程函数
+   * 同 playPage 的 resultVerifyFunction：判定非空、且判定的每个对象都作出来了才算这一组作出来了
+   * @returns {number[]}
+   */
+  const stepviewSatisfiedGroups = () => {
+    const list = [];
+    for (let index = 1; index <= resultGroupCount(); index++) {
+      const judged = [...resultSetOf(index, 'judged')];
+      if (!judged.length) continue;
+      if (judged.every(id => stepviewResultProduced(id))) list.push(index);
+    }
+    return list;
+  };
   const highlightedResult = () => {
+    // 「逐步绘制」的精简画板：哪一组解真的作出来了，就点亮那一组的「所求显示」——
+    // 与游玩模式载入记录后的一次判定同一口径；一组都没作出来（解法被撤回了）时不点亮，
+    // 显示组也一并隐藏（见 refreshElementListColors），于是「撤回解法 → 答案消失」与游玩模式一致
+    if (mode === 'stepview') {
+      const satisfied = stepviewSatisfiedGroups();
+      return {index: satisfied.length ? satisfied[0] : 1, judged: true, shown: satisfied.length > 0};
+    }
     // 标记所求判定只看判定、标记所求显示只看显示；
     // 标记探索显示时探索对象另有自己的高亮，这里不点亮任何解
     if (marking === 'result') return {index: resultActive, judged: true, shown: false};
@@ -236,6 +315,20 @@
     return {elements: geometryManager.toStorage(), lists: lists, grid: gridMetaSnapshot()};
   };
   /**
+   * 一个对象能不能被玩家隐藏 / 显示 过程函数（画板 / 制题器 / 求解器 / 试玩）
+   * 题面对象（给定 / 带标签给定 / 所求及其显示 / 关卡自带）与网格不给动，其余（玩家自己画的）都行。
+   * 游玩页（level.html）有自己的一套（看 isProtectedElement，见 toolPlayPage.js 的 playHideAllowed）
+   * @param {string} id
+   * @returns {boolean}
+   */
+  window.boardHideAllowed = id => {
+    if (!id) return false;
+    if (typeof window.isGridObjectId === 'function' && window.isGridObjectId(id)) return false;
+    // initial / named / level / result / result2 / resultShown / resultShown2 … 都算题面
+    return !Object.keys(geometryElementLists).some(key =>
+      /^(initial|named|level|result)/.test(key) && geometryElementLists[key] && geometryElementLists[key].has(id));
+  };
+  /**
    * 几何被整体替换（载入历史记录 / 撤销重做 / 导入 gmt / 清空画布 / 从游玩返回）时，
    * 自动清空求解器里「求解」「探测」两块的结果 —— 它们都指着旧几何，留着会误导
    * （非求解器模式下两个全局句柄都是 undefined，这里直接跳过，是安全无操作）
@@ -317,6 +410,20 @@
     // 像 ewp14 的 X 那种既在 result 冒号后又本身可见的对象会一开场就是金色）
     const levelJudged = mode === 'level' ? new Set() : null;
     if (levelJudged) resultMarkSets().forEach(({kind, set}) => { if (kind === 'judged') set.forEach(id => levelJudged.add(id)); });
+    // 精简画板（答案的「逐步绘制」）：与游玩模式载入记录后的判定同一口径 ——
+    // 作出来的那一组解，其「所求显示」显示出来（并点亮金色，见 markDisplayColor）；
+    // 没作出来的那一组（解法被撤回了）跟着隐藏。给定对象一直显示（同 setResultGroupsVisible）
+    if (mode === 'stepview') {
+      const satisfied = new Set(stepviewSatisfiedGroups());
+      resultMarkSets().forEach(({index, kind, set}) => {
+        if (kind !== 'shown') return;
+        set.forEach(id => {
+          if (markSetOf('initial').has(id) || markSetOf('named').has(id)) return;
+          const item = geometryManager.get(id);
+          if (item) item.modifyVisible(satisfied.has(index));
+        });
+      });
+    }
     geometryManager.getAllByOrder().forEach(item => {
       const id = item.getId();
       if (levelIds?.size && !levelIds.has(id)) return;
@@ -399,6 +506,8 @@
     if (typeof refreshOpenedGeometryItem === 'function') refreshOpenedGeometryItem();
     // 选中被清掉了（快照里不含选定栏），浮动栏的按钮要跟着重新判断可用性：
     // 不刷新的话「调整对象样式」「删除选中对象」「清空选择」还亮着，点了没反应
+    // 撤销 / 重做 / 载入记录换了一整套图形：「调整对象样式」弹层要连同「想开着」的意图一起清掉
+    if (typeof window.resetObjectStylePopup === 'function') window.resetObjectStylePopup();
     if (typeof refreshToolFloating === 'function') refreshToolFloating();
     // 几何被整套替换（载入记录 / 撤销重做 / 从游玩返回），求解与探测结果一并清空
     clearSolverOutputs();
@@ -510,6 +619,10 @@
     const order = nodes.map((item, at) => at + 1);
     const indexList = Array.isArray(listed) ? order.filter(index => listed.includes(index)) : order.slice();
     const baseline = order.filter(index => !indexList.includes(index));
+    // 精简画板：「名单里的」就是解题者自己作的图形（其余是关卡预绘制 / 给定）。
+    // 求「所求是否作出来了」时要照它排除预绘制图形 —— 与游玩模式按 level 集合排除同一口径
+    // （见 stepviewResultProduced）。名单为 null（裸 gmt）时全体都算解题者的作图
+    stepviewPlayerIds = new Set(indexList.map(index => nodes[index - 1].id));
     // 网格当作一整块：它那几十个对象要在历史里**一起**出现，否则从记录载入的网格会被一条条撤掉。
     // 位置留在它原本的地方（网格通常是文件里最先作的那批，于是最后才被撤掉，与作图顺序一致）；
     // 网格本来就在名单外（关卡自带的图形）时它属于每一格，不必并
@@ -553,6 +666,69 @@
     return steps.length;
     };
 
+  // 自由画板从求解器返回（restore=1）：按 boardBackup 还原图形、标记、网格与视图
+  if (mode === 'normal' && params.get('restore') === '1' && sessionStorage.getItem('boardBackup')) {
+    document.addEventListener('DOMContentLoaded', () => {
+      let backup = null;
+      try { backup = JSON.parse(sessionStorage.getItem('boardBackup')); } catch (error) { backup = null; }
+      sessionStorage.removeItem('boardBackup');
+      if (!backup) return;
+      if (Array.isArray(backup.elements)) geometryManager.loadStorage(backup.elements);
+      if (backup.lists) Object.entries(backup.lists).forEach(([key, value]) => { geometryElementLists[key] = new Set(value || []); });
+      if (backup.grid && typeof setGridMeta === 'function') setGridMeta(backup.grid);
+      if (typeof refreshElementListColors === 'function') refreshElementListColors();
+      if (typeof loadGeometryElements === 'function') loadGeometryElements();
+      // 撤销 / 重做历史：带回备份就照它恢复（返回后还能继续撤销之前的作图）；
+      // 没带（配额不足）就以「刚还原的图形」为起点，至少不会一撤销就把图形撤没
+      if (backup.record && typeof storageManager !== 'undefined' && storageManager
+        && typeof storageManager.deserialization === 'function') {
+        storageManager.deserialization(backup.record);
+      } else if (typeof resetStorageHistory === 'function') {
+        resetStorageHistory();
+      }
+      if (typeof refreshStorageButton === 'function') refreshStorageButton();
+      // 视图复位到离开前的状态（位置 + 缩放）；三套管理器持有的是同一个 transform 引用
+      if (backup.view && typeof transform !== 'undefined') {
+        transform.x = backup.view.x;
+        transform.y = backup.view.y;
+        transform.scale = backup.view.scale;
+        [typeof geometryManager !== 'undefined' ? geometryManager : null,
+          typeof geometryManagerResult !== 'undefined' ? geometryManagerResult : null,
+          typeof geometryManagerExplore !== 'undefined' ? geometryManagerExplore : null]
+          .forEach(manager => { if (manager) manager.transform = transform; });
+      }
+      if (typeof drawContent === 'function') drawContent();
+      if (!backup.view && typeof fitViewToContent === 'function') fitViewToContent();
+    });
+  }
+  // 精简画板（mode=stepview）：给答案的「逐步绘制」用 —— 只载入这份 gmt，
+  // 按对象逐个铺历史（可以一步步撤回），工具只留移动（界面由 index.css 的 .mode-stepview 收掉）
+  if (mode === 'stepview') {
+    document.addEventListener('DOMContentLoaded', () => {
+      const gmtPath = params.get('gmt') || '';
+      if (!gmtPath) return;
+      fetch('../data/' + gmtPath)
+        .then(response => (response.ok ? response.text() : ''))
+        .then(text => {
+          if (!text) {
+            if (typeof boardToast === 'function') boardToast(t('board.gmtImportFailed'));
+            return;
+          }
+          // 答案文件是**记录文本**（gmt 的对象行 / 标记行 + 附加信息段里的 undolist、styles 等）：
+          // 走记录面板同一条载入路径，才能把样式表与「逐个撤回」的清单一起读进来。
+          // 传的若是裸 gmt（没有 undolist / styles），退回普通的 gmt 载入
+          if (typeof window.recordPanelLoadText === 'function' && window.recordPanelLoadText(text)) {
+            // 记录载入中途撤/重做历史还没铺好，那时判「所求该不该显示」会看错状态：
+            // 历史铺好后重量一次（见 stepviewJudgedAlive）
+            refreshElementListColors();
+            drawContent();
+            return;
+          }
+          loadGmt(text);
+        })
+        .catch(() => {});
+    });
+  }
   if (mode === 'maker' && sessionStorage.getItem('elements')) {
     document.addEventListener('DOMContentLoaded', () => {
       const elements = JSON.parse(sessionStorage.getItem('elements'));
@@ -788,7 +964,33 @@
     // 网格也带过去：求解器里按它登记网格（藏起辅助对象、上样式）并把视图适配到网格范围
     sessionStorage.setItem('solverElements', JSON.stringify({elements: elements, lists: lists, grid: gridMetaSnapshot()}));
     // from：求解器的「返回」据此回到本页并还原图形（关卡游玩 / 试玩由 savePlayBackup 存备份）
-    const from = typeof savePlayBackup === 'function' ? savePlayBackup() : '';
+    let from = typeof savePlayBackup === 'function' ? savePlayBackup() : '';
+    // 自由画板（normal）没有 savePlayBackup：自己存一份图形 + 标记 + 网格 + 视图，
+    // 返回地址带 restore=1，回到画板后按下它还原（含画布位置与缩放）
+    if (!from && mode === 'normal') {
+      const lists = {};
+      Object.keys(geometryElementLists).forEach(key => { lists[key] = [...(geometryElementLists[key] || [])]; });
+      const backup = {
+        elements: geometryManager.toStorage(),
+        lists: lists,
+        grid: typeof gridMetaSnapshot === 'function' ? gridMetaSnapshot() : null,
+        view: typeof transform !== 'undefined' ? {x: transform.x, y: transform.y, scale: transform.scale} : null,
+      };
+      // 撤销 / 重做历史也带上：不带的话返回后只能把「刚还原的图形」当历史起点，就再也撤不动了
+      try {
+        if (typeof storageManager !== 'undefined' && storageManager && typeof storageManager.serialization === 'function') {
+          backup.record = storageManager.serialization();
+        }
+      } catch (error) { /* 序列化失败就不带历史 */ }
+      try {
+        sessionStorage.setItem('boardBackup', JSON.stringify(backup));
+      } catch (error) {
+        // 配额不足：退一步，先保证图形与视图能回去（丢掉历史）
+        delete backup.record;
+        try { sessionStorage.setItem('boardBackup', JSON.stringify(backup)); } catch (error2) { /* 还是放不下就算了 */ }
+      }
+      from = './board.html?mode=normal&restore=1';
+    }
     // 本关限定了工具（单尺 / 单规）时，把对应的求解器模式一起带过去：
     // 求解器面板的「可用工具」默认就选到同一种（2 尺规 / 1 单尺 / 0 单规）
     const levelTool = typeof window.levelTools === 'string' ? window.levelTools : '';
@@ -1112,9 +1314,31 @@
         // 点开全屏大图（与关卡示意图同一套观感），不再是原地放大 ——
         // 原地放大在手机上会把整排答案图一起撑开
         picture.addEventListener('click', () => imageZoomOverlay(picture.src, picture.alt));
+        const frame = document.createElement('div');
+        frame.className = 'answer-figure-image';
+        frame.appendChild(picture);
         const caption = document.createElement('figcaption');
         caption.textContent = image.star || '';
-        figure.appendChild(picture);
+        // 「逐步绘制」：该条答案配了 gmt 时给一个按钮，在本窗口跳到精简画板逐步绘制（不开新窗口）。
+        // 按钮**摆在图片下面那一行（编号那一行）的右端**（绝对定位，见 .answer-stepview-button）——
+        // 不进 figcaption 的排布，编号才照旧居中；也不像贴在图片右下角那样受各答案图宽高比影响
+        if (image.gmt) {
+          const stepButton = document.createElement('button');
+          stepButton.type = 'button';
+          stepButton.className = 'answer-stepview-button';
+          stepButton.textContent = t('board.answerStepDraw');
+          stepButton.addEventListener('click', () => {
+            // 带上 from：精简画板的「返回」据此回到本页（答案是在关卡游玩 / 试玩页打开的），
+            // 不带的话返回会落到首页。
+            // 关卡游玩 / 试玩页先存一份备份（playBackup），返回时带 restorePlay=1 让关卡页
+            // 把玩家刚才的作图、步数与撤销历史原样恢复 —— 不然从答案窗口回来画的东西就没了
+            const backUrl = typeof savePlayBackup === 'function' ? savePlayBackup() : location.href;
+            location.href = './board.html?mode=stepview&gmt=' + encodeURIComponent(image.gmt)
+              + '&from=' + encodeURIComponent(backUrl);
+          });
+          figure.appendChild(stepButton);
+        }
+        figure.appendChild(frame);
         figure.appendChild(caption);
         gallery.appendChild(figure);
       });
@@ -2795,11 +3019,14 @@
   };
 
   /**
-   * 圆形按钮的图标：标记（小旗）
+   * 圆形按钮的图标：已标记对象（清单 + 勾）
+   * 原来是一面小旗，与「标记所求」那个按钮的图标撞脸 —— 改成清单 + 勾区分开
    */
   const markSideIcon = () => '<svg class="svg-icon" viewBox="0 0 200 200">' +
-    '<path d="M62 176 L62 28" fill="transparent" stroke-width="14" stroke-linecap="round"/>' +
-    '<path d="M62 38 L152 66 L62 94 Z" fill="transparent" stroke-width="14" stroke-linejoin="round"/></svg>';
+    '<path d="M30 44 L112 44" fill="transparent" stroke-width="14" stroke-linecap="round"/>' +
+    '<path d="M30 100 L112 100" fill="transparent" stroke-width="14" stroke-linecap="round"/>' +
+    '<path d="M30 156 L112 156" fill="transparent" stroke-width="14" stroke-linecap="round"/>' +
+    '<path d="M130 128 L150 150 L188 100" fill="transparent" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
   /**
    * 圆形按钮的图标：求解参数（三条滑杆）
@@ -3082,6 +3309,22 @@
    *   config.nameOf(id)     画布对象的名字（结果里显示用）
    * @returns {Object} {panel, scan, clear, refreshMode, state}
    */
+  /**
+   * 雷达结果里一个 id 的显示名 过程函数
+   * 真对象用它的标签；合成对象（@ix: 交点 / @seg: 两点连线 / @circ: 两点圆）现拼一个名字：
+   * 交点写成「A∩s1」，两点连线写成「AB」，两点圆写成「⊙(A,B)」
+   */
+  const radarDisplayName = id => {
+    if (typeof id !== 'string') return null;
+    // 合成 id（交点 / 两点连线 / 两点圆，且会嵌套）交给内核拆：里面自己按语法递归解析，
+    // 自己在这边 split 会把嵌套的 `|` 拆错（末端就成了 undefined）
+    const synthetic = typeof GeoRelations !== 'undefined' && typeof GeoRelations.syntheticName === 'function'
+      ? GeoRelations.syntheticName(id, raw => geometryManager.get(raw)?.getName?.() || null)
+      : null;
+    if (synthetic) return synthetic;
+    return geometryManager.get(id)?.getName?.() || null;
+  };
+
   const createRelationRadarPanel = config => {
     const t = config.t;
     /** 一个勾选类别 → 扫描里的选项与结果分组（顺序即面板里的顺序：两列一行） */
@@ -3179,7 +3422,8 @@
 
     // 面板状态：最近一次扫描 + 当前选中要标出来的条目（键 = 分组#下标）
     // token：扫描放到下一帧跑，中途「清除结果」或再点一次探测时让旧的那一轮作废
-    const state = {result: null, selected: new Set(), snapshotProvider: config.snapshot, scanning: false, token: 0, groupOpen: {}, resultRendered: false};
+    // live：实时探测（开启后画布增删 / 拖动图形会自动重扫，再点一次按钮结束）
+    const state = {result: null, selected: new Set(), snapshotProvider: config.snapshot, scanning: false, token: 0, groupOpen: {}, chunkOpen: {}, resultRendered: false, live: false};
 
     /** 勾选状态 → 参数输入的显隐 过程函数 */
     const syncFields = () => {
@@ -3196,6 +3440,9 @@
       return `${spec.option}:${item.check.checked ? 1 : 0}:${item.input ? item.input.value : ''}`;
     }).join('|') + `|${toleranceSelect.value}`;
     let lastFingerprint = configFingerprint();
+    // 实时探测用：上一次扫描时画板的签名（增删 / 拖动后签名变了才重扫，避免「自己重绘」触发死循环）
+    let lastBoardSignature = null;
+    let liveTimer = null;
 
     /** 读面板上的勾选与参数 过程函数 */
     const readOptions = () => {
@@ -3304,6 +3551,7 @@
       // 注意：<details> 的 toggle 事件是异步派发的，所以直接读 DOM 的 open 才是当下真实状态
       if (state.resultRendered) {
         results.querySelectorAll('.radar-group').forEach(d => { if (d.dataset.kind) state.groupOpen[d.dataset.kind] = d.open; });
+        results.querySelectorAll('.radar-chunk').forEach(d => { if (d.dataset.chunk) state.chunkOpen[d.dataset.chunk] = d.open; });
       }
       results.innerHTML = '';
       if (!result) return;
@@ -3325,7 +3573,8 @@
           empty.textContent = t('board.radarGroupEmpty');
           details.appendChild(empty);
         }
-        entries.slice(0, MAX_ROWS_PER_GROUP).forEach((entry, index) => {
+        /** 画一条结果 过程函数 */
+        const rowFor = (entry, index) => {
           const key = `${kind}#${index}`;
           const row = document.createElement('button');
           row.type = 'button';
@@ -3338,18 +3587,37 @@
           row.dataset.base = base;
           row.textContent = base + (stale.has(key) ? `　${t('board.radarStale')}` : '');
           row.addEventListener('click', () => {
-            if (state.selected.has(key)) state.selected.delete(key);
-            else state.selected.add(key);
+            // 结果一次只标一条（互斥）：点已选的那条＝取消，否则清掉其它、只选它
+            if (state.selected.has(key)) {
+              state.selected.delete(key);
+            } else {
+              state.selected.clear();
+              state.selected.add(key);
+            }
             applyOverlay();
             render();
           });
-          details.appendChild(row);
-        });
-        if (entries.length > MAX_ROWS_PER_GROUP) {
-          const more = document.createElement('p');
-          more.className = 'radar-empty';
-          more.textContent = t('board.radarMoreRows', {count: entries.length - MAX_ROWS_PER_GROUP});
-          details.appendChild(more);
+          return row;
+        };
+        // 结果**全部列出**：每 MAX_ROWS_PER_GROUP 条折成一个可展开的块（第一块默认展开）
+        const blocks = Math.max(1, Math.ceil(entries.length / MAX_ROWS_PER_GROUP));
+        for (let block = 0; block < blocks; block++) {
+          const from = block * MAX_ROWS_PER_GROUP;
+          const slice = entries.slice(from, from + MAX_ROWS_PER_GROUP);
+          let parent = details;
+          if (blocks > 1) {
+            const chunk = document.createElement('details');
+            chunk.className = 'radar-chunk';
+            const chunkKey = `${kind}#${block}`;
+            chunk.dataset.chunk = chunkKey;
+            chunk.open = (chunkKey in state.chunkOpen) ? state.chunkOpen[chunkKey] : block === 0;
+            const chunkSummary = document.createElement('summary');
+            chunkSummary.textContent = t('board.radarChunk', {from: from + 1, to: from + slice.length});
+            chunk.appendChild(chunkSummary);
+            details.appendChild(chunk);
+            parent = chunk;
+          }
+          slice.forEach((entry, offset) => parent.appendChild(rowFor(entry, from + offset)));
         }
         results.appendChild(details);
       });
@@ -3360,9 +3628,8 @@
         results.appendChild(none);
       }
       state.resultRendered = true;
-      runButton.textContent = t('board.radarRun');
-      runButton.classList.remove('running');
       state.scanning = false;
+      updateRunButton();
     };
 
     /**
@@ -3384,7 +3651,50 @@
         row.textContent = (row.dataset.base || '') + (isStale ? `　${t('board.radarStale')}` : '');
       });
     };
-    window.relationRadarAfterDraw = refreshStale;
+    // 画布每重绘一次：先刷「已失效」标注；实时探测开着时再安排一次重扫（拖动图形也能跟上）
+    window.relationRadarAfterDraw = () => {
+      refreshStale();
+      scheduleRescan();
+    };
+    // 增删图形会派发 storage 事件；实时探测开着时据此重扫（拖动走上面的重绘钩子）
+    const onStorageChange = () => scheduleRescan();
+    window.addEventListener('storage', onStorageChange);
+
+    /** 画板签名 过程函数（点 / 线 / 圆 的 id 与坐标；实时探测据它判断要不要重扫） */
+    const signatureOf = board => {
+      if (!board) return null;
+      const round = value => Math.round(value * 1e6) / 1e6;
+      const points = (board.points || []).map(p => `${p.id}:${round(p.x)},${round(p.y)}`).join(';');
+      const lines = (board.lines || []).map(l => `${l.id}:${round(l.x1)},${round(l.y1)},${round(l.x2)},${round(l.y2)}`).join(';');
+      const circles = (board.circles || []).map(c => `${c.id}:${round(c.cx)},${round(c.cy)},${round(c.r)}`).join(';');
+      return `${points}|${lines}|${circles}`;
+    };
+
+    /** 更新「开始探测 / 结束探测」按钮外观 过程函数 */
+    const updateRunButton = () => {
+      if (state.live) {
+        runButton.textContent = t('board.radarStop');
+        runButton.classList.add('running');
+        return;
+      }
+      runButton.textContent = state.scanning ? t('board.radarScanning') : t('board.radarRun');
+      runButton.classList.toggle('running', state.scanning);
+    };
+
+    /** 实时探测：安排一次重扫 过程函数（去抖 250ms；画板签名没变就跳过，免得自己重绘触发死循环） */
+    const scheduleRescan = () => {
+      if (!state.live) return;
+      if (liveTimer !== null) window.clearTimeout(liveTimer);
+      liveTimer = window.setTimeout(() => {
+        liveTimer = null;
+        if (!state.live) return;
+        let board = null;
+        try { board = state.snapshotProvider(); } catch (error) { board = null; }
+        if (!board) return;
+        if (signatureOf(board) === lastBoardSignature) return;   // 只是重绘，图形没变
+        scan();
+      }, 250);
+    };
 
     /** 清空结果与高亮 过程函数 */
     const clear = message => {
@@ -3392,13 +3702,14 @@
       state.result = null;
       state.selected.clear();
       state.groupOpen = {};
+      state.chunkOpen = {};
       state.resultRendered = false;
       state.scanning = false;
+      lastBoardSignature = null;          // 结果已清：下一次实时重扫不受签名比对拦截
       results.innerHTML = '';
-      runButton.textContent = t('board.radarRun');
-      runButton.classList.remove('running');
       relationRadarOverlay = null;
       config.draw();
+      updateRunButton();
       status.textContent = message || t('board.radarIdle');
     };
 
@@ -3421,9 +3732,10 @@
         return null;
       }
       state.scanning = true;
-      runButton.textContent = t('board.radarScanning');
+      lastBoardSignature = signatureOf(board);   // 记下本次快照：实时探测据此判断「图形变没变」
+      runButton.textContent = state.live ? t('board.radarStop') : t('board.radarScanning');
       runButton.classList.add('running');
-      status.textContent = t('board.radarScanning');
+      status.textContent = state.live ? t('board.radarLive') : t('board.radarScanning');
       state.selected.clear();
       relationRadarOverlay = null;
       config.draw();
@@ -3444,6 +3756,7 @@
         state.result = result;
         // 新一轮探测：展开记忆清空，分组回到默认（<12 展开、>12 收起），不再沿用上轮遗留的收起态
         state.groupOpen = {};
+        state.chunkOpen = {};
         state.resultRendered = false;
         lastFingerprint = configFingerprint();
         status.textContent = (result.count
@@ -3456,20 +3769,41 @@
     };
 
     // 交互接线
-    toleranceSelect.addEventListener('change', () => clear(t('board.radarConfigChanged')));
+    // 参数 / 勾选变了：清掉旧结果；实时探测开着就顺着重扫一次（签名已被 clear 清空，不会被拦）
+    const onConfigChange = () => {
+      clear(t('board.radarConfigChanged'));
+      scheduleRescan();
+    };
+    toleranceSelect.addEventListener('change', onConfigChange);
     SPECS.forEach(spec => {
       const item = fields[spec.option];
       item.check.addEventListener('change', () => {
         syncFields();
-        clear(t('board.radarConfigChanged'));
+        onConfigChange();
       });
-      if (item.input) item.input.addEventListener('change', () => clear(t('board.radarConfigChanged')));
+      if (item.input) item.input.addEventListener('change', onConfigChange);
     });
+    // 「开始探测 / 结束探测」是一颗开关：开着实时探测，再点一下关掉
     runButton.addEventListener('click', () => {
-      if (state.scanning) return;
-      scan();
+      if (state.live) {
+        state.live = false;
+        if (liveTimer !== null) { window.clearTimeout(liveTimer); liveTimer = null; }
+        status.textContent = state.result
+          ? t('board.radarFound', {count: state.result.count})
+          : t('board.radarIdle');
+        updateRunButton();
+        return;
+      }
+      state.live = true;
+      updateRunButton();
+      if (!state.scanning) scan();
     });
-    clearButton.addEventListener('click', () => clear());
+    clearButton.addEventListener('click', () => {
+      // 手动清除结果同时退出实时探测，免得刚清完又被重扫填回来
+      state.live = false;
+      if (liveTimer !== null) { window.clearTimeout(liveTimer); liveTimer = null; }
+      clear();
+    });
     syncFields();
 
     /** 单尺模式下紧圆规没有意义：勾不了，并给出说明 过程函数 */
@@ -3591,7 +3925,7 @@
       lookup: id => (typeof relationRadarLookup === 'function' ? relationRadarLookup(id) : null),
       draw: () => drawContent(),
       toolType: () => Number(panel.querySelector('#geb-solver-tool')?.value ?? 2),
-      nameOf: id => geometryManager.get(id)?.getName?.() || id,
+      nameOf: id => radarDisplayName(id) || id,
     });
     // 雷达面板自己也放一条同样的页签条（两条内容一致，切换时一起变）
     radar.panel.insertAdjacentHTML('afterbegin', tabsHtml);
@@ -3643,6 +3977,8 @@
     let currentIndex = -1;
     let currentStep = 0;
     let replayToken = 0;
+    // 「清除解法」只清覆盖层与列表选中、搜索继续：期间用它抑制搜索收尾时的自动点亮第一个解
+    let solverSuppressAutoPlay = false;
 
     /**
      * 显示「第 index 个解的第 step 步」 过程函数
@@ -3684,6 +4020,19 @@
           showStep(index, step);
         }, step * REPLAY_INTERVAL);
       }
+    };
+
+    /**
+     * 只清画布上的解法显示（品红覆盖层 + 列表选中），不动解法列表、也不停搜索 过程函数
+     * 「清除解法」按钮、以及再点一次已选中的那条解法都走它
+     */
+    const clearSolutionDisplay = () => {
+      replayToken++;                 // 作废在途的按步播放
+      currentIndex = -1;
+      currentStep = 0;
+      stepInfo.textContent = '—';
+      list.querySelectorAll('.solver-solution-pick.active').forEach(button => button.classList.remove('active'));
+      clearSolverSolution();
     };
 
     /** 弹出某个解的文字步骤 过程函数 */
@@ -3983,7 +4332,11 @@
       pick.type = 'button';
       pick.className = 'solver-solution-pick';
       pick.textContent = t('board.solverSolutionIndex', {index: index + 1, steps: solution.newElementCount});
-      pick.addEventListener('click', () => playSolution(index, false));
+      // 再点一次已经选中的那条：清掉画布上的显示（与关系雷达一致），不重新画
+      pick.addEventListener('click', () => {
+        if (pick.classList.contains('active')) { clearSolutionDisplay(); return; }
+        playSolution(index, false);
+      });
       const text = document.createElement('button');
       text.type = 'button';
       text.className = 'solver-solution-text';
@@ -4104,7 +4457,10 @@
       // 搜索途中已经边搜边显示了一些行：清掉，按这份完整解表重画（顺序也照这里的排）
       list.innerHTML = '';
       result.solutions.forEach(appendSolutionRow);
-      playSolution(0, true);
+      // 正常收尾自动点亮第一个解；但用户中途点过「清除解法」就按住不动，
+      // 不然刚清掉的品红又被重新画出来（抑制只对这次搜索有效，下次搜索开头会复位）
+      if (!solverSuppressAutoPlay) playSolution(0, true);
+      solverSuppressAutoPlay = false;
     };
 
     /**
@@ -4463,6 +4819,7 @@
       currentStep = 0;
       stepInfo.textContent = '—';
       solverSolutionOverlay = null;
+      solverSuppressAutoPlay = false;   // 新一轮搜索：恢复「收尾自动点亮第一个解」
       list.innerHTML = '';
       // 边搜边看的那本账也清空：上一次搜索留下的解不能混进来
       liveResult.solutions.length = 0;
@@ -4542,23 +4899,36 @@
       showStep(currentIndex, currentStep + 1);
     });
 
-    // 清空求解结果（手动点按钮与「几何被外部替换」自动触发都用它）
-    const clearSolve = () => {
-      // 还搜着就先停掉，免得停了之后又冒出一堆解法
+    /** 清除解法：清掉画布上的品红显示与解法列表，但搜索继续进行 过程函数 */
+    const clearSolveView = () => {
+      clearSolutionDisplay();
+      // 列表整块清掉，边搜边追加的那本账也跟着清空：之后新搜到的解会从第 1 条重新排进来
+      if (latest) latest.solutions = [];
+      if (liveResult && liveResult !== latest) liveResult.solutions = [];
+      list.innerHTML = '';
+      // 搜索收尾会自动点亮第一个解：按住它，别把刚清掉的品红又画回来
+      solverSuppressAutoPlay = true;
+      status.textContent = t('board.solverCleared');
+    };
+
+    /** 彻底清空求解结果（几何被外部替换时用）：停掉搜索、清列表与覆盖层 过程函数 */
+    const clearSolveAll = () => {
       stopSearch();
       resetSearchProgress();
       replayToken++;
       latest = null;
       currentIndex = -1;
       currentStep = 0;
+      solverSuppressAutoPlay = false;
       stepInfo.textContent = '—';
       list.innerHTML = '';
       clearSolverSolution();
       status.textContent = t('board.solverCleared');
     };
-    panel.querySelector('#geb-solver-clear').addEventListener('click', clearSolve);
-    // 暴露给 clearSolverOutputs：载入记录 / 撤销重做 / 导入 gmt / 清空画布时自动清求解结果
-    window.solverSolveClear = clearSolve;
+    // 面板上的「清除解法」：只清覆盖层与列表选中，搜索继续
+    panel.querySelector('#geb-solver-clear').addEventListener('click', clearSolveView);
+    // 暴露给 clearSolverOutputs：载入记录 / 撤销重做 / 导入 gmt / 清空画布时**彻底**清空求解结果
+    window.solverSolveClear = clearSolveAll;
   };
   // 当前标记的集合名（initial / named / movepoints / result / resultShown）与当前标记工具（given / goal）
   let marking = null;
@@ -5071,9 +5441,14 @@
   const addMarkTools = () => {
     const toolbar = document.getElementById('menu_toolbar');
     if (!toolbar || toolbar.querySelector('[data-marking]')) return;
+    // 标记工具收进一个容器：桌面端照旧排在菜单栏里；手机端由 index.css 把它 fixed 到
+    // 屏幕右侧（与左侧的「已标记对象」圆形按钮相对）
+    const box = document.createElement('div');
+    box.id = 'mark-toolbar';
+    box.className = 'mark-toolbar';
     const divider = document.createElement('div');
     divider.className = 'tool-separator';
-    toolbar.appendChild(divider);
+    box.appendChild(divider);
     markTools.forEach(markTool => {
       const button = document.createElement('button');
       // mark-initial / mark-result：图标默认用标记色（黑 / 金），选中时与其他按钮一样变绿
@@ -5097,12 +5472,19 @@
         // 当前工具切到「移动视图」：标记模式下拖拽画布可平移，也不会误画图形
         tool = 'move';
         subTool = 'moveView';
+        // 移动模式下选中的图形要取消选中：那一箱选中是「移动工具缓存」，
+        // 切到标记模式后浮动栏已变成标记相关按钮，留着选中会与标记操作互相打架
+        // （这里不调 refreshToolFloating：标记模式下浮动栏归 mark switches 管，重刷会把它冲掉）
+        if (typeof geometryManager !== 'undefined' && geometryManager
+          && typeof geometryManager.deleteTool === 'function') {
+          geometryManager.deleteTool('move');
+        }
         renderMarkOptions();
         // 回到「标记所求」这一层时，所求相关的图形统统标金
         refreshMarkHighlight();
         drawContent();
       });
-      toolbar.appendChild(button);
+      box.appendChild(button);
     });
     const clearButton = document.createElement('button');
     clearButton.className = 'svg-button mark-clear';
@@ -5124,7 +5506,8 @@
       // 清除标记记一步历史
       notifyStorageChange('clear-marks');
     });
-    toolbar.appendChild(clearButton);
+    box.appendChild(clearButton);
+    toolbar.appendChild(box);
   };
   // 切换工具分类会重建 #container_toolbar（换回工具按钮），这时自动退出标记模式
   if (mode === 'maker' || mode === 'solver') {
@@ -5141,10 +5524,30 @@
   // 缩略图只属于关卡游玩（level.html 默认隐藏，此处按模式显示，避免加载瞬间闪现）
   const thumbnail = document.getElementById('thumbnail');
   if (thumbnail && mode === 'level') thumbnail.style.display = '';
+  /**
+   * 截图 过程函数
+   * 只截画板那一块 canvas（所有面板 / 工具栏都是独立 DOM 覆盖层、不在 canvas 内，天然不含 UI），
+   * 按当前视角与像素分辨率导出 PNG。文件名：关卡游玩用「关卡 id_年-月-日-时-分-秒」，其余用模式名
+   */
+  const captureBoardImage = () => {
+    const canvas = document.getElementById('canvas_id1');
+    if (!canvas || typeof canvas.toDataURL !== 'function') return;
+    const pad = value => String(value).padStart(2, '0');
+    const now = new Date();
+    const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
+      + `-${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
+    const name = mode === 'level' ? `${params.get('id') || 'level'}_${stamp}` : `${mode}_${stamp}`;
+    const link = document.createElement('a');
+    link.href = canvas.toDataURL('image/png');
+    link.download = `${name}.png`;
+    link.click();
+    if (typeof boardToast === 'function') boardToast(t('board.screenshotSaved'));
+  };
   // 菜单：与导入导出共用同一套「按钮 + 弹层」实现
   const menuItems = [
     { label: t('board.construct'), templateId: 'menuConstruct', actionKey: 'switch-construct', action: () => menuChoice('switch-construct') },
     { label: t('board.overview'), templateId: 'menuOverview', actionKey: 'switch-overview', action: () => menuChoice('switch-overview') },
+    { label: t('board.screenshot'), templateId: 'capture', actionKey: 'screenshot', action: captureBoardImage },
     { label: t('board.clearCanvas'), templateId: 'menuClearCanvas', actionKey: 'clear-canvas', action: () => menuChoice('clear-canvas') },
     { label: t('board.help'), templateId: 'help', actionKey: 'help', action: helpDialog },
   ];
@@ -5699,7 +6102,10 @@
      * @returns {number[]} [x, y]
      */
     window.snapCursorPosition = (x, y) => {
-      if (typeof tool === 'undefined' || tool === 'move' || tool === 'eraser') return [x, y];
+      // 游玩模式的「隐藏刷」挂在移动工具上：它也是「点一下就把它藏起来」，
+      // 坐标同样该吸附到附近的图形上（与非游玩模式的隐藏刷手感一致），所以这时不排除 move
+      const hideBrush = typeof window.playHideBrushMode === 'function' && window.playHideBrushMode();
+      if (typeof tool === 'undefined' || tool === 'eraser' || (tool === 'move' && !hideBrush)) return [x, y];
       const snap = previewSnapOf(x, y);
       return [snap.x, snap.y];
     };

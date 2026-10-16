@@ -472,9 +472,10 @@
         const undolist = dict.undolist || (dict.storage ? {construct: dict.storage.construct, moves: dict.storage.moves} : null);
         if (Array.isArray(undolist)) {
             // 新格式：名单就是「可撤回的图形」那一串对象行序号。
-            // 游玩模式按名单铺撤销历史（只能逐一撤回名单里的图形）；其它模式忽略名单 ——
+            // 游玩模式与「逐步绘制」的精简画板按名单铺撤销历史（只能逐一撤回名单里的图形，
+            // 预绘制的给定图形撤不掉）；其它模式忽略名单 ——
             // 把游玩模式导出的记录导入画板，依然可以逐一撤回所有图形
-            const listed = mode === 'level' ? undolist : null;
+            const listed = (mode === 'level' || mode === 'stepview') ? undolist : null;
             if (typeof global.buildStorageHistoryFromList === 'function') global.buildStorageHistoryFromList(listed);
             if (isPlay && typeof global.rebuildMovesHistoryForRecord === 'function') {
                 global.rebuildMovesHistoryForRecord(listed, store.infoOf(dict).steps);
@@ -899,6 +900,22 @@
 
     global.recordPanelRefresh = refresh;
     global.recordPanelMarkBaseline = markBaseline;
+    /**
+     * 把一段**记录文本**载到画布上 过程函数（答案的「逐步绘制」窗口用它）
+     * 与记录面板的「载入」走同一条路：gmt 的对象行与标记行、styles 样式表、undolist 撤回清单
+     * 全部按记录里的设置还原；undolist 里的对象行序号会铺成「一步一个」的撤销历史。
+     * 传进来的不是记录（裸 gmt）时返回 false，让调用方退回普通的 gmt 载入
+     * @param {string} text
+     * @returns {boolean}
+     */
+    global.recordPanelLoadText = text => {
+        const blocks = store.parseImportText(String(text || ''));
+        // 裸 gmt 会被当成一条没有附加信息的记录：styles / undolist 都是空的，
+        // 那种情况交给调用方用 loadGmt 处理（两者的对象行解释一致）
+        if (!blocks.length || !blocks[0].gmt) return false;
+        if (!Array.isArray(blocks[0].undolist) && !blocks[0].styles) return false;
+        return loadRecord(blocks[0]);
+    };
     // 本次「作出所求」是否已经自动存过：作出所求之后再往上面画图不再自动存
     // （所求从画布上消失时由 playPage 的 unsuccess 事件调 recordPanelAutoReset 放开）
     let autoSaved = false;

@@ -842,6 +842,7 @@ const infDict = {
     "switch-overview": {title: "几何元素一览面板", context: "可以查看所有的元素，快速编辑"},
     "switch-record": {title: "记录", context: "查看与载入作图记录"},
     "clear-canvas": {title: "清空画布", context: ""},
+    "screenshot": {title: "截图", context: "把画板区域导出成 PNG（不含界面）"},
     "help": {title: "帮助", context: "说明当前界面的用法"},
     "view-answer": {title: "查看答案", context: "查看本关收录的解法图"},
     "close-menu": {title: "关闭菜单", context: "收起这个菜单"},
@@ -879,8 +880,9 @@ const infDict = {
     "construct-bar": {title: "构造工具栏", context: ""},
     "move": {title: "移动工具", context: "可以拖动点、画布"},
     "point": {title: "点工具", context: "点击以创建一个点，可以拖动点以放置到几何对象上"},
-    "eraser": {title: "橡皮擦工具", context: ""},
-    "styleBrush": {title: "样式刷", context: "先点一个图形当样式来源，之后点到的图形会套用它的颜色、粗细与标签显示"},
+    "eraser": {title: "橡皮", context: "点 / 拖擦掉任意图形"},
+    "pointEraser": {title: "点擦橡皮", context: "只擦掉点，不动直线 / 圆"},
+    "styleBrush": {title: "刷 / 擦工具", context: "浮层里有隐藏刷 / 样式刷 / 橡皮 / 点擦橡皮四种模式"},
     "brushStyle": {title: "样式刷模式", context: "先点一个图形当样式来源，之后点到的图形套用它的样式"},
     "brushHidden": {title: "隐藏刷模式", context: "点一下图形把它隐藏起来（撤销、或到元素一览的「隐藏」档里可以找回来）"},
     "line": {title: "直线工具", context: ""},
@@ -1091,16 +1093,18 @@ function DOMLoaded() {
     canvas.addEventListener("mousemove", mouseMoveEventFunction);
     canvas.addEventListener("mouseup", mouseUpEventFunction);
     document.addEventListener("mouseleave", mouseCancelEventFunction);
-    canvas.addEventListener("wheel", wheelEventFunction);
-    // 触摸事件
-    canvas.addEventListener("touchstart", touchstartEventFunction);
+    canvas.addEventListener("wheel", wheelEventFunction, {passive: false});
+    // 触摸事件（touchstart / touchmove 要 preventDefault，显式 passive: false，免得记 [Violation]）
+    canvas.addEventListener("touchstart", touchstartEventFunction, {passive: false});
     canvas.addEventListener("touchend", touchendEventFunction);
-    canvas.addEventListener("touchmove", touchmoveEventFunction);
+    canvas.addEventListener("touchmove", touchmoveEventFunction, {passive: false});
     canvas.addEventListener("touchcancel", touchcancelEventFunction);
     // 点击事件绑定
     document.getElementById("menu_toolbar").addEventListener("click", menuToolbarChoice);
     document.getElementById("container_toolbar").addEventListener("click", toolbarChoice);
-    document.getElementById("floating-bar-buttons").addEventListener("click", toolSwitchChoice);
+    // 委托挂在 .floating-bar 上：浮动栏最右还可能有「贴右」容器（如游玩模式的隐藏按钮），
+    // 挂在 #floating-bar-buttons 上收不到它的点击
+    document.querySelector(".floating-bar").addEventListener("click", toolSwitchChoice);
     document.getElementById("container_more").addEventListener("click", morebarChoice);
     document.getElementById("container_overview").addEventListener("click", selectElementByOverview);
     document.getElementById("geometry-item").addEventListener("click", geometryItemClick);

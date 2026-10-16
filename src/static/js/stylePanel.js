@@ -194,7 +194,10 @@ function openStylePopup(options) {
     const {anchor, key, isPoint, get, apply} = options;
     const opened = document.querySelector('.style-popup.open');
     closeStylePopups();
-    if (opened && opened.dataset.key === key) return;
+    if (opened && opened.dataset.key === key) {
+        // 同一个按钮再点一下就是收起
+        return;
+    }
 
     const popup = document.createElement('div');
     popup.className = 'board-popup style-popup';
@@ -306,6 +309,20 @@ function openStyleConfigPopup(type, anchor) {
     });
 }
 
+/** 「调整对象样式」弹层当前所对着的选中集合签名（换选对象时据此把弹层收起） */
+let objectStyleSelectionKey = null;
+/** 撤销 / 重做 / 清空画布等换了一批图形：把「调整对象样式」弹层收掉 */
+window.resetObjectStylePopup = () => {
+    closeObjectStylePopup();
+};
+
+/** 当前移动选中集合的签名 过程函数（多选按 id 排序拼起来） */
+function currentSelectionKey() {
+    const selected = typeof tools !== 'undefined' && tools.move && typeof tools.move.selectedElements === 'function'
+        ? tools.move.selectedElements() : [];
+    return selected.map(item => item.getId()).sort().join('|');
+}
+
 /**
  * 调整已选中对象的样式 过程函数
  * @param {Object} [anchor] 弹层定位按钮
@@ -355,6 +372,8 @@ function openObjectStylePopup(anchor) {
             if (!live) notifyStorageChange('style');
         },
     });
+    // 记下这份弹层对着的是哪一组选中：换选对象时（见 setObjectStyleAble）据此把弹层收起来
+    objectStyleSelectionKey = currentSelectionKey();
 }
 
 /**
@@ -447,11 +466,28 @@ function renderInlineStyleControls(container, element, onChange, readOnly) {
                 appendStyleControl(roLabelRow, '虚线', dashText);
             }
 
+            // 隐藏：只读档位里这一项是**可用**的（游玩模式也能藏 / 显示自己画的图形）；
+            // 题面对象（给定 / 关卡自带 / 所求）与「关卡自己藏起来的图形」不给动，开关置灰。
+            // 判据：游玩页用 playHideAllowed、画板等用 boardHideAllowed；外加「现在看不见、
+            // 又不在 hidden 集合里」＝关卡预绘制就藏着的，同样不给动
             const roHideRow = addRow('隐藏');
-            const hideText = document.createElement('span');
-            hideText.className = 'style-inline-value';
-            hideText.textContent = target.getVisible() ? '否' : '是';
-            roHideRow.appendChild(hideText);
+            const allowHide = typeof playHideAllowed === 'function' ? playHideAllowed
+                : (typeof window.boardHideAllowed === 'function' ? window.boardHideAllowed : null);
+            const playerControlled = typeof geometryElementLists !== 'undefined' && geometryElementLists.hidden
+                ? geometryElementLists.hidden.has(targetId) : false;
+            const canHide = (allowHide ? allowHide(targetId) : true) && (target.getVisible() || playerControlled);
+            const hideSwitch = createStyleSwitch(!target.getVisible(), '隐藏',
+                target.getVisible() ? '点一下隐藏这个图形' : '已隐藏，点一下显示',
+                () => {
+                    if (!canHide) return;
+                    const item = current();
+                    const next = !item.getVisible();
+                    if (typeof setPlayElementVisible === 'function') setPlayElementVisible(item, next);
+                    else setElementVisible(item, next);
+                    draw();
+                });
+            if (!canHide) hideSwitch.classList.add('disable');
+            roHideRow.appendChild(hideSwitch);
             return;
         }
 
@@ -525,11 +561,16 @@ function setObjectStyleAble(item) {
     if (getSelectedElement()) {
         buttonDE.classList.remove('disable');
         svg.classList.remove('disable');
+        // 换选了别的对象：样式弹层直接收起（不跟着换内容、也不自动重开）。
+        // 换选时选中栏会「先清空再选上」，中间那一下已经走到下面的清空分支把弹层收掉了；
+        // 这里再按签名变化兜一次，保证「面板开着时改选」也一定收起来
+        const opened = document.querySelector('.style-popup.open[data-key="object"]');
+        if (opened && currentSelectionKey() !== objectStyleSelectionKey) closeObjectStylePopup();
     }else{
         buttonDE.classList.add('disable');
         svg.classList.add('disable');
         // 选中没了，已经展开的「调整对象样式」弹层也要收起来（撤销清掉选中时就是这条路径）
-        if (typeof closeObjectStylePopup === 'function') closeObjectStylePopup();
+        closeObjectStylePopup();
     }
 }
 

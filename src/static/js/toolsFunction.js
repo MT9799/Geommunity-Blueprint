@@ -878,7 +878,27 @@ class ToolsFunction {
         });
         return shortest * 2;
         }
-    
+
+        /**
+        * 垂线 / 平行线继承的「基底长度」 过程函数
+        * 一般线型继承它的两个渲染点距离；基底是角平分线（三点 / 两线）时改用它自己的
+        * **单位长度**（见 angleBisectorBase）——与 gmt 的 Linepoint 口径一致，
+        * 否则作出的垂线 / 平行线长度会跟着角平分线渲染长度（顶点到对边交点）乱跳
+        * @param {Object} line 基底线对象
+        * @param {number} x2
+        * @param {number} y2
+        * @param {number} x3
+        * @param {number} y3
+        * @returns {number}
+        */
+        static baseLineLength(line, x2, y2, x3, y3) {
+        const type = line && line.getBase ? (line.getBase() || {}).type : null;
+        if (type === 'threePointAngleBisector' || type === 'twoLineAngleBisector') {
+            return ToolsFunction.angleBisectorBase(line, {x: x2, y: y2}, {x: x3, y: y3});
+        }
+        return Math.hypot(x3 - x2, y3 - y2);
+        }
+
     static nearPointOnLine(p1, p2, p3) {
         const p1p2 = Math.hypot(p1.x - p2.x, p1.y - p2.y);
         const p2p3 = Math.hypot(p3.x - p2.x, p3.y - p2.y);
@@ -1504,12 +1524,14 @@ class ToolsFunction {
             if (!coordList) return null;
             const [x2, y2] = coordList[0];
             const [x3, y3] = coordList[1];
-            
-            const p1 = {x: x1, y: y1};
-            const p2 = {x: x2, y: y2};
-            const p3 = {x: x3, y: y3};
-            const coordList2 = ToolsFunction.parallelogram(p1, p2, p3);
-            return [[x1, y1], [coordList2.x, coordList2.y]];
+            // 长度用基底的「单位长度」：一般线型就是两渲染点距离；基底是角平分线时改用它自己的
+            // 单位长度（见 baseLineLength）——否则垂线 / 平行线长度会随角平分线渲染长度乱跳
+            const length = Math.hypot(x3 - x2, y3 - y2);
+            if (!(length > 1e-12)) return [[x1, y1], [x2, y2]];
+            const scale = ToolsFunction.baseLineLength(line, x2, y2, x3, y3);
+            const dirX = (x3 - x2) / length;
+            const dirY = (y3 - y2) / length;
+            return [[x1, y1], [x1 + dirX * scale, y1 + dirY * scale]];
         }else if (define.type === "perpendicular") {
             const [point, line] = define.figure;
             const [x1, y1] = point.getCoordinate();
@@ -1517,12 +1539,13 @@ class ToolsFunction {
             if (!coordList) return null;
             const [x2, y2] = coordList[0];
             const [x3, y3] = coordList[1];
-            
-            const p1 = {x: x1, y: y1};
-            const p2 = {x: x2, y: y2};
-            const p3 = {x: x3, y: y3};
-            const coordList2 = ToolsFunction.perpendicular(p1, p2, p3);
-            return [[x1, y1], [coordList2.x, coordList2.y]];
+            const length = Math.hypot(x3 - x2, y3 - y2);
+            if (!(length > 1e-12)) return [[x1, y1], [x2, y2]];
+            const scale = ToolsFunction.baseLineLength(line, x2, y2, x3, y3);
+            const dirX = (x3 - x2) / length;
+            const dirY = (y3 - y2) / length;
+            // 顺转 90°（画布 y 轴朝下）：(dx, dy) -> (-dy, dx)
+            return [[x1, y1], [x1 - dirY * scale, y1 + dirX * scale]];
         }else if (define.type === "perpendicularBisector") {
             const [point1, point2] = define.figure;
             const [x1, y1] = point1.getCoordinate();

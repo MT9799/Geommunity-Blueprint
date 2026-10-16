@@ -134,7 +134,7 @@ Edit those two files directly — whatever you write there is what the page show
 | `note` | hover hint on the level list row | none |
 | `tools` | tool restriction: `"straightedge"`, `"compass"` or `"grid"` (grid straightedge) | unrestricted, all tools |
 | `keywords` | keywords used by search | search only looks at title and `subtitle` |
-| `solutions` | recorded solution diagrams: `[{"file": "answers/<pack id>/…", "star": "5L"}, …]` (`file` relative to `data/`) | no recorded answers ("View answers" greyed out) |
+| `solutions` | recorded solution diagrams: `[{"file": "answers/<pack id>/…", "star": "5L", "gmt": "answers/<pack id>/…/5L.txt"}, …]` (`file` / `gmt` relative to `data/`) | no recorded answers ("View answers" greyed out) |
 
 > The `subtitle` of the `ewp` and `xmath` packs has already been filled in bulk (taken from the problem statements in the source archive); to change one, just edit that level's `subtitle`.
 
@@ -175,6 +175,12 @@ The problems and solution diagrams come from material collected by the "Geommuni
 That material has been organised into `data/` as described above: gmt under `data/levels/`, problem images under `data/diagrams/`, solution diagrams under `data/answers/`, with file and directory names replaced by the level's short id; the `source` field of `levelpacks.json` keeps the original directory name as a reference. Copyright of the material and the solution diagrams belongs to their original authors.
 
 > `solutions` was compiled from the levels' original directories: answer images come from the level folder, a `Solutions` subfolder, or the pack-level `Solutions/<same-named directory>`, sorted by star label (5L / 6E / 2V), and problem images (`Def`) or explanatory images don't count. When imported into `data/answers/` they are reorganised as "one folder per level" (`answers/<pack id>/<level id>/5L.png`), and levels that shared one original answer directory (such as `SprFes`'s `Solutions/`, several XEP groups) each got their own copy — so **every image inside a level folder now belongs to that level**; when one star label shares an image, two `solutions` entries pointing at the same file are kept. Follow the same rule after adding levels.
+
+**"Draw step by step" for a solution (`solutions[].gmt`, optional)**
+
+An answer can carry a `gmt` field pointing at the **record text** for that solution (relative to `data/`, e.g. `answers/ewp/ewp11/5L.txt`). With it, a "Draw step by step" button appears at the bottom-right of the answer image; clicking it opens a stripped-down board **in the same window** (`board.html?mode=stepview&gmt=…`) that loads just that record and keeps only the move tool, undo / redo and back — you can then **peel the figures off one at a time**, exactly like a play-mode record.
+
+- The file uses the **record export format** (see "Extra information in a record file" below): the gmt object / mark lines, a blank line, then the `key=value` block. `undolist=` (the undoable figures, as object-line numbers of the gmt) and `styles=` (colour / width / label / hidden) are both read; every object listed in `undolist` becomes one history step, so **the record must not contain pre-drawn figures** (anything like `initial=` that drags the given figures in) — otherwise those would end up in the undoable list too. In practice just use the record that was auto-saved after drawing the solution in the solver.
 
 ### How GMT maps onto the board
 
