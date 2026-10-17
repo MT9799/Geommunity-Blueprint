@@ -67,15 +67,15 @@
         "id": "xeuclidea-puzzle",
         "name": "XEuclidea-Puzzle",
         "description": "特普的尺规作图标准题集。",
-        "cover": "",
+        "cover": "packcovers/xep.png",
         "icon": "",
         "source": "ref/Extra/XEuclidea-Puzzle"
     },
     {
         "id": "xewpc",
         "name": "XEWPC",
-        "description": "XEuclidea-Puzzle 里的 XEWPC 系列。",
-        "cover": "",
+        "description": "XEuclidea Weekly Puzzle Contest.",
+        "cover": "packcovers/xewpc.png",
         "icon": "",
         "source": "ref/Extra/XEuclidea-Puzzle"
     }
