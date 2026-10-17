@@ -895,6 +895,7 @@ const infDict = {
     "perpendicularBisector": {title: "垂直平分线工具", context: ""},
     "tangent": {title: "切线工具", context: "过圆外或圆上一点作圆的切线"},
     "tangentParallel": {title: "平行切线工具", context: "作与一条直线平行的两条切线。⚠ 制题器慎用：gmt 无法导出"},
+    "twoCircleTangent": {title: "两圆切线工具", context: "选择两圆，一次作出它们的所有公切线。⚠ 制题器慎用：gmt 无法导出"},
     "angleBisector": {title: "角平分线工具", context: ""},
     "compass": {title: "圆规工具", context: ""},
     "middlePoint": {title: "中点工具", context: "构造两个点的中点，或构造圆心"},

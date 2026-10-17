@@ -98,13 +98,16 @@ const toolItems = {
         "choice": {"general": {"point1": 'point', "point2": 'point'}},
     }, 
     'tangent': {
-        // 两种取法：过点作切线（默认）/ 作与直线平行的切线；小项的图标是 svg-tangentParallel。
-        // 「平行切线」暂时不列出来（开关见 constructToolBag.js 的 TANGENT_PARALLEL_ENABLED）：
-        // 它的 gmt 写法（Tangent[直线,圆]）原版游戏还不支持，导出的关卡导不进去
+        // 三种取法：过点作切线（默认）/ 与直线平行的切线 / 两圆公切线；小项图标分别是
+        // svg-tangent / svg-tangentParallel / svg-twoCircleTangent。
+        // 「平行切线」「两圆公切线」暂时不列出来（开关见 constructToolBag.js 的
+        // TANGENT_PARALLEL_ENABLED / TWO_CIRCLE_TANGENT_ENABLED）：它们的 gmt 写法原版游戏
+        // 还不支持，导出的关卡导不进去
         'switch': ['tangent'],
         "button": ["clear", "lineStyle"], 
         "choice": {"tangent": {"point": 'point', "circle": 'circle'},
-            "tangentParallel": {"line": 'line', "circle": 'circle'}},
+            "tangentParallel": {"line": 'line', "circle": 'circle'},
+            "twoCircleTangent": {"circle1": 'circle', "circle2": 'circle'}},
     }, 
     'angleBisector': {
         // 两线模式暂时不列出来（见 constructToolBag.js 的 TWO_LINE_BISECTOR_ENABLED）
@@ -114,7 +117,9 @@ const toolItems = {
             "twoLineAngleBisector": {"choice1": 'line', "choice2": 'line'}},
     }, 
     'compass': {
-        'switch': ['threePointCompass', 'compassCopy'],
+        // 复制圆规暂时不列出来：小项按钮只按 switch 渲染，去掉这一项就只剩三点圆规（choice 与
+        // constructToolBag / canvas.js 里的分支先留着，恢复时把它加回 switch 即可）
+        'switch': ['threePointCompass'],
         "button": ["clear", "circleStyle"], 
         "choice": {"threePointCompass": {"point1": 'point', "point2": 'point', "point3": 'point'},
             "compassCopy": {"point": 'point', "circle": 'circle'}},

@@ -800,6 +800,7 @@ const TIP_EN = {
     'perpendicularBisector': ['Perpendicular bisector tool', ''],
     'tangent': ['Tangent tool', 'Draw the tangents to a circle through a point'],
     'tangentParallel': ['Parallel tangents', 'Draw the two tangents parallel to a line. ⚠ Avoid in the maker: gmt cannot express this construction'],
+    'twoCircleTangent': ['Two-circle tangents', 'Pick two circles to draw all their common tangents. ⚠ Avoid in the maker: gmt cannot express this construction'],
     'angleBisector': ['Angle bisector tool', ''],
     'compass': ['Compass tool', ''],
     'middlePoint': ['Midpoint tool', 'Midpoint of two points, or the center of a circle'],

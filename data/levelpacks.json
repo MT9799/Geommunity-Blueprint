@@ -19,7 +19,7 @@
         "id": "c-s-pzls-other",
         "name": "尺规散题集锦",
         "description": "从各处收集的有趣的尺规作图题。",
-        "cover": "packcovers/c-s-pzls-other.png",
+        "cover": "packcovers/c-s-pzls-other.jpg",
         "icon": "",
         "source": "ref/Extra/C-s-Pzls-Other"
     },
@@ -27,7 +27,7 @@
         "id": "euc-addit",
         "name": "欧几里得补充包",
         "description": "铃声末响春日暖的精选集。",
-        "cover": "",
+        "cover": "packcovers/euc-addit.jpg",
         "icon": "",
         "source": "ref/Extra/Euc-Addit"
     },
@@ -35,7 +35,7 @@
         "id": "from-baidu-tieba",
         "name": "贴吧精选集",
         "description": "来自百度贴吧的几何作图题。",
-        "cover": "",
+        "cover": "packcovers/from-baidu-tieba.jpg",
         "icon": "",
         "source": "ref/Extra/From-Baidu-Tieba"
     },
@@ -43,7 +43,7 @@
         "id": "mingjing-forum",
         "name": "明经精选集",
         "description": "来自明经论坛-几何算法板块的几何作图题。",
-        "cover": "",
+        "cover": "packcovers/mingjing-forum.jpg",
         "icon": "",
         "source": "ref/Extra/Mingjing-Forum"
     },
@@ -51,7 +51,7 @@
         "id": "sprfes",
         "name": "跨年赛",
         "description": "作图群跨年赛历年真题。",
-        "cover": "",
+        "cover": "packcovers/sprfes.jpg",
         "icon": "",
         "source": "ref/Extra/SprFes"
     },
@@ -59,7 +59,7 @@
         "id": "straightedge-only-pzls",
         "name": "纯单尺精选集",
         "description": "单尺作图-从入门到入土。",
-        "cover": "",
+        "cover": "packcovers/straightedge-only-pzls.jpg",
         "icon": "",
         "source": "ref/Extra/Straightedge-only-Pzls"
     },

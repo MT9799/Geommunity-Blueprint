@@ -1619,6 +1619,49 @@ class ToolsFunction {
             const baseY = cy + sign * radius * normalY;
             // 平行切线（工具暂时下线、gmt 也不支持）同样按「切点 + 半径 × 线的方向」写，口径统一
             return fromTangentPoint(baseX, baseY, lx2 - lx1, ly2 - ly1);
+        }else if (define.type === "twoCircleTangent") {
+            // 两圆公切线：figure = [circle1, circle2]，value 决定是哪一条 ——
+            // 0 / 1 是两条外公切线，2 / 3 是两条内公切线；不存在的那条返回 null。
+            // 两圆相离 4 条、外切 3 条、相交 2 条、内切 1 条、内含 0 条，由下面的判定自然得出。
+            // 渲染两点与 tangent 同口径：[圆1上的切点, 切点 + 半径1 × 线的方向]
+            const [circle1, circle2] = define.figure;
+            const coord1 = circle1?.getCoordinate?.();
+            const coord2 = circle2?.getCoordinate?.();
+            if (!Array.isArray(coord1) || !Array.isArray(coord2)) return null;
+            const [x1, y1] = coord1[0];
+            const [x2, y2] = coord2[0];
+            const r1 = Math.hypot(coord1[1][0] - x1, coord1[1][1] - y1);
+            const r2 = Math.hypot(coord2[1][0] - x2, coord2[1][1] - y2);
+            const dx = x2 - x1;
+            const dy = y2 - y1;
+            const distance = Math.hypot(dx, dy);
+            // 同心（含同一个圆）：没有确定的公切线
+            if (distance < 1e-12) return null;
+            const value = define.value | 0;
+            // 设公切线的单位法向为 n：外公切线（切点同侧）要求 n·(C2-C1) = r2 - r1，
+            // 内公切线（切点在连心线两侧）要求 n·(C2-C1) = -(r1 + r2)
+            const isInternal = value >= 2;
+            const offsetSum = isInternal ? -(r1 + r2) : (r2 - r1);
+            const cosTheta = offsetSum / distance;
+            // |cosθ| > 1：这一族公切线不存在（内含 / 相交时没有内公切线）
+            if (cosTheta > 1 + 1e-9 || cosTheta < -1 - 1e-9) return null;
+            const clamped = Math.max(-1, Math.min(1, cosTheta));
+            const baseAngle = Math.atan2(dy, dx);
+            const theta = Math.acos(clamped);
+            // |cosθ| = 1：两解重合（两圆相切，只有一条），第二个分支不返回
+            const single = Math.abs(clamped) >= 1 - 1e-9;
+            if (single && (value % 2 === 1)) return null;
+            // 两条法向是 baseAngle ± theta；单解时就是 baseAngle + theta（0 或 π，两者是同一条线）
+            const sign = (value % 2 === 1) ? 1 : -1;
+            const angle = baseAngle + (single ? theta : sign * theta);
+            const normalX = Math.cos(angle);
+            const normalY = Math.sin(angle);
+            // 圆1上的切点：圆心沿法向退一个半径
+            const tangentX = x1 - r1 * normalX;
+            const tangentY = y1 - r1 * normalY;
+            const unit = r1 > 1e-12 ? r1 : 1;
+            return [[tangentX, tangentY],
+                [tangentX - normalY * unit, tangentY + normalX * unit]];
         }else if (define.type === "polarLine") {
             // 点关于圆的极线：与连心线垂直，到圆心距离为 r^2 / |CP|
             const [point, circle] = define.figure;

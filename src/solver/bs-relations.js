@@ -1033,7 +1033,7 @@ const GeoRelations = (function () {
             angleSpec: DEFAULT_ANGLES.join(','),
             angleTolerance: null,          // null = 按容差档位取（见 ANGLE_TOLERANCE）
             ratioSpec: DEFAULT_RATIO_SPEC,
-            maxResults: 200,
+            maxResults: 1000,
         };
     }
 

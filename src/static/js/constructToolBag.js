@@ -107,11 +107,17 @@ class PerpendicularBisectorConstructTool {
 
 const tangent = 'tangent';
 const tangentParallel = 'tangentParallel';
+const twoCircleTangent = 'twoCircleTangent';
 const TANGENT_DEGENERATE_EPSILON = 1e-10;
 // 「线圆平行切线」开关：暂时关闭 —— 它的 gmt 写法（Tangent[直线,圆]）原版游戏还不支持，
 // 导出的关卡导不进去。要恢复：这里改 true，再把 tool.js 的 toolItems.tangent.switch 加回 'tangentParallel'
 // （小项图标 svg-tangentParallel 已经在 board.html / level.html 里）
 const TANGENT_PARALLEL_ENABLED = false;
+// 「两圆公切线」开关：暂时关闭。选择两个圆会一次作出它们所有的公切线（两圆相离 4 条、外切 3 条、
+// 相交 2 条、内切 1 条、内含 0 条）。gmt 同样没有对应的写法，先不做入口。
+// 要恢复：这里改 true，再把 tool.js 的 toolItems.tangent.switch 加回 'twoCircleTangent'
+// （小项图标 svg-twoCircleTangent 已经在 board.html / level.html 里）
+const TWO_CIRCLE_TANGENT_ENABLED = false;
 class TangentConstructTool extends MixPointBaseToolTemplate {
     /**
      * @param {string} toolName
@@ -133,6 +139,13 @@ class TangentConstructTool extends MixPointBaseToolTemplate {
             ["line", "circle"],
             () => this.createParallelTangents()
         );
+        // 两个圆：两次都只是「选一个圆」，同样交给 ExceptPointBaseToolTemplate
+        this.twoCircleMode = new ExceptPointBaseToolTemplate(
+            toolName,
+            2,
+            ["circle"],
+            () => this.createTwoCircleTangents()
+        );
     }
     /**
      * 切线工具
@@ -141,13 +154,25 @@ class TangentConstructTool extends MixPointBaseToolTemplate {
      * @param {number} oriY 原y坐标
      */
     toolEvent(type, oriX, oriY) {
-        // 只有明确选了「平行于直线」才走那个模式：其余（含小项停留在工具名的页面）都是「过点作切线」。
-        // 平行切线暂时关闭（见 TANGENT_PARALLEL_ENABLED）
-        if (TANGENT_PARALLEL_ENABLED && subTool === tangentParallel) {
+        // 只有明确选了对应的小项才走那个模式：其余（含小项停留在工具名的页面）都是「过点作切线」。
+        // 平行切线 / 两圆公切线暂时关闭（见 TANGENT_PARALLEL_ENABLED / TWO_CIRCLE_TANGENT_ENABLED）
+        if (TWO_CIRCLE_TANGENT_ENABLED && subTool === twoCircleTangent) {
+            this.twoCircleMode.toolEvent(type, oriX, oriY);
+        }else if (TANGENT_PARALLEL_ENABLED && subTool === tangentParallel) {
             this.parallelMode.toolEvent(type, oriX, oriY);
         }else{
             super.toolEvent(type, oriX, oriY);
         }
+    }
+    /**
+     * 清空
+     * 除了模板自己那套「过点作切线」，把平行 / 两圆两个子模式也一并清掉 ——
+     * 否则切走再切回来，子模式里选到一半的状态还挂着
+     */
+    clear() {
+        super.clear();
+        this.parallelMode.clear();
+        this.twoCircleMode.clear();
     }
     /**
      * 创建目标图形
@@ -318,6 +343,58 @@ class TangentConstructTool extends MixPointBaseToolTemplate {
             return goal && geometryManager.findSameElement(goal);
         });
         if (duplicated) {
+            geometryManager.deleteTool(this.toolName);
+            return;
+        }
+        geometryManager.loadTool(this.toolName);
+        // 触发存储事件（与模板里各工具一致）
+        const event = new CustomEvent("storage", {
+            detail: {
+                type: this.toolName,
+            },
+        });
+        window.dispatchEvent(event);
+    }
+    /**
+     * 两圆公切线 过程函数
+     * 一次作出两个圆之间所有存在的公切线（同一次工具缓存：一起进历史、一起撤销）：
+     * 相离 4 条（2 外公 + 2 内公）、外切 3 条、相交 2 条、内切 1 条、内含 0 条。
+     * 不存在 / 重合的分支（见 updateLineCoordinate 的 twoCircleTangent）当场从缓存里丢掉
+     */
+    createTwoCircleTangents() {
+        const first = geometryManager.getToolKey(this.toolName, 'choice1');
+        const second = geometryManager.getToolKey(this.toolName, 'choice2');
+        if (!first || !second || first.getId() === second.getId()) {
+            geometryManager.deleteTool(this.toolName);
+            return;
+        }
+        // 拖拽路径可能把线也quote进来（movePoint 按线 / 圆找），这里只认两个圆
+        if (first.getType() !== 'circle' || second.getType() !== 'circle') {
+            geometryManager.deleteTool(this.toolName);
+            return;
+        }
+        const keys = ['twoCircleTangent1', 'twoCircleTangent2', 'twoCircleTangent3', 'twoCircleTangent4'];
+        const kept = [];
+        keys.forEach((key, value) => {
+            geometryManager.createGeometryElementInputTool(this.goalType, this.toolName, key);
+            const goal = geometryManager.getToolKey(this.toolName, key);
+            if (!goal) return;
+            goal.modifyDefine(twoCircleTangent, [first, second], value);
+            const coord = typeof goal.getCoordinate === 'function' ? goal.getCoordinate() : null;
+            // 这一条不存在（内含 0 条 / 内切 1 条 / 外切 3 条 / 相交 2 条）
+            if (!Array.isArray(coord) || !Array.isArray(coord[0])) {
+                geometryManager.deleteToolKey(this.toolName, key);
+                return;
+            }
+            // 退化圆（半径为 0）会让内外两族解重合：同一个图形只留一条
+            if (kept.some(other => ToolsFunction.sameLineElement(goal, other))) {
+                geometryManager.deleteToolKey(this.toolName, key);
+                return;
+            }
+            kept.push(goal);
+        });
+        // 一条都作不出来（两圆内含）：整次作废，别把选中的两个圆当图形留下
+        if (!kept.length) {
             geometryManager.deleteTool(this.toolName);
             return;
         }

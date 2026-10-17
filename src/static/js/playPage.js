@@ -1408,7 +1408,7 @@ const infDict = {
     "pointStyle": {title: "配置点样式", context: "设置后续绘制的点的颜色、大小与标签显示"},
     "objectStyle": {title: "调整对象样式", context: "用移动工具选中对象后，可修改它的颜色、粗细、标签显示，直线与圆还可切成虚线"},
     "deleteObject": {title: "删除选中对象", context: "删除移动工具选中的对象，连同由它作出来的所有子对象"},
-    "hideToggle": {title: "隐藏 / 隐藏刷", context: "没选中图形时：点一下进入隐藏刷（之后点画布上的图形就把它藏起来，再点退出）；选中图形时：点一下隐藏 / 显示它"},
+    "hideToggle": {title: "隐藏 / 隐藏刷", context: "没选中图形时，点一下进入隐藏刷；选中图形时，点一下隐藏 / 显示它"},
     "any": {title: "任意对象", context: "可选中任意几何对象"},
     "choicePoint": {title: "点对象", context: "仅选中点对象"},
     "style": {title: "样式刷", context: "拖拽以配置直线的样式为当前线工具样式"},
@@ -1428,6 +1428,7 @@ const infDict = {
 const TIP_EN_PLAY = {
     'angleBisector': ['Angle bisector tool', 'Three-point angle bisector: the second point is the vertex'],
     'compass': ['Compass tool', 'Three-point compass: radius from two points, center at the third'],
+    'hideToggle': ['Hide / Hide brush', 'With no object selected, tap to enter the hide brush; with an object selected, tap to hide / show it'],
 };
 window.addEventListener("click", showInformationMobile);
 /**

@@ -5551,7 +5551,7 @@
     // 免得像把底下线条截断）；描一圈淡白光晕保证压在深色图形上也看得清。复制而非改动原画布，
     // 否则文字会残留在屏幕上直到下次重绘
     let imageCanvas = canvas;
-    if (mode === 'level') {
+    if (mode === 'level' || mode === 'maker-play') {
       const composed = document.createElement('canvas');
       composed.width = canvas.width;
       composed.height = canvas.height;
