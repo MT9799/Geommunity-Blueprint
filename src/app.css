@@ -23,66 +23,153 @@
     align-items: center;
     background: var(--paper);
 }
- 
+
 .subpage-header-title {
-    width: 100vw;
+    width: 100%;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 14px;
-    padding: 12px 32px 12px;
+    /* 与关卡列表同一条左缘（1440 下 x=72） */
+    padding: 12px max(32px, calc((100% - 1296px) / 2)) 12px;
 }
 
 .subpage-header-separator {
-    width: 100vw;
+    width: 100%;
     border-bottom: 1px solid var(--line);
 }
 
+/*
+ * 关卡包页的外壳铺满视口：顶部栏 / 头图用 100% 就是整屏宽。
+ * 之前外壳自己限宽 1180、子元素再写 100vw —— 100vw 是从容器左缘起算的，
+ * 桌面端会整体偏右、右侧溢出（头图看起来歪掉 / 显示不正常）。
+ * 正文列表仍由 .pack-container 自己限宽并居中。
+ */
 .home-shell-pack {
     position: relative;
-    max-width: 1180px;
-    margin: auto;
+    width: 100%;
+    margin: 0;
     padding: 0px;
 }
 
 .pack-container {
-    max-width: 1180px;
+    /* 比正文默认的 1180 更宽：两列时给标题留出余量，长标题不至于被步数挤扁 */
+    max-width: 1360px;
     margin: auto;
     padding: 0px 32px;
 }
 
 .hero-banner {
-    width: 100vw;
+    /* 头图平均色与文字颜色：pack.js 量出平均色后覆盖这两个变量；
+       这里先给纸色 / 深色字兜底（图片还没加载完或读取失败时用） */
+    --hero-avg-rgb: 244, 240, 232;
+    --hero-ink: #172321;
+    width: 100%;
     position: relative;
+    overflow: hidden;
+    /* 头图上沿叠到 sticky header 后面：pack.js 量出 header 高度写进变量，
+       这里用负上边距折上去（header 不透明，头图上沿被它盖住，整体更紧凑） */
+    margin-top: calc(-1 * var(--pack-header-height, 0px));
+    /* 头图两侧用平均色铺满整页宽：图片收窄居中后，左右露出来的就是这块底色 */
+    background-color: rgb(var(--hero-avg-rgb));
 }
 
 .background-image-container {
-    width: 100vw;
+    width: 100%;
+    /* 手机版：以屏宽为基准（最高 460），配合下面「上叠 header」，
+       可见高度比原来的正方形略小，同时给文字底板之上留出图片带 */
+    height: clamp(360px, 100vw, 460px);
+    overflow: hidden;
+}
+
+/*
+ * 头图上的整幅渐变：铺满整张头图 —— 顶部透明，逐渐过渡到封面平均色，
+ * 最下端再过渡到页面底色 #f4f0e8。
+ * 文字底板不再自带背景，因而没有「渐变 / 底板」的分界线，
+ * 也就不可能再出现两者之间的亚像素细线。
+ */
+.hero-banner::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    /* 图片容器带 mask（会形成 z-index:0 的层叠上下文，按树序在伪元素之后），
+       这里显式抬到图片之上，否则整幅渐变的实色部分会被图片盖住 */
+    z-index: 1;
+    background-image: linear-gradient(to bottom,
+        rgba(var(--hero-avg-rgb), 0) 0%,
+        rgba(var(--hero-avg-rgb), 0.50) 20%,
+        rgba(var(--hero-avg-rgb), 0.88) 36%,
+        rgba(var(--hero-avg-rgb), 0.96) 45%,
+        rgb(var(--hero-avg-rgb)) 60%,
+        rgb(var(--hero-avg-rgb)) 90%,
+        var(--paper) 100%);
 }
 
 .front-container {
-    width: 100vw;
-    padding: 10px;
+    width: 100%;
     position: absolute;
     bottom: 0;
-    padding: 10px 32px;
-    backdrop-filter: blur(2px);
-    background-color: rgba(255, 255, 255, 0.5);
+    /* 压在渐变的实色层之上（见 .hero-banner::before 的 z-index） */
+    z-index: 2;
+    /* 包名 / 简介 / 搜索框与关卡列表同一条左缘（1440 下 x=72） */
+    padding: 16px max(32px, calc((100% - 1296px) / 2)) 18px;
+    color: var(--hero-ink);
+    /* 底色交给 .hero-banner::before 的整幅渐变，这里保持透明 */
+    background: none;
 }
 
-.hero-gradient-transparency {
-    width: 100vw;
-    height: 100px;
-    position: absolute;
-    bottom: 0;
-    background-image: linear-gradient(to top, BurlyWood, transparent);
+/* 文字颜色跟着平均色走（黑 / 白由 pack.js 按亮度决定），这里只负责继承与字号 */
+.front-container .eyebrow {
+    color: var(--hero-ink);
+    opacity: .72;
+    margin: 0 0 6px;
+}
+
+.front-container #pack-title {
+    color: var(--hero-ink);
+    font-size: clamp(30px, 4.2vw, 52px);
+    line-height: 1.05;
+    margin: 4px 0 10px;
+}
+
+.front-container .lede {
+    color: var(--hero-ink);
+    opacity: .86;
+    font-size: 17px;
+    line-height: 1.5;
+    margin: 0;
+}
+
+/* 搜索框保持白底深字：无论平均色明暗都清楚 */
+.front-container .search-box {
+    margin-top: 16px;
+    margin-bottom: 0;
+    background: rgba(255, 255, 255, 0.92);
+    border-color: rgba(0, 0, 0, 0.14);
+    color: var(--ink);
 }
 
 .pack-backgroundImage {
     display: block;
     width: 100%;
-    aspect-ratio: 1/1;
+    height: 100%;
+    aspect-ratio: auto;
     object-fit: cover;
+    object-position: center;
+}
+
+/* 桌面端：图片收窄到与关卡列表同宽并居中，左右边缘淡入两侧的平均色；高度也稍微压矮 */
+@media (min-width: 701px) {
+    .background-image-container {
+        max-width: 1360px;
+        margin-inline: auto;
+        height: clamp(360px, 30vw, 460px);
+        overflow: hidden;
+        /* 只淡最外侧 32px，露出来的就是 .hero-banner 铺的平均色 */
+        -webkit-mask-image: linear-gradient(to right, transparent 0, #000 32px, #000 calc(100% - 32px), transparent 100%);
+        mask-image: linear-gradient(to right, transparent 0, #000 32px, #000 calc(100% - 32px), transparent 100%);
+    }
 }
 
  .subpage-brand {
@@ -222,6 +309,36 @@
      --line: #c8c1b4
  }
 
+ /*
+  * 页面滚动条：与画板面板同款（细、占位、灰色拇指），不再用浏览器默认样式。
+  * 只写 ::-webkit-scrollbar；Chromium 里同时写标准的 scrollbar-width 会盖掉它，
+  * 看起来又回到默认样式（同 index.css 那里的说明）。Firefox 走下面的 @supports。
+  */
+ html {
+     scrollbar-gutter: stable
+ }
+
+ html::-webkit-scrollbar {
+     width: 8px;
+     height: 8px
+ }
+
+ html::-webkit-scrollbar-thumb {
+     background-color: rgb(165, 165, 175);
+     border-radius: 4px
+ }
+
+ html::-webkit-scrollbar-track {
+     background-color: transparent
+ }
+
+ @supports not selector(::-webkit-scrollbar) {
+     html {
+         scrollbar-width: thin;
+         scrollbar-color: rgb(165, 165, 175) transparent
+     }
+ }
+
  * {
      box-sizing: border-box
  }
@@ -250,6 +367,30 @@
      padding: 0px 32px
  }
 
+ /*
+  * 顶格页面（关卡包总览 / 搜索）：外壳铺满视口，正文仍留在 1180 居中列。
+  * 于是 header 的底色与分隔线顶到屏幕两边，而文字左边距保持原样（1440 下 x=162）。
+  */
+ .home-shell-flush {
+     max-width: none;
+     margin: 0;
+     padding: 0
+ }
+
+ .home-shell-flush>.home-shell-content {
+     /* 与关卡选择页的关卡列表同宽（1360） */
+     max-width: 1360px;
+     margin: 0 auto;
+     padding: 0px 32px
+ }
+
+ .home-shell-flush>.subpage-header {
+     width: 100%;
+     margin-inline: 0;
+     /* 文字与 1360 列表列左缘对齐：(视口宽 - 1296) / 2；窄屏至少留 32 */
+     padding-inline: max(32px, calc((100% - 1296px) / 2))
+ }
+
  .masthead {
      max-width: 760px;
      margin-bottom: 44px
@@ -276,7 +417,8 @@
      margin: 0 0 22px
  }
 
- .home-shell>h1 {
+ .home-shell>h1,
+ .home-shell-content>h1 {
      font-size: clamp(40px, 6vw, 72px);
      line-height: 1;
      margin: 0 0 18px
@@ -398,6 +540,31 @@
      transform: translateX(5px)
  }
 
+ /*
+  * 关卡包页（pack.html）：桌面端一行两关，卡片加高、示意图放大；
+  * 标题与步数仍在同一行（步数在最后一列，与单列时的排法一致）。
+  * 只作用于 .pack-container；搜索页的 .level-list 不在此容器内，仍是单列。
+  * 断点取 1200：容器加宽后，再窄的话标题列放不下长标题。
+  */
+ @media (min-width: 1200px) {
+     .pack-container .level-list {
+         grid-template-columns: repeat(2, minmax(0, 1fr));
+         gap: 16px;
+     }
+
+     .pack-container .level-row {
+         /* 序号 | 更大的示意图 | 标题 | 步数 */
+         grid-template-columns: 36px 140px minmax(0, 1fr) auto;
+         gap: 14px;
+         padding: 18px;
+         min-height: 176px;
+     }
+
+     .pack-container .level-thumb {
+         max-width: 140px;
+     }
+ }
+
  .level-row span,
  .level-row small {
      font: 500 15px;
@@ -419,6 +586,65 @@
      font-size: 16px;
      font-weight: 600;
      color: #000
+ }
+
+ /* 搜索命中词高亮 */
+ mark.search-hit {
+     background: #ffe58a;
+     color: inherit;
+     padding: 0 1px;
+     border-radius: 3px;
+ }
+
+ /*
+  * 搜索页：命中题干 / 关键词时，在标题下方补一行来源。
+  * 用 #search-results 提权，压过上面 `.level-row span / small` 的灰色与字重。
+  */
+ #search-results .level-snippet {
+     display: block;
+     margin-top: 2px;
+     color: #596560;
+     font-size: 13px;
+     font-weight: 400;
+     line-height: 1.45;
+ }
+
+ #search-results .level-snippet-line {
+     display: block;
+     color: #596560;
+     font-weight: 400;
+ }
+
+ #search-results .level-snippet-keywords {
+     display: block;
+     margin-top: 4px;
+ }
+
+ #search-results .level-snippet-keywords em {
+     display: inline-block;
+     margin: 0 4px 0 0;
+     padding: 1px 7px;
+     border-radius: 999px;
+     background: #eef4f5;
+     color: #277f96;
+     font-size: 12px;
+     font-style: normal;
+     font-weight: 500;
+ }
+
+ /* 搜索页桌面端：标题 / 题干 / 步数纵向排列（原本步数独占第 4 列，放不下题干来源） */
+ @media (min-width: 701px) {
+     #search-results .level-row {
+         grid-template-columns: 48px 92px minmax(0, 1fr);
+     }
+
+     #search-results .level-main {
+         display: flex;
+         flex-direction: column;
+         justify-content: center;
+         gap: 3px;
+         min-width: 0;
+     }
  }
 
  .home-shell a {

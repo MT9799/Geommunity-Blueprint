@@ -57,7 +57,13 @@ loadLevelsData().then(({ packs, levels }) => {
         const start = (page - 1) * LEVELS_PAGE_SIZE;
         results.innerHTML = matched
             .slice(start, start + LEVELS_PAGE_SIZE)
-            .map((level, index) => levelRowHTML(level, {index: start + index, packName: packOf(level.pack), levelFrom: searchURL({q: input.value.trim(), pack: packScope, page: page})}))
+            .map((level, index) => levelRowHTML(level, {
+                index: start + index,
+                packName: packOf(level.pack),
+                levelFrom: searchURL({q: input.value.trim(), pack: packScope, page: page}),
+                // 高亮这些词，并在命中题干 / 关键词时于标题下方显示来源
+                terms,
+            }))
             .join('');
         pager.innerHTML = pagerHTML(page, matched.length, target =>
             searchURL({q: input.value.trim(), pack: packScope, page: target}), true);

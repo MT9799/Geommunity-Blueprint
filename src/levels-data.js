@@ -120,15 +120,19 @@ document.addEventListener('click', event => {
  * @param {Object} level
  * @returns {string}
  */
-function markTargetSteps(steps, level) {
+function markTargetSteps(steps, level, terms) {
     const text = String(steps || '');
-    if (typeof recordStore === 'undefined' || !level || !level.id) return text;
+    // 搜索页：把命中的步数（5L / 6E / 5）也标出来；没有搜索词时按原文输出
+    const withHit = value => (Array.isArray(terms) && terms.length
+        ? highlightSearchTerms(value, terms)
+        : value);
+    if (typeof recordStore === 'undefined' || !level || !level.id) return withHit(text);
     const reached = recordStore.reachedTargetOf(level.id, recordStore.targetStepsFromText(text));
-    if (!reached.done) return text;
+    if (!reached.done) return withHit(text);
     // 作出了所求就带上 .reached（正文色，与「没作出」的灰区分开），其中达标的那一项再加 .active 标金
     return text
-        .replace(/(\d+\s*L)/i, match => `<span class="goal-part reached${reached.l ? ' active' : ''}">${match}</span>`)
-        .replace(/(\d+\s*E)/i, match => `<span class="goal-part reached${reached.e ? ' active' : ''}">${match}</span>`);
+        .replace(/(\d+\s*L)/i, match => `<span class="goal-part reached${reached.l ? ' active' : ''}">${withHit(match)}</span>`)
+        .replace(/(\d+\s*E)/i, match => `<span class="goal-part reached${reached.e ? ' active' : ''}">${withHit(match)}</span>`);
 }
 
 /**
@@ -146,31 +150,108 @@ function toolTagHTML(level) {
 }
 
 /**
+ * HTML 转义 过程函数
+ * @param {string} text
+ * @returns {string}
+ */
+function escapeSearchHTML(text) {
+    return String(text ?? '').replace(/[&<>"']/g, ch => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;',
+    }[ch]));
+}
+
+/**
+ * 搜索词高亮 过程函数
+ * 先把原文按命中的词切开，再逐段转义 —— 不把转义实体当原文匹配，文本里的 < > 也不会打断标签。
+ * @param {string} text 原文
+ * @param {string[]} terms 搜索词
+ * @returns {string} 带 <mark class="search-hit"> 的 HTML
+ */
+function highlightSearchTerms(text, terms) {
+    const source = String(text ?? '');
+    // 长词优先：「角平分线」不该被「平分线」先切开
+    const list = (terms || []).filter(Boolean).sort((a, b) => b.length - a.length);
+    if (!list.length) return escapeSearchHTML(source);
+    const pattern = new RegExp(
+        '(' + list.map(term => term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')',
+        'gi',
+    );
+    // split 带捕获组：奇数下标是命中的片段
+    return source.split(pattern)
+        .map((part, index) => (index % 2 === 1
+            ? `<mark class="search-hit">${escapeSearchHTML(part)}</mark>`
+            : escapeSearchHTML(part)))
+        .join('');
+}
+
+/**
+ * 文本是否命中任意搜索词 过程函数
+ * @param {string} text
+ * @param {string[]} terms
+ * @returns {boolean}
+ */
+function searchTermHits(text, terms) {
+    const lower = String(text ?? '').toLowerCase();
+    return (terms || []).some(term => term && lower.includes(String(term).toLowerCase()));
+}
+
+/**
  * 关卡行 HTML 过程函数
- * 关卡包页与搜索页共用；搜索页传入 packName 以标注关卡来自哪个包
+ * 关卡包页与搜索页共用；搜索页传入 packName 以标注关卡来自哪个包，
+ * 传入 terms 时高亮搜索词，并在命中题干 / 关键词时于标题下方补一行来源
  * @param {Object} level 关卡数据
- * @param {{index: number, packName: string}} [options]
+ * @param {{index: number, packName: string, terms: string[]}} [options]
  * @returns {string}
  */
 function levelRowHTML(level, options) {
     const setting = options || {};
+    // 搜索页传入的高亮词；关卡包页不传，标题 / 题干 / 关键词都按原文输出
+    const terms = Array.isArray(setting.terms) ? setting.terms.filter(Boolean) : [];
     // 序号一律按它在包里的位次生成，不从 levels.json 里取（那个字段已去掉）
     const number = String((setting.index || 0) + 1).padStart(3, '0');
     // 缩略图只写 data-src：快滚到跟前时才由 observeLevelThumbs 设上 src（见那边的说明）
     const thumb = level.diagram
         ? `<span class="level-thumb" data-src="../data/${level.diagram}">◇</span>`
         : '<span class="level-thumb">◇</span>';
-    const steps = markTargetSteps(level.targetSteps || (typeof t === 'function' ? t('pack.stepsUnknown') : '步数未标注'), level);
-    const note = level.note ? ` title="${level.note}"` : '';
-    const packTag = setting.packName ? `<em class="level-pack">${setting.packName}</em>` : '';
+    const steps = markTargetSteps(level.targetSteps || (typeof t === 'function' ? t('pack.stepsUnknown') : '步数未标注'), level, terms);
+    const note = level.note ? ` title="${escapeSearchHTML(level.note)}"` : '';
+    const packTag = setting.packName
+        ? `<em class="level-pack">${highlightSearchTerms(setting.packName, terms)}</em>`
+        : '';
+    // 命中题干（subtitle）或关键词时，在标题下面显示命中的那段文字，说明这一关为什么被搜到
+    const subtitle = String(level.subtitle || '');
+    const keywords = Array.isArray(level.keywords) ? level.keywords : [];
+    const packName = String(setting.packName || '').toLowerCase();
+    const showSubtitle = terms.length > 0 && subtitle && searchTermHits(subtitle, terms);
+    const matchedKeywords = terms.length > 0
+        // 与关卡包同名的关键词不用重复显示：标题后面的包标签已经写着它了
+        ? keywords.filter(keyword => searchTermHits(keyword, terms)
+            && String(keyword).toLowerCase() !== packName)
+        : [];
+    const snippet = showSubtitle || matchedKeywords.length
+        ? '<small class="level-snippet">'
+            + (showSubtitle
+                ? `<span class="level-snippet-line">${highlightSearchTerms(subtitle, terms)}</span>`
+                : '')
+            + (matchedKeywords.length
+                ? `<span class="level-snippet-keywords">${matchedKeywords
+                    .map(keyword => `<em>${highlightSearchTerms(keyword, terms)}</em>`).join('')}</span>`
+                : '')
+            + '</small>'
+        : '';
     // page：带上关卡包里的页码，关卡页的「返回关卡包」据此回到这一页而不是第一页
     const pageParam = setting.page ? `&page=${encodeURIComponent(setting.page)}` : '';
     // from：从搜索页进来的关卡，返回时回到原来那个搜索页（含查询条件）
     const fromParam = setting.levelFrom ? `&from=${encodeURIComponent(setting.levelFrom)}` : '';
     const href = `./level.html?pack=${encodeURIComponent(level.pack)}&id=${encodeURIComponent(level.id)}${pageParam}${fromParam}`;
-    // 标题与步数放同一格（.level-main）：窄屏时步数排在标题下面，不会被挤到新的一行
+    // 标题、题干来源与步数放同一格（.level-main）：窄屏 / 搜索页纵向排列
     return `<a class="level-row" href="${href}"${note}><span>${number}</span>${thumb}` +
-        `<span class="level-main"><strong>${level.title}${packTag}${toolTagHTML(level)}</strong><small>${steps}　→</small></span></a>`;
+        `<span class="level-main"><strong>${highlightSearchTerms(level.title, terms)}${packTag}${toolTagHTML(level)}</strong>` +
+        `${snippet}<small>${steps}　→</small></span></a>`;
 }
 
 /** 缩略图格子：带 data-src 的关卡行缩略图与关卡包图标 */
