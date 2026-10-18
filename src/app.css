@@ -98,12 +98,12 @@
     z-index: 1;
     background-image: linear-gradient(to bottom,
         rgba(var(--hero-avg-rgb), 0) 0%,
-        rgba(var(--hero-avg-rgb), 0.50) 20%,
-        rgba(var(--hero-avg-rgb), 0.88) 36%,
-        rgba(var(--hero-avg-rgb), 0.96) 45%,
-        rgb(var(--hero-avg-rgb)) 60%,
-        rgb(var(--hero-avg-rgb)) 90%,
-        var(--paper) 100%);
+        rgba(var(--hero-avg-rgb), 0.30) 20%,
+        rgba(var(--hero-avg-rgb), 0.70) 36%,
+        rgba(var(--hero-avg-rgb), 0.80) 45%,
+        rgba(var(--hero-avg-rgb), 0.95) 60%,
+        rgb(var(--hero-avg-rgb)) 95%,
+        var(--paper) 100%)
 }
 
 .front-container {
