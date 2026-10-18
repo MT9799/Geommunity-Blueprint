@@ -683,6 +683,10 @@ const previewShapes = {
     perpendicularLine: 'perpendicularLine',
     // 切线：先点了点 → 光标靠近圆才预览（过该点的两条切线）；先点了圆 → 光标处补点预览切线
     tangent: 'tangent',
+    // 极线：先点了圆 → 光标处补一个点，预览该点关于这个圆的极线
+    polarLine: 'line',
+    // 极点：先选了圆/线后，光标靠近线/圆时预览计算出来的极点
+    polarPoint: 'pole',
 };
 
 /**
@@ -803,6 +807,40 @@ function toolPreviewState() {
         }
         return null;
     }
+    // 极点：先选了圆 → 光标靠近线时预览；先选了线 → 光标靠近圆时预览
+    if (subTool === 'polarPoint') {
+        const picked = selected[0];
+        if (!picked) return null;
+        if (picked.getType() === 'circle') {
+            const [lineId] = geometryManager.near(rawCursor, ['line'], 1);
+            const line = lineId ? geometryManager.get(lineId) : null;
+            const pole = line ? previewPole(line, picked) : null;
+            return pole ? {shape: 'pole', coords: [pole]} : null;
+        }
+        if (picked.getType() === 'line') {
+            const [circleId] = geometryManager.near(rawCursor, ['circle'], 1);
+            const circle = circleId ? geometryManager.get(circleId) : null;
+            const pole = circle ? previewPole(picked, circle) : null;
+            return pole ? {shape: 'pole', coords: [pole]} : null;
+        }
+        return null;
+    }
+    // 极线：先点了点 → 光标靠近一个圆才预览；先点了圆 → 光标处补一个点，预览该点的极线
+    if (subTool === 'polarLine') {
+        const pickedPoint = selected.find(item => item.getType() === 'point');
+        const pickedCircle = selected.find(item => item.getType() === 'circle');
+        if (pickedPoint) {
+            const [circleId] = geometryManager.near(rawCursor, ['circle'], 1);
+            const circle = circleId ? geometryManager.get(circleId) : null;
+            const coords = circle ? previewPolarLine(pickedPoint.getCoordinate(), circle) : null;
+            return coords ? {shape: 'line', coords: coords} : null;
+        }
+        if (pickedCircle) {
+            const coords = previewPolarLine(cursor, pickedCircle);
+            return coords ? {shape: 'line', coords: coords} : null;
+        }
+        return null;
+    }
     // 平行线 / 垂线：先点了线，光标处补一个点
     if (tool === 'parallelLine' || tool === 'perpendicularLine') {
         const line = selected.find(item => item.getType() === 'line');
@@ -886,6 +924,51 @@ function previewTangentLines(from, circle) {
     const offset = Math.acos(radius / distance);
     const base = Math.atan2(ay - cy, ax - cx);
     return [base - offset, base + offset].map(lineAt).filter(item => item);
+}
+
+/**
+ * 线关于圆的极点（预览用） 过程函数
+ * 与 toolsFunction.js 的 polarPoint 同一口径：线 s 关于圆 c 的极点
+ * @param {Object} line 线
+ * @param {Object} circle 圆
+ * @returns {number[]|null} 极点坐标；线过圆心（极点在无穷远）时 null
+ */
+function previewPole(line, circle) {
+    const lineCoord = line?.getCoordinate?.();
+    const circleCoord = circle?.getCoordinate?.();
+    if (!lineCoord || !circleCoord) return null;
+    const p1 = {x: lineCoord[0][0], y: lineCoord[0][1]};
+    const p2 = {x: lineCoord[1][0], y: lineCoord[1][1]};
+    const c1 = {x: circleCoord[0][0], y: circleCoord[0][1]};
+    const c2 = {x: circleCoord[1][0], y: circleCoord[1][1]};
+    const pole = ToolsFunction.polarPoint(p1, p2, c1, c2);
+    return pole ? [pole.x, pole.y] : null;
+}
+
+/**
+ * 点关于圆的极线（预览用） 过程函数
+ * 与 toolsFunction.js 的 polarLine 分支同一口径：垂足 = 圆心 + (P-圆心)·r²/|P-圆心|²，
+ * 方向 = P→圆心在屏幕上逆时针 90°（画布 y 轴向下），单位 = |P-圆心|
+ * @param {number[]} from 极点（逻辑坐标）
+ * @param {Object} circle 圆
+ * @returns {number[][]|null} 极线上的两点（垂足 - 方向、垂足）；退化时 null
+ */
+function previewPolarLine(from, circle) {
+    const coord = circle?.getCoordinate?.();
+    if (!coord) return null;
+    const [cx, cy] = coord[0];
+    const radius = Math.hypot(coord[1][0] - cx, coord[1][1] - cy);
+    if (radius < 1e-12) return null;
+    const [ax, ay] = from;
+    const dx = ax - cx;
+    const dy = ay - cy;
+    const distanceSquared = dx * dx + dy * dy;
+    if (distanceSquared < 1e-20) return null;
+    const factor = (radius * radius) / distanceSquared;
+    const baseX = cx + dx * factor;
+    const baseY = cy + dy * factor;
+    // 与正式对象同一对点：垂足是 index 1
+    return [[baseX + dy, baseY - dx], [baseX, baseY]];
 }
 
 /**
@@ -1011,6 +1094,9 @@ function drawToolPreview() {
             ct.lineTo(bounds.p2.x, bounds.p2.y);
             ct.stroke();
         }
+    }else if (state.shape === 'pole') {
+        // 极点：一个计算出来的点（不是光标位置）
+        drawPreviewPoint(state.coords[0]);
     }else if (state.shape === 'middlePoint') {
         drawPreviewPoint([(first[0] + second[0]) / 2, (first[1] + second[1]) / 2]);
     }else if (state.shape === 'tangent') {

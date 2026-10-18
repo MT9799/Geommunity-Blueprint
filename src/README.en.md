@@ -206,7 +206,7 @@ Levels and the board's "Import gmt" share one parser. For the syntax see ggb2gmt
 | `ABisect[A,B,C]` | angle bisector | B is the vertex (gmt only has the three-point form) |
 | `CenterPoint[c]` | circle centre | case-insensitive (`Centerpoint` works too) |
 | `Tangent[A,c,x]` | tangent | tangents to circle c through A; only one when A is on the circle; `x` counts counter-clockwise from the centre towards A |
-| `PolarLine[A,c]` | polar line | perpendicular to the centre line, distance r²/｜CP｜ from the centre |
+| `PolarLine[A,c]` | polar line | perpendicular to the centre line, distance r²/｜CP｜ from the centre; the direction is A→centre rotated 90° counter-clockwise **as seen on screen** (the canvas y axis points down, so this is `(x,y)→(y,-x)` in canvas coordinates), one unit is ｜CP｜, and the foot (centre line ∩ polar line) is `Linepoint[...,1]` |
 | `CopyAngle[A,B,C,D,E]` | copied-angle ray | vertex E, with D a point on one side |
 | `FixAngle[A,B,x]` | fixed-angle ray | vertex A, starting side AB, rotated counter-clockwise by x degrees |
 
@@ -224,6 +224,7 @@ Points on a circle use radians from the positive x axis (clockwise positive, mat
 | perpendicular bisector | centred at the midpoint M of AB, starting from A rotated 90° clockwise |
 | angle bisector | starts at the vertex, and one unit changes with the figure — see below |
 | tangent | one unit = the radius of the tangent circle |
+| polar line | the foot (centre line ∩ polar line) is `x=1`; one unit = ｜C P｜ |
 
 **How long one unit of an angle bisector is**: not a fixed 100. Draw the perpendicular to the bisector through the vertex and take the **smallest** of "the distances from the defining points on the two sides of the angle to that perpendicular" and "50 canvas units"; **twice** that value is one unit.
 

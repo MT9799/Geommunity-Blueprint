@@ -1678,7 +1678,12 @@ class ToolsFunction {
             const factor = (radius * radius) / distanceSquared;
             const baseX = cx + dx * factor;
             const baseY = cy + dy * factor;
-            return [[baseX, baseY], [baseX - dy, baseY + dx]];
+            // gmt 约定（PolarLine[A,c]）：
+            //   方向 = A→圆心 逆时针转 90°（**屏幕上的逆时针**；画布 y 轴向下，
+            //   所以数学上对应 (x, y) → (y, -x)，A→C = (-dx, -dy) 旋转后为 (-dy, dx)）；
+            //   1 单位 = |A 圆心|；垂足（A 与圆心的连线与极线的交点）是 Linepoint 的 index 1 点。
+            // 渲染两点写成 [垂足 - 方向, 垂足] = [(baseX + dy, baseY - dx), (baseX, baseY)]
+            return [[baseX + dy, baseY - dx], [baseX, baseY]];
         }else if (define.type === "copyAngle") {
             // CopyAngle[A,B,C,D,E]：以 E 为顶点、ED 为始边，按 ∠ABC（从 BA 转到 BC 的方向与大小）作射线。
             // 例：CopyAngle[F,A,E,G,C] = 以 C 为顶点、CG 为始边，按 ∠FAE 的方向（AF -> AE）旋转 CG

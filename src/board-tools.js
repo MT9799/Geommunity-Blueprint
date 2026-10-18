@@ -5922,8 +5922,13 @@
       }else{
         tip.hidden = true;
       }
+      // 游玩模式的隐藏刷：光标下没有对象时用普通三角形箭头，而不是四向箭头 ——
+      // 隐藏刷不是在拖画布，四向箭头会让人误以为可以平移
+      const playHideBrush = typeof window.playHideBrushMode === 'function' && window.playHideBrushMode();
       if (element) {
         canvasElement.style.cursor = 'pointer';
+      }else if (playHideBrush) {
+        canvasElement.style.cursor = '';
       }else if (pointerDown && typeof tool === 'string' && tool === 'move' && geometryManager.getToolKey('move', 'choice')) {
         // 正用移动工具拖着对象：光标即使甩到很远、身下没有对象了，也保持手指 ——
         // 四向箭头是「拖画布」的暗示，拖对象的过程中出现会很跳
@@ -6163,6 +6168,11 @@
           || ((tool === 'tangent' || subTool === 'tangent') && !geometryManager.getToolKey(tool, 'circle'))
           || subTool === 'twoLineAngleBisector'
           || (subTool === 'compassCopy' && !geometryManager.getToolKey(tool, 'circle'))
+          // 极点极线：一开始都不显示光标点。极线像切线 —— 只有先选中了**圆**
+          // （下一步才是「光标处补一个点」）才显示点预览；先选点则只等圆。
+          // 极点两步都是选图形，光标点预览始终不显示（它的预览是计算出来的极点，见 canvas.js）
+          || (tool === 'polePolar'
+              && (subTool !== 'polarLine' || !geometryManager.getToolKey(tool, 'circle')))
           // 样式刷 / 隐藏刷 / 切换线类型：光标自己已经画成圆环（或隐藏刷的方块）了，
           // 再叠一个点预览只会互相干扰
           || tool === 'styleBrush'

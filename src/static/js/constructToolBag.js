@@ -111,13 +111,14 @@ const twoCircleTangent = 'twoCircleTangent';
 const TANGENT_DEGENERATE_EPSILON = 1e-10;
 // 「线圆平行切线」开关：暂时关闭 —— 它的 gmt 写法（Tangent[直线,圆]）原版游戏还不支持，
 // 导出的关卡导不进去。要恢复：这里改 true，再把 tool.js 的 toolItems.tangent.switch 加回 'tangentParallel'
-// （小项图标 svg-tangentParallel 已经在 board.html / level.html 里）
+// （小项图标 svg-tangentParallel 已经在 board.html 里）
 const TANGENT_PARALLEL_ENABLED = false;
 // 「两圆公切线」开关：暂时关闭。选择两个圆会一次作出它们所有的公切线（两圆相离 4 条、外切 3 条、
 // 相交 2 条、内切 1 条、内含 0 条）。gmt 同样没有对应的写法，先不做入口。
 // 要恢复：这里改 true，再把 tool.js 的 toolItems.tangent.switch 加回 'twoCircleTangent'
-// （小项图标 svg-twoCircleTangent 已经在 board.html / level.html 里）
+// （小项图标 svg-twoCircleTangent 已经在 board.html 里）
 const TWO_CIRCLE_TANGENT_ENABLED = false;
+const polePolar = 'polePolar';
 class TangentConstructTool extends MixPointBaseToolTemplate {
     /**
      * @param {string} toolName
@@ -401,6 +402,103 @@ class TangentConstructTool extends MixPointBaseToolTemplate {
         geometryManager.loadTool(this.toolName);
         // 触发存储事件（与模板里各工具一致）
         const event = new CustomEvent("storage", {
+            detail: {
+                type: this.toolName,
+            },
+        });
+        window.dispatchEvent(event);
+    }
+}
+
+
+/**
+ * 极点极线 工具（非游玩模式）
+ * 浮动栏两种小项：
+ *   极点（polarPoint）：选一条线 + 一个圆，作出线关于圆的极点；
+ *   极线（polarLine）：选一个点 + 一个圆，作出点关于圆的极线（点可当场新建 / 吸附）。
+ * 几何与 gmt 互通：PolarLine / PolarPoint 的解析、导出都已在 board-tools.js 里实现，
+ * 这里只负责工具交互与把定义挂到新对象上。
+ */
+class PolePolarConstructTool {
+    /**
+     * @param {string} toolName
+     */
+    constructor(toolName) {
+        this.toolName = toolName;
+        // 当前小项缓存：切换极点 / 极线时用来清掉上一种模式选到一半的图形
+        this.activeSubTool = null;
+        // 极线：点 + 圆，交给 MixPointBaseToolTemplate（点可以当场新建 / 吸在图形上）
+        this.polarMode = new MixPointBaseToolTemplate(toolName, 'polarLine', 'line', 'polarLine', 'circle');
+        // 极点：线 + 圆，两次都只是「选一个图形」
+        this.poleMode = new ExceptPointBaseToolTemplate(
+            toolName,
+            2,
+            ['line', 'circle'],
+            () => this.createPole()
+        );
+    }
+
+    /**
+     * 工具事件
+     * @param {string} type
+     * @param {number} oriX 原x坐标
+     * @param {number} oriY 原y坐标
+     */
+    toolEvent(type, oriX, oriY) {
+        // 两种模式共用同一个 toolName 缓存；切换小项时先把另一种模式选到一半的图形清掉
+        if (this.activeSubTool !== subTool) {
+            this.activeSubTool = subTool;
+            this.clear();
+        }
+        if (subTool === 'polarPoint') {
+            this.poleMode.toolEvent(type, oriX, oriY);
+        }else{
+            this.polarMode.toolEvent(type, oriX, oriY);
+        }
+    }
+
+    /**
+     * 清空两种模式的待选状态
+     */
+    clear() {
+        this.polarMode.clear();
+        this.poleMode.clear();
+    }
+
+    /**
+     * 极点：线 s 关于圆 c 的极点 过程函数
+     * 选择顺序不限：按类型认出哪个是线、哪个是圆
+     */
+    createPole() {
+        const first = geometryManager.getToolKey(this.toolName, 'choice1');
+        const second = geometryManager.getToolKey(this.toolName, 'choice2');
+        const line = first && first.getType() === 'line' ? first
+            : (second && second.getType() === 'line' ? second : null);
+        const circle = first && first.getType() === 'circle' ? first
+            : (second && second.getType() === 'circle' ? second : null);
+        if (!line || !circle) {
+            geometryManager.deleteTool(this.toolName);
+            return;
+        }
+        geometryManager.createGeometryElementInputTool('point', this.toolName, 'polarPoint');
+        const goal = geometryManager.getToolKey(this.toolName, 'polarPoint');
+        if (!goal) {
+            geometryManager.deleteTool(this.toolName);
+            return;
+        }
+        // 点是 modifyBase（点没有 modifyDefine；见 parseGmt / loadStorage 里还原点的那条分支）
+        goal.modifyBase('polarPoint', [line, circle], 0);
+        // 线过圆心时极点在无穷远（两条极线平行、算不出交点）：这一笔作废，别留一个无效点。
+        // 点的 getCoordinate 即使失效也会返回旧坐标，所以还要看 getValid
+        const valid = typeof goal.getValid !== 'function' || goal.getValid();
+        const coord = typeof goal.getCoordinate === 'function' ? goal.getCoordinate() : null;
+        if (!valid || !Array.isArray(coord) || !Number.isFinite(coord[0]) || !Number.isFinite(coord[1])) {
+            geometryManager.deleteTool(this.toolName);
+            return;
+        }
+        geometryManager.loadTool(this.toolName);
+        // 触发存储事件（与模板里各工具一致）
+        const event = new CustomEvent('storage', {
             detail: {
                 type: this.toolName,
             },

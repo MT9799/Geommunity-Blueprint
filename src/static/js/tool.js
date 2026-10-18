@@ -26,6 +26,8 @@ const toolMenus = {
         'threePointCircle', 
         // 切线挨着三点圆（都是「圆」这一类的高级作图），排在定值角之前
         'tangent',
+        // 极点极线也跟圆相关，紧挨切线
+        'polePolar',
         "fixedAngle",
     ],
 }
@@ -109,6 +111,15 @@ const toolItems = {
             "tangentParallel": {"line": 'line', "circle": 'circle'},
             "twoCircleTangent": {"circle1": 'circle', "circle2": 'circle'}},
     }, 
+    'polePolar': {
+        // 浮动栏两种小项：极线（默认）/ 极点；图标分别是 svg-polarLine / svg-polarPoint。
+        // 极点 = 线 + 圆（choice1 / choice2），极线 = 点 + 圆（point / circle）——
+        // 键名分别对应 ExceptPointBaseToolTemplate 与 MixPointBaseToolTemplate 的缓存键
+        'switch': ['polarLine', 'polarPoint'],
+        "button": ["clear"],
+        "choice": {"polarPoint": {"choice1": 'line', "choice2": 'circle'},
+            "polarLine": {"point": 'point', "circle": 'circle'}},
+    },
     'angleBisector': {
         // 两线模式暂时不列出来（见 constructToolBag.js 的 TWO_LINE_BISECTOR_ENABLED）
         'switch': ['threePointAngleBisector'],
