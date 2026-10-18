@@ -14,6 +14,77 @@
      background: var(--paper)
  }
 
+.subpage-header-pack {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: var(--paper);
+}
+ 
+.subpage-header-title {
+    width: 100vw;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 12px 32px 12px;
+}
+
+.subpage-header-separator {
+    width: 100vw;
+    border-bottom: 1px solid var(--line);
+}
+
+.home-shell-pack {
+    position: relative;
+    max-width: 1180px;
+    margin: auto;
+    padding: 0px;
+}
+
+.pack-container {
+    max-width: 1180px;
+    margin: auto;
+    padding: 0px 32px;
+}
+
+.hero-banner {
+    width: 100vw;
+    position: relative;
+}
+
+.background-image-container {
+    width: 100vw;
+}
+
+.front-container {
+    width: 100vw;
+    padding: 10px;
+    position: absolute;
+    bottom: 0;
+    padding: 10px 32px;
+    backdrop-filter: blur(2px);
+    background-color: rgba(255, 255, 255, 0.5);
+}
+
+.hero-gradient-transparency {
+    width: 100vw;
+    height: 100px;
+    position: absolute;
+    bottom: 0;
+    background-image: linear-gradient(to top, BurlyWood, transparent);
+}
+
+.pack-backgroundImage {
+    display: block;
+    width: 100%;
+    aspect-ratio: 1/1;
+    object-fit: cover;
+}
+
  .subpage-brand {
      display: inline-flex;
      align-items: center;

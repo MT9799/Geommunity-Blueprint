@@ -14,6 +14,7 @@ const description = document.getElementById('pack-description');
 const list = document.getElementById('pack-levels');
 const pager = document.getElementById('pack-pager');
 const searchBox = document.getElementById('search-box');
+const backgroundImageContainer = document.getElementById("background-image-container");
 
 document.title = t('pack.title');
 applyI18n();
@@ -23,6 +24,11 @@ loadLevelsData().then(({ packs }) => {
     if (!pack) throw new Error('pack not found');
     title.textContent = pack.name;
     description.textContent = pack.description || t('pack.lede', {count: pack.levels.length});
+    const backgroundImage = document.createElement("img");
+    backgroundImage.src = `../data/${pack.cover}`;
+    backgroundImage.alt = pack.name;
+    backgroundImage.className = "pack-backgroundImage";
+    backgroundImageContainer.appendChild(backgroundImage);
     // 分页
     const levels = pack.levels;
     const totalPages = Math.max(Math.ceil(levels.length / LEVELS_PAGE_SIZE), 1);
