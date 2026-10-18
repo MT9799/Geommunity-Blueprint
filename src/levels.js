@@ -26,11 +26,13 @@ loadLevelsData().then(({ packs }) => {
     // 这里只用数据里现成的 cover / icon 作为 data-src，真正的下载交给 observeLevelThumbs 按需加载
     root.innerHTML = packs.map((pack, index) => {
         const icon = pack.cover || packIcon(pack);
+        // 卡片图标用压缩图；原图留作兜底（新包还没跑 npm run thumbs 时）
+        const iconThumb = compressedThumbPath(icon);
         const description = pack.description || t('pack.lede', {count: pack.levels.length});
         const href = `./pack.html?pack=${encodeURIComponent(pack.id)}`;
         // 封面只写 data-src：滚到跟前才取（封面常常回落到某关的示意图，动辄上百 KB）
         const iconHTML = icon
-            ? `<div class="pack-icon" data-src="../data/${icon}"><span>⌁</span></div>`
+            ? `<div class="pack-icon" data-src="../data/${iconThumb}" data-fallback="../data/${icon}"><span>⌁</span></div>`
             : '<div class="pack-icon"><span>⌁</span></div>';
         return `<a class="pack-card" href="${href}">${iconHTML}<div class="pack-info"><h2>${pack.name}</h2><strong>${t('pack.levels', {count: pack.levels.length})}</strong><p>${description}</p></div><span class="card-action">→</span></a>`;
     }).join('');
@@ -44,7 +46,10 @@ loadLevelsData().then(({ packs }) => {
             if (!icon) return;
             const cell = root.querySelectorAll('.pack-card .pack-icon')[index];
             // 只补还没开始加载的格子；已经在加载 / 已显示的不动
-            if (cell && cell.hasAttribute('data-src')) cell.dataset.src = `../data/${icon}`;
+            if (cell && cell.hasAttribute('data-src')) {
+                cell.dataset.src = `../data/${compressedThumbPath(icon)}`;
+                cell.dataset.fallback = `../data/${icon}`;
+            }
         });
     }).filter(Boolean);
     if (pending.length) Promise.all(pending).then(() => observeLevelThumbs());

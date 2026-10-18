@@ -213,9 +213,11 @@ function levelRowHTML(level, options) {
     const terms = Array.isArray(setting.terms) ? setting.terms.filter(Boolean) : [];
     // 序号一律按它在包里的位次生成，不从 levels.json 里取（那个字段已去掉）
     const number = String((setting.index || 0) + 1).padStart(3, '0');
-    // 缩略图只写 data-src：快滚到跟前时才由 observeLevelThumbs 设上 src（见那边的说明）
+    // 缩略图只写 data-src：快滚到跟前时才由 observeLevelThumbs 设上 src（见那边的说明）。
+    // 优先取 data/thumbs 下的压缩图；data-fallback 留给「缩略图还没生成」时退回原图
+    const thumbPath = compressedThumbPath(level.diagram);
     const thumb = level.diagram
-        ? `<span class="level-thumb" data-src="../data/${level.diagram}">◇</span>`
+        ? `<span class="level-thumb" data-src="../data/${thumbPath}" data-fallback="../data/${level.diagram}">◇</span>`
         : '<span class="level-thumb">◇</span>';
     const steps = markTargetSteps(level.targetSteps || (typeof t === 'function' ? t('pack.stepsUnknown') : '步数未标注'), level, terms);
     const note = level.note ? ` title="${escapeSearchHTML(level.note)}"` : '';
@@ -254,6 +256,19 @@ function levelRowHTML(level, options) {
         `${snippet}<small>${steps}　→</small></span></a>`;
 }
 
+/**
+ * 压缩缩略图路径 过程函数
+ * 把相对 data/ 的原图路径换成 data/thumbs/ 下同路径的 .webp
+ * （由 scripts/make-thumbs.js / npm run thumbs 生成）
+ * @param {string} original 形如 diagrams/ewp/ewp11.png
+ * @returns {string} 形如 thumbs/diagrams/ewp/ewp11.webp
+ */
+function compressedThumbPath(original) {
+    const clean = String(original || '');
+    if (!clean) return '';
+    return `thumbs/${clean.replace(/\.[^./]+$/, '')}.webp`;
+}
+
 /** 缩略图格子：带 data-src 的关卡行缩略图与关卡包图标 */
 const LEVEL_THUMB_SELECTOR = '.level-thumb[data-src], .pack-icon[data-src]';
 // 要不要预取：视口下方留一点余量，滚起来不会一格一格地「变出来」
@@ -264,13 +279,17 @@ let levelThumbBound = false;
 
 /**
  * 把一张缩略图真的取回来 过程函数
- * 取回来之前格子里一直摆着占位符（◇ / ⌁），加载失败也退回占位符
+ * 取回来之前格子里一直摆着占位符（◇ / ⌁）；压缩图缺失时退回原图，仍失败才回到占位符
  * @param {HTMLElement} cell
  */
 function loadLevelThumb(cell) {
     const src = cell.dataset.src;
     if (!src) return;
+    const fallback = cell.dataset.fallback || '';
+    const placeholder = cell.textContent || '◇';
     cell.removeAttribute('data-src');
+    cell.removeAttribute('data-fallback');
+    let triedFallback = false;
     const image = document.createElement('img');
     image.alt = '';
     image.decoding = 'async';
@@ -278,7 +297,15 @@ function loadLevelThumb(cell) {
         cell.textContent = '';
         cell.appendChild(image);
     });
-    image.addEventListener('error', () => { cell.textContent = '◇'; });
+    image.addEventListener('error', () => {
+        // 新关卡还没跑 npm run thumbs 时，thumbs/ 下没有文件：退回原图
+        if (!triedFallback && fallback) {
+            triedFallback = true;
+            image.src = fallback;
+            return;
+        }
+        cell.textContent = placeholder;
+    });
     image.src = src;
 }
 
