@@ -5,6 +5,17 @@
  */
 
 /**
+ * 关闭首页弹窗 过程函数
+ * 先加 .closing 播退场动画，再移除（样式见 index.html 里的 view-fade-out / view-dialog-out）
+ * @param {HTMLElement} element
+ */
+function dismissOverlay(element) {
+    if (!element || element.classList.contains('closing')) return;
+    element.classList.add('closing');
+    setTimeout(() => element.remove(), 160);
+}
+
+/**
  * 行内标记 工具函数
  * 支持 `代码`、**粗体**、[文字](链接)
  * @param {string} text
@@ -152,27 +163,34 @@ const README_DOCUMENTS = [
  * 头部是「项目说明 / 变更日志」两个可选项，切换时按需取回对应文档（取回过的会缓存，来回切不再请求）
  */
 async function openReadmeDialog() {
-    if (document.querySelector('.readme-mask')) return;
+    if (document.querySelector('.readme-mask:not(.closing)')) return;
     const mask = document.createElement('div');
     mask.className = 'readme-mask';
     mask.innerHTML = '<div class="readme-dialog"><header><div class="readme-tabs"></div><button type="button" class="readme-close"></button></header><div class="readme-body"><p class="readme-loading">…</p></div></div>';
     const closeButton = mask.querySelector('.readme-close');
     closeButton.textContent = typeof t === 'function' ? t('common.close') : '关闭';
-    closeButton.addEventListener('click', () => mask.remove());
-    mask.addEventListener('click', event => { if (event.target === mask) mask.remove(); });
+    closeButton.addEventListener('click', () => dismissOverlay(mask));
+    mask.addEventListener('click', event => { if (event.target === mask) dismissOverlay(mask); });
     document.addEventListener('keydown', function onKey(event) {
         if (event.key !== 'Escape') return;
-        mask.remove();
+        dismissOverlay(mask);
         document.removeEventListener('keydown', onKey);
     });
     const text = (key, fallback) => typeof t === 'function' ? t(key) : fallback;
     const body = mask.querySelector('.readme-body');
     const tabs = mask.querySelector('.readme-tabs');
     const cache = {};
+    // 换页 / 文档加载完时让正文淡入（同一容器只重播一次动画）
+    const swapBody = () => {
+        body.classList.remove('view-swap');
+        void body.offsetWidth;
+        body.classList.add('view-swap');
+    };
     const show = async doc => {
         tabs.querySelectorAll('.readme-tab').forEach(tab => tab.classList.toggle('is-active', tab.dataset.doc === doc.key));
         if (!(doc.key in cache)) {
             body.innerHTML = '<p class="readme-loading">…</p>';
+            swapBody();
             try {
                 // 文档按当前界面语言取：英文界面读英文版，其余读中文版（没有英文版的沿用中文）
                 const isEnglish = typeof currentLang === 'function' && currentLang() === 'en';
@@ -186,6 +204,7 @@ async function openReadmeDialog() {
         }
         body.innerHTML = cache[doc.key];
         body.scrollTop = 0;
+        swapBody();
     };
     README_DOCUMENTS.forEach(doc => {
         const tab = document.createElement('button');

@@ -520,8 +520,9 @@ function resetTransform() {
     // 而不是一律回到通用初始值（那样有网格的题目会缩成 initialScale ≈ 0.5，网格大小就不对了）
     const initial = typeof window.boardGmt?.initialView === 'function' ? window.boardGmt.initialView() : null;
     if (initial) {
+        // 还原时不把 mobile info 的高度算进去：它消失后视图会显得太靠上
         const insets = typeof window.gridFitInsets === 'function'
-            ? window.gridFitInsets() : {top: 0, bottom: 0, left: 0, right: 0};
+            ? window.gridFitInsets(true) : {top: 0, bottom: 0, left: 0, right: 0};
         const usableWidth = Math.max(120, canvasWidth - insets.left - insets.right);
         const usableHeight = Math.max(120, canvasHeight - insets.top - insets.bottom);
         transform.scale = initial.scale;
@@ -786,8 +787,13 @@ function restoreStorage() {
     const [topStatus, bottomStatus] = storageManager.getPointerStatus();
     if (bottomStatus) return;
 
+    // 精简画板（答案逐步绘制）：移动不进历史，撤 / 重做时把移动过的点保持在当前位置；
+    // 其他模式移动本身是历史的一步，撤 / 重做照常回到快照里的坐标
+    const keepPoints = document.body.classList.contains('mode-stepview')
+        && typeof window.capturePointCoordinates === 'function'
+        ? window.capturePointCoordinates() : null;
     const snapshot = storageManager.restore();
-    if (snapshot) loadStorageSnapshot(snapshot);
+    if (snapshot) loadStorageSnapshot(snapshot, keepPoints);
     refreshStorageButton();
     afterHistoryMove();
     drawContent();
@@ -803,14 +809,18 @@ function redoStorage() {
     const [topStatus, bottomStatus] = storageManager.getPointerStatus();
     if (topStatus) return;
     
+    // 精简画板重做同理
+    const keepPoints = document.body.classList.contains('mode-stepview')
+        && typeof window.capturePointCoordinates === 'function'
+        ? window.capturePointCoordinates() : null;
     const snapshot = storageManager.redo();
-    if (snapshot) loadStorageSnapshot(snapshot);
+    if (snapshot) loadStorageSnapshot(snapshot, keepPoints);
     refreshStorageButton();
     afterHistoryMove();
     drawContent();
 }
 
-window.addEventListener("storage", () => {
+window.addEventListener("storage", (event) => {
     // 这次作图因为「图形画布上已经有了」而作废：不记撤销历史，只把画布上的半成品擦掉
     if (geometryManager.takeDuplicatedFlag()) {
         // 整笔作废时，取点顺手作出的交点 / 顺手显示的隐藏交点也要原样退回去（它们没有历史格）
@@ -818,6 +828,9 @@ window.addEventListener("storage", () => {
         drawContent();
         return;
     }
+    // 精简画板（答案的逐步绘制）：移动图形不记撤销历史，否则撤几步后动一下图形
+    // 就会把重做栈截断，那几步再也重做不回来
+    if (event?.detail?.type === 'move' && document.body.classList.contains('mode-stepview')) return;
     storage();
 });
 function storage() {
@@ -897,7 +910,7 @@ const infDict = {
     "tangent": {title: "切线工具", context: "过圆外或圆上一点作圆的切线"},
     "tangentParallel": {title: "平行切线工具", context: "作与一条直线平行的两条切线。⚠ 制题器慎用：gmt 无法导出"},
     "twoCircleTangent": {title: "两圆切线工具", context: "选择两圆，一次作出它们的所有公切线。⚠ 制题器慎用：gmt 无法导出"},
-    "polePolar": {title: "极点极线工具", context: "在浮动栏选择极点或极线：极点选线与圆，极线选点与圆"},
+    "polePolar": {title: "极点极线工具", context: "作点或线关于圆的极线或极点"},
     "polarPoint": {title: "极点", context: "选择一条线和一个圆，作出线关于圆的极点"},
     "polarLine": {title: "极线", context: "选择一个点和一个圆，作出点关于圆的极线"},
     "angleBisector": {title: "角平分线工具", context: ""},

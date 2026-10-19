@@ -117,6 +117,34 @@
     color: var(--hero-ink);
     /* 底色交给 .hero-banner::before 的整幅渐变，这里保持透明 */
     background: none;
+    /* 桌面端：封面图在左，文字 / 搜索框在右 */
+    display: flex;
+    align-items: flex-end;
+    gap: 28px;
+}
+
+.front-text {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.pack-cover {
+    display: none;
+    flex: 0 0 auto;
+    width: clamp(168px, 14vw, 220px);
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    object-position: center;
+    border: 4px solid rgba(255, 255, 255, .72);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, .35);
+    box-shadow: 0 10px 24px rgba(23, 35, 33, .22);
+}
+
+@media (min-width: 701px) {
+    .pack-cover {
+        display: block;
+    }
 }
 
 /* 文字颜色跟着平均色走（黑 / 白由 pack.js 按亮度决定），这里只负责继承与字号 */
@@ -917,4 +945,115 @@ html.i18n-pending body { visibility: hidden; }
 /* 光标下的预览点覆盖层（board-tools.js 绘制，见 drawPreview） */
 #container_canvas { position: relative; }
 #container_canvas canvas.cursor-preview { position: absolute; pointer-events: none; z-index: 3; }
+
+/* 跨文档页面过渡：首页 / 关卡包 / 关卡选择 / 搜索之间切换时交叉淡化，
+   盖住整页加载的空档；不支持 View Transitions 时下面的页面淡入照常兜底 */
+@view-transition {
+    navigation: auto;
+}
+::view-transition-old(root) {
+    animation: view-fade-out .16s ease-in both;
+}
+::view-transition-new(root) {
+    animation: view-fade-in .2s ease-out both;
+}
+/* 手机端页面切换改成横向推入 / 推出；桌面端保持交叉淡化 */
+@keyframes view-slide-in-right {
+    from { transform: translateX(100%); }
+    to { transform: none; }
+}
+@keyframes view-slide-out-left {
+    from { transform: none; }
+    to { transform: translateX(-30%); }
+}
+@keyframes view-slide-in-left {
+    from { transform: translateX(-100%); }
+    to { transform: none; }
+}
+@keyframes view-slide-out-right {
+    from { transform: none; }
+    to { transform: translateX(30%); }
+}
+@media (max-width: 900px), (pointer: coarse) {
+    ::view-transition-old(root) {
+        animation: view-slide-out-left .26s cubic-bezier(.32, .72, 0, 1) both;
+    }
+    ::view-transition-new(root) {
+        animation: view-slide-in-right .3s cubic-bezier(.32, .72, 0, 1) both;
+    }
+    html.vt-back::view-transition-old(root) {
+        animation-name: view-slide-out-right;
+    }
+    html.vt-back::view-transition-new(root) {
+        animation-name: view-slide-in-left;
+    }
+}
+/* VT 期间关掉页面外壳的入场动画，避免快照拍到半透明内容 */
+html.vt-reveal .home-shell,
+html.vt-reveal .home-shell-pack {
+    animation: none !important;
+}
+
+/* ===== 站点页面统一动效 ===== */
+@keyframes view-page-in {
+    /* 站点页面外壳只淡入：包页的表头是通栏底色，位移会露出上下边缘 */
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+@keyframes view-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+@keyframes view-fade-out {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+/* 页面进入：总览 / 搜索 / 求解器等页面的外壳只淡入（不做位移，避免刷新时滚动锚定累积） */
+.home-shell,
+.home-shell-pack {
+    animation: view-page-in .24s cubic-bezier(.2, .8, .2, 1);
+}
+/* 无 VT 时的手机横向兜底：只在从本站别的页面导航进来时播放；
+   首次打开 / 刷新没有 nav-forward / nav-back，保持上面的淡入 */
+/* 等异步内容渲染完再横滑：先藏起来，避免先滑完再出现项目 */
+html.nav-pending .home-shell,
+html.nav-pending .home-shell-pack {
+    visibility: hidden;
+}
+@media (max-width: 900px), (pointer: coarse) {
+    html.nav-forward.nav-ready .home-shell,
+    html.nav-forward.nav-ready .home-shell-pack {
+        animation: view-slide-in-right .3s cubic-bezier(.32, .72, 0, 1);
+    }
+    html.nav-back.nav-ready .home-shell,
+    html.nav-back.nav-ready .home-shell-pack {
+        animation: view-slide-in-left .3s cubic-bezier(.32, .72, 0, 1);
+    }
+}
+
+/* 关卡卡片 / 关卡行不再逐项播放入场动画：搜索 / 翻页整块重排时逐项动画会闪，
+   页面本身的淡入已经足够；缩略图仍单独淡入 */
+
+/* 缩略图 / 封面图从占位符换成图片时淡入 */
+.level-thumb img,
+.pack-icon img {
+    animation: view-fade-in .2s ease-out;
+}
+
+/* 尊重系统的「减少动态效果」 */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: .001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .001ms !important;
+        scroll-behavior: auto !important;
+    }
+    /* 跨文档过渡的快照动画不归 * 管，单独关掉 */
+    ::view-transition-old(root),
+    ::view-transition-new(root) {
+        animation: none !important;
+    }
+}
+
 

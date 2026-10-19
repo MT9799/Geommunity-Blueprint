@@ -13,6 +13,11 @@ const input = document.getElementById('search-input');
 const scopeBox = document.getElementById('search-scope');
 const chipsBox = document.getElementById('search-chips');
 const summary = document.getElementById('search-summary');
+// 跨文档页面过渡：等搜索结果渲染完再让新页面切入
+// （head 里已经先挂了 promise；这里不要覆盖）
+if (!window.__pageReady) {
+    window.__pageReady = new Promise(resolve => { window.__resolvePageReady = resolve; });
+}
 const results = document.getElementById('search-results');
 const pager = document.getElementById('search-pager');
 let packScope = params.get('pack') || '';
@@ -149,7 +154,9 @@ loadLevelsData().then(({ packs, levels }) => {
         currentPage = 1;
         render();
     });
+    window.__resolvePageReady?.();
 }).catch(error => {
     console.error(error);
     summary.textContent = t('search.failed');
+    window.__resolvePageReady?.();
 });

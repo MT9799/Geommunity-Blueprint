@@ -151,31 +151,36 @@ Object.values(toolItems).forEach(item => {
  * @param {string} selectMenuTool 
  */
 function generateTool(selectMenuTool) {
-    // 清空工具栏
     const toolbar = document.getElementById('container_toolbar');
-    toolbar.innerHTML= '';
-
     // 遍历添加文档元素（关卡限定工具时只生成允许的那几个，探索模式不限制）
     const allowed = typeof allowedPlayTools === 'function' ? allowedPlayTools() : null;
     const toolsList = (toolMenus[selectMenuTool] || []).filter(item => !allowed || allowed.includes(item));
-    toolsList.forEach((item) => {
-        const toolDocumentElement = document.createElement('button');
-        toolDocumentElement.classList.add('tool-item');
-        toolDocumentElement.classList.add('svg-button');
-        toolDocumentElement.id = `button-${item}-tool`;
-        toolDocumentElement.setAttribute('data-action', item);
+    const build = () => {
+        toolbar.innerHTML = '';
+        toolsList.forEach((item) => {
+            const toolDocumentElement = document.createElement('button');
+            toolDocumentElement.classList.add('tool-item');
+            toolDocumentElement.classList.add('svg-button');
+            toolDocumentElement.id = `button-${item}-tool`;
+            toolDocumentElement.setAttribute('data-action', item);
 
-        const template = document.getElementById(`svg-${item}`);
-        if (template) {
-            toolDocumentElement.innerHTML = template.innerHTML;
-        }
+            const template = document.getElementById(`svg-${item}`);
+            if (template) {
+                toolDocumentElement.innerHTML = template.innerHTML;
+            }
 
-        toolbar.appendChild(toolDocumentElement);
-    })
-
-    toolbar.style.display = 'none';
-    toolbar.offsetHeight;
+            toolbar.appendChild(toolDocumentElement);
+        });
+    };
+    // 切换分类时相同的工具留在原地、新工具淡入（FLIP），不再整条硬换
+    if (typeof window.flipChildren === 'function') {
+        window.flipChildren(toolbar, build, {key: element => element.id || element.dataset.action});
+    } else {
+        build();
+    }
+    // 只读一次布局，不再做 display:none → flex 的往返（那一下会闪）
     toolbar.style.display = 'flex';
+    void toolbar.offsetWidth;
     // 默认工具被限制掉时退到第一个可用的（比如单规关卡没有直线）
     const defaultTool = toolMenuDefaultValue[selectMenuTool];
     const firstTool = toolsList.includes(defaultTool) ? defaultTool : toolsList[0];
@@ -189,41 +194,50 @@ function loadToolSwitchButton(tool) {
     const toolSwitchButton = document.getElementById("floating-bar-buttons");
     const toolSwitchs = toolItems[tool]?.switch;
     const toolButtons = toolItems[tool]?.button;
-    toolSwitchButton.innerHTML = "";
-    
-    if (toolSwitchs) {
-        toolSwitchs.forEach((element) => {
-            const toolDocumentElement = document.createElement('button');
-            toolDocumentElement.classList.add('tool-switch-item');
-            toolDocumentElement.classList.add('floating-svg-switch-button');
-            toolDocumentElement.id = `button-${tool}-${element}`;
-            toolDocumentElement.setAttribute('data-action', element);
-    
-            const template = document.getElementById(`svg-${element}`);
-            if (template) {
-                toolDocumentElement.innerHTML = template.innerHTML;
-            }
-            
-            // 添加
-            toolSwitchButton.appendChild(toolDocumentElement);
+    const build = () => {
+        toolSwitchButton.innerHTML = "";
+        if (toolSwitchs) {
+            toolSwitchs.forEach((element) => {
+                const toolDocumentElement = document.createElement('button');
+                toolDocumentElement.classList.add('tool-switch-item');
+                toolDocumentElement.classList.add('floating-svg-switch-button');
+                toolDocumentElement.id = `button-${tool}-${element}`;
+                toolDocumentElement.setAttribute('data-action', element);
+
+                const template = document.getElementById(`svg-${element}`);
+                if (template) {
+                    toolDocumentElement.innerHTML = template.innerHTML;
+                }
+
+                // 添加
+                toolSwitchButton.appendChild(toolDocumentElement);
+            });
+        }
+
+        if (toolButtons) {
+            toolButtons.forEach((element) => {
+                const toolDocumentElement = document.createElement('button');
+                toolDocumentElement.classList.add('floating-svg-button');
+                toolDocumentElement.id = `button-${tool}-${element}`;
+                toolDocumentElement.setAttribute('data-action', element);
+
+                const template = document.getElementById(`svg-${element}`);
+                if (template) {
+                    toolDocumentElement.innerHTML = template.innerHTML;
+                }
+
+                // 添加
+                toolSwitchButton.appendChild(toolDocumentElement);
+            });
+        }
+    };
+    // 相同按钮留在原地、新按钮淡入（FLIP）；隐藏按钮随后要挪到最右容器，不参与
+    if (typeof window.flipChildren === 'function') {
+        window.flipChildren(toolSwitchButton, build, {
+            key: element => element.id.includes('-hideToggle') ? '' : (element.id || element.dataset.action),
         });
-    }
-    
-    if (toolButtons) {
-        toolButtons.forEach((element) => {
-            const toolDocumentElement = document.createElement('button');
-            toolDocumentElement.classList.add('floating-svg-button');
-            toolDocumentElement.id = `button-${tool}-${element}`;
-            toolDocumentElement.setAttribute('data-action', element);
-    
-            const template = document.getElementById(`svg-${element}`);
-            if (template) {
-                toolDocumentElement.innerHTML = template.innerHTML;
-            }
-            
-            // 添加
-            toolSwitchButton.appendChild(toolDocumentElement);
-        });
+    } else {
+        build();
     }
 
     // 「隐藏」按钮挪到浮动栏最右：浮动栏是「按钮组（左）｜选中栏（右）」两端对齐，
@@ -245,9 +259,9 @@ function loadToolSwitchButton(tool) {
     }
 
     refreshToolFloating();
-    toolSwitchButton.style.display = 'none';
-    toolSwitchButton.offsetHeight;
+    // 先显示，再读一次布局让手机上当帧排好；不再先隐藏一下（会闪）
     toolSwitchButton.style.display = 'flex';
+    void toolSwitchButton.offsetWidth;
 }
 
 /**
@@ -292,9 +306,9 @@ function loadChoice(tool) {
         return toolDocumentElement;
     }
     
-    toolChoiceDocumentElement.style.display = 'none';
-    toolChoiceDocumentElement.offsetHeight;
+    // 直接显示并读一次布局；不再做 display:none → flex 的往返（每次换小项都会闪一下）
     toolChoiceDocumentElement.style.display = 'flex';
+    void toolChoiceDocumentElement.offsetWidth;
 }
 
 // 移动工具下临时染蓝的给定自由点：记下它们本来的颜色，退出移动工具时还原
@@ -787,7 +801,7 @@ function clickToolFloatingButton(action, event) {
         }else{
             hideBrushMode = !hideBrushMode;
             if (typeof boardToast === 'function') {
-                boardToast(hideBrushMode ? '隐藏刷：点画布上的图形就把它藏起来（再点按钮退出）' : '已退出隐藏刷');
+                boardToast(hideBrushMode ? '隐藏刷模式' : '已退出隐藏刷');
             }
         }
     }

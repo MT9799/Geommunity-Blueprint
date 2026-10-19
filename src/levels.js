@@ -6,6 +6,11 @@
  */
 const root = document.getElementById('level-packs');
 const searchBox = document.getElementById('search-box');
+// 跨文档页面过渡：等关卡包列表渲染完再让新页面切入
+// （head 里已经先挂了 promise；这里不要覆盖）
+if (!window.__pageReady) {
+    window.__pageReady = new Promise(resolve => { window.__resolvePageReady = resolve; });
+}
 
 document.title = t('levels.title');
 applyI18n();
@@ -39,6 +44,8 @@ loadLevelsData().then(({ packs }) => {
     observeLevelThumbs();
     // 从关卡包返回时停在第几行就是第几行，而不是回到顶部
     restoreListScroll();
+    // 条目已经进 DOM，可以切入；封面继续按需加载
+    window.__resolvePageReady?.();
     // 没有 cover 字段的包：再异步按候选路径探测一次（有 cover 的直接用，不必白等网络）
     const pending = packs.map((pack, index) => {
         if (pack.cover) return null;
@@ -56,4 +63,5 @@ loadLevelsData().then(({ packs }) => {
 }).catch(error => {
     console.error(error);
     root.innerHTML = `<p>${t('pack.failed')}</p>`;
+    window.__resolvePageReady?.();
 });

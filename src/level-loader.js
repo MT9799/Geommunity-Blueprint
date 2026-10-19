@@ -2,7 +2,15 @@
   const params = new URLSearchParams(location.search);
   const pack = params.get('pack');
   const id = params.get('id');
-  if (!pack || !id) return;
+  // 跨文档页面过渡：等关卡数据 / 图形画完再让新页面切入
+  // （head 里已经先挂了 promise；这里不要覆盖，否则 pagereveal 等的是永远不 resolve 的那个）
+  if (!window.__pageReady) {
+    window.__pageReady = new Promise(resolve => { window.__resolvePageReady = resolve; });
+  }
+  if (!pack || !id) {
+    window.__resolvePageReady?.();
+    return;
+  }
   const titleSuffix = ' | Geommunity Blueprint';
   // 兜底标题（按当前语言），关卡数据回来后立刻换成「关卡标题 · 包名」
   document.title = (typeof t === 'function' ? t('level.pageTitle') : '关卡游玩') + titleSuffix;
@@ -78,5 +86,10 @@
       // 工具栏按本关的工具限制重建（探索模式不受限）
       if (typeof refreshToolLimit === 'function') refreshToolLimit();
     }
-  }).catch(error => console.error('GMT load failed', error));
+    // 关卡已经画到画布上，可以切入
+    window.__resolvePageReady?.();
+  }).catch(error => {
+    console.error('GMT load failed', error);
+    window.__resolvePageReady?.();
+  });
 })();

@@ -685,8 +685,8 @@ function limitLoad(currentX, currentY, currentScale) {
  * 玩家之后的拖动不会改动它，正好当「初始位置」用
  * @returns {any[]|null}
  */
-function initialStorageElements() {
-    const manager = typeof storageManager !== 'undefined' && storageManager ? storageManager : null;
+function initialStorageElements(targetStorage = storageManager) {
+    const manager = targetStorage || null;
     const snapshot = manager && manager.repository ? manager.repository[0] : null;
     if (!snapshot) return null;
     return Array.isArray(snapshot) ? snapshot : (snapshot.elements || null);
@@ -695,14 +695,17 @@ function initialStorageElements() {
 /**
  * 把给定图形里可拖动的点放回初始位置 过程函数
  * 给定图形（含可移动点）里的自由点（base.type === 'none'）和落在对象上的点（base.type === 'online'）
- * 都能被玩家拖走 —— 「还原画布变化量」时连同视图一起复位
+ * 都能被玩家拖走 —— 「还原画布变化量」时连同视图一起复位。
+ * 普通 / 探索两套管理器各调一次：两边的对象可能不是同一批实例
+ * @param {Object} [targetManager] 要复位的几何管理器
+ * @param {Object} [targetStorage] 对应的撤销历史（取第 0 格作为初始位置）
  */
-function resetGivenPointPositions() {
-    const elements = initialStorageElements();
+function resetGivenPointPositions(targetManager = geometryManager, targetStorage = storageManager) {
+    const elements = initialStorageElements(targetStorage);
     if (!elements) return;
     const byId = new Map(elements.map(item => [item.id, item]));
     const ids = [...givenFreePointIds(), ...(geometryElementLists.movepoints || [])];
-    const points = ids.map(id => geometryManager.get(id)).filter(item => item && item.getType() === 'point');
+    const points = ids.map(id => targetManager.get(id)).filter(item => item && item.getType() === 'point');
     // 先自由点、后线上点：线上点的位置是从基底推算的，基底（可能是自由点）先回到初始位置才落得准
     points.sort((a, b) => (a.getBase()?.type === 'online' ? 1 : 0) - (b.getBase()?.type === 'online' ? 1 : 0));
     points.forEach(point => {
@@ -711,12 +714,12 @@ function resetGivenPointPositions() {
         const base = initial.base || {};
         if (point.getBase()?.type === 'online') {
             // 线上点存的参数与线型有关（垂线是比例 + 1 …），用回初始参数最准，不受基底当前位置影响
-            const element = geometryManager.get((base.basesId || [])[0]);
+            const element = targetManager.get((base.basesId || [])[0]);
             if (!element || base.value === undefined) return;
             point.modifyBase('online', [element], base.value);
             if (typeof point.updateCoordinate === 'function') point.updateCoordinate();
         }else{
-            geometryManager.modifyPointCoordinate(point.getId(), initial.x, initial.y);
+            targetManager.modifyPointCoordinate(point.getId(), initial.x, initial.y);
         }
     });
 }
@@ -737,8 +740,9 @@ function resetTransform() {
         // 回到关卡载入时那个适配视图（小图形会被放大到 2 倍），不是通用初始值。
         // 算式与适配时完全一致（见 fitInitialView / board-tools 的 fitViewToElements）：
         // 中心落在「扣掉浮层之后那块空地」的正中 —— 浮层收起来 / 又打开、窗口大小变了都不会偏
+        // 还原时不把 mobile info 的高度算进去：它消失后视图会显得太靠上
         const insets = typeof window.gridFitInsets === 'function'
-            ? window.gridFitInsets() : {top: 0, bottom: 0, left: 0, right: 0};
+            ? window.gridFitInsets(true) : {top: 0, bottom: 0, left: 0, right: 0};
         const usableWidth = Math.max(120, canvasWidth - insets.left - insets.right);
         const usableHeight = Math.max(120, canvasHeight - insets.top - insets.bottom);
         transform.scale = levelInitialView.scale;
@@ -754,7 +758,9 @@ function resetTransform() {
      typeof geometryManagerExplore !== 'undefined' ? geometryManagerExplore : null].forEach(manager => {
         if (manager) manager.transform = transform;
     });
-    resetGivenPointPositions();
+    // 普通 / 探索两套画布都复位：只复位当前这套时，切到另一套还停在拖走后的位置
+    resetGivenPointPositions(geometryManagerResult, storageManagerResult);
+    resetGivenPointPositions(geometryManagerExplore, storageManagerExplore);
     drawContent();
 }
 
@@ -1294,8 +1300,11 @@ function restoreStorage() {
     const [topStatus, bottomStatus] = storageManager.getPointerStatus();
     if (bottomStatus) return;
 
+    // 移动不进历史：撤 / 重做只增删图形，先把当前点坐标记下来，载入旧快照后放回去
+    const keepPoints = typeof window.capturePointCoordinates === 'function'
+        ? window.capturePointCoordinates() : null;
     const snapshot = storageManager.restore();
-    if (snapshot) loadStorageSnapshot(snapshot);
+    if (snapshot) loadStorageSnapshot(snapshot, keepPoints);
     refreshStorageButton();
     // 顺序：先按记录的样式表补色、再补可动点的临时蓝（反了蓝色会被样式表盖掉）
     afterHistoryMove();
@@ -1315,8 +1324,11 @@ function redoStorage() {
     const [topStatus, bottomStatus] = storageManager.getPointerStatus();
     if (topStatus) return;
 
+    // 重做同理：重做出来的旧图形按当前点位置重建
+    const keepPoints = typeof window.capturePointCoordinates === 'function'
+        ? window.capturePointCoordinates() : null;
     const snapshot = storageManager.redo();
-    if (snapshot) loadStorageSnapshot(snapshot);
+    if (snapshot) loadStorageSnapshot(snapshot, keepPoints);
     refreshStorageButton();
     afterHistoryMove();
     drawContent();
@@ -1331,6 +1343,12 @@ window.addEventListener("storage", (event) => {
         // 整笔作废时，取点顺手作出的交点 / 顺手显示的隐藏交点也要原样退回去（它们没有历史格）
         if (typeof window.revertIncidentalDrawEffects === 'function') window.revertIncidentalDrawEffects();
         drawContent();
+        return;
+    }
+    // 游玩 / 试玩：移动图形不进撤销历史（否则会截断重做栈），也不改进度步数；
+    // 但移动会改变图形，仍要重新判定所求
+    if (event?.detail?.type === 'move') {
+        resultVerify();
         return;
     }
     storage();
@@ -1408,7 +1426,7 @@ const infDict = {
     "pointStyle": {title: "配置点样式", context: "设置后续绘制的点的颜色、大小与标签显示"},
     "objectStyle": {title: "调整对象样式", context: "用移动工具选中对象后，可修改它的颜色、粗细、标签显示，直线与圆还可切成虚线"},
     "deleteObject": {title: "删除选中对象", context: "删除移动工具选中的对象，连同由它作出来的所有子对象"},
-    "hideToggle": {title: "隐藏 / 隐藏刷", context: "没选中图形时，点一下进入隐藏刷；选中图形时，点一下隐藏 / 显示它"},
+    "hideToggle": {title: "隐藏 / 隐藏刷", context: "没选中图形时进入隐藏刷，选中图形时隐藏该图形"},
     "any": {title: "任意对象", context: "可选中任意几何对象"},
     "choicePoint": {title: "点对象", context: "仅选中点对象"},
     "style": {title: "样式刷", context: "拖拽以配置直线的样式为当前线工具样式"},

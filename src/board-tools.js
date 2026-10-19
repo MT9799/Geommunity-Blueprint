@@ -445,10 +445,29 @@
     });
   };
   /**
+   * 记下当前画布上所有点的坐标 过程函数
+   * 撤销 / 重做在「移动不进历史」的模式（逐步绘制 / 游玩）里用它保住移动后的位置：
+   * 快照只负责增删图形，不该把点拽回快照里的旧坐标
+   * @returns {Map<string, number[]>}
+   */
+  window.capturePointCoordinates = () => {
+    const map = new Map();
+    if (typeof geometryManager === 'undefined' || !geometryManager) return map;
+    geometryManager.getAllByOrder().forEach(item => {
+      if (item.getType?.() !== 'point') return;
+      const coord = item.getCoordinate?.();
+      if (Array.isArray(coord) && Number.isFinite(coord[0]) && Number.isFinite(coord[1])) {
+        map.set(item.getId(), [coord[0], coord[1]]);
+      }
+    });
+    return map;
+  };
+  /**
    * 载入快照 过程函数
    * @param {any} snapshot
+   * @param {Map<string, number[]>} [keepPoints] 撤 / 重做时要保持在当前位置的点（见 capturePointCoordinates）
    */
-  window.loadStorageSnapshot = snapshot => {
+  window.loadStorageSnapshot = (snapshot, keepPoints = null) => {
     const isList = Array.isArray(snapshot);
     const elements = (isList ? snapshot : snapshot?.elements) || [];
     geometryManager.loadStorage(elements);
@@ -472,6 +491,16 @@
       restoreStyle(item, 'modifyShowName', dict.showName);
       restoreStyle(item, 'modifyDashed', dict.dashed);
     });
+    // 移动不进历史的模式（逐步绘制 / 游玩）：撤 / 重做只负责增删图形，
+    // 把移动过、且在新快照里还保留的点按当前位置放好（不能拽回快照里的旧坐标）
+    if (keepPoints && keepPoints.size) {
+      keepPoints.forEach((coord, id) => {
+        const item = geometryManager.get(id);
+        if (item && item.getType?.() === 'point') {
+          geometryManager.modifyPointCoordinate(id, coord[0], coord[1]);
+        }
+      });
+    }
     // 网格：按快照确认这次还有没有网格（没有就清掉 —— 否则撤销掉网格之后导出仍会带 #grid= 行，
     // 求解器也会以为还处在网格模式）
     const gridOfSnapshot = !isList && snapshot?.grid ? snapshot.grid : null;
@@ -1012,6 +1041,92 @@
 
   // 弹层菜单：点击按钮展开，再次点击或点击别处收起
   const closePopups = () => document.querySelectorAll('.board-popup.open').forEach(menu => menu.classList.remove('open'));
+  /**
+   * 关闭弹层 过程函数
+   * 先加 .closing 播退场动画，再移除；重复点击 / 点遮罩时不会重复触发
+   * @param {HTMLElement} mask
+   */
+  const dismissMask = element => {
+    if (!element || element.classList.contains('closing')) return;
+    element.classList.add('closing');
+    setTimeout(() => element.remove(), 160);
+  };
+  // 记录面板等其它脚本也走同一套退场
+  window.boardDismissMask = dismissMask;
+  /**
+   * FLIP 过程函数：记录容器里带 key 的子元素位置，更新 DOM 后让留下的元素平滑滑到新位置
+   * 用 offsetLeft/offsetTop 量位置，避免上一次动画的 transform 干扰测量；新元素淡入。
+   * 比「整体重建 + 每项播放入场动画」更稳：留下的按钮不会先消失再出现。
+   * @param {HTMLElement} container
+   * @param {Function} update 真正改 DOM 的函数
+   * @param {{key?: Function, enter?: boolean}} [options]
+   */
+  const flipChildren = (container, update, options = {}) => {
+    if (!container) { update(); return; }
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) { update(); return; }
+    const keyOf = options.key || (element => element.dataset.solution || element.id || element.dataset.action || '');
+    const before = new Map();
+    [...container.children].forEach(element => {
+      const key = keyOf(element);
+      if (!key) return;
+      element.getAnimations?.().forEach(animation => animation.cancel());
+      before.set(key, {
+        left: element.offsetLeft,
+        top: element.offsetTop,
+        rect: element.getBoundingClientRect(),
+        element,
+      });
+    });
+    update();
+    const after = new Set();
+    [...container.children].forEach(element => {
+      const key = keyOf(element);
+      if (!key) return;
+      after.add(key);
+      const old = before.get(key);
+      if (!old) {
+        if (options.enter !== false) {
+          element.animate(
+            [{opacity: 0, transform: 'scale(.86)'}, {opacity: 1, transform: 'none'}],
+            {duration: 160, easing: 'cubic-bezier(.2, .8, .2, 1)'}
+          );
+        }
+        return;
+      }
+      const dx = old.left - element.offsetLeft;
+      const dy = old.top - element.offsetTop;
+      if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+      element.animate(
+        [{transform: `translate(${dx}px, ${dy}px)`}, {transform: 'none'}],
+        {duration: 220, easing: 'cubic-bezier(.2, .8, .2, 1)'}
+      );
+    });
+    // 被移除的元素：克隆一份留在原位置淡出，别让它瞬间消失、只留下别人滑过来
+    if (options.leave !== false) {
+      before.forEach((old, key) => {
+        if (after.has(key)) return;
+        const rect = old.rect;
+        const ghost = old.element.cloneNode(true);
+        ghost.removeAttribute('id');
+        ghost.style.position = 'fixed';
+        ghost.style.left = `${rect.left}px`;
+        ghost.style.top = `${rect.top}px`;
+        ghost.style.width = `${rect.width}px`;
+        ghost.style.height = `${rect.height}px`;
+        ghost.style.margin = '0';
+        ghost.style.pointerEvents = 'none';
+        ghost.style.zIndex = '1000';
+        document.body.appendChild(ghost);
+        const animation = ghost.animate(
+          [{opacity: 1, transform: 'scale(1)'}, {opacity: 0, transform: 'scale(.8)'}],
+          {duration: 160, easing: 'cubic-bezier(.2, .8, .2, 1)'}
+        );
+        animation.finished.then(() => ghost.remove()).catch(() => ghost.remove());
+      });
+    }
+  };
+  // 其它脚本（工具栏 / 浮动栏）也可以复用
+  window.flipChildren = flipChildren;
   const openPopup = (menu, button) => {
     menu.style.visibility = 'hidden';
     menu.classList.add('open');
@@ -1079,14 +1194,14 @@
     const cancelButton = document.createElement('button');
     cancelButton.type = 'button';
     cancelButton.textContent = t('common.cancel');
-    cancelButton.addEventListener('click', () => mask.remove());
+    cancelButton.addEventListener('click', () => dismissMask(mask));
     const confirmButton = document.createElement('button');
     confirmButton.type = 'button';
     confirmButton.textContent = t('common.confirm');
-    confirmButton.addEventListener('click', () => { mask.remove(); onConfirm(); });
+    confirmButton.addEventListener('click', () => { dismissMask(mask); onConfirm(); });
     actions.appendChild(cancelButton);
     actions.appendChild(confirmButton);
-    mask.addEventListener('click', event => { if (event.target === mask) mask.remove(); });
+    mask.addEventListener('click', event => { if (event.target === mask) dismissMask(mask); });
     document.body.appendChild(mask);
     return mask;
   };
@@ -1106,9 +1221,9 @@
     const confirmButton = document.createElement('button');
     confirmButton.type = 'button';
     confirmButton.textContent = t('common.confirm');
-    confirmButton.addEventListener('click', () => mask.remove());
+    confirmButton.addEventListener('click', () => dismissMask(mask));
     actions.appendChild(confirmButton);
-    mask.addEventListener('click', event => { if (event.target === mask) mask.remove(); });
+    mask.addEventListener('click', event => { if (event.target === mask) dismissMask(mask); });
     document.body.appendChild(mask);
     return mask;
   };
@@ -1138,15 +1253,15 @@
       const text = document.createElement('span');
       text.textContent = item.label;
       button.appendChild(text);
-      button.addEventListener('click', () => { mask.remove(); item.action(); });
+      button.addEventListener('click', () => { dismissMask(mask); item.action(); });
       list.appendChild(button);
     });
     const cancelButton = document.createElement('button');
     cancelButton.type = 'button';
     cancelButton.textContent = t('common.cancel');
-    cancelButton.addEventListener('click', () => mask.remove());
+    cancelButton.addEventListener('click', () => dismissMask(mask));
     mask.querySelector('.board-dialog-actions').appendChild(cancelButton);
-    mask.addEventListener('click', event => { if (event.target === mask) mask.remove(); });
+    mask.addEventListener('click', event => { if (event.target === mask) dismissMask(mask); });
     document.body.appendChild(mask);
     return mask;
   };
@@ -1197,7 +1312,7 @@
     // （例如定值角输角度时点取消，要把这次作图作废）
     let submitted = false;
     const close = () => {
-      mask.remove();
+      dismissMask(mask);
       if (!submitted && typeof options.onCancel === 'function') options.onCancel();
     };
     const cancelButton = document.createElement('button');
@@ -1279,7 +1394,7 @@
     picture.src = src;
     picture.alt = alt || '';
     mask.appendChild(picture);
-    mask.addEventListener('click', () => mask.remove());
+    mask.addEventListener('click', () => dismissMask(mask));
     document.body.appendChild(mask);
     return mask;
   };
@@ -1318,10 +1433,12 @@
         frame.className = 'answer-figure-image';
         frame.appendChild(picture);
         const caption = document.createElement('figcaption');
-        caption.textContent = image.star || '';
-        // 「逐步绘制」：该条答案配了 gmt 时给一个按钮，在本窗口跳到精简画板逐步绘制（不开新窗口）。
-        // 按钮**摆在图片下面那一行（编号那一行）的右端**（绝对定位，见 .answer-stepview-button）——
-        // 不进 figcaption 的排布，编号才照旧居中；也不像贴在图片右下角那样受各答案图宽高比影响
+        // 步数文本与「逐步绘制」按钮放在同一行（flex）：两者同高、左右分开，
+        // 卡片窄时按钮也不会盖住步数
+        const captionText = document.createElement('span');
+        captionText.className = 'answer-figure-label';
+        captionText.textContent = image.star || '';
+        caption.appendChild(captionText);
         if (image.gmt) {
           const stepButton = document.createElement('button');
           stepButton.type = 'button';
@@ -1336,7 +1453,7 @@
             location.href = './board.html?mode=stepview&gmt=' + encodeURIComponent(image.gmt)
               + '&from=' + encodeURIComponent(backUrl);
           });
-          figure.appendChild(stepButton);
+          caption.appendChild(stepButton);
         }
         figure.appendChild(frame);
         figure.appendChild(caption);
@@ -1353,19 +1470,27 @@
     const closeButton = document.createElement('button');
     closeButton.type = 'button';
     closeButton.textContent = t('common.close');
-    closeButton.addEventListener('click', () => mask.remove());
+    closeButton.addEventListener('click', () => dismissMask(mask));
     actions.appendChild(closeButton);
     box.appendChild(actions);
     mask.appendChild(box);
-    mask.addEventListener('click', event => { if (event.target === mask) mask.remove(); });
+    mask.addEventListener('click', event => { if (event.target === mask) dismissMask(mask); });
     document.body.appendChild(mask);
     return mask;
   };
   /** 查看答案 过程函数 */
+  // 本关已经确认查看过答案：在退出游玩（整页跳转）之前再点「查看答案」不再弹确认框
+  let answerViewed = false;
   const showAnswer = () => {
     const levelId = params.get('id') || '';
+    const openAnswer = () => loadSolutionsData().then(map => answerDialog(map.get(levelId) || []));
+    if (answerViewed) {
+      openAnswer();
+      return;
+    }
     confirmDialog(t('board.answerAsk'), t('board.answerWarn'), () => {
-      loadSolutionsData().then(map => answerDialog(map.get(levelId) || []));
+      answerViewed = true;
+      openAnswer();
     });
   };
   /**
@@ -1403,9 +1528,9 @@
     const closeButton = document.createElement('button');
     closeButton.type = 'button';
     closeButton.textContent = t('common.close');
-    closeButton.addEventListener('click', () => mask.remove());
+    closeButton.addEventListener('click', () => dismissMask(mask));
     actions.appendChild(closeButton);
-    mask.addEventListener('click', event => { if (event.target === mask) mask.remove(); });
+    mask.addEventListener('click', event => { if (event.target === mask) dismissMask(mask); });
     document.body.appendChild(mask);
     return mask;
   };
@@ -1427,16 +1552,16 @@
     const closeButton = document.createElement('button');
     closeButton.type = 'button';
     closeButton.textContent = t('common.close');
-    closeButton.addEventListener('click', () => mask.remove());
+    closeButton.addEventListener('click', () => dismissMask(mask));
     actions.appendChild(closeButton);
     if (onSubmit) {
       const confirmButton = document.createElement('button');
       confirmButton.type = 'button';
       confirmButton.textContent = t('common.import');
-      confirmButton.addEventListener('click', () => { if (onSubmit(area.value)) mask.remove(); else hint.textContent = t('board.gmtImportFailed'); });
+      confirmButton.addEventListener('click', () => { if (onSubmit(area.value)) dismissMask(mask); else hint.textContent = t('board.gmtImportFailed'); });
       actions.appendChild(confirmButton);
     }
-    mask.addEventListener('click', event => { if (event.target === mask) mask.remove(); });
+    mask.addEventListener('click', event => { if (event.target === mask) dismissMask(mask); });
     document.body.appendChild(mask);
     return mask;
   };
@@ -1787,24 +1912,40 @@
    * 侧边那串圆形按钮（一条纵向长条，横跨整屏高度）不参与，否则会被算成整屏都挡住了
    * @returns {{top: number, bottom: number, left: number, right: number}} 四边被盖住的宽度（CSS 像素）
    */
-  const gridFitInsets = () => {
+  const gridFitInsets = (ignoreMobileInfo = false) => {
     const insets = {top: 0, bottom: 0, left: 0, right: 0};
     const canvasElement = document.getElementById('canvas_id1');
     if (!canvasElement) return insets;
     const canvasRect = canvasElement.getBoundingClientRect();
     if (!canvasRect.width || !canvasRect.height) return insets;
+    // 「还原画布变化量」不计 mobile info 的高度：它在工具栏面板里，展开 / 收起会让
+    // 面板高度变化，按它算出来的视图会在提示消失后显得太靠上
+    const mobileInfo = ignoreMobileInfo ? document.getElementById('mobile-information') : null;
     // 顶部那条栏 + 各个浮层（.panel：工具面板 / 记录 / 元素一览 / 构造…）
     const overlays = [document.getElementById('container_more')].concat([...document.querySelectorAll('.panel')]);
     overlays.forEach(element => {
       if (!element) return;
       const rect = element.getBoundingClientRect();
       if (!rect.width || !rect.height) return;
+      // 忽略 mobile info 时按不含它的面板区域算：信息栏在面板的哪一头，
+      // 就把那一头收回来（底部工具栏的信息栏在面板顶部，顶部工具栏的则在底部）
+      let effectiveTop = rect.top;
+      let effectiveBottom = rect.bottom;
+      if (mobileInfo && element.contains(mobileInfo)) {
+        const infoRect = mobileInfo.getBoundingClientRect();
+        if (infoRect.height > 0) {
+          const topGap = Math.abs(infoRect.top - rect.top);
+          const bottomGap = Math.abs(rect.bottom - infoRect.bottom);
+          if (topGap <= bottomGap) effectiveTop = infoRect.bottom;
+          else effectiveBottom = infoRect.top;
+        }
+      }
       // 与画布相交的那块矩形（不相交就与网格无关）
       const overlapWidth = Math.min(canvasRect.right, rect.right) - Math.max(canvasRect.left, rect.left);
-      const overlapHeight = Math.min(canvasRect.bottom, rect.bottom) - Math.max(canvasRect.top, rect.top);
+      const overlapHeight = Math.min(canvasRect.bottom, effectiveBottom) - Math.max(canvasRect.top, effectiveTop);
       if (overlapWidth <= 0 || overlapHeight <= 0) return;
       const centerX = (rect.left + rect.right) / 2;
-      const centerY = (rect.top + rect.bottom) / 2;
+      const centerY = (effectiveTop + effectiveBottom) / 2;
       const distances = {
         top: Math.abs(centerY - canvasRect.top),
         bottom: Math.abs(centerY - canvasRect.bottom),
@@ -1812,8 +1953,8 @@
         right: Math.abs(centerX - canvasRect.right),
       };
       const side = Object.keys(distances).reduce((best, key) => (distances[key] < distances[best] ? key : best), 'top');
-      if (side === 'top') insets.top = Math.max(insets.top, Math.min(canvasRect.bottom, rect.bottom) - canvasRect.top);
-      else if (side === 'bottom') insets.bottom = Math.max(insets.bottom, canvasRect.bottom - Math.max(canvasRect.top, rect.top));
+      if (side === 'top') insets.top = Math.max(insets.top, Math.min(canvasRect.bottom, effectiveBottom) - canvasRect.top);
+      else if (side === 'bottom') insets.bottom = Math.max(insets.bottom, canvasRect.bottom - Math.max(canvasRect.top, effectiveTop));
       else if (side === 'left') insets.left = Math.max(insets.left, Math.min(canvasRect.right, rect.right) - canvasRect.left);
       else insets.right = Math.max(insets.right, canvasRect.right - Math.max(canvasRect.left, rect.left));
     });
@@ -3336,7 +3477,7 @@
 
   const createRelationRadarPanel = config => {
     const t = config.t;
-    /** 一个勾选类别 → 扫描里的选项与结果分组（顺序即面板里的顺序：两列一行） */
+    /** 一个勾选类别 → 扫描里的选项与结果分组（常用四类直接列出，其余折进「更多」） */
     const SPECS = [
       {option: 'collinear', i18n: 'board.radarCollinear', groups: ['collinear'],
         param: {i18n: 'board.radarMinPoints', type: 'number', min: 2, max: 12, key: 'collinear'}},
@@ -3385,9 +3526,10 @@
       + `${t('board.radarTolerance' + level.charAt(0).toUpperCase() + level.slice(1))}</option>`).join('');
     const html = [`<label>${t('board.radarTolerance')}<select id="geb-radar-tolerance">${toleranceOptions}</select></label>`];
 
-    // ② 八个勾，两列一行（带参数的类别：勾上才显示参数输入，参数就放在同一格里）
-    html.push('<div class="radar-kinds">');
-    SPECS.forEach(spec => {
+    // ② 常用类别直接列出；定点角 / 线上比 / 角平分线 / 紧圆规折进「更多」，平时收起。
+    //    （带参数的类别：勾上才显示参数输入，参数就放在同一格里）
+    const MORE_ORDER = ['angle', 'ratio', 'bisector', 'radius'];
+    const kindCell = spec => {
       const checked = defaults.kinds[spec.option] ? ' checked' : '';
       let cell = '<div class="radar-option">'
         + `<label class="solver-check" title="${t(spec.i18n + 'Hint')}">`
@@ -3404,9 +3546,25 @@
           + `${param.hint ? ` title="${t(param.hint)}"` : ''}>`
           + `<span>${t(param.i18n)}</span><input id="geb-radar-${spec.option}-param"${attributes}></label>`;
       }
-      html.push(cell + '</div>');
+      return cell + '</div>';
+    };
+    html.push('<div class="radar-kinds">');
+    SPECS.filter(spec => !MORE_ORDER.includes(spec.option)).forEach(spec => {
+      html.push(kindCell(spec));
     });
     html.push('</div>');
+    // 「更多」里按 定点角 → 线上比 → 角平分线 → 紧圆规 的顺序（与 SPECS 的顺序不同，单独排）
+    const moreSpecs = MORE_ORDER.map(option => SPECS.find(spec => spec.option === option)).filter(Boolean);
+    // 三角与求解参数的高级选项同款（SVG）：收起朝右、展开转 90°
+    html.push('<details class="radar-more"><summary>'
+      + '<svg class="svg-icon radar-more-icon" viewBox="0 0 200 200" aria-hidden="true">'
+      + '<polygon points="70 34, 152 100, 70 166" fill="transparent" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>'
+      + '</svg>'
+      + `${t('board.radarMore')}</summary><div class="radar-kinds">`);
+    moreSpecs.forEach(spec => {
+      html.push(kindCell(spec));
+    });
+    html.push('</div></details>');
 
     // ③ 按钮 + 状态 + 结果
     html.push(`<button id="geb-radar-run">${t('board.radarRun')}</button>`);
@@ -3868,8 +4026,8 @@
       '</div>',
 
       '<div class="solver-field-row">' +
-        `<label>${t('board.solverTime')}<input id="geb-solver-time" type="number" min="1" max="600" value="60"></label>` +
-        `<label>${t('board.solverCount')}<input id="geb-solver-solutions" type="number" min="1" max="20" value="20"></label>` +
+        `<label>${t('board.solverTime')}<input id="geb-solver-time" type="number" min="1" max="6000" value="300"></label>` +
+        `<label>${t('board.solverCount')}<input id="geb-solver-solutions" type="number" min="1" max="1000" value="30"></label>` +
       '</div>',
       // 高级选项：平时收起（<details>），里面的值都对应搜索内核本来就支持的参数（见 search-worker.js）
       // 高级选项的三角是 SVG（不是 CSS 的文字三角）：展开时整个图标转 90°，风格与其它图标一致
@@ -3903,10 +4061,11 @@
         '</div>' +
       '</details>' +
       `<button id="geb-solver-run">${t('board.solverRun')}</button>`,
+      `<button id="geb-solver-clear">${t('board.solverClear')}</button>`,
+      // 逐步查看解法：放在「清除解法」下面；没显示解时由 syncStepRow 收起
       `<div class="solver-step-row"><button id="geb-solver-prev">${t('board.solverPrevStep')}</button>` +
         `<span id="geb-solver-stepinfo">—</span>` +
         `<button id="geb-solver-next">${t('board.solverNextStep')}</button></div>`,
-      `<button id="geb-solver-clear">${t('board.solverClear')}</button>`,
       `<output id="geb-solver-status">${t('board.solverIdle')}</output>`,
       // 搜索进度条 + 右边的百分比（百分比就是条的比例，见 paintSearchProgress）
       '<div class="solver-progress-row">' +
@@ -3979,6 +4138,7 @@
     const status = panel.querySelector('#geb-solver-status');
     const list = panel.querySelector('#geb-solver-list');
     const stepInfo = panel.querySelector('#geb-solver-stepinfo');
+    const stepRow = panel.querySelector('.solver-step-row');
     // 按步播放的间隔（毫秒）：越小画得越快
     const REPLAY_INTERVAL = 90;
     // 最近一次搜索的结果、当前画的是第几个解的第几步、以及在途播放的代号
@@ -3990,6 +4150,17 @@
     let solverSuppressAutoPlay = false;
 
     /**
+     * 「上一步 / 下一步」在解法列表里还有解时就露出（不要求当前正画着某一个）：
+     * 点掉当前解法只是清掉画布显示，行不能跟着消失，否则下面的列表会往上跳一格。
+     * 等待搜索、搜索中还没出解、已清除画出的解法（列表清空）等状态收起 过程函数
+     */
+    const syncStepRow = () => {
+      const showing = !!(list && list.querySelector('.solver-solution-row'));
+      if (stepRow) stepRow.style.display = showing ? '' : 'none';
+    };
+    syncStepRow();
+
+    /**
      * 显示「第 index 个解的第 step 步」 过程函数
      * 上一步 / 下一步以及播放都走这里，步数与按钮高亮一起更新
      */
@@ -3999,6 +4170,7 @@
       const total = solution.newElementCount;
       currentIndex = index;
       currentStep = Math.max(0, Math.min(total, step));
+      syncStepRow();
       showSolverSolutionStep(solution, latest, currentStep);
       stepInfo.textContent = total
         ? t('board.solverStepInfo', {step: currentStep, total: total})
@@ -4039,6 +4211,7 @@
       replayToken++;                 // 作废在途的按步播放
       currentIndex = -1;
       currentStep = 0;
+      syncStepRow();
       stepInfo.textContent = '—';
       list.querySelectorAll('.solver-solution-pick.active').forEach(button => button.classList.remove('active'));
       clearSolverSolution();
@@ -4049,7 +4222,7 @@
       const solution = latest && latest.solutions[index];
       if (!solution) return;
       document.querySelectorAll('.board-dialog-report').forEach(item => {
-        item.closest('.board-dialog-mask')?.remove();
+        dismissMask(item.closest('.board-dialog-mask'));
       });
       const mask = document.createElement('div');
       // 修饰类把 z-index 提到上拉栏（手机端 z-index:12）之上
@@ -4067,11 +4240,11 @@
       const close = document.createElement('button');
       close.type = 'button';
       close.textContent = t('common.close');
-      close.addEventListener('click', () => mask.remove());
+      close.addEventListener('click', () => dismissMask(mask));
       mask.querySelector('.board-dialog-actions').appendChild(close);
       // 点框外也关掉
       mask.addEventListener('click', event => {
-        if (event.target === mask) mask.remove();
+        if (event.target === mask) dismissMask(mask);
       });
       document.body.appendChild(mask);
     };
@@ -4354,6 +4527,8 @@
       row.appendChild(pick);
       row.appendChild(text);
       list.appendChild(row);
+      // 列表里一有解就把「上一步 / 下一步」露出来（收尾重画与边搜边显示都走这里）
+      syncStepRow();
     };
 
     // 内核「一找到解就端上来」：搜索途中收到的解攒在这一份里，随到随显示。
@@ -4434,6 +4609,7 @@
           latest = null;
           currentIndex = -1;
           currentStep = 0;
+          syncStepRow();
           stepInfo.textContent = '—';
           solverSolutionPlan = null;
           solverSolutionOverlay = null;
@@ -4466,6 +4642,7 @@
       // 搜索途中已经边搜边显示了一些行：清掉，按这份完整解表重画（顺序也照这里的排）
       list.innerHTML = '';
       result.solutions.forEach(appendSolutionRow);
+      syncStepRow();
       // 正常收尾自动点亮第一个解；但用户中途点过「清除解法」就按住不动，
       // 不然刚清掉的品红又被重新画出来（抑制只对这次搜索有效，下次搜索开头会复位）
       if (!solverSuppressAutoPlay) playSolution(0, true);
@@ -4830,6 +5007,7 @@
       solverSolutionOverlay = null;
       solverSuppressAutoPlay = false;   // 新一轮搜索：恢复「收尾自动点亮第一个解」
       list.innerHTML = '';
+      syncStepRow();
       // 边搜边看的那本账也清空：上一次搜索留下的解不能混进来
       liveResult.solutions.length = 0;
       streamedSignatures.clear();
@@ -4915,6 +5093,7 @@
       if (latest) latest.solutions = [];
       if (liveResult && liveResult !== latest) liveResult.solutions = [];
       list.innerHTML = '';
+      syncStepRow();
       // 搜索收尾会自动点亮第一个解：按住它，别把刚清掉的品红又画回来
       solverSuppressAutoPlay = true;
       status.textContent = t('board.solverCleared');
@@ -4931,6 +5110,7 @@
       solverSuppressAutoPlay = false;
       stepInfo.textContent = '—';
       list.innerHTML = '';
+      syncStepRow();
       clearSolverSolution();
       status.textContent = t('board.solverCleared');
     };
@@ -5220,6 +5400,10 @@
     }
     if (!solverMode) html += fold('explore', t('board.markExplore'), listOf('explore'), foldOpened);
     markPanel.innerHTML = html;
+    // 结构变了（增减解 / 切解）：内容淡入一次，避免整块硬换；拖动时签名不变不会重播
+    markPanel.classList.remove('view-swap');
+    void markPanel.offsetWidth;
+    markPanel.classList.add('view-swap');
     // 记录用户的开合操作
     markPanel.querySelectorAll('details[data-fold]').forEach(detail => {
       detail.addEventListener('toggle', () => markFoldState.set(detail.dataset.fold, detail.open));
@@ -5339,7 +5523,9 @@
    */
   const selectSolution = index => {
     resultActive = Math.min(Math.max(index, 1), resultGroupCount());
-    renderMarkOptions();
+    // 切解只影响解编号与画布高亮；工具栏上的标记选项（判定 / 显示 / 探索）与当前解无关，
+    // 不必整条重建 —— 重建会换掉节点、带来一次无谓的重排闪烁
+    renderMarkSwitches();
     refreshMarkHighlight();
     refreshMarks();
     if (typeof loadGeometryElements === 'function') loadGeometryElements();
@@ -5394,33 +5580,36 @@
     const toolbar = document.getElementById('container_toolbar');
     const markTool = markTools.find(item => item.tool === markingTool);
     if (!toolbar || !markTool) return;
-    toolbar.innerHTML = '';
-    markTool.options.forEach(option => {
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'tool-item svg-button mark-choice';
-      button.dataset.action = option.actionKey;
-      button.setAttribute('aria-label', t(option.labelKey));
-      const template = document.getElementById(`svg-${option.templateId}`);
-      if (template) button.innerHTML = template.innerHTML;
-      button.classList.toggle('active', marking === option.key);
-      button.addEventListener('click', event => {
-        // 不要冒泡到「点工具栏就取消标记」的监听
-        event.stopPropagation();
-        marking = option.key;
-        // 只改选中态，不重建整条工具条：重建会换掉 DOM 节点，
-        // 正在按下的那个按钮的按下动画（:active / transition）就没了
-        toolbar.querySelectorAll('.mark-choice').forEach(item => item.classList.toggle('active', item === button));
-        renderMarkSwitches();
-        // 画布上金色的范围跟着切换（选中所求显示 / 探索显示时只标对应的图形）
-        refreshMarkHighlight();
+    // 标记选项之间切换时用 FLIP：相同的选项留在原地，新选项淡入；
+    // 不再做 display:none → flex 的往返（会闪一下）
+    flipChildren(toolbar, () => {
+      toolbar.innerHTML = '';
+      markTool.options.forEach(option => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'tool-item svg-button mark-choice';
+        button.dataset.action = option.actionKey;
+        button.setAttribute('aria-label', t(option.labelKey));
+        const template = document.getElementById(`svg-${option.templateId}`);
+        if (template) button.innerHTML = template.innerHTML;
+        button.classList.toggle('active', marking === option.key);
+        button.addEventListener('click', event => {
+          // stopPropagation 会挡掉 window 上的 mobile info（showInformationMobile），这里补一次；
+          // 桌面端它自己会按 widthTypeEquipment 直接返回
+          if (typeof showInformationMobile === 'function') showInformationMobile(event);
+          // 不要冒泡到「点工具栏就取消标记」的监听
+          event.stopPropagation();
+          marking = option.key;
+          // 只改选中态，不重建整条工具条：重建会换掉 DOM 节点，
+          // 正在按下的那个按钮的按下动画（:active / transition）就没了
+          toolbar.querySelectorAll('.mark-choice').forEach(item => item.classList.toggle('active', item === button));
+          renderMarkSwitches();
+          // 画布上金色的范围跟着切换（选中所求显示 / 探索显示时只标对应的图形）
+          refreshMarkHighlight();
+        });
+        toolbar.appendChild(button);
       });
-      toolbar.appendChild(button);
-    });
-    // 与切换工具分类一样重放一次展开动画
-    toolbar.style.display = 'none';
-    toolbar.offsetHeight;
-    toolbar.style.display = 'flex';
+    }, {key: element => element.dataset.action});
     renderMarkSwitches();
   };
   /**
@@ -5432,16 +5621,98 @@
     const switches = document.getElementById('floating-bar-buttons');
     if (choices) choices.innerHTML = '';
     if (!switches) return;
-    switches.innerHTML = '';
-    if (!solverMode && (marking === 'result' || marking === 'resultShown')) {
-      const count = resultGroupCount();
-      for (let index = 1; index <= count; index++) {
-        switches.appendChild(solutionButton(String(index), 'goal-select', `goal-select-${index}`, index === resultActive, () => selectSolution(index)));
-      }
-      switches.appendChild(solutionButton('+', 'goal-add', 'goal-add', false, addSolution));
-      if (count > 1) switches.appendChild(solutionButton('−', 'goal-remove', 'goal-remove', false, removeSolution));
-      switches.style.display = 'flex';
+    if (solverMode || (marking !== 'result' && marking !== 'resultShown')) {
+      switches.innerHTML = '';
+      return;
     }
+    // 先保证可见，再 FLIP：留下的编号 / +/− 滑到新位置，新出现的编号淡入；
+    // 不再做 display:none → flex 的强制回流（那一下会闪，手机上尤其明显）
+    switches.style.display = 'flex';
+    // 上一次的收缩动画还没结束就又被重新渲染：先清掉
+    switches.querySelectorAll('.is-collapsing').forEach(element => element.remove());
+    // 标记模式下这里只应该有解编号 / + / −；从工具模式切过来时先清掉工具按钮
+    [...switches.children].forEach(element => { if (!element.dataset.solution) element.remove(); });
+    const count = resultGroupCount();
+    // 按目标顺序列出要保留 / 新建的按钮。已经存在的按钮直接复用同一个 DOM 节点，
+    // 这样平移的是整个按钮（含图标 / 文字 / 边框），不会出现「删掉一个键、再把文字换掉」的错觉。
+    const wanted = [];
+    for (let index = 1; index <= count; index++) {
+      wanted.push({
+        key: `goal-select-${index}`,
+        label: String(index),
+        action: 'goal-select',
+        active: index === resultActive,
+        onClick: () => selectSolution(index),
+      });
+    }
+    wanted.push({key: 'goal-add', label: '+', action: 'goal-add', active: false, onClick: addSolution});
+    if (count > 1) {
+      wanted.push({key: 'goal-remove', label: '−', action: 'goal-remove', active: false, onClick: removeSolution});
+    }
+    const wantedKeys = new Set(wanted.map(item => item.key));
+    const existing = new Map([...switches.children].map(element => [element.dataset.solution, element]));
+    const removedKeys = [...existing.keys()].filter(key => !wantedKeys.has(key));
+    const removedNumbers = removedKeys.filter(key => key.startsWith('goal-select-'));
+    // 只在「正好删掉一个编号（以及可能同时收掉 −）」时走收缩动画；
+    // 其它情况（例如外部载入快照一次少了好几组）仍整条重建
+    const removedNumber = removedNumbers.length === 1
+      && removedKeys.every(key => key === removedNumbers[0] || key === 'goal-remove')
+      ? removedNumbers[0] : null;
+
+    // 减解：被删的编号原地**收缩 + 淡出**，+ / − 作为同一颗按钮被布局带着滑过去；
+    // 不再让它瞬间消失，也不做幽灵叠影（叠影会看起来像换了文字）
+    if (removedNumber) {
+      const button = existing.get(removedNumber);
+      button.classList.add('is-collapsing');
+      button.style.pointerEvents = 'none';
+      wanted.forEach(item => {
+        const element = existing.get(item.key);
+        if (element) {
+          element.classList.toggle('active', item.active);
+        } else {
+          switches.insertBefore(solutionButton(item.label, item.action, item.key, item.active, item.onClick), button);
+        }
+      });
+      // 解的个数回到 1 时，− 按钮直接收掉（它在最右，不影响别的按钮）
+      if (!wantedKeys.has('goal-remove')) existing.get('goal-remove')?.remove();
+      const width = button.getBoundingClientRect().width;
+      // 编号之间还有一段 flex gap：宽度收到 0 后这段 gap 仍在，+ / − 会停在偏右 5px 的地方，
+      // 等按钮移除才瞬移。这里同时把右侧 gap 收成 0（负 margin），结束时正好落在最终位置。
+      const gap = parseFloat(getComputedStyle(switches).columnGap) || 0;
+      button.style.overflow = 'hidden';
+      button.style.flexShrink = '0';
+      button.style.width = `${width}px`;
+      void button.offsetWidth;
+      const animation = button.animate(
+        [
+          {width: `${width}px`, marginRight: '0px', opacity: 1},
+          {width: '0px', marginRight: `-${gap}px`, opacity: 0},
+        ],
+        {duration: 180, easing: 'cubic-bezier(.2, 0, .2, 1)', fill: 'forwards'}
+      );
+      animation.finished.then(() => button.remove()).catch(() => button.remove());
+      return;
+    }
+
+    // 加解 / 只切换选中态：FLIP 平移留下的按钮，新编号淡入
+    flipChildren(switches, () => {
+      const fragment = document.createDocumentFragment();
+      wanted.forEach(item => {
+        let button = existing.get(item.key);
+        if (button) {
+          // 复用：只更新选中态，文字与点击回调都不动
+          button.classList.toggle('active', item.active);
+        }else{
+          button = solutionButton(item.label, item.action, item.key, item.active, item.onClick);
+        }
+        fragment.appendChild(button);
+      });
+      // 不再需要的按钮先留在容器里，flipChildren 会给它们做原地淡出
+      [...switches.children].forEach(element => {
+        if (!wantedKeys.has(element.dataset.solution)) element.remove();
+      });
+      switches.appendChild(fragment);
+    }, {key: element => element.dataset.solution, leave: false});
   };
   /**
    * 加入标记工具 过程函数
@@ -5661,7 +5932,7 @@
     const cancelButton = document.createElement('button');
     cancelButton.type = 'button';
     cancelButton.textContent = t('common.cancel');
-    cancelButton.addEventListener('click', () => mask.remove());
+    cancelButton.addEventListener('click', () => dismissMask(mask));
     const confirmButton = document.createElement('button');
     confirmButton.type = 'button';
     confirmButton.textContent = t('common.confirm');
@@ -5674,12 +5945,12 @@
         hint.textContent = t('board.gridRangeHint');
         return;
       }
-      if (generateGrid(columns, gridRows, size)) mask.remove();
+      if (generateGrid(columns, gridRows, size)) dismissMask(mask);
       else hint.textContent = t('board.gridFailed');
     });
     actions.appendChild(confirmButton);
     actions.appendChild(cancelButton);
-    mask.addEventListener('click', event => { if (event.target === mask) mask.remove(); });
+    mask.addEventListener('click', event => { if (event.target === mask) dismissMask(mask); });
     document.body.appendChild(mask);
     cols.focus();
   };

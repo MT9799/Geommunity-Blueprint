@@ -6,6 +6,12 @@
     <title>关卡列表 | Geommunity Blueprint</title>
     <link rel="stylesheet" href="./app.css">
     <link rel="icon" href="./static/images/favicon.ico">
+    <script>
+        // 跨文档过渡：先挂好就绪 promise（pack.js 渲染完关卡列表后 resolve）。
+        // 放在 head：导航方向 / 隐藏待加载页面要在首帧之前生效
+        window.__pageReady = new Promise(resolve => { window.__resolvePageReady = resolve; });
+    </script>
+    <script src="./static/js/i18n.js"></script>
 </head>
 <body>
     <main class="home-shell-pack">
@@ -25,6 +31,8 @@
         <div class="hero-banner">
             <div class="background-image-container" id="background-image-container"></div>
             <div class="front-container">
+                <img id="pack-cover" class="pack-cover" alt="" hidden>
+                <div class="front-text">
                 <p class="eyebrow" data-i18n="pack.eyebrow">关卡列表</p>
                 <h1 id="pack-title"></h1>
                 <script>
@@ -50,6 +58,7 @@
                     data-i18n-placeholder="pack.searchPlaceholder" 
                     placeholder="搜索关卡…"
                 >
+                </div>
             </div>
         </div>
         
@@ -58,7 +67,6 @@
             <div id="pack-pager"></div>
         </div>
     </main>
-    <script src="./static/js/i18n.js"></script>
     <!-- 记录数据（只读本机存档）：列表里给已达标的 L / E 标金 -->
     <script src="./static/js/recordStore.js"></script>
     <script src="./levels-data.js"></script>

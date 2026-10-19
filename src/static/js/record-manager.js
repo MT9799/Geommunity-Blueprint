@@ -10,6 +10,18 @@
  */
 (function (global) {
     const store = global.recordStore;
+
+    /**
+     * 关闭首页弹窗 过程函数
+     * 先加 .closing 播退场动画，再移除（样式见 index.html 里的 view-fade-out / view-dialog-out）
+     * @param {HTMLElement} element
+     */
+    function dismissRecordOverlay(element) {
+        if (!element || element.classList.contains('closing')) return;
+        element.classList.add('closing');
+        setTimeout(() => element.remove(), 160);
+    }
+
     const MODE_ORDER = ['normal', 'maker', 'solver', 'level', 'maker-play'];
     const MODE_LABEL = {
         normal: 'index.recordModeNormal',
@@ -104,10 +116,10 @@
             const element = document.createElement('button');
             element.type = 'button';
             element.textContent = button.label;
-            element.addEventListener('click', () => { shell.remove(); button.action?.(options.withInput ? shell : undefined); });
+            element.addEventListener('click', () => { dismissRecordOverlay(shell); button.action?.(options.withInput ? shell : undefined); });
             actions.appendChild(element);
         });
-        shell.addEventListener('click', event => { if (event.target === shell) shell.remove(); });
+        shell.addEventListener('click', event => { if (event.target === shell) dismissRecordOverlay(shell); });
         document.body.appendChild(shell);
         return shell;
     }
@@ -132,7 +144,7 @@
         confirm.textContent = text('common.confirm', '确定');
         confirm.addEventListener('click', () => {
             const result = input.value.trim();
-            shell.remove();
+            dismissRecordOverlay(shell);
             if (result) onSubmit(result);
         });
         shell.querySelector('.rec-dialog-actions').appendChild(confirm);
@@ -447,7 +459,7 @@
      * 不清的话第二次就再也打不开了
      */
     function closeManager() {
-        mask?.remove();
+        dismissRecordOverlay(mask);
         mask = null;
         toolbar = null;
         body = null;

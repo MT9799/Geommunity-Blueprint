@@ -246,6 +246,7 @@ const I18N_DICT = {
         'board.radarRadius': '紧圆规',
         'board.radarRadiusHint': '找「点对的距离正好等于某个圆半径」的：那意味着圆规能把这个半径搬过去（以第一个点为心、过第二个点作圆）。该圆自己的「圆心 + 圆上一点」不算',
         'board.radarRadiusNoCompass': '单尺模式下作不了圆，这一项没有意义',
+        'board.radarMore': '更多',
         'board.radarMinPoints': '最少点数',
         'board.radarRun': '开始探测',
         'board.radarStop': '结束探测',
@@ -609,6 +610,7 @@ const I18N_DICT = {
         'board.radarRadius': 'Compass radius copy',
         'board.radarRadiusHint': 'Find point pairs whose distance equals the radius of some circle — the compass can copy that radius there (circle centred on the first point through the second). The circle\'s own "center + point on it" pair does not count',
         'board.radarRadiusNoCompass': 'No circles can be drawn in straightedge mode, so this item is meaningless',
+        'board.radarMore': 'More',
         'board.radarMinPoints': 'Min points',
         'board.radarRun': 'Detect',
         'board.radarStop': 'Stop detecting',
@@ -897,9 +899,209 @@ function applyI18n(root) {
  */
 function setLang(lang) {
     localStorage.setItem('eurevival-lang', lang);
+    // 首页文案都在 data-i18n 上：原地刷新即可；整页重载会先闪一下再显示。
+    // 其它页面动态内容多，仍走重载（那里没有语言切换入口）
+    if (typeof window.applyLanguageInPlace === 'function' && window.applyLanguageInPlace(lang)) return;
     location.reload();
 }
 
 // 载入即埋点（脚本在 <head> 里，早于 body 渲染）：英文界面先把页面藏起来
 if (currentLang() !== 'zh') document.documentElement.classList.add(I18N_PENDING_CLASS);
 document.addEventListener('DOMContentLoaded', () => applyI18n());
+
+/**
+ * 无 View Transition 时的手机横向兜底方向 过程函数
+ *
+ * 只在「从本站别的页面导航进来」时给 <html> 加 nav-forward / nav-back：
+ * 首次打开、刷新、首页点自己 logo 都不加，避免又误播一次横向切入。
+ * 页面内的返回链接 / 按钮会先写 vt-direction-locked（见下面的 click 监听），
+ * 浏览器后退由 navigation type 判断。
+ */
+(() => {
+    const navEntry = performance.getEntriesByType?.('navigation')?.[0];
+    let navType = navEntry?.type || 'navigate';
+    // 旧接口兜底：1 = reload、2 = back_forward（有些浏览器 navigation entry 在 head 里还没就绪）
+    if (navType === 'navigate' && performance.navigation?.type === 1) navType = 'reload';
+    if (navType === 'navigate' && performance.navigation?.type === 2) navType = 'back_forward';
+    let referrer = null;
+    try {
+        referrer = document.referrer ? new URL(document.referrer) : null;
+    } catch (error) { /* 忽略非法 referrer */ }
+    // / 与 /index.html 视为同一页：从根路径进入首页时不算「从别的页面导航进来」
+    const normalizePath = path => path.replace(/\/index\.html$/, '/');
+    const samePage = !!referrer
+        && referrer.origin === location.origin
+        && normalizePath(referrer.pathname) === normalizePath(location.pathname)
+        && referrer.search === location.search;
+    const fromOtherPage = !!referrer
+        && referrer.origin === location.origin
+        && !samePage;
+    // 本次会话的第一个页面不播横滑：首次打开 / PWA 恢复 / WebView 启动都算，
+    // 即使浏览器把 navigation type 记成 back_forward 也不会误播
+    let firstPageInSession = false;
+    try {
+        firstPageInSession = sessionStorage.getItem('vt-page-visited') !== '1';
+        sessionStorage.setItem('vt-page-visited', '1');
+    } catch (error) { /* 隐私模式 */ }
+    // 本次会话第一次看到首页：无论从哪个页面进来（包括从关卡页回首页），都不播横滑。
+    // 之后再回到首页才按正常的前进 / 后退方向处理。
+    const isHomePage = /(^|\/)index\.html$/.test(location.pathname) || location.pathname.endsWith('/');
+    let firstHomeEntry = false;
+    try {
+        firstHomeEntry = isHomePage && sessionStorage.getItem('vt-home-visited') !== '1';
+        if (isHomePage) sessionStorage.setItem('vt-home-visited', '1');
+    } catch (error) { /* 隐私模式 */ }
+    let direction = '';
+    if (navType === 'reload') {
+        // 刷新时 document.referrer 还是上一次导航的来源，不能据此当成「从别的页面进来」
+        direction = '';
+    } else if (navType === 'back_forward') {
+        // 前进 / 后退恢复但来源不明（例如直接打开的首页被浏览器恢复）不播横滑；
+        // 语义上的返回按钮仍由 vt-direction-locked 保证方向
+        direction = fromOtherPage ? 'back' : '';
+    } else {
+        let locked = false;
+        let stored = '';
+        try {
+            locked = sessionStorage.getItem('vt-direction-locked') === '1';
+            stored = sessionStorage.getItem('vt-direction') || '';
+        } catch (error) { /* 隐私模式 */ }
+        if (locked) {
+            direction = stored === 'back' ? 'back' : 'forward';
+            // 这次导航用掉了方向锁，别影响下一次
+            try { sessionStorage.removeItem('vt-direction-locked'); } catch (error) { /* 忽略 */ }
+        } else if (fromOtherPage) {
+            direction = 'forward';
+        }
+    }
+    if (firstPageInSession || firstHomeEntry) {
+        direction = '';
+        // 首次进入时不沿用上一次会话残留的方向锁
+        try { sessionStorage.removeItem('vt-direction-locked'); } catch (error) { /* 忽略 */ }
+    }
+    window.__entryDirection = direction;
+    window.__firstPageInSession = firstPageInSession;
+    window.__firstHomeEntry = firstHomeEntry;
+    const root = document.documentElement;
+    // 有异步内容的页面（关卡包 / 关卡列表 / 搜索 / 关卡页）在 head 里先挂了 __pageReady。
+    // 这类页面先藏起来，等内容渲染完再加 nav-ready，横向动画才和项目一起出现；
+    // 否则会出现「动画播完，项目才加载」。
+    const hasAsyncContent = !!window.__pageReady;
+    if (direction) {
+        root.classList.add(direction === 'back' ? 'nav-back' : 'nav-forward');
+        if (hasAsyncContent) {
+            root.classList.add('nav-pending');
+            const finish = () => {
+                root.classList.remove('nav-pending');
+                root.classList.add('nav-ready');
+            };
+            const resolve = window.__resolvePageReady;
+            if (typeof resolve === 'function') {
+                window.__resolvePageReady = () => {
+                    finish();
+                    resolve();
+                };
+            }
+            // 慢网 / 数据异常兜底：最多藏 3s，之后至少把外壳露出来
+            setTimeout(finish, 3000);
+        } else {
+            root.classList.add('nav-ready');
+        }
+    }
+})();
+
+// 跨文档 View Transition：旧页面先记下方向（前进 / 后退），手机端据此决定横向切出的方向。
+// 页面里的「返回」链接 / 按钮会先写 vt-direction-locked，优先于浏览器的 navigationType
+window.addEventListener('pageswap', event => {
+    if (!event.viewTransition) return;
+    let locked = false;
+    let lockedDirection = 'forward';
+    try {
+        locked = sessionStorage.getItem('vt-direction-locked') === '1';
+        lockedDirection = sessionStorage.getItem('vt-direction') || 'forward';
+    } catch (error) { /* 隐私模式 */ }
+    const back = locked
+        ? lockedDirection === 'back'
+        : event.activation?.navigationType === 'traverse';
+    document.documentElement.classList.toggle('vt-back', back);
+    document.documentElement.classList.toggle('vt-forward', !back);
+    try {
+        sessionStorage.setItem('vt-direction', back ? 'back' : 'forward');
+        // 不在这里删 vt-direction-locked：新页面的 head 脚本要用它决定
+        // 无 VT 时的兜底方向，用完由新页面自己清掉
+    } catch (error) { /* 隐私模式等读不到就按前进处理 */ }
+});
+
+// 新页面首次渲染前：接上方向、关掉页面自己的入场动画（见各 CSS 的 html.vt-reveal），
+// 并把还藏着的文案先刷出来，避免过渡快照拍到半透明 / 中文占位
+window.addEventListener('pagereveal', event => {
+    if (!event.viewTransition) return;
+    // 本次会话第一次看到首页 / 第一页：连跨文档过渡也不做，
+    // 否则从别的页面（甚至外站）进首页时仍会被 VT 播一遍横滑
+    if (window.__firstPageInSession || window.__firstHomeEntry) {
+        try { event.viewTransition.skipTransition?.(); } catch (error) { /* 忽略 */ }
+        if (document.documentElement.classList.contains(I18N_PENDING_CLASS)) applyI18n();
+        return;
+    }
+    let direction = '';
+    try {
+        direction = sessionStorage.getItem('vt-direction') || '';
+    } catch (error) { /* 同上 */ }
+    if (direction !== 'back' && direction !== 'forward') direction = window.__entryDirection || 'forward';
+    const back = direction === 'back';
+    // 先把方向和「关闭页面入场动画」定下来，后面 waitUntil 万一不被支持 / 抛错，
+    // 也不会漏掉 vt-back / vt-forward 而退化成纯渐变
+    document.documentElement.classList.toggle('vt-back', back);
+    document.documentElement.classList.toggle('vt-forward', !back);
+    document.documentElement.classList.add('vt-reveal');
+    // 浏览器若跳过了这次跨文档过渡（ready 被拒绝），把 vt-reveal 摘掉，
+    // 让上面的 nav-forward / nav-back 横向兜底接手，不要只剩淡入
+    event.viewTransition.ready?.catch(() => {
+        document.documentElement.classList.remove('vt-reveal');
+    });
+    // 异步页面由 __resolvePageReady 在渲染完后解除 nav-pending；VT 下再兜一层：
+    // 最多 2.8s 把外壳露出来，避免数据慢时过渡快照还是隐藏的
+    setTimeout(() => {
+        document.documentElement.classList.remove('nav-pending');
+        document.documentElement.classList.add('nav-ready');
+    }, 2800);
+    if (document.documentElement.classList.contains(I18N_PENDING_CLASS)) applyI18n();
+    // 关卡包 / 关卡列表 / 搜索 / 关卡页会先挂 __pageReady；等它渲染完再切入，
+    // 否则过渡动画播完了项目才出现（最多等 1.5s，慢网也不至于一直停在旧页）。
+    // 如果这个浏览器根本没有 waitUntil，就不要让它先播一遍空快照：
+    // 取消跨文档过渡，交给 nav-pending / nav-ready 的横向兜底。
+    const asyncReady = !!window.__pageReady;
+    const canWait = typeof event.viewTransition.waitUntil === 'function';
+    if (asyncReady && !canWait) {
+        try { event.viewTransition.skipTransition?.(); } catch (error) { /* 忽略 */ }
+        document.documentElement.classList.remove('vt-reveal');
+    } else if (asyncReady && canWait) {
+        try {
+            event.viewTransition.waitUntil(Promise.race([
+                window.__pageReady,
+                new Promise(resolve => setTimeout(resolve, 3000)),
+            ]));
+        } catch (error) {
+            // 个别 WebView 的 waitUntil 会抛错：取消这次 VT，走同一套兜底
+            try { event.viewTransition.skipTransition?.(); } catch (skipError) { /* 忽略 */ }
+            document.documentElement.classList.remove('vt-reveal');
+        }
+    }
+});
+
+// 语义上的「返回」：站点返回链接 / 画板的 return-to-*、back-* 按钮。
+// 浏览器历史后退由 pageswap 的 navigationType 判断；这里是给页面内返回入口补方向
+document.addEventListener('click', event => {
+    const target = event.target instanceof Element ? event.target : null;
+    if (!target) return;
+    const link = target.closest('a[href]');
+    const action = target.closest('[data-action]')?.dataset.action;
+    const backLink = link && !link.target
+        && (link.classList.contains('back-link') || link.classList.contains('subpage-brand') || link.hasAttribute('data-back'));
+    const backAction = action && (action.startsWith('return-to-') || action.startsWith('back-'));
+    if (!backLink && !backAction) return;
+    try {
+        sessionStorage.setItem('vt-direction', 'back');
+        sessionStorage.setItem('vt-direction-locked', '1');
+    } catch (error) { /* 忽略 */ }
+}, true);

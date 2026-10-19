@@ -158,39 +158,43 @@ const toolItems = {
  * @param {string} selectMenuTool 
  */
 function generateTool(selectMenuTool) {
-    // 清空工具栏
     const toolbar = document.getElementById('container_toolbar');
-    toolbar.innerHTML= '';
-
-    // 遍历添加文档元素
     // 精简画板（答案的「逐步绘制」）只用得上移动工具：工具栏里就一个 move，
     // 这样这条工具栏可以留着显示（比整条藏起来更自然，见 index.css 的 .mode-stepview）
     const stepview = document.body.classList.contains('mode-stepview');
     const toolsList = stepview ? ['move'] : toolMenus[selectMenuTool];
-    toolsList.forEach((item) => {
-        const toolDocumentElement = document.createElement('button');
-        toolDocumentElement.classList.add('tool-item');
-        toolDocumentElement.classList.add('svg-button');
-        toolDocumentElement.id = `button-${item}-tool`;
-        toolDocumentElement.setAttribute('data-action', item);
+    const build = () => {
+        toolbar.innerHTML = '';
+        toolsList.forEach((item) => {
+            const toolDocumentElement = document.createElement('button');
+            toolDocumentElement.classList.add('tool-item');
+            toolDocumentElement.classList.add('svg-button');
+            toolDocumentElement.id = `button-${item}-tool`;
+            toolDocumentElement.setAttribute('data-action', item);
 
-        const template = document.getElementById(`svg-${item}`);
-        if (template) {
-            toolDocumentElement.innerHTML = template.innerHTML;
-        }
+            const template = document.getElementById(`svg-${item}`);
+            if (template) {
+                toolDocumentElement.innerHTML = template.innerHTML;
+            }
 
-        toolbar.appendChild(toolDocumentElement);
-        // 分组分隔线（例如通用档里样式刷之后）
-        if ((toolMenuDividers[selectMenuTool] || []).includes(item)) {
-            const separator = document.createElement('div');
-            separator.classList.add('tool-separator');
-            toolbar.appendChild(separator);
-        }
-    })
-
-    toolbar.style.display = 'none';
-    toolbar.offsetHeight;
+            toolbar.appendChild(toolDocumentElement);
+            // 分组分隔线（例如通用档里样式刷之后）
+            if ((toolMenuDividers[selectMenuTool] || []).includes(item)) {
+                const separator = document.createElement('div');
+                separator.classList.add('tool-separator');
+                toolbar.appendChild(separator);
+            }
+        });
+    };
+    // 切换分类时相同的工具留在原地、新工具淡入（FLIP），不再整条硬换
+    if (typeof window.flipChildren === 'function') {
+        window.flipChildren(toolbar, build, {key: element => element.id || element.dataset.action});
+    } else {
+        build();
+    }
+    // 只读一次布局，不再做 display:none → flex 的往返（那一下会闪）
     toolbar.style.display = 'flex';
+    void toolbar.offsetWidth;
     choiceTool(stepview ? 'move' : toolMenuDefaultValue[selectMenuTool]);
 }
 
@@ -204,47 +208,56 @@ function loadToolSwitchButton(tool) {
     // 这个窗口只用来一步步看 / 撤回解法
     const stepview = document.body.classList.contains('mode-stepview');
     const toolButtons = (toolItems[tool]?.button || []).filter(name => !(stepview && name === 'objectStyle'));
-    toolSwitchButton.innerHTML = "";
-    
-    if (toolSwitchs) {
-        toolSwitchs.forEach((element) => {
-            const toolDocumentElement = document.createElement('button');
-            toolDocumentElement.classList.add('tool-switch-item');
-            toolDocumentElement.classList.add('floating-svg-switch-button');
-            toolDocumentElement.id = `button-${tool}-${element}`;
-            toolDocumentElement.setAttribute('data-action', element);
-    
-            const template = document.getElementById(`svg-${element}`);
-            if (template) {
-                toolDocumentElement.innerHTML = template.innerHTML;
-            }
-            
-            // 添加
-            toolSwitchButton.appendChild(toolDocumentElement);
+    const build = () => {
+        toolSwitchButton.innerHTML = "";
+        if (toolSwitchs) {
+            toolSwitchs.forEach((element) => {
+                const toolDocumentElement = document.createElement('button');
+                toolDocumentElement.classList.add('tool-switch-item');
+                toolDocumentElement.classList.add('floating-svg-switch-button');
+                toolDocumentElement.id = `button-${tool}-${element}`;
+                toolDocumentElement.setAttribute('data-action', element);
+
+                const template = document.getElementById(`svg-${element}`);
+                if (template) {
+                    toolDocumentElement.innerHTML = template.innerHTML;
+                }
+
+                // 添加
+                toolSwitchButton.appendChild(toolDocumentElement);
+            });
+        }
+
+        if (toolButtons) {
+            toolButtons.forEach((element) => {
+                const toolDocumentElement = document.createElement('button');
+                toolDocumentElement.classList.add('floating-svg-button');
+                toolDocumentElement.id = `button-${tool}-${element}`;
+                toolDocumentElement.setAttribute('data-action', element);
+
+                const template = document.getElementById(`svg-${element}`);
+                if (template) {
+                    toolDocumentElement.innerHTML = template.innerHTML;
+                }
+
+                // 添加
+                toolSwitchButton.appendChild(toolDocumentElement);
+            });
+        }
+    };
+    // 相同按钮留在原地、新按钮淡入（FLIP）；隐藏按钮随后要挪到最右容器，不参与
+    if (typeof window.flipChildren === 'function') {
+        window.flipChildren(toolSwitchButton, build, {
+            key: element => element.id.includes('-hideToggle') ? '' : (element.id || element.dataset.action),
         });
-    }
-    
-    if (toolButtons) {
-        toolButtons.forEach((element) => {
-            const toolDocumentElement = document.createElement('button');
-            toolDocumentElement.classList.add('floating-svg-button');
-            toolDocumentElement.id = `button-${tool}-${element}`;
-            toolDocumentElement.setAttribute('data-action', element);
-    
-            const template = document.getElementById(`svg-${element}`);
-            if (template) {
-                toolDocumentElement.innerHTML = template.innerHTML;
-            }
-            
-            // 添加
-            toolSwitchButton.appendChild(toolDocumentElement);
-        });
+    } else {
+        build();
     }
 
     refreshToolFloating();
-    toolSwitchButton.style.display = 'none';
-    toolSwitchButton.offsetHeight;
+    // 先显示，再读一次布局让手机上当帧排好；不再先隐藏一下（会闪）
     toolSwitchButton.style.display = 'flex';
+    void toolSwitchButton.offsetWidth;
 }
 
 /**
@@ -289,9 +302,9 @@ function loadChoice(tool) {
         return toolDocumentElement;
     }
     
-    toolChoiceDocumentElement.style.display = 'none';
-    toolChoiceDocumentElement.offsetHeight;
+    // 直接显示并读一次布局；不再做 display:none → flex 的往返（每次换小项都会闪一下）
     toolChoiceDocumentElement.style.display = 'flex';
+    void toolChoiceDocumentElement.offsetWidth;
 }
 
 /**

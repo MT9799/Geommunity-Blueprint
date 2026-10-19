@@ -528,6 +528,16 @@
     }
 
     /**
+     * 关闭弹层 过程函数
+     * 画板里统一走退场动画（见 board-tools 的 dismissMask）；没有那个脚本时直接移除
+     * @param {HTMLElement} element
+     */
+    function dismissMask(element) {
+        if (typeof window.boardDismissMask === 'function') window.boardDismissMask(element);
+        else element.remove();
+    }
+
+    /**
      * 选择框 过程函数
      * 内部样式的小弹层，给「导出 / 导入」这类有两条路的操作用
      * @param {string} title
@@ -543,15 +553,15 @@
             const button = document.createElement('button');
             button.type = 'button';
             button.textContent = item.label;
-            button.addEventListener('click', () => { mask.remove(); item.action(); });
+            button.addEventListener('click', () => { dismissMask(mask); item.action(); });
             actions.appendChild(button);
         });
         const cancelButton = document.createElement('button');
         cancelButton.type = 'button';
         cancelButton.textContent = t('common.cancel');
-        cancelButton.addEventListener('click', () => mask.remove());
+        cancelButton.addEventListener('click', () => dismissMask(mask));
         actions.appendChild(cancelButton);
-        mask.addEventListener('click', event => { if (event.target === mask) mask.remove(); });
+        mask.addEventListener('click', event => { if (event.target === mask) dismissMask(mask); });
         document.body.appendChild(mask);
         return mask;
     }

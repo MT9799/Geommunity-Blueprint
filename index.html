@@ -9,10 +9,20 @@
         :root { --ink: #263238; --muted: #68757a; --paper: #f4f0e8; --line: #d8dee0; --accent: #e5b42f; --blue: #277f96; }
         * { box-sizing: border-box; }
         html { min-height: 100%; }
-        body { margin: 0; min-height: 100vh; color: var(--ink); background-color: var(--paper); background-image: linear-gradient(90deg, transparent 95%, #e6eaeb 95%), linear-gradient(0deg, transparent 95%, #e6eaeb 95%); background-size: 32px 32px; font-family: "Segoe UI", "Microsoft YaHei", sans-serif; }
+        body { margin: 0; min-height: 100vh; color: var(--ink); background-color: var(--paper); font-family: "Segoe UI", "Microsoft YaHei", sans-serif; }
+        /* 背景网格固定在视口上，不随页面滚动（与关卡包 / 关卡页一致） */
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            opacity: .25;
+            background-image: linear-gradient(90deg, transparent 95%, #d8d0c4 95%), linear-gradient(0deg, transparent 95%, #d8d0c4 95%);
+            background-size: 32px 32px;
+        }
         a { color: inherit; }
         /* 页脚贴底：整页做成纵向弹性布局，main 占满剩余高度，footer 自然落到视口底部 */
-        .page { display: flex; flex-direction: column; width: min(1080px, calc(100% - 40px)); min-height: 100vh; min-height: 100dvh; margin: 0 auto; }
+        .page { position: relative; display: flex; flex-direction: column; width: min(1080px, calc(100% - 40px)); min-height: 100vh; min-height: 100dvh; margin: 0 auto; }
         .page > main { flex: 1 0 auto; }
         .site-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 22px 0; border-bottom: 1px solid var(--line); }
         .brand { display: inline-flex; align-items: center; gap: 12px; color: var(--ink); text-decoration: none; font-weight: 700; letter-spacing: .02em; }
@@ -21,9 +31,11 @@
         .header-actions { display: flex; align-items: center; gap: 14px; }
         .source-link { padding: 0; border: 0; color: var(--muted); background: transparent; font: inherit; font-size: 13px; text-decoration: none; cursor: pointer; }
         .source-link:hover { color: var(--blue); text-decoration: underline; }
-        .lang-switch { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; background: #fff; }
-        .lang-switch button { padding: 6px 14px; border: 0; background: transparent; color: var(--muted); font-size: 13px; cursor: pointer; }
-        .lang-switch button.active { background: var(--blue); color: #fff; }
+        .lang-switch { position: relative; display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; background: #fff; }
+        .lang-switch button { position: relative; z-index: 1; padding: 6px 14px; border: 0; background: transparent; color: var(--muted); font-size: 13px; cursor: pointer; transition: color .18s ease; }
+        .lang-switch button.active { background: transparent; color: #fff; }
+        /* 中 / En 的蓝色滑块：切语言时平移 + 改宽，不是两个背景硬切 */
+        .lang-thumb { position: absolute; top: 0; bottom: 0; left: 0; width: 0; border-radius: 999px; background: var(--blue); pointer-events: none; transition: transform .22s cubic-bezier(.2, .8, .2, 1), width .22s cubic-bezier(.2, .8, .2, 1); }
         .hero { padding: 24px 0 20px; text-align: center; }
         /* 图片按宽度定尺寸、高度自适应（原来固定在 280×150 的框里 contain，四周留一大片空白） */
         .hero img { width: min(320px, 68vw); height: auto; max-height: 190px; object-fit: contain; margin-bottom: 5px; }
@@ -162,7 +174,90 @@
         details .container::-webkit-scrollbar { width: 8px; height: 8px; }
         details .container::-webkit-scrollbar-thumb { background-color: rgb(165, 165, 175); border-radius: 4px; }
         details .container::-webkit-scrollbar-track { background-color: transparent; }
+
+        /* ===== 首页 / 项目说明 / 清除缓存的统一动效 ===== */
+        /* 跨文档页面过渡：从首页去关卡 / 画板时交叉淡化，盖住加载空档 */
+        @view-transition { navigation: auto; }
+        ::view-transition-old(root) { animation: view-fade-out .16s ease-in both; }
+        ::view-transition-new(root) { animation: view-fade-in .2s ease-out both; }
+        html.vt-reveal .page { animation: none !important; }
+
+        /* 手机端页面切换：横向推入 / 推出 */
+        @keyframes view-slide-in-right { from { transform: translateX(100%); } to { transform: none; } }
+        @keyframes view-slide-out-left { from { transform: none; } to { transform: translateX(-30%); } }
+        @keyframes view-slide-in-left { from { transform: translateX(-100%); } to { transform: none; } }
+        @keyframes view-slide-out-right { from { transform: none; } to { transform: translateX(30%); } }
+        @media (max-width: 900px), (pointer: coarse) {
+            ::view-transition-old(root) { animation: view-slide-out-left .26s cubic-bezier(.32, .72, 0, 1) both; }
+            ::view-transition-new(root) { animation: view-slide-in-right .3s cubic-bezier(.32, .72, 0, 1) both; }
+            html.vt-back::view-transition-old(root) { animation-name: view-slide-out-right; }
+            html.vt-back::view-transition-new(root) { animation-name: view-slide-in-left; }
+        }
+
+        @keyframes view-page-in {
+            /* 只淡入，不做位移：.page 是滚动容器，载入时的 transform 会让浏览器
+               在刷新时不断做滚动锚定，表现为页面一次比一次往上移 */
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes view-fade-in {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes view-fade-out {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+        @keyframes view-dialog-in {
+            from { opacity: 0; transform: translateY(10px) scale(.985); }
+            to { opacity: 1; transform: none; }
+        }
+        @keyframes view-dialog-out {
+            from { opacity: 1; transform: none; }
+            to { opacity: 0; transform: translateY(6px) scale(.99); }
+        }
+
+        .page { animation: view-page-in .24s cubic-bezier(.2, .8, .2, 1); }
+        /* 无 VT 时的手机横向兜底：只给「从本站别的页面导航进来」的页面加方向类，
+           首次打开 / 刷新 / 首页点自己 logo 不会加，避免误播横滑 */
+        @media (max-width: 900px), (pointer: coarse) {
+            html.nav-forward.nav-ready .page { animation: view-slide-in-right .3s cubic-bezier(.32, .72, 0, 1); }
+            html.nav-back.nav-ready .page { animation: view-slide-in-left .3s cubic-bezier(.32, .72, 0, 1); }
+        }
+        .readme-mask,
+        .rec-mask,
+        .rec-dialog-mask { animation: view-fade-in .16s ease-out; }
+        .readme-dialog,
+        .rec-dialog-main,
+        .rec-dialog { animation: view-dialog-in .2s cubic-bezier(.2, .8, .2, 1); }
+        .readme-mask.closing,
+        .rec-mask.closing,
+        .rec-dialog-mask.closing {
+            animation: view-fade-out .14s ease-in forwards;
+            pointer-events: none;
+        }
+        .readme-mask.closing .readme-dialog,
+        .rec-mask.closing .rec-dialog-main,
+        .rec-dialog-mask.closing .rec-dialog { animation: view-dialog-out .14s ease-in forwards; }
+        .readme-body.view-swap { animation: view-fade-in .18s ease-out; }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: .001ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: .001ms !important;
+                scroll-behavior: auto !important;
+            }
+            /* 跨文档过渡的快照动画不归 * 管，单独关掉 */
+            ::view-transition-old(root),
+            ::view-transition-new(root) {
+                animation: none !important;
+            }
+        }
+
     </style>
+    <!-- 词典先就位：跨文档过渡的 pagereveal 要在页面首次渲染前挂上 vt-reveal -->
+    <script src="./src/static/js/i18n.js"></script>
 </head>
 <body>
     <div class="page">
@@ -170,6 +265,7 @@
             <a class="brand" href="./index.html"><img src="./src/static/images/logo.png" alt="Geommunity Blueprint"><span>Geommunity Blueprint</span></a>
             <div class="header-actions">
                 <div class="lang-switch" id="lang-switch">
+                    <span class="lang-thumb" aria-hidden="true"></span>
                     <button type="button" data-lang="zh" data-i18n="index.langZh">中</button>
                     <button type="button" data-lang="en" data-i18n="index.langEn">En</button>
                 </div>
@@ -209,7 +305,6 @@
             <p class="footer-note" data-i18n="index.footer">Geommunity Blueprint · GitHub Page</p>
         </footer>
     </div>
-    <script src="./src/static/js/i18n.js"></script>
     <script src="./src/static/js/readme-dialog.js"></script>
     <!-- 首页是站点最上一层：载入它才会执行「退回上一层就清掉下一层记录」的那段逻辑
          （这个模块只在被调用时才会去读 data/ 下的 json，首页不调用，所以没有额外请求） -->
@@ -221,11 +316,61 @@
         // 首页：按当前语言刷新文案，并标出选中的语言
         document.title = t('index.title');
         applyI18n();
-        const lang = currentLang();
+
+        // 首页点自己的 logo 不重新加载（否则会误播一次页面进入动画），只回到顶部。
+        // / 与 /index.html 视为同一页，避免从根路径访问时漏判
+        document.querySelector('.brand')?.addEventListener('click', event => {
+            if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+            const normalize = path => path.replace(/\/index\.html$/, '/');
+            const target = new URL(event.currentTarget.href, location.href);
+            if (normalize(target.pathname) !== normalize(location.pathname)) return;
+            event.preventDefault();
+            window.scrollTo({top: 0, behavior: 'smooth'});
+        });
+
+        const langSwitch = document.getElementById('lang-switch');
+        const langThumb = langSwitch?.querySelector('.lang-thumb');
+        /**
+         * 语言蓝色滑块跟随当前按钮 过程函数
+         * @param {boolean} animate false 时直接落位（首次加载 / 缩放）
+         */
+        function syncLangSwitch(animate = true) {
+            const active = langSwitch?.querySelector('button.active');
+            if (!langThumb || !active) return;
+            if (!animate) {
+                langThumb.style.transition = 'none';
+                langThumb.style.width = `${active.offsetWidth}px`;
+                langThumb.style.transform = `translateX(${active.offsetLeft}px)`;
+                void langThumb.offsetWidth;
+                langThumb.style.transition = '';
+                return;
+            }
+            langThumb.style.width = `${active.offsetWidth}px`;
+            langThumb.style.transform = `translateX(${active.offsetLeft}px)`;
+        }
+
+        /**
+         * 首页原地切换语言 过程函数
+         * 首页文案都在 data-i18n 上，直接 applyI18n 即可；不整页重载，切换才不会有闪白
+         * @param {string} lang
+         * @returns {boolean}
+         */
+        window.applyLanguageInPlace = lang => {
+            applyI18n();
+            document.title = t('index.title');
+            document.querySelectorAll('#lang-switch button').forEach(button => {
+                button.classList.toggle('active', button.dataset.lang === lang);
+            });
+            syncLangSwitch(true);
+            return true;
+        };
+
         document.querySelectorAll('#lang-switch button').forEach(button => {
-            button.classList.toggle('active', button.dataset.lang === lang);
+            button.classList.toggle('active', button.dataset.lang === currentLang());
             button.addEventListener('click', () => setLang(button.dataset.lang));
         });
+        syncLangSwitch(false);
+        window.addEventListener('resize', () => syncLangSwitch(false));
     </script>
 </body>
 </html>

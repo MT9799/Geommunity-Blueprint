@@ -816,13 +816,21 @@ textarea {
 
 .answer-gallery {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    /* 2 列起步；3 列只在很宽的屏幕上出现（1200px 以下保持 2 列，卡片更宽，
+       步数与「逐步绘制」按钮不会挤在一起） */
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
     /* 唯一可滚的一块：撑满标题与「关闭」之间的空间，内容多了在这里滚 */
     flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
     padding-right: 2px;
+}
+
+@media (min-width: 1200px) {
+    .answer-gallery {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
 }
 
 .answer-figure {
@@ -839,7 +847,9 @@ textarea {
 
 .answer-figure img {
     width: 100%;
-    max-height: 240px;
+    /* 固定图片框高度：竖图 / 方图不足 240px 时，上下留白也落在图片自己的白底上，
+       与左右留白一致（原来是 max-height，短图会在灰底里居中留出空隙） */
+    height: 240px;
     object-fit: contain;
     border-radius: 6px;
     background-color: #fff;
@@ -847,10 +857,22 @@ textarea {
 }
 
 .answer-figure figcaption {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 22px;
     font-size: 12px;
     color: #4a4a4a;
     padding-left: 6px;
-    /* text-align: center; */
+}
+
+/* 步数文本：占剩余宽度，太长时省略，不把按钮挤出去 */
+.answer-figure-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .answer-figure img:active {
@@ -868,12 +890,16 @@ textarea {
     min-height: 0;
 }
 
-/* 「逐步绘制」 */
+/* 「逐步绘制」：与步数文本同一行、同高 */
 .answer-stepview-button {
-    position: absolute;
-    right: 8px;
-    bottom: 6px;
-    padding: 2px 10px;
+    position: static;
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 22px;
+    padding: 0 10px;
+    box-sizing: border-box;
     border: none;
     border-radius: 6px;
     background-color: rgb(60, 120, 220);
@@ -1138,6 +1164,27 @@ body.mode-stepview #container_more [data-action="make-grid"] {
 /* 八个勾：一列一项（与求解参数一致；两列时标题会被挤断） */
 .radar-kinds { display: grid; gap: 6px; }
 .radar-option { display: grid; gap: 3px; min-width: 0; }
+/* 「更多」：定点角 / 线上比 / 角平分线 / 紧圆规 折在这里，平时收起。
+   三角与求解参数的高级选项同款（SVG，收起朝右、展开转 90°）；与上面几项之间不画分割线 */
+.radar-more > summary {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #5a5a60;
+    cursor: pointer;
+    list-style: none;
+}
+.radar-more > summary::-webkit-details-marker { display: none; }
+.radar-more > summary .radar-more-icon {
+    width: 13px;
+    height: 13px;
+    flex-shrink: 0;
+    stroke: #5a5a60;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.radar-more[open] > summary .radar-more-icon { transform: rotate(90deg); }
+.radar-more[open] > summary { margin-bottom: 4px; }
 /* 勾选框与标题同一行、不换行（标题挤不下就省略号，不要折行） */
 .radar-panel .solver-check { display: flex; align-items: center; gap: 4px; white-space: nowrap; overflow: hidden; }
 .radar-panel .solver-check span { overflow: hidden; text-overflow: ellipsis; }
@@ -1148,7 +1195,8 @@ body.mode-stepview #container_more [data-action="make-grid"] {
 .radar-panel .radar-field-off { display: none; }
 /* 单尺模式下「紧圆规」没有意义：整行灰掉 */
 .radar-panel .solver-check.radar-disabled { opacity: 0.45; }
-.radar-panel output { color: #191919; }
+/* 探测状态与求解状态同色（#geb-radar-status / #geb-solver-status） */
+.radar-panel output { color: rgb(128, 128, 255); }
 .radar-results { display: grid; gap: 6px; }
 .radar-results:empty { display: none; }
 .radar-group { border-top: 1px solid rgb(200, 200, 206); padding-top: 4px; }
@@ -2485,11 +2533,18 @@ body.mode-stepview #container_more [data-action="make-grid"] {
     }
 
     .answer-figure img {
-        max-height: 120px;
+        height: 120px;
     }
 
     .answer-figure figcaption {
+        min-height: 18px;
         font-size: 11px;
+    }
+
+    .answer-stepview-button {
+        height: 18px;
+        padding: 0 6px;
+        font-size: 10px;
     }
 
     .moves-layout {
@@ -2784,4 +2839,192 @@ html.i18n-pending body { visibility: hidden; }
 /* 光标下的预览点覆盖层（board-tools.js 绘制，见 drawPreview） */
 #container_canvas { position: relative; }
 #container_canvas canvas.cursor-preview { position: absolute; pointer-events: none; z-index: 3; }
+
+/* 跨文档页面过渡：首页 / 关卡页 / 画板页之间切换时，支持 View Transitions 的浏览器
+   直接把旧页面交叉淡化到新页面，盖住加载空档；不支持时下面的页面入场动画照常兜底 */
+@view-transition {
+    navigation: auto;
+}
+::view-transition-old(root) {
+    animation: view-fade-out .16s ease-in both;
+}
+::view-transition-new(root) {
+    animation: view-fade-in .2s ease-out both;
+}
+/* 手机端页面切换改成横向推入 / 推出；桌面端保持交叉淡化 */
+@keyframes view-slide-in-right {
+    from { transform: translateX(100%); }
+    to { transform: none; }
+}
+@keyframes view-slide-out-left {
+    from { transform: none; }
+    to { transform: translateX(-30%); }
+}
+@keyframes view-slide-in-left {
+    from { transform: translateX(-100%); }
+    to { transform: none; }
+}
+@keyframes view-slide-out-right {
+    from { transform: none; }
+    to { transform: translateX(30%); }
+}
+@media (max-width: 900px), (pointer: coarse) {
+    ::view-transition-old(root) {
+        animation: view-slide-out-left .26s cubic-bezier(.32, .72, 0, 1) both;
+    }
+    ::view-transition-new(root) {
+        animation: view-slide-in-right .3s cubic-bezier(.32, .72, 0, 1) both;
+    }
+    html.vt-back::view-transition-old(root) {
+        animation-name: view-slide-out-right;
+    }
+    html.vt-back::view-transition-new(root) {
+        animation-name: view-slide-in-left;
+    }
+}
+/* VT 期间关掉**只在页面载入时**播放的入场动画，避免快照拍到半透明 / 位移中的内容。
+   面板的动画还会在切换面板 / 页签时复用，不能整场关掉，所以这里只处理更多栏 */
+html.vt-reveal #container_canvas,
+html.vt-reveal #container_more {
+    animation: none !important;
+}
+
+/* ===== 统一的视窗 / 面板 / 弹层动效 =====
+   页面里的 display 切换（面板、弹窗）没法直接 transition，这里统一用短促的
+   keyframes 做「进入」；需要退场的弹窗由 JS 加 .closing 后延迟移除（见 dismissMask）。 */
+@keyframes view-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+@keyframes view-fade-out {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+@keyframes view-rise-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: none; }
+}
+@keyframes view-panel-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: none; }
+}
+@keyframes view-dialog-in {
+    from { opacity: 0; transform: translateY(10px) scale(.985); }
+    to { opacity: 1; transform: none; }
+}
+@keyframes view-dialog-out {
+    from { opacity: 1; transform: none; }
+    to { opacity: 0; transform: translateY(6px) scale(.99); }
+}
+
+/* 页面进入：只让右上角更多栏淡入。
+   画布本身不做淡入 —— 画布先淡出来、图形随后才画，反而像闪了一下 */
+#container_more {
+    animation: view-fade-in .24s ease-out;
+}
+/* 无 VT 时的手机横向兜底：只在从本站别的页面导航进来时播放；
+   首次打开 / 刷新没有 nav-forward / nav-back，画布保持原样 */
+/* 等关卡数据 / 图形画完再横滑：先藏画布，避免先滑完再出现内容 */
+html.nav-pending #container_canvas,
+html.nav-pending #container_more {
+    visibility: hidden;
+}
+@media (max-width: 900px), (pointer: coarse) {
+    html.nav-forward.nav-ready #container_canvas,
+    html.nav-forward.nav-ready #container_more {
+        animation: view-slide-in-right .3s cubic-bezier(.32, .72, 0, 1);
+    }
+    html.nav-back.nav-ready #container_canvas,
+    html.nav-back.nav-ready #container_more {
+        animation: view-slide-in-left .3s cubic-bezier(.32, .72, 0, 1);
+    }
+}
+
+/* 三块主面板 / 求解器面板：display 切换时从下方轻轻滑入 */
+.panel {
+    animation: view-panel-in .22s cubic-bezier(.2, .8, .2, 1);
+}
+.solver-panel {
+    animation: view-panel-in .2s cubic-bezier(.2, .8, .2, 1);
+}
+
+/* 更多菜单 / 样式弹层：支持 display 离散过渡的浏览器里带淡入（退场由 allow-discrete 负责） */
+.board-popup {
+    opacity: 0;
+    transition: opacity .16s ease, display .16s;
+    transition-behavior: allow-discrete;
+}
+.board-popup.open {
+    opacity: 1;
+}
+/* 退场淡出的 160ms 里别再吃点击 */
+.board-popup:not(.open) {
+    pointer-events: none;
+}
+@starting-style {
+    .board-popup.open {
+        opacity: 0;
+    }
+}
+
+/* 求解器解法列表：新补的行从下方浮入 */
+.solver-solution-row {
+    animation: view-rise-in .18s ease-out;
+}
+
+/* 标记面板结构变化（增减解 / 切解）时内容淡入一次 */
+.mark-panel.view-swap {
+    animation: view-fade-in .16s ease-out;
+}
+
+/* 画板弹窗：遮罩淡入、对话框上浮；关闭时反向播放（见 board-tools 的 dismissMask） */
+.board-dialog-mask {
+    animation: view-fade-in .16s ease-out;
+}
+.board-dialog {
+    animation: view-dialog-in .2s cubic-bezier(.2, .8, .2, 1);
+}
+.board-dialog-mask.closing {
+    animation: view-fade-out .14s ease-in forwards;
+    pointer-events: none;
+}
+.board-dialog-mask.closing .board-dialog {
+    animation: view-dialog-out .14s ease-in forwards;
+}
+
+/* 答案大图：直接挂在 body 上的遮罩 */
+.image-zoom {
+    animation: view-fade-in .16s ease-out;
+}
+.image-zoom.closing {
+    animation: view-fade-out .14s ease-in forwards;
+    pointer-events: none;
+}
+
+/* 手机端圆形面板按钮：按下回弹、打开时轻微放大 */
+.side-button {
+    transition: background-color .18s ease, transform .18s cubic-bezier(.2, .8, .2, 1), box-shadow .18s ease;
+}
+.side-button:active {
+    transform: scale(.92);
+}
+.side-button.active {
+    transform: scale(1.03);
+}
+
+/* 尊重系统的「减少动态效果」：整站动画 / 过渡都压到最短 */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: .001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .001ms !important;
+        scroll-behavior: auto !important;
+    }
+    /* 跨文档过渡的快照动画不归 * 管，单独关掉 */
+    ::view-transition-old(root),
+    ::view-transition-new(root) {
+        animation: none !important;
+    }
+}
+
 

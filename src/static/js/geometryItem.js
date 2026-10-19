@@ -393,9 +393,9 @@ function loadGeometryElements() {
             if (set?.has(id)) item.classList.add('select');
         }
     });
-    overview.style.display = 'none';
-    overview.offsetHeight;
+    // 保持 grid 并读一次布局；不再在每次刷新时 display:none → grid 往返（会闪）
     overview.style.display = 'grid';
+    void overview.offsetWidth;
     // 头一次打开时先偷偷量一次详情有多高，让列表一开始就撑到那个高度（见 primeOverviewListHeight）
     primeOverviewListHeight();
 }

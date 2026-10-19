@@ -16,6 +16,11 @@ const pager = document.getElementById('pack-pager');
 const searchBox = document.getElementById('search-box');
 const backgroundImageContainer = document.getElementById("background-image-container");
 const heroBanner = document.querySelector('.hero-banner');
+// 跨文档页面过渡：等关卡列表渲染完再让新页面切入
+// （head 里已经先挂了 promise；这里不要覆盖）
+if (!window.__pageReady) {
+    window.__pageReady = new Promise(resolve => { window.__resolvePageReady = resolve; });
+}
 
 document.title = t('pack.title');
 applyI18n();
@@ -89,12 +94,21 @@ loadLevelsData().then(({ packs }) => {
     if (!pack) throw new Error('pack not found');
     title.textContent = pack.name;
     description.textContent = pack.description || t('pack.lede', {count: pack.levels.length});
+    // 桌面端左侧封面：优先用关卡包 cover，没有就回落到首关示意图 / 包图标
+    const coverPath = pack.cover || (typeof packIcon === 'function' ? packIcon(pack) : '');
+    const coverImage = document.getElementById('pack-cover');
+    if (coverImage && coverPath) {
+        coverImage.alt = pack.name;
+        coverImage.hidden = false;
+        coverImage.addEventListener('error', () => { coverImage.hidden = true; }, {once: true});
+        coverImage.src = `../data/${coverPath}`;
+    }
     const backgroundImage = document.createElement("img");
     backgroundImage.alt = pack.name;
     backgroundImage.className = "pack-backgroundImage";
     // 监听要在设 src 之前挂：缓存的图片也可能在同一次任务之后就触发 load
     backgroundImage.addEventListener('load', () => applyHeroAverageColor(backgroundImage), {once: true});
-    backgroundImage.src = `../data/${pack.cover}`;
+    backgroundImage.src = `../data/${pack.cover || coverPath}`;
     backgroundImageContainer.appendChild(backgroundImage);
     // 分页
     const levels = pack.levels;
@@ -110,6 +124,8 @@ loadLevelsData().then(({ packs }) => {
     observeLevelThumbs();
     // 从关卡返回时停在原来那一屏，而不是回到列表顶部
     restoreListScroll();
+    // 关卡行已经进 DOM，可以切入；缩略图继续按需加载
+    window.__resolvePageReady?.();
     // 搜索：点击搜索框进入搜索页，默认只搜这个包
     if (searchBox) {
         searchBox.placeholder = t('pack.searchIn', {name: pack.name});
@@ -120,4 +136,5 @@ loadLevelsData().then(({ packs }) => {
 }).catch(error => {
     console.error(error);
     description.textContent = t('pack.failed');
+    window.__resolvePageReady?.();
 });

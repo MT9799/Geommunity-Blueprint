@@ -6,6 +6,12 @@
     <title>关卡包总览 | Geommunity Blueprint</title>
     <link rel="stylesheet" href="./app.css">
     <link rel="icon" href="./static/images/favicon.ico">
+    <script>
+        // 跨文档过渡：先挂好就绪 promise（levels.js 渲染完关卡包列表后 resolve）。
+        // 放在 head：导航方向 / 隐藏待加载页面要在首帧之前生效
+        window.__pageReady = new Promise(resolve => { window.__resolvePageReady = resolve; });
+    </script>
+    <script src="./static/js/i18n.js"></script>
 </head>
 <body>
     <main class="home-shell home-shell-flush">
@@ -20,7 +26,6 @@
             <div id="level-packs" class="feature-grid"></div>
         </div>
     </main>
-    <script src="./static/js/i18n.js"></script>
     <!-- 记录数据（只读本机存档）：列表里给已达标的 L / E 标金 -->
     <script src="./static/js/recordStore.js"></script>
     <script src="./levels-data.js"></script>

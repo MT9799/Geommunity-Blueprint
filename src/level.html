@@ -6,6 +6,11 @@
     <link rel="stylesheet" href="./static/css/index.css">
     <link rel="icon" href="./static/images/favicon.ico">
     <!-- 词典先就位：兜底标题按语言定，关卡数据回来后 level-loader 再换成具体关卡 -->
+    <script>
+        // 跨文档过渡：先挂好就绪 promise（level-loader 画完关卡后 resolve），
+        // 这样 pagereveal 会等图形画完再切入
+        window.__pageReady = new Promise(resolve => { window.__resolvePageReady = resolve; });
+    </script>
     <script src="./static/js/i18n.js"></script>
     <script>
         (function () {
@@ -413,6 +418,24 @@ fill="transparent" stroke-width="10"  stroke-linejoin="round"/>
 <svg class="svg-icon" viewBox="0 0 200 200">
 <circle cx="100" cy="100" r="74" fill="none" stroke-width="10"/>
 <polyline points="114,65 80,100 114,135" fill="none" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+        </template>
+        <template id="svg-edit">
+            <!-- 工具 -->
+            <!-- 工具按钮 -->
+            <!-- 工具功能切换 -->
+            <!-- 其它 -->
+<svg class="button-icon-toolbar svg-icon" viewBox="0 0 200 200">
+<polygon points="
+60 100, 
+120 40, 
+160 80, 
+100 140, 
+60 140" 
+fill="transparent" stroke-width="10"  stroke-linejoin="round"/>
+<line x1="60" y1="100" x2="100" y2="140" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+<line x1="100" y1="60" x2="140" y2="100" fill="transparent" stroke-width="10" stroke-linecap="round"/>
+<line x1="40" y1="160" x2="160" y2="160" fill="transparent" stroke-width="10" stroke-linecap="round"/>
 </svg>
         </template>
         <template id="svg-openSolver">
