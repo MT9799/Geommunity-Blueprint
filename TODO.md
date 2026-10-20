@@ -4,17 +4,7 @@
 
 ## 1. 补全关卡信息
 
-### 1.4 缺说明 subtitle
-
-除 `ewp`（99）、`xmath`（25）之外的 7 个包整包都没有：`c-s-pzls-other`（59）、`xeuclidea-puzzle`（56）、`straightedge-only-pzls`（36）、`from-baidu-tieba`（34）、`mingjing-forum`（16）、`euc-addit`（10）、`sprfes`（10）。逐关的 id 清单需要时再列。
-
-### 1.5 其它
-
-- `keywords`：每关都有，但都只有最基本的关键词，需要补全。
-- 由于关卡信息是ai批量自动读取的，可能有一部分关卡的信息有误（比如L/E数不对，题目/答案图片不对，等等），仍需要仔细检查一遍。
-- 有一部分关卡还能压缩步数。
-
-### 1.6 逐步绘制文件
+### 1.1 逐步绘制文件
 
 - **关卡答案的「逐步绘制」gmt 需要手工补充**：`data/levels.json` 里每条 `solutions` 现在只有一个 `gmt` 字段（放该解法对应的 gmt 文件路径，相对 `data/`）。这些 gmt 原则上用「在求解器里绘制出解法后自动保存的那份记录」导出，必须**不含预绘制图形**（不能带 `initial=` 之类把给定图形也画进来），才能按 undolist 一步一格撤回。需要逐关产出后再填进 `data/levels.json`。
 

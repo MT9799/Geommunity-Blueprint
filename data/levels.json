@@ -8522,13 +8522,15 @@
         "pack": "xeuclidea-puzzle",
         "file": "levels/xeuclidea-puzzle/xep1.gmt",
         "title": "XEP1",
-        "subtitle": "",
+        "subtitle": "已知角的两边分别有一点A和B，求作等长三折线ACDB，使得点C与点A共线，点D与点B共线。",
         "targetSteps": "6L / 7E",
         "diagram": "diagrams/xeuclidea-puzzle/xep1.jpg",
         "note": "",
         "keywords": [
             "XEuclidea-Puzzle",
-            "多解"
+            "多解",
+            "角",
+            "等长折线"
         ],
         "solutions": [
             {
@@ -8554,14 +8556,15 @@
         "pack": "xeuclidea-puzzle",
         "file": "levels/xeuclidea-puzzle/xep2.gmt",
         "title": "XEP2",
-        "subtitle": "",
+        "subtitle": "已知平行于给定直线的两点A和B，求作等长三折线ACDB，使得点C和D都在给定直线上。",
         "targetSteps": "6L / 9E",
         "diagram": "diagrams/xeuclidea-puzzle/xep2.jpg",
         "note": "",
         "keywords": [
             "XEuclidea-Puzzle",
             "平行线",
-            "多解"
+            "多解",
+            "等长折线"
         ],
         "solutions": [
             {
@@ -8627,12 +8630,16 @@
         "pack": "xeuclidea-puzzle",
         "file": "levels/xeuclidea-puzzle/xep3.gmt",
         "title": "XEP3",
-        "subtitle": "",
+        "subtitle": "已知圆内一点，求作等长三折线，顶点都在圆上，使得交叉处过给定点。",
         "targetSteps": "11L / 14E",
         "diagram": "diagrams/xeuclidea-puzzle/xep3.jpg",
         "note": "",
         "keywords": [
-            "XEuclidea-Puzzle"
+            "XEuclidea-Puzzle",
+            "圆",
+            "等长折线",
+            "交点",
+            "顶点接圆"
         ],
         "solutions": [
             {
@@ -8654,13 +8661,17 @@
         "pack": "xeuclidea-puzzle",
         "file": "levels/xeuclidea-puzzle/xep4.gmt",
         "title": "XEP4",
-        "subtitle": "",
+        "subtitle": "已知射线l1,l2,l3共顶点，点A，求作过点A的直线，截l1,l2,l3分别为点B,C,D，使得BD中点为点C。",
         "targetSteps": "4L / 6E",
         "diagram": "diagrams/xeuclidea-puzzle/xep4.jpg",
         "note": "",
         "keywords": [
             "XEuclidea-Puzzle",
-            "中点"
+            "中点",
+            "射线",
+            "直线过点",
+            "交点",
+            "共点"
         ],
         "solutions": [
             {
@@ -8686,13 +8697,15 @@
         "pack": "xeuclidea-puzzle",
         "file": "levels/xeuclidea-puzzle/xep5.gmt",
         "title": "XEP5",
-        "subtitle": "",
+        "subtitle": "已知平行线l1和l2，点A，求作等长三折线BCDE，点B和E在l1上，点C和D在l2上，使得BC过点A，DE过点A。",
         "targetSteps": "5L / 9E",
         "diagram": "diagrams/xeuclidea-puzzle/xep5.jpg",
         "note": "",
         "keywords": [
             "XEuclidea-Puzzle",
-            "平行线"
+            "平行线",
+            "直线过点",
+            "等长折线"
         ],
         "solutions": [
             {
@@ -8718,7 +8731,7 @@
         "pack": "xeuclidea-puzzle",
         "file": "levels/xeuclidea-puzzle/xep6.gmt",
         "title": "XEP6",
-        "subtitle": "",
+        "subtitle": "已知平行线l1和l2截圆弦等长，在这4点中取直径上两点A和B，点A在l1上，求作等长三折线ACDB，点C和D分别在l1和l2上。",
         "targetSteps": "4L / 6E",
         "diagram": "diagrams/xeuclidea-puzzle/xep6.jpg",
         "note": "",
@@ -8727,7 +8740,10 @@
             "平行线",
             "弦",
             "直径",
-            "多解"
+            "多解",
+            "等长折线",
+            "长度相等",
+            "圆"
         ],
         "solutions": [
             {
@@ -8761,14 +8777,16 @@
         "pack": "xeuclidea-puzzle",
         "file": "levels/xeuclidea-puzzle/xep7.gmt",
         "title": "XEP7",
-        "subtitle": "",
+        "subtitle": "已知正方形内一点，求作内接正方形，使得其中一边过给定点。",
         "targetSteps": "8L / 7E",
         "diagram": "diagrams/xeuclidea-puzzle/xep7.jpg",
         "note": "",
         "keywords": [
             "XEuclidea-Puzzle",
             "正方形",
-            "多解"
+            "多解",
+            "内接",
+            "直线过点"
         ],
         "solutions": [
             {
@@ -8814,12 +8832,15 @@
         "pack": "xeuclidea-puzzle",
         "file": "levels/xeuclidea-puzzle/xep8.gmt",
         "title": "XEP8",
-        "subtitle": "",
+        "subtitle": "已知圆上一点，求作正五角星，使得其中一顶点为给定点。",
         "targetSteps": "8L / 10E",
         "diagram": "diagrams/xeuclidea-puzzle/xep8.png",
         "note": "",
         "keywords": [
-            "XEuclidea-Puzzle"
+            "XEuclidea-Puzzle",
+            "正五角星",
+            "圆",
+            "内接"
         ],
         "solutions": [
             {
@@ -8849,14 +8870,15 @@
         "pack": "xeuclidea-puzzle",
         "file": "levels/xeuclidea-puzzle/xep9.gmt",
         "title": "XEP9",
-        "subtitle": "",
+        "subtitle": "已知一条线段，求作正五边形，使得其中一边为给定线段。",
         "targetSteps": "11E",
         "diagram": "diagrams/xeuclidea-puzzle/xep9.png",
         "note": "",
         "keywords": [
             "XEuclidea-Puzzle",
             "正多边形",
-            "多解"
+            "多解",
+            "正五边形"
         ],
         "solutions": [
             {
@@ -8910,13 +8932,14 @@
         "pack": "xeuclidea-puzzle",
         "file": "levels/xeuclidea-puzzle/xep10.gmt",
         "title": "XEP10",
-        "subtitle": "",
+        "subtitle": "已知一条线段，求作正五角星，使得其中一边为给定线段。",
         "targetSteps": "10L / 10E",
         "diagram": "diagrams/xeuclidea-puzzle/xep10.png",
         "note": "",
         "keywords": [
             "XEuclidea-Puzzle",
-            "多解"
+            "多解",
+            "正五角星"
         ],
         "solutions": [
             {
@@ -8954,7 +8977,7 @@
         "pack": "xeuclidea-puzzle",
         "file": "levels/xeuclidea-puzzle/xep11.gmt",
         "title": "XEP11",
-        "subtitle": "",
+        "subtitle": "已知四边形，求作正方形，使得各顶点分别在四边形所在直线上。",
         "targetSteps": "11E",
         "diagram": "diagrams/xeuclidea-puzzle/xep11.jpg",
         "note": "",
@@ -8962,7 +8985,8 @@
             "XEuclidea-Puzzle",
             "正方形",
             "四边形",
-            "多解"
+            "多解",
+            "内接"
         ],
         "solutions": [
             {
@@ -8992,14 +9016,15 @@
         "pack": "xeuclidea-puzzle",
         "file": "levels/xeuclidea-puzzle/xep12.gmt",
         "title": "XEP12",
-        "subtitle": "",
+        "subtitle": "已知正方形ABCD，求作等边五边形AEFGH，使得点E在AB上，点F在BC上，点G在CD上，点H在AD上。",
         "targetSteps": "11L / 11E",
         "diagram": "diagrams/xeuclidea-puzzle/xep12.jpg",
         "note": "",
         "keywords": [
             "XEuclidea-Puzzle",
-            "正三角形",
-            "正方形"
+            "正方形",
+            "等边五边形",
+            "内接"
         ],
         "solutions": [
             {
@@ -9021,7 +9046,7 @@
         "pack": "xeuclidea-puzzle",
         "file": "levels/xeuclidea-puzzle/xep13.gmt",
         "title": "XEP13",
-        "subtitle": "",
+        "subtitle": "已知4平行线，从上到下依次为l1,l2,l3,l4，l1与l2的间距等于l3与l4的间距，l1和l4上各有一点A和B，直线AB垂直于给定的平行线。求作等长三折线ACDB，点C和D分别在l2和l3上。",
         "targetSteps": "10L / 10E",
         "diagram": "diagrams/xeuclidea-puzzle/xep13.jpg",
         "note": "",
@@ -9029,7 +9054,9 @@
             "XEuclidea-Puzzle",
             "垂线",
             "平行线",
-            "多解"
+            "多解",
+            "距离相等",
+            "等长折线"
         ],
         "solutions": [
             {
@@ -9055,7 +9082,7 @@
         "pack": "xeuclidea-puzzle",
         "file": "levels/xeuclidea-puzzle/xep14.gmt",
         "title": "XEP14",
-        "subtitle": "",
+        "subtitle": "已知4平行线，从上到下依次为l1,l2,l3,l4，l1和l4上各有一点A和B，直线AB垂直于给定的平行线。求作等长三折线ACDB，点C和D分别在l2和l3上。",
         "targetSteps": "22L / 14E",
         "diagram": "diagrams/xeuclidea-puzzle/xep14.png",
         "note": "",
@@ -9063,7 +9090,8 @@
             "XEuclidea-Puzzle",
             "垂线",
             "平行线",
-            "多解"
+            "多解",
+            "等长折线"
         ],
         "solutions": [
             {
@@ -9093,13 +9121,18 @@
         "pack": "xeuclidea-puzzle",
         "file": "levels/xeuclidea-puzzle/xep15.gmt",
         "title": "XEP15",
-        "subtitle": "",
+        "subtitle": "已知角A的平分线上一点B，求作过点B的直线，交角的两边分别为点C和D，使得2CD=AC+AD。",
         "targetSteps": "5L / 7E",
         "diagram": "diagrams/xeuclidea-puzzle/xep15.png",
         "note": "",
         "keywords": [
             "XEuclidea-Puzzle",
-            "多解"
+            "多解",
+            "角",
+            "角平分线",
+            "直线过点",
+            "等式",
+            "交点"
         ],
         "solutions": [
             {
@@ -9125,12 +9158,17 @@
         "pack": "xeuclidea-puzzle",
         "file": "levels/xeuclidea-puzzle/xep16.gmt",
         "title": "XEP16",
-        "subtitle": "",
+        "subtitle": "已知角A的平分线上一点B，求作等长三折线CDEF，分别位于角的两边，使得折线交叉处为给定点B。",
         "targetSteps": "16L / 43E",
         "diagram": "diagrams/xeuclidea-puzzle/xep16.png",
         "note": "",
         "keywords": [
-            "XEuclidea-Puzzle"
+            "XEuclidea-Puzzle",
+            "角",
+            "直线过点",
+            "交点",
+            "等长折线",
+            "角平分线"
         ],
         "solutions": [
             {
@@ -9152,14 +9190,16 @@
         "pack": "xeuclidea-puzzle",
         "file": "levels/xeuclidea-puzzle/xep17.gmt",
         "title": "XEP17",
-        "subtitle": "",
+        "subtitle": "已知4平行线，从上到下依次为l1,l2,l3,l4，l1与l2的间距等于l3与l4的间距，l1和l4上各有一点A和B。求作等长三折线ACDB，点C和D分别在l2和l3上。",
         "targetSteps": "7L / 7E",
         "diagram": "diagrams/xeuclidea-puzzle/xep17.jpg",
         "note": "",
         "keywords": [
             "XEuclidea-Puzzle",
             "平行线",
-            "多解"
+            "多解",
+            "等长折线",
+            "距离相等"
         ],
         "solutions": [
             {
@@ -9181,7 +9221,7 @@
         "pack": "xeuclidea-puzzle",
         "file": "levels/xeuclidea-puzzle/xep18-2.gmt",
         "title": "XEP18-2",
-        "subtitle": "",
+        "subtitle": "已知三角形及任意一点，求作内接正三角形，使得其一边过给定点。",
         "targetSteps": "13L / 25E",
         "diagram": "diagrams/xeuclidea-puzzle/xep18-2.jpg",
         "note": "",
@@ -9189,7 +9229,9 @@
             "XEuclidea-Puzzle",
             "正三角形",
             "三角形",
-            "多解"
+            "多解",
+            "直线过点",
+            "内接"
         ],
         "solutions": [
             {
@@ -9219,7 +9261,7 @@
         "pack": "xeuclidea-puzzle",
         "file": "levels/xeuclidea-puzzle/xep18.gmt",
         "title": "XEP18",
-        "subtitle": "",
+        "subtitle": "已知三角形及任意一点，求作内接正三角形，使得其一边过给定点。",
         "targetSteps": "13L / 25E",
         "diagram": "diagrams/xeuclidea-puzzle/xep18.png",
         "note": "",
@@ -9227,7 +9269,9 @@
             "XEuclidea-Puzzle",
             "正三角形",
             "三角形",
-            "多解"
+            "多解",
+            "直线过点",
+            "内接"
         ],
         "solutions": [
             {
@@ -9257,13 +9301,17 @@
         "pack": "xeuclidea-puzzle",
         "file": "levels/xeuclidea-puzzle/xep19.gmt",
         "title": "XEP19",
-        "subtitle": "",
+        "subtitle": "已知两个等大的圆，求作等距共线4点所在直线，这4点都在圆上。",
         "targetSteps": "4L / 10E",
         "diagram": "diagrams/xeuclidea-puzzle/xep19.png",
         "note": "",
         "keywords": [
             "XEuclidea-Puzzle",
-            "多解"
+            "多解",
+            "圆",
+            "距离相等",
+            "割线",
+            "交点"
         ],
         "solutions": [
             {
@@ -9285,13 +9333,17 @@
         "pack": "xeuclidea-puzzle",
         "file": "levels/xeuclidea-puzzle/xep20.gmt",
         "title": "XEP20",
-        "subtitle": "",
+        "subtitle": "已知两个圆，求作等距共线4点所在直线，这4点都在圆上。",
         "targetSteps": "23L / 41E",
         "diagram": "diagrams/xeuclidea-puzzle/xep20.png",
         "note": "",
         "keywords": [
             "XEuclidea-Puzzle",
-            "多解"
+            "多解",
+            "圆",
+            "距离相等",
+            "割线",
+            "交点"
         ],
         "solutions": [
             {
@@ -9313,13 +9365,17 @@
         "pack": "xeuclidea-puzzle",
         "file": "levels/xeuclidea-puzzle/xep21.gmt",
         "title": "XEP21",
-        "subtitle": "",
+        "subtitle": "已知角A的平分线上一点B，线段CD，求",
         "targetSteps": "8L / 28E",
         "diagram": "diagrams/xeuclidea-puzzle/xep21.png",
         "note": "",
         "keywords": [
             "XEuclidea-Puzzle",
-            "多解"
+            "多解",
+            "角",
+            "直线过点",
+            "截线",
+            "长度相等"
         ],
         "solutions": [
             {
@@ -9337,14 +9393,20 @@
         "pack": "xeuclidea-puzzle",
         "file": "levels/xeuclidea-puzzle/xep22.gmt",
         "title": "XEP22",
-        "subtitle": "",
+        "subtitle": "已知两个等大的圆，和2条外公切线段（只有连接切点的一段），求作其中一个圆心与另一个圆的两条切线。",
         "targetSteps": "3L / 3E",
         "diagram": "diagrams/xeuclidea-puzzle/xep22.png",
         "note": "",
         "keywords": [
             "XEuclidea-Puzzle",
             "切线",
-            "多解"
+            "多解",
+            "距离相等",
+            "圆",
+            "公切线",
+            "线段",
+            "直线过点",
+            "圆心"
         ],
         "solutions": [
             {
@@ -9366,13 +9428,14 @@
         "pack": "xeuclidea-puzzle",
         "file": "levels/xeuclidea-puzzle/xep23.gmt",
         "title": "XEP23",
-        "subtitle": "",
+        "subtitle": "已知两点A和B，求作点C和D，使得AC=CD=DB，AD=AB=BC。",
         "targetSteps": "7L / 7E",
         "diagram": "diagrams/xeuclidea-puzzle/xep23.png",
         "note": "",
         "keywords": [
             "XEuclidea-Puzzle",
-            "多解"
+            "多解",
+            "距离相等"
         ],
         "solutions": [
             {
@@ -9398,13 +9461,17 @@
         "pack": "xeuclidea-puzzle",
         "file": "levels/xeuclidea-puzzle/xep24.gmt",
         "title": "XEP24",
-        "subtitle": "",
+        "subtitle": "已知圆内一点，求作圆的内接闭合四折线，使得每条线段的夹角都为30°，且折线相交于给定点。",
         "targetSteps": "6L / 6E",
         "diagram": "diagrams/xeuclidea-puzzle/xep24.png",
         "note": "",
         "keywords": [
             "XEuclidea-Puzzle",
-            "四边形"
+            "四边形",
+            "圆",
+            "30度",
+            "夹角",
+            "交点"
         ],
         "solutions": [
             {
@@ -9422,13 +9489,16 @@
         "pack": "xeuclidea-puzzle",
         "file": "levels/xeuclidea-puzzle/xep25.gmt",
         "title": "XEP25",
-        "subtitle": "",
+        "subtitle": "已知三点，求作圆，使得与各个点的切线视角都成60°。",
         "targetSteps": "5L / 11E",
         "diagram": "diagrams/xeuclidea-puzzle/xep25.png",
         "note": "",
         "keywords": [
             "XEuclidea-Puzzle",
-            "切线"
+            "切线",
+            "60度",
+            "夹角",
+            "圆"
         ],
         "solutions": [
             {
@@ -9446,14 +9516,17 @@
         "pack": "xeuclidea-puzzle",
         "file": "levels/xeuclidea-puzzle/xep26.gmt",
         "title": "XEP26",
-        "subtitle": "",
+        "subtitle": "已知三角形ABC，求作一条线，截三角形三边所在直线分别为点D,E,F，使得AD=BE=CF，且AD,BE,CF分别在三角形各边所在直线上。",
         "targetSteps": "16L / 43E",
         "diagram": "diagrams/xeuclidea-puzzle/xep26.png",
         "note": "",
         "keywords": [
             "XEuclidea-Puzzle",
             "三角形",
-            "多解"
+            "多解",
+            "直线",
+            "交点",
+            "长度相等"
         ],
         "solutions": [
             {
@@ -9483,7 +9556,7 @@
         "pack": "xeuclidea-puzzle",
         "file": "levels/xeuclidea-puzzle/xep27.gmt",
         "title": "XEP27",
-        "subtitle": "",
+        "subtitle": "已知圆和弦，任意一点，求作过给定点的圆的割线，交圆于两点，使得这两点的中点在给定弦上。",
         "targetSteps": "4L / 6E",
         "diagram": "diagrams/xeuclidea-puzzle/xep27.png",
         "note": "",
@@ -9491,7 +9564,10 @@
             "XEuclidea-Puzzle",
             "中点",
             "弦",
-            "多解"
+            "多解",
+            "圆",
+            "割线",
+            "交点"
         ],
         "solutions": [
             {
@@ -9513,7 +9589,7 @@
         "pack": "xeuclidea-puzzle",
         "file": "levels/xeuclidea-puzzle/xep28.gmt",
         "title": "XEP28",
-        "subtitle": "",
+        "subtitle": "已知三角形和一点，求作过该点的圆，使得圆截三角形三边所在直线的弦等长。",
         "targetSteps": "3L / 7E",
         "diagram": "diagrams/xeuclidea-puzzle/xep28.png",
         "note": "",
@@ -9521,7 +9597,10 @@
             "XEuclidea-Puzzle",
             "弦",
             "三角形",
-            "多解"
+            "多解",
+            "长度相等",
+            "圆过点",
+            "截弦"
         ],
         "solutions": [
             {
@@ -9547,13 +9626,16 @@
         "pack": "xeuclidea-puzzle",
         "file": "levels/xeuclidea-puzzle/xep29.gmt",
         "title": "XEP29",
-        "subtitle": "",
+        "subtitle": "已知4条线，求作一条线，使得4个交点相邻距离都相等。",
         "targetSteps": "6L / 8E",
         "diagram": "diagrams/xeuclidea-puzzle/xep29.png",
         "note": "",
         "keywords": [
             "XEuclidea-Puzzle",
-            "多解"
+            "多解",
+            "直线",
+            "交点",
+            "长度相等"
         ],
         "solutions": [
             {
@@ -9583,7 +9665,7 @@
         "pack": "xeuclidea-puzzle",
         "file": "levels/xeuclidea-puzzle/xep30.gmt",
         "title": "XEP30",
-        "subtitle": "",
+        "subtitle": "已知直线及4点，求作两对平行线，使得每条直线各过一给定点，与给定直线的4个交点形成三等分点。",
         "targetSteps": "11L / 14E",
         "diagram": "diagrams/xeuclidea-puzzle/xep30.png",
         "note": "",
@@ -9591,7 +9673,11 @@
             "XEuclidea-Puzzle",
             "平行线",
             "等分",
-            "多解"
+            "多解",
+            "直线",
+            "交点",
+            "长度相等",
+            "直线过点"
         ],
         "solutions": [
             {
@@ -9625,7 +9711,7 @@
         "pack": "xeuclidea-puzzle",
         "file": "levels/xeuclidea-puzzle/xep31.gmt",
         "title": "XEP31",
-        "subtitle": "",
+        "subtitle": "已知两个同心圆及大圆的半径，求作菱形，其中两个顶点位于半径所在直线上，另外两点位于大圆上，其中两边切于大圆，另外两边切于小圆。",
         "targetSteps": "9L / 12E",
         "diagram": "diagrams/xeuclidea-puzzle/xep31.png",
         "note": "",
@@ -9634,7 +9720,8 @@
             "切线",
             "菱形",
             "半径",
-            "多解"
+            "多解",
+            "同心圆"
         ],
         "solutions": [
             {
@@ -9664,7 +9751,7 @@
         "pack": "xeuclidea-puzzle",
         "file": "levels/xeuclidea-puzzle/xep32.gmt",
         "title": "XEP32",
-        "subtitle": "",
+        "subtitle": "已知无心圆上4点ABCD，直线CD上有2点EF（直线CD给出），仅用直尺作出圆上一点X，使得连线AX和BX截弦CD于点R和S，点RS对于以EF为直径的圆互为反演点。",
         "targetSteps": "32L / 16E",
         "diagram": "diagrams/xeuclidea-puzzle/xep32.png",
         "note": "",
@@ -9673,7 +9760,9 @@
             "弦",
             "直径",
             "反演",
-            "多解"
+            "多解",
+            "单尺",
+            "无心圆"
         ],
         "solutions": [
             {
@@ -9707,14 +9796,18 @@
         "pack": "xeuclidea-puzzle",
         "file": "levels/xeuclidea-puzzle/xep33.gmt",
         "title": "XEP33",
-        "subtitle": "",
+        "subtitle": "已知角和2点AB，求作四边形ACBD，使得点CD分别在角的两边上，点A处的夹角为90°，点B处的夹角为120°。",
         "targetSteps": "33E",
         "diagram": "diagrams/xeuclidea-puzzle/xep33.png",
         "note": "",
         "keywords": [
             "XEuclidea-Puzzle",
             "四边形",
-            "多解"
+            "多解",
+            "角",
+            "夹角",
+            "120度",
+            "90度"
         ],
         "solutions": [
             {
@@ -9736,16 +9829,19 @@
         "pack": "xeuclidea-puzzle",
         "file": "levels/xeuclidea-puzzle/xep34.gmt",
         "title": "xep34",
-        "subtitle": "",
+        "subtitle": "已知3个给定圆，构造一个与圆相切，与圆正交，截圆对径的圆。",
         "targetSteps": "17L / 27E",
         "diagram": "diagrams/xeuclidea-puzzle/xep34.png",
         "note": "",
         "keywords": [
             "XEuclidea-Puzzle",
-            "垂线",
+            "正交",
             "切线",
             "直径",
-            "多解"
+            "多解",
+            "相切",
+            "圆",
+            "截弦"
         ],
         "solutions": [
             {
@@ -9771,13 +9867,19 @@
         "pack": "xeuclidea-puzzle",
         "file": "levels/xeuclidea-puzzle/xep35.gmt",
         "title": "xep35",
-        "subtitle": "",
+        "subtitle": "已知3个给定圆，构造一个与给定圆交于30°,60°,90°角的圆。",
         "targetSteps": "47L / 76E",
         "diagram": "diagrams/xeuclidea-puzzle/xep35.png",
         "note": "",
         "keywords": [
             "XEuclidea-Puzzle",
-            "多解"
+            "多解",
+            "圆",
+            "截弦",
+            "夹角",
+            "30度",
+            "60度",
+            "90度"
         ],
         "solutions": [
             {
@@ -9803,15 +9905,19 @@
         "pack": "xeuclidea-puzzle",
         "file": "levels/xeuclidea-puzzle/xep36.gmt",
         "title": "xep36",
-        "subtitle": "",
+        "subtitle": "已知圆和直线，构造圆外切四边形，四边形的对角分别为120°和60°，对边交点（共2个）都在直线上。",
         "targetSteps": "32L / 38E",
         "diagram": "diagrams/xeuclidea-puzzle/xep36.png",
         "note": "",
         "keywords": [
             "XEuclidea-Puzzle",
-            "外接圆",
+            "圆",
+            "外切",
             "四边形",
-            "多解"
+            "多解",
+            "60度",
+            "120度",
+            "夹角"
         ],
         "solutions": [
             {
@@ -9833,16 +9939,19 @@
         "pack": "xeuclidea-puzzle",
         "file": "levels/xeuclidea-puzzle/xep37.gmt",
         "title": "xep37",
-        "subtitle": "",
+        "subtitle": "构造一条切圆（最小的）的直线，截另外两圆的弦等长。",
         "targetSteps": "7E",
         "diagram": "diagrams/xeuclidea-puzzle/xep37.png",
         "note": "",
         "keywords": [
             "XEuclidea-Puzzle",
-            "切线",
+            "直径",
             "弦",
-            "最值",
-            "多解"
+            "相等",
+            "线段",
+            "切圆",
+            "切线",
+            "公切线"
         ],
         "solutions": [
             {
@@ -9860,7 +9969,7 @@
         "pack": "xeuclidea-puzzle",
         "file": "levels/xeuclidea-puzzle/xep38.gmt",
         "title": "XEP38",
-        "subtitle": "",
+        "subtitle": "已知6条直线，构造一个三角形，使各边的三等分点各在直线上。",
         "targetSteps": "130L / 182E",
         "diagram": "diagrams/xeuclidea-puzzle/xep38.png",
         "note": "",
@@ -9889,14 +9998,18 @@
         "pack": "xeuclidea-puzzle",
         "file": "levels/xeuclidea-puzzle/xep39.gmt",
         "title": "XEP39",
-        "subtitle": "",
+        "subtitle": "已知共点3射线，其中两条射线间有一个三角形，构造一个三角形，在旁边的射线间，且面积和周长都与给定的三角形相等。",
         "targetSteps": "9L / 19E",
         "diagram": "diagrams/xeuclidea-puzzle/xep39.png",
         "note": "",
         "keywords": [
             "XEuclidea-Puzzle",
+            "角",
+            "射线",
+            "共点",
             "面积",
             "周长",
+            "相等",
             "三角形",
             "多解"
         ],
@@ -9940,14 +10053,16 @@
         "pack": "xeuclidea-puzzle",
         "file": "levels/xeuclidea-puzzle/xep40-2.gmt",
         "title": "xep40-2",
-        "subtitle": "",
+        "subtitle": "已知平行线jk及4点ABCD，构造两对平行线ghnm，gh分别过点AB，nm分别过点CD，gn交点在j上，hm交点在k上。",
         "targetSteps": "11L / 13E",
         "diagram": "diagrams/xeuclidea-puzzle/xep40-2.png",
         "note": "",
         "keywords": [
             "XEuclidea-Puzzle",
             "平行线",
-            "多解"
+            "多解",
+            "直线过点",
+            "交点"
         ],
         "solutions": [
             {
@@ -9973,7 +10088,7 @@
         "pack": "xeuclidea-puzzle",
         "file": "levels/xeuclidea-puzzle/xep41.gmt",
         "title": "xep41",
-        "subtitle": "",
+        "subtitle": "已知6点ABCDEF，构造平行四边形，平行边过点AB，另外一对平行边过点CD，两条对角线分别过点EF。",
         "targetSteps": "25L / 43E",
         "diagram": "diagrams/xeuclidea-puzzle/xep41.png",
         "note": "",
@@ -9981,7 +10096,8 @@
             "XEuclidea-Puzzle",
             "平行线",
             "平行四边形",
-            "四边形"
+            "四边形",
+            "直线过点"
         ],
         "solutions": [
             {
@@ -9999,13 +10115,15 @@
         "pack": "xeuclidea-puzzle",
         "file": "levels/xeuclidea-puzzle/xep42.gmt",
         "title": "xep42",
-        "subtitle": "",
+        "subtitle": "已知9点ABCDEFGHI，构造平行线gh过点AB，平行线jk过点CD，平行线nm过点EF，gj交点与hk交点连线过点G，gn交点与hm交点连线过点H，jn交点与km交点连线过点I。",
         "targetSteps": "48L / 84E",
         "diagram": "diagrams/xeuclidea-puzzle/xep42.png",
         "note": "",
         "keywords": [
             "XEuclidea-Puzzle",
-            "平行线"
+            "平行线",
+            "交点",
+            "直线过点"
         ],
         "solutions": [
             {
@@ -10023,14 +10141,17 @@
         "pack": "xeuclidea-puzzle",
         "file": "levels/xeuclidea-puzzle/xep43.gmt",
         "title": "xep43",
-        "subtitle": "",
+        "subtitle": "已知直线上3点，构造3个相邻相切的圆，且存在另外一条外公切线。",
         "targetSteps": "10L / 15E",
         "diagram": "diagrams/xeuclidea-puzzle/xep43.jpg",
         "note": "",
         "keywords": [
             "XEuclidea-Puzzle",
             "切线",
-            "多解"
+            "多解",
+            "相切",
+            "圆",
+            "公切线"
         ],
         "solutions": [
             {
@@ -10068,14 +10189,17 @@
         "pack": "xeuclidea-puzzle",
         "file": "levels/xeuclidea-puzzle/xep44.gmt",
         "title": "xep44",
-        "subtitle": "",
+        "subtitle": "已知直线上3点，构造3个相邻相切的圆的另外一条外公切线。",
         "targetSteps": "8L / 11E",
         "diagram": "diagrams/xeuclidea-puzzle/xep44.png",
         "note": "",
         "keywords": [
             "XEuclidea-Puzzle",
             "切线",
-            "多解"
+            "多解",
+            "相切",
+            "圆",
+            "公切线"
         ],
         "solutions": [
             {
@@ -10101,14 +10225,16 @@
         "pack": "xeuclidea-puzzle",
         "file": "levels/xeuclidea-puzzle/xep45.gmt",
         "title": "xep45",
-        "subtitle": "",
+        "subtitle": "已知圆上2点AB，构造2条交点为E的弦AC,BD，使得AE=EC,2BE=ED。",
         "targetSteps": "9E",
         "diagram": "diagrams/xeuclidea-puzzle/xep45.jpg",
         "note": "",
         "keywords": [
             "XEuclidea-Puzzle",
             "弦",
-            "多解"
+            "多解",
+            "交点",
+            "比例"
         ],
         "solutions": [
             {
@@ -10130,13 +10256,17 @@
         "pack": "xeuclidea-puzzle",
         "file": "levels/xeuclidea-puzzle/xep46.gmt",
         "title": "xep46",
-        "subtitle": "",
+        "subtitle": "已知圆上弦AB和点C，构造圆上点D（仅构造点），CD连线交弦于点E，使得DA=DB+DE",
         "targetSteps": "5L / 8E",
         "diagram": "diagrams/xeuclidea-puzzle/xep46.jpg",
         "note": "",
         "keywords": [
             "XEuclidea-Puzzle",
-            "弦"
+            "弦",
+            "圆",
+            "交点",
+            "等式",
+            "长度"
         ],
         "solutions": [
             {
@@ -10162,13 +10292,15 @@
         "pack": "xeuclidea-puzzle",
         "file": "levels/xeuclidea-puzzle/xep47.gmt",
         "title": "xep47",
-        "subtitle": "",
+        "subtitle": "给定三角形各边上一点，各中位线上一点，还有三角形。",
         "targetSteps": "23L / 44E",
         "diagram": "diagrams/xeuclidea-puzzle/xep47.jpg",
         "note": "",
         "keywords": [
             "XEuclidea-Puzzle",
-            "三角形"
+            "三角形",
+            "中位线",
+            "直线过点"
         ],
         "solutions": [
             {
@@ -10186,7 +10318,7 @@
         "pack": "xeuclidea-puzzle",
         "file": "levels/xeuclidea-puzzle/xep48.gmt",
         "title": "xep48",
-        "subtitle": "",
+        "subtitle": "对于一个任意的三角形，存在一个反演把三角形的3个顶点变成一个正三角形的3个顶点，构造这样的反演中心。",
         "targetSteps": "8L / 18E",
         "diagram": "diagrams/xeuclidea-puzzle/xep48.png",
         "note": "",
