@@ -408,7 +408,7 @@ textarea {
 /* 更多栏按钮的弹层菜单 */
 .board-popup {
     position: fixed;
-    z-index: 6;
+    z-index: 8;
     display: none;
     flex-direction: column;
     gap: 5px;
@@ -1025,12 +1025,21 @@ body.mode-stepview #container_more [data-action="make-grid"] {
     /* 解多时面板会很长，限高后自己滚，免得出画面 */
     max-height: calc(100vh - 379px);
     overflow-y: auto;
+    /* 页签切换平移内容时裁掉超出面板的那一小段，避免露出画布 */
+    overflow-x: hidden;
     /* 给滚动条常驻预留一条槽位：滚动条出现 / 消失时内容宽度不再变，也就不会压住内容 */
     scrollbar-gutter: stable;
     padding: 10px 6px 10px 10px;
     border-radius: 10px;
     background-color: rgb(220, 220, 225);
     color: #191919;
+}
+/* 页签条固定，下面的内容单独一层，切页签时只平移这一层 */
+.solver-panel-inner {
+    display: grid;
+    gap: 10px;
+    min-height: 0;
+    width: 100%;
 }
 .solver-panel label { display: grid; gap: 5px; }
 
@@ -1072,7 +1081,15 @@ body.mode-stepview #container_more [data-action="make-grid"] {
     transform: rotate(90deg);
 }
 
-.solver-advanced[open] > summary { margin-bottom: 8px; }
+/* 展开时的间距放进内容层（.fold-body），收起时随高度一起收掉。
+   注意不能用 padding-top：高度动画到 0 时，box-sizing:border-box 的元素
+   仍会被 padding 撑出 8px，最后 open=false 再消失，就会跳一下。
+   用 ::before 占位，高度才能真正收到 0。 */
+.solver-advanced .fold-body::before {
+    content: "";
+    display: block;
+    height: 8px;
+}
 .solver-advanced .solver-field-row { margin-top: 10px; }
 
 /* 勾选项：一行「框 + 文字」，别跟着面板的 width: 100% 撑开 */
@@ -1155,10 +1172,26 @@ body.mode-stepview #container_more [data-action="make-grid"] {
     padding: 4px 8px;
     font-size: 13px;
     white-space: nowrap;
+    transition: background-color .18s ease, box-shadow .18s ease, color .18s ease;
 }
 .solver-tabs button.active { background-color: #d7e8eb; box-shadow: inset 0 0 0 2px #277f96; }
 /* !important：面板自己是 display: grid，普通规则压不过 */
 .solver-panel.panel-tab-hidden { display: none !important; }
+/* 求解参数 / 关系雷达切换：面板内容左右平移，不做透明度闪烁 */
+@keyframes solver-panel-tab-in-right {
+    from { transform: translateX(16px); }
+    to { transform: none; }
+}
+@keyframes solver-panel-tab-in-left {
+    from { transform: translateX(-16px); }
+    to { transform: none; }
+}
+.solver-panel-inner.panel-tab-in-right {
+    animation: solver-panel-tab-in-right .18s cubic-bezier(.2, .8, .2, 1);
+}
+.solver-panel-inner.panel-tab-in-left {
+    animation: solver-panel-tab-in-left .18s cubic-bezier(.2, .8, .2, 1);
+}
 /* 雷达面板与求解面板同宽（两块叠在同一处，宽度一致才不会切页签时跳一下） */
 .radar-panel { width: 240px; }
 /* 八个勾：一列一项（与求解参数一致；两列时标题会被挤断） */
@@ -1184,7 +1217,12 @@ body.mode-stepview #container_more [data-action="make-grid"] {
     transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .radar-more[open] > summary .radar-more-icon { transform: rotate(90deg); }
-.radar-more[open] > summary { margin-bottom: 4px; }
+/* 同上：用 ::before 占位，避免 padding 让收起高度停在 4px */
+.radar-more .fold-body::before {
+    content: "";
+    display: block;
+    height: 4px;
+}
 /* 勾选框与标题同一行、不换行（标题挤不下就省略号，不要折行） */
 .radar-panel .solver-check { display: flex; align-items: center; gap: 4px; white-space: nowrap; overflow: hidden; }
 .radar-panel .solver-check span { overflow: hidden; text-overflow: ellipsis; }
@@ -1290,6 +1328,17 @@ body.mode-stepview #container_more [data-action="make-grid"] {
     border-radius: 10px;
     background-color: rgb(220, 220, 225);
     color: #191919;
+}
+/* 标记面板内容层：面板底色与位置保持不动 */
+.mark-panel-inner {
+    display: grid;
+    gap: 8px;
+    min-height: 0;
+}
+/* 折叠内容用 flow-root 包住子元素的外边距：动画量到的 scrollHeight 与
+   动画结束后 height:auto 的实际高度一致，不会先到半截再跳一下 */
+.fold-body {
+    display: flow-root;
 }
 .mark-panel strong { font-size: 15px; }
 .mark-panel b { color: rgb(128, 128, 255); }
@@ -1869,7 +1918,9 @@ body.mode-stepview #container_more [data-action="make-grid"] {
     pointer-events: none;
 }
 
+/* 样式按钮保持完整宽度：5vw 的间隙只由右侧选中栏去承担 */
 #floating-bar-buttons {
+    flex: 0 0 auto;
     max-width: 80vw;
     pointer-events: auto;
 }
@@ -1880,8 +1931,11 @@ body.mode-stepview #container_more [data-action="make-grid"] {
 #floating-bar-elements {
     display: flex;
     flex-direction: row-reverse;
+    flex: 0 1 auto;
+    min-width: 0;
     max-width: 80vw;
     margin-left: auto;
+    overflow-x: auto;
     pointer-events: auto;
 }
 
@@ -2649,13 +2703,33 @@ body.mode-stepview #container_more [data-action="make-grid"] {
         width: 17px;
         height: 17px;
     }
-    /* 缩略图挪到右上角按钮下面一排，既不压住撤销 / 重做，也留得住宽度 */
+    /* 缩略图直接贴屏幕顶部（左上角），不再给菜单栏留一排高度 */
     .thumbnail {
-        top: 56px;
+        top: 0;
         left: 6px;
         width: 46vw;
         max-width: 200px;
     }
+    /* 卡片右边缘越过撤销按钮左边缘时，它已经横跨到更多栏下面；
+       更多栏的可用宽度改成从卡片右侧开始，放不下的按钮就像顶到屏幕左边界
+       一样自动换行（宽度由 JS 按卡片右边缘给出） */
+    body.level-thumb-wide #container_more {
+        max-width: var(--level-more-width, 100vw);
+    }
+    /* 更多栏被压缩时，返回按钮提前到第一行，尽量把「探索」或「探索 + 菜单」挤到第二行：
+       压 1 个：撤销 恢复 菜单 返回 / 探索
+       压 2 个：撤销 恢复 返回 / 探索 菜单
+       （压 3 个以上的情况很少见，保持原来的 DOM 顺序，不做重排） */
+    body.level-thumb-wrap-1 #container_more > button[data-action="restore"] { order: 1; }
+    body.level-thumb-wrap-1 #container_more > button[data-action="redo"] { order: 2; }
+    body.level-thumb-wrap-1 #container_more > button[data-action="open-menu"] { order: 3; }
+    body.level-thumb-wrap-1 #container_more > button[data-action^="return-to"] { order: 4; }
+    body.level-thumb-wrap-1 #container_more > button[data-action="explore"] { order: 5; }
+    body.level-thumb-wrap-2 #container_more > button[data-action="restore"] { order: 1; }
+    body.level-thumb-wrap-2 #container_more > button[data-action="redo"] { order: 2; }
+    body.level-thumb-wrap-2 #container_more > button[data-action^="return-to"] { order: 3; }
+    body.level-thumb-wrap-2 #container_more > button[data-action="open-menu"] { order: 4; }
+    body.level-thumb-wrap-2 #container_more > button[data-action="explore"] { order: 5; }
     .level-status {
         font-size: 10px;
         gap: 3px;
@@ -2940,12 +3014,11 @@ html.nav-pending #container_more {
     }
 }
 
-/* 三块主面板 / 求解器面板：display 切换时从下方轻轻滑入 */
+/* 三块主面板：display 切换时从下方轻轻滑入。
+   求解 / 雷达面板不在这里加基础动画 —— 它们由页签切换的左右平移动画负责，
+   否则切换时基础动画会和页签动画先后各播一次，看起来闪两下 */
 .panel {
     animation: view-panel-in .22s cubic-bezier(.2, .8, .2, 1);
-}
-.solver-panel {
-    animation: view-panel-in .2s cubic-bezier(.2, .8, .2, 1);
 }
 
 /* 更多菜单 / 样式弹层：支持 display 离散过渡的浏览器里带淡入（退场由 allow-discrete 负责） */
@@ -2972,10 +3045,6 @@ html.nav-pending #container_more {
     animation: view-rise-in .18s ease-out;
 }
 
-/* 标记面板结构变化（增减解 / 切解）时内容淡入一次 */
-.mark-panel.view-swap {
-    animation: view-fade-in .16s ease-out;
-}
 
 /* 画板弹窗：遮罩淡入、对话框上浮；关闭时反向播放（见 board-tools 的 dismissMask） */
 .board-dialog-mask {

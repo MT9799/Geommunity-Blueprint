@@ -11,6 +11,15 @@ const RECOMMENDED_SEARCHES = [
 const params = new URLSearchParams(location.search);
 const input = document.getElementById('search-input');
 const scopeBox = document.getElementById('search-scope');
+
+// 进入搜索页自动聚焦输入框：autofocus 在 nav-pending（visibility:hidden）期间不生效，
+// 而且跨文档 View Transition 切入后焦点会被带回 body，所以这里在过渡结束后再聚焦一次，
+// 这样不用再点一下就能直接输入
+window.addEventListener('pagereveal', event => {
+    const focusInput = () => input.focus({preventScroll: true});
+    if (event.viewTransition?.finished) event.viewTransition.finished.finally(focusInput);
+    else requestAnimationFrame(focusInput);
+});
 const chipsBox = document.getElementById('search-chips');
 const summary = document.getElementById('search-summary');
 // 跨文档页面过渡：等搜索结果渲染完再让新页面切入
@@ -155,8 +164,11 @@ loadLevelsData().then(({ packs, levels }) => {
         render();
     });
     window.__resolvePageReady?.();
+    // 异步渲染完、页面可见后再聚焦一次（兜底，确保不用再点一下就能输入）
+    input.focus({preventScroll: true});
 }).catch(error => {
     console.error(error);
     summary.textContent = t('search.failed');
     window.__resolvePageReady?.();
+    input.focus({preventScroll: true});
 });

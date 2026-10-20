@@ -1685,7 +1685,9 @@ class ToolsFunction {
             // 渲染两点写成 [垂足 - 方向, 垂足] = [(baseX + dy, baseY - dx), (baseX, baseY)]
             return [[baseX + dy, baseY - dx], [baseX, baseY]];
         }else if (define.type === "copyAngle") {
-            // CopyAngle[A,B,C,D,E]：以 E 为顶点、ED 为始边，按 ∠ABC（从 BA 转到 BC 的方向与大小）作射线。
+            // CopyAngle[A,B,C,D,E]（README）：D 是始边上一点，E 是顶点。
+            // 以 E 为顶点、ED 为始边，按 ∠ABC（从 BA 转到 BC 的方向与大小）旋转 ED 得到射线方向；
+            // 射线长度为 |DE|（单位长度），linepoint 零点在 E。
             // 例：CopyAngle[F,A,E,G,C] = 以 C 为顶点、CG 为始边，按 ∠FAE 的方向（AF -> AE）旋转 CG
             const [a, b, c, d, e] = define.figure;
             const [ax, ay] = a.getCoordinate();
@@ -1699,7 +1701,9 @@ class ToolsFunction {
             // 源角 = θ(BA) - θ(BC)（负的「从 BA 转到 BC」），所以这里要「减去」它才是顺时针/逆时针一致的方向
             const source = (unitA ? Math.atan2(unitA.y, unitA.x) : Math.atan2(ay - by, ax - bx)) - (unitC ? Math.atan2(unitC.y, unitC.x) : Math.atan2(cy - by, cx - bx));
             const angle = Math.atan2(dy - ey, dx - ex) - source;
-            return [[ex, ey], [ex + Math.cos(angle) * 100, ey + Math.sin(angle) * 100]];
+            // 单位长度取 DE 的长度；射线从 E 出发，linepoint 零点在 E
+            const len = Math.hypot(dx - ex, dy - ey);
+            return [[ex, ey], [ex + Math.cos(angle) * len, ey + Math.sin(angle) * len]];
         }else if (define.type === "fixAngle") {
             // 以 figure[0] 为顶点、figure[1] 为始边方向，逆时针转过 value 度的射线
             const [vertex, start] = define.figure;

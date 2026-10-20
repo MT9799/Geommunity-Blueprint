@@ -2092,8 +2092,7 @@
    *   Circle3[A,B,C] / Intersect[对象1,对象2,x] / Linepoint[对象,x] / Midpoint[A,B] /
    *   Perp[A,s] / Parallel[A,s] / PBisect[A,B] / ABisect[A,B,C] / CenterPoint[c]
    * 设定行：initial / named / hidden / movepoints / result / explore
-   * 暂不支持：EdgePoint / Tangent / PolarLine / PolarPoint / FixAngle / CopyAngle / ShiftSeg
-   * 以及 rules（限制条件）与 ABisect[两线]，遇到时连同依赖它的对象一并丢弃
+   * 暂不支持：ShiftSeg 以及 rules（限制条件），遇到时连同依赖它的对象一并丢弃
    * @param {string} text
    * @returns {{elements: Object[], lists: Object}}
    */
@@ -3229,6 +3228,79 @@
    * @param {string} title 标题栏文字
    * @returns {Object} 上拉栏容器
    */
+  // 可折叠分组（求解高级选项 / 雷达「更多」/ 标记面板各栏）统一用高度动画：
+  // 原生 <details> 是硬切，这里接管 summary 点击，内容在 0 ↔ scrollHeight 之间平滑展开收起。
+  const FOLD_ANIM_SELECTOR = '.solver-advanced, .radar-more, .radar-group, .radar-chunk, .mark-fold';
+  /** 取 / 建 <details> 的内容容器（summary 以外的节点都挪进去） */
+  const foldBodyOf = details => {
+    const summary = details.querySelector(':scope > summary');
+    if (!summary) return null;
+    let body = details.querySelector(':scope > .fold-body');
+    if (body) return body;
+    body = document.createElement('div');
+    body.className = 'fold-body';
+    [...details.childNodes].forEach(node => {
+      if (node !== summary) body.appendChild(node);
+    });
+    details.appendChild(body);
+    return body;
+  };
+  /** 展开 / 收起一个 details（内容高度动画） 过程函数 */
+  const toggleFold = details => {
+    if (details.dataset.foldAnimating === '1') return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      details.open = !details.open;
+      return;
+    }
+    const body = foldBodyOf(details);
+    if (!body) {
+      details.open = !details.open;
+      return;
+    }
+    details.dataset.foldAnimating = '1';
+    // 高度收展不要用很急的 ease-out：那样开头一下收到很低，剩下的时间几乎不动，
+    // 看起来就像先跳到某个高度再停住。用平缓的标准曲线。
+    const easing = 'cubic-bezier(.4, 0, .2, 1)';
+    if (!details.open) {
+      details.open = true;
+      const target = body.scrollHeight;
+      body.style.overflow = 'hidden';
+      body.style.height = '0px';
+      body.style.opacity = '0';
+      const animation = body.animate([
+        {height: '0px', opacity: 0},
+        {height: `${target}px`, opacity: 1},
+      ], {duration: 180, easing: easing});
+      animation.onfinish = () => {
+        body.style.cssText = '';
+        details.dataset.foldAnimating = '';
+      };
+    } else {
+      const from = body.getBoundingClientRect().height;
+      body.style.overflow = 'hidden';
+      const animation = body.animate([
+        {height: `${from}px`, opacity: 1},
+        {height: '0px', opacity: 0},
+      ], {duration: 180, easing: easing});
+      animation.onfinish = () => {
+        // 先收起再清 inline 高度：反过来会有一帧显示完整内容，看起来像跳一下
+        details.open = false;
+        body.style.cssText = '';
+        details.dataset.foldAnimating = '';
+      };
+    }
+  };
+  document.addEventListener('click', event => {
+    const target = event.target instanceof Element ? event.target : null;
+    const summary = target?.closest('summary');
+    if (!summary) return;
+    const details = summary.parentElement;
+    if (!details || details.tagName !== 'DETAILS' || !details.matches(FOLD_ANIM_SELECTOR)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    toggleFold(details);
+  }, true);
+
   const wrapInSheet = (panel, title) => {
     const sheet = document.createElement('section');
     sheet.className = 'panel-sheet';
@@ -4073,6 +4145,15 @@
         '<span class="solver-progress-text" id="geb-solver-progress-text">0.00%</span></div>',
       '<div id="geb-solver-list" class="solver-solution-list"></div>',
     ].join('');
+    // 页签条留在面板上，其余内容包一层：切页签时只平移内容，面板底色 / 外框不动
+    {
+      const inner = document.createElement('div');
+      inner.className = 'solver-panel-inner';
+      [...panel.children].forEach(child => {
+        if (!child.classList.contains('solver-tabs')) inner.appendChild(child);
+      });
+      panel.appendChild(inner);
+    }
     // 从关卡打开求解器时带了 solverTool（那一关限定单尺 / 单规）：可用工具默认就选到同一种模式
     const presetSolverTool = params.get('solverTool');
     const solverToolSelect = panel.querySelector('#geb-solver-tool');
@@ -4097,15 +4178,34 @@
     });
     // 雷达面板自己也放一条同样的页签条（两条内容一致，切换时一起变）
     radar.panel.insertAdjacentHTML('afterbegin', tabsHtml);
+    {
+      const inner = document.createElement('div');
+      inner.className = 'solver-panel-inner';
+      [...radar.panel.children].forEach(child => {
+        if (!child.classList.contains('solver-tabs')) inner.appendChild(child);
+      });
+      radar.panel.appendChild(inner);
+    }
     addSideButton('radar', radarSideIcon(), t('board.radarTitle'), wrapInSheet(radar.panel, t('board.radarTitle')));
     window.relationRadarPanel = radar;   // 调试 / 以后 worker 里的打分要读最近一次的结果
     {
       // 桌面端两块面板叠在同一处：页签切哪块就显示哪块
-      const showPanel = which => {
+      const showPanel = (which, animate = true) => {
+        const next = which === 'solver' ? panel : radar.panel;
+        const wasHidden = next.classList.contains('panel-tab-hidden');
         panel.classList.toggle('panel-tab-hidden', which !== 'solver');
         radar.panel.classList.toggle('panel-tab-hidden', which !== 'radar');
         document.querySelectorAll('.solver-tabs button').forEach(button =>
           button.classList.toggle('active', button.dataset.panel === which));
+        if (!animate || !wasHidden) return;
+        const target = next.querySelector(':scope > .solver-panel-inner') || next;
+        target.classList.remove('panel-tab-in-left', 'panel-tab-in-right');
+        void target.offsetWidth;
+        // 面板在页签里的左右位置：雷达在右、求解参数在左，从对应方向平移进来
+        target.classList.add(which === 'radar' ? 'panel-tab-in-right' : 'panel-tab-in-left');
+        target.addEventListener('animationend', () => {
+          target.classList.remove('panel-tab-in-left', 'panel-tab-in-right');
+        }, {once: true});
       };
       // 与 index.css 里那档「手机布局」的媒体查询保持一致（窄屏或矮屏都算）
       const narrowLayout = () => window.matchMedia('(max-width: 900px), (max-height: 600px)').matches;
@@ -4119,7 +4219,7 @@
           return;
         }
         const active = document.querySelector('.solver-tabs button.active');
-        showPanel(active ? active.dataset.panel : 'solver');
+        showPanel(active ? active.dataset.panel : 'solver', false);
       };
       document.querySelectorAll('.solver-tabs').forEach(tabs => {
         tabs.addEventListener('click', event => {
@@ -4127,7 +4227,7 @@
           if (button) showPanel(button.dataset.panel);
         });
       });
-      showPanel('solver');
+      showPanel('solver', false);
       window.addEventListener('resize', syncTabs);
       // 可用工具改成单尺了：雷达里的「紧圆规」要跟着灰掉（单尺作不了圆，那一项没有意义）
       panel.querySelector('#geb-solver-tool')?.addEventListener('change', () => radar.refreshMode());
@@ -5363,14 +5463,24 @@
   // 面板折叠状态：结构重建（解数变化）时把用户的开合记下来
   const markFoldState = new Map();
   let markPanelSignature = '';
+  let pendingNewResultGroup = null;
   /**
    * 重绘标记面板结构 过程函数
    * 给定 / 所求 / 探索显示三组可折叠，所求里每个解再各占一层（判定 / 显示两个列表）
    */
   const renderMarkPanel = () => {
-    const signature = `${solverMode ? 1 : 0}|${resultGroupCount()}|${resultActive}`;
+    const count = resultGroupCount();
+    const signature = `${solverMode ? 1 : 0}|${count}|${resultActive}`;
     if (signature === markPanelSignature) return;
+    const firstRender = !markPanelSignature;
+    const previousCount = firstRender ? count : (Number(markPanelSignature.split('|')[1]) || count);
+    // 手机端是外层上拉栏在滚，桌面端才是面板自己滚：两个位置都记下来
+    const sheetBody = markPanel.closest('.panel-sheet-body');
+    const previousScroll = markPanel.scrollTop;
+    const previousSheetScroll = sheetBody ? sheetBody.scrollTop : 0;
     markPanelSignature = signature;
+    // 增解时只让新出现的「所求 n」分组从 0 展开；减解由 removeSolution 先收该分组
+    pendingNewResultGroup = (!firstRender && count > previousCount) ? `result-${count}` : null;
     const fold = (key, title, body, open = false) => {
       const opened = markFoldState.get(key) ?? open;
       return `<details class="mark-fold" data-fold="${key}"${opened ? ' open' : ''}><summary>${title}</summary>${body}</details>`;
@@ -5399,11 +5509,14 @@
       html += fold('goal', t('board.markGoalGroup'), goals, foldOpened);
     }
     if (!solverMode) html += fold('explore', t('board.markExplore'), listOf('explore'), foldOpened);
-    markPanel.innerHTML = html;
-    // 结构变了（增减解 / 切解）：内容淡入一次，避免整块硬换；拖动时签名不变不会重播
-    markPanel.classList.remove('view-swap');
-    void markPanel.offsetWidth;
-    markPanel.classList.add('view-swap');
+    // 内容容器：面板底色 / 位置不动，增删解只让面板高度从小变到大（或反过来）
+    markPanel.innerHTML = `<div class="mark-panel-inner">${html}</div>`;
+    // 重建后尽量停在原来的滚动位置（加解时内容变长，不要跳回顶部）
+    const restoreScroll = () => {
+      markPanel.scrollTop = previousScroll;
+      if (sheetBody) sheetBody.scrollTop = previousSheetScroll;
+    };
+    restoreScroll();
     // 记录用户的开合操作
     markPanel.querySelectorAll('details[data-fold]').forEach(detail => {
       detail.addEventListener('toggle', () => markFoldState.set(detail.dataset.fold, detail.open));
@@ -5447,6 +5560,36 @@
    * @param {string} id 列表 ID（marked-<id>）
    * @param {Set<string>} set 对应集合
    */
+  /**
+   * 内容收缩时同步带动滚动位置 过程函数
+   * 面板已经滚到底部、内容又突然变短时，浏览器会立刻把 scrollTop 裁到新的最大值，
+   * 画面会闪一下。这里让 scrollTop 随着内容高度一起减小。
+   * @param {HTMLElement} element 正在收缩的元素
+   * @param {number} fromHeight 收缩前高度
+   * @returns {Function} 停止跟随
+   */
+  const followShrinkScroll = (element, fromHeight) => {
+    const hosts = [markPanel, markPanel.closest('.panel-sheet-body')].filter(Boolean);
+    if (!hosts.length) return () => {};
+    const starts = hosts.map(host => host.scrollTop);
+    let running = true;
+    const step = () => {
+      // 面板在动画途中被重建时元素已脱离文档，循环要自己停掉
+      if (!running || !element.isConnected) {
+        running = false;
+        return;
+      }
+      const current = element.getBoundingClientRect().height;
+      const shrink = Math.max(0, fromHeight - current);
+      hosts.forEach((host, index) => {
+        const target = Math.max(0, starts[index] - shrink);
+        if (Math.abs(host.scrollTop - target) > 0.5) host.scrollTop = target;
+      });
+      requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+    return () => { running = false; };
+  };
   const markListOf = (id, set) => {
     const list = markPanel.querySelector(`#marked-${id}`);
     if (!list) return;
@@ -5463,11 +5606,50 @@
       ? t('board.gridSize', {m: gridMeta.m, n: gridMeta.n})
       : t('board.gridLabel');
     const gridRow = hasGrid ? `<li><span class="mark-name">${gridName}</span></li>` : '';
+    // 列表本身也做高度动画：标记 / 取消标记一个对象时，列表平滑变长 / 变短。
+    // 第一次填内容（面板刚重建）不播，避免和新增解分组动画叠加。
+    const listReady = list.dataset.markReady === '1';
+    const listFrom = list.getBoundingClientRect().height;
     list.innerHTML = (gridRow + rows) || `<li class="empty">${t('board.markEmpty')}</li>`;
+    list.dataset.markReady = '1';
+    const listTo = list.getBoundingClientRect().height;
+    if (listReady && listFrom > 0 && Math.abs(listTo - listFrom) > 1
+      && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      list.style.overflow = 'hidden';
+      const stopFollow = listTo < listFrom ? followShrinkScroll(list, listFrom) : null;
+      const animation = list.animate(
+        [{height: `${listFrom}px`}, {height: `${listTo}px`}],
+        {duration: 160, easing: 'cubic-bezier(.4, 0, .2, 1)'}
+      );
+      animation.onfinish = () => {
+        if (stopFollow) stopFollow();
+        list.style.cssText = '';
+      };
+    }
+  };
+  /** 新解分组在列表内容填好后从 0 高度展开 */
+  const animateNewResultGroup = () => {
+    const key = pendingNewResultGroup;
+    pendingNewResultGroup = null;
+    if (!key || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const group = markPanel.querySelector(`details[data-fold="${key}"]`);
+    if (!group || !group.open) return;
+    const to = group.getBoundingClientRect().height;
+    if (!to) return;
+    group.style.overflow = 'hidden';
+    group.style.height = '0px';
+    group.style.opacity = '0';
+    group.offsetHeight;
+    const animation = group.animate(
+      [{height: '0px', opacity: 0}, {height: `${to}px`, opacity: 1}],
+      {duration: 180, easing: 'cubic-bezier(.4, 0, .2, 1)'}
+    );
+    animation.onfinish = () => { group.style.cssText = ''; };
   };
   const refreshMarks = () => {
     renderMarkPanel();
     refreshMarkEquations();
+    animateNewResultGroup();
   };
   /**
    * 只刷新已标记对象栏里的坐标 / 方程 过程函数
@@ -5532,6 +5714,7 @@
   };
   /** 增加一组解 过程函数 */
   const addSolution = () => {
+    if (removingSolution) return;
     const index = resultGroupCount() + 1;
     resultSetOf(index, 'judged');
     resultSetOf(index, 'shown');
@@ -5539,18 +5722,43 @@
     notifyStorageChange('mark-goal');
   };
   /** 删除最后一组解 过程函数 */
+  let removingSolution = false;
   const removeSolution = () => {
     const count = resultGroupCount();
-    if (count <= 1) return;
-    const removed = new Set([...resultSetOf(count, 'judged'), ...resultSetOf(count, 'shown')]);
-    delete geometryElementLists[resultJudgeKey(count)];
-    delete geometryElementLists[resultShownKey(count)];
-    // 被删掉的那组对象不再属于任何标记，恢复自身的样式色
-    removed.forEach(id => applyMarkToElement(id));
-    markFoldState.delete(`result-${count}`);
-    resultActive = Math.min(resultActive, resultGroupCount());
-    selectSolution(resultActive);
-    notifyStorageChange('mark-goal');
+    if (count <= 1 || removingSolution) return;
+    const proceed = () => {
+      removingSolution = false;
+      const removed = new Set([...resultSetOf(count, 'judged'), ...resultSetOf(count, 'shown')]);
+      delete geometryElementLists[resultJudgeKey(count)];
+      delete geometryElementLists[resultShownKey(count)];
+      // 被删掉的那组对象不再属于任何标记，恢复自身的样式色
+      removed.forEach(id => applyMarkToElement(id));
+      markFoldState.delete(`result-${count}`);
+      resultActive = Math.min(resultActive, resultGroupCount());
+      selectSolution(resultActive);
+      notifyStorageChange('mark-goal');
+    };
+    // 让「所求 n」这一行自己收起来，而不是整块面板从「所求」那一行开始移动
+    const group = markPanel.querySelector(`details[data-fold="result-${count}"]`);
+    if (group && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      const from = group.getBoundingClientRect().height;
+      if (from > 0) {
+        removingSolution = true;
+        group.style.overflow = 'hidden';
+        const stopFollow = followShrinkScroll(group, from);
+        const animation = group.animate(
+          [{height: `${from}px`, opacity: 1}, {height: '0px', opacity: 0}],
+          {duration: 180, easing: 'cubic-bezier(.4, 0, .2, 1)'}
+        );
+        animation.onfinish = () => {
+          stopFollow();
+          group.style.cssText = '';
+          proceed();
+        };
+        return;
+      }
+    }
+    proceed();
   };
   // 标记工具：标记给定（给定 / 带标签给定 / 可移动点）与标记所求（所求判定 / 所求显示）
   const markTools = [
@@ -6048,6 +6256,8 @@
   }
   // 关卡游玩：LE 计数器放在返回按钮下方（返回按钮此时已就位）
   if (typeof updateMovesCounterPosition === 'function') updateMovesCounterPosition();
+  // 关卡游玩：缩略图与顶部更多栏的左右避让（返回按钮此时也已就位）
+  if (typeof updateLevelThumbnailLayout === 'function') updateLevelThumbnailLayout();
   // 刷新页面上静态文案的语言
   if (typeof applyI18n === 'function') applyI18n();
 

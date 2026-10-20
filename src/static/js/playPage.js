@@ -781,7 +781,16 @@ function updateMovesCounterPosition() {
         movesLayout.style.left = 'auto';
         movesLayout.style.right = `${Math.max(window.innerWidth - rect.right, 0)}px`;
         movesLayout.style.transform = 'none';
-        movesLayout.style.top = `${rect.bottom + 8}px`;
+        // 更多栏被压缩时返回按钮可能在第一行，计数器要放到所有按钮行的下方，
+        // 否则会压住第二行的「探索」/「菜单」
+        let bottom = rect.bottom;
+        const bar = backButton.closest('#container_more');
+        if (bar) {
+            bar.querySelectorAll(':scope > button').forEach(button => {
+                bottom = Math.max(bottom, button.getBoundingClientRect().bottom);
+            });
+        }
+        movesLayout.style.top = `${bottom + 8}px`;
         return;
     }
     // 计数器水平居中显示
@@ -805,6 +814,88 @@ function updateMovesCounterPosition() {
 }
 
 window.addEventListener('resize', updateMovesCounterPosition);
+
+/**
+ * 关卡顶部更多栏的避让 过程函数
+ *
+ * 手机端缩略图始终贴在左上角（见 index.css 的 .thumbnail），更多栏在右上角。
+ * 卡片右边缘越过撤销按钮左边缘时，卡片已经横跨到更多栏下面：
+ * 更多栏的可用宽度改成从卡片右边缘到屏幕右边，放不下的按钮像顶到屏幕左边界
+ * 一样自动换行，撤销按钮也就不会被卡片压住。换行后再按「压了几个」加
+ * level-thumb-wrap-1 / -2，由 CSS 的 order 调成「返回提前、探索 / 菜单后排」。
+ * 注意不能只比卡片宽度：卡片左边还有 6px，宽度 196px 的卡片右边缘在 202px，
+ * 而 426px 屏幕的撤销按钮左边缘约在 196px，只看宽度会漏掉这 6px 的叠压。
+ * 量之前先摘掉 level-thumb-wide：否则更多栏已经变窄 / 换行，撤销按钮右移，
+ * 条件会在「加类 → 不够宽 → 去类」之间来回翻转。
+ */
+function updateLevelThumbnailLayout() {
+    const body = document.body;
+    const thumbnail = document.getElementById('thumbnail');
+    if (!body || !thumbnail) return;
+    body.classList.remove('level-thumb-wide', 'level-thumb-wrap-1', 'level-thumb-wrap-2');
+    body.style.removeProperty('--level-more-width');
+
+    const mobile = window.innerWidth <= 900 || window.innerHeight <= 600;
+    const hidden = thumbnail.style.display === 'none';
+    if (!mobile || hidden || thumbnail.classList.contains('open')) {
+        updateMovesCounterPosition();
+        return;
+    }
+
+    const undoButton = document.getElementById('restore-button');
+    if (!undoButton) {
+        updateMovesCounterPosition();
+        return;
+    }
+    // 缩略图 width/top 都有 0.2s 过渡：窗口缩放时直接量会量到过渡中的旧宽度，
+    // 于是算出的更多栏宽度偏小。这里临时关掉过渡，量最终布局，量完恢复。
+    const previousTransition = thumbnail.style.transition;
+    thumbnail.style.transition = 'none';
+    const card = thumbnail.getBoundingClientRect();
+    const undoRect = undoButton.getBoundingClientRect();
+    thumbnail.style.transition = previousTransition;
+    // 卡片还没显示 / 没量到尺寸时不要误判
+    if (!card.width || !undoRect.width) {
+        updateMovesCounterPosition();
+        return;
+    }
+    // 用卡片右边缘而不是宽度：卡片本身还有 6px 的 left，只看宽度会漏掉这段叠压
+    if (card.right + 4 > undoRect.left) {
+        // 4px 是卡片与更多栏之间的最小间隙；再窄也至少留一个按钮宽，
+        // 否则按钮会溢出到屏幕左边
+        const available = Math.max(60, Math.floor(window.innerWidth - card.right - 4));
+        body.style.setProperty('--level-more-width', `${available}px`);
+        body.classList.add('level-thumb-wide');
+
+        // 算一下第一行实际能放几个按钮，据此决定是「压 1 个」还是「压 2 个」，
+        // 再由 CSS 的 order 把返回按钮提前（压 3 个以上不符合上面的顺序，保持原样）
+        const bar = document.getElementById('container_more');
+        if (bar) {
+            const style = getComputedStyle(bar);
+            const gap = parseFloat(style.columnGap) || parseFloat(style.gap) || 0;
+            const padding = (parseFloat(style.paddingLeft) || 0)
+                + (parseFloat(style.paddingRight) || 0);
+            const contentWidth = Math.max(0, available - padding);
+            const buttons = [...bar.querySelectorAll(':scope > button')];
+            let rowWidth = 0;
+            let perRow = 0;
+            for (const button of buttons) {
+                const width = button.getBoundingClientRect().width;
+                const nextWidth = rowWidth ? rowWidth + gap + width : width;
+                if (nextWidth > contentWidth + 0.5) break;
+                rowWidth = nextWidth;
+                perRow += 1;
+            }
+            const wrapped = Math.max(0, buttons.length - perRow);
+            if (wrapped === 1) body.classList.add('level-thumb-wrap-1');
+            else if (wrapped === 2) body.classList.add('level-thumb-wrap-2');
+        }
+    }
+    // 更多栏换行后按钮位置会变，L/E 计数器要跟着重新定位
+    updateMovesCounterPosition();
+}
+
+window.addEventListener('resize', updateLevelThumbnailLayout);
 
 /**
  * 切换面板
@@ -1176,6 +1267,8 @@ function thumbnailOpen() {
     masks.style.display = "block";
     const hiddenList = document.getElementsByClassName("hidden_inf");
     for (const item of hiddenList) item.style.display = 'flex';
+    // 展开后卡片是居中的大窗，顶部更多栏恢复整行（收起时再按宽度重算）
+    if (typeof updateLevelThumbnailLayout === 'function') updateLevelThumbnailLayout();
 }
 
 document.getElementById("thumbnail-middle").addEventListener("click", thumbnailPictureZoom);
@@ -1219,6 +1312,10 @@ function thumbnailClose() {
     masks.style.display = "none";
     const hiddenList = document.getElementsByClassName("hidden_inf");
     for (const item of hiddenList) item.style.display = 'none';
+    // 等卡片收起的 0.2s 尺寸过渡走完再量：刚摘 .open 时量到的还是展开的 80vw 宽
+    setTimeout(() => {
+        if (typeof updateLevelThumbnailLayout === 'function') updateLevelThumbnailLayout();
+    }, 220);
 }
 
 

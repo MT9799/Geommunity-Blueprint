@@ -29,6 +29,8 @@ const toolMenus = {
         // 极点极线也跟圆相关，紧挨切线
         'polePolar',
         "fixedAngle",
+        // 复制角放在构造工具栏末尾
+        "copyAngle",
     ],
 }
 const toolMenuDefaultValue = {
@@ -150,6 +152,12 @@ const toolItems = {
         // 取点顺序：先角的一条边上的点（point1），再顶点（point2）——
         // 定义里第一个点是顶点，顺序在 FixedAngleConstructTool 里倒过来
         "choice": {"general": {"point1": 'point', "point2": 'point'}},
+    }, 
+    'copyAngle': {
+        "button": ["clear", "lineStyle"], 
+        // 5 个取点：point1=A（源角一边）、point2=B（源角顶点）、point3=C（源角另一边）、
+        // point4=E（目标顶点）、point5=D（目标始边上一点）；gmt 顺序 [A,B,C,D,E] 在工具里倒过来
+        "choice": {"general": {"point1": 'point', "point2": 'point', "point3": 'point', "point4": 'point', "point5": 'point'}},
     }, 
 }
 

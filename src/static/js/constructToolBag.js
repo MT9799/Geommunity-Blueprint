@@ -904,3 +904,57 @@ class FixedAngleConstructTool {
         this.lineMode.clear();
     }
 }
+
+/**
+ * 复制角工具（非游玩模式）
+ * 取点顺序：源角（A 边上一点、B 顶点、C 另一边上一点）→ 目标顶点 E → 目标始边上一点 D。
+ * 几何与 gmt 互通：CopyAngle 的解析、导出都已在 board-tools.js / toolsFunction.js 里实现，
+ * 这里只负责工具交互与把定义挂到新射线上。
+ * gmt：CopyAngle[A,B,C,D,E]（B 为源角顶点、E 为目标顶点、D 在目标始边上，
+ * 射线从 E 出发、按 ∠ABC 的大小与方向旋转 ED 得到）。
+ */
+class CopyAngleConstructTool {
+    constructor() {
+        this.toolName = 'copyAngle';
+        this.maxStatus = 5;
+        this.goal = 'copyAngle';
+        this.goalType = 'line';
+        this.define = 'copyAngle';
+        this.drawType = 'ray';
+
+        this.copyAngleMode = new PointBaseToolTemplate(
+            this.toolName,
+            this.maxStatus,
+            this.goal,
+            this.goalType,
+            this.define,
+            this.drawType
+        );
+        // 取点顺序里第 4 个是目标顶点 E、第 5 个是目标始边上的点 D，
+        // 但 gmt 的 CopyAngle[A,B,C,D,E] 把 D 放在 E 前面，所以这里把最后两个点倒过来
+        this.copyAngleMode.definePointList = () => [
+            geometryManager.getToolKey(this.toolName, 'point1'),
+            geometryManager.getToolKey(this.toolName, 'point2'),
+            geometryManager.getToolKey(this.toolName, 'point3'),
+            geometryManager.getToolKey(this.toolName, 'point5'),
+            geometryManager.getToolKey(this.toolName, 'point4'),
+        ];
+    }
+
+    /**
+     * 复制角工具
+     * @param {string} type
+     * @param {number} oriX 原x坐标
+     * @param {number} oriY 原y坐标
+     */
+    toolEvent(type, oriX, oriY) {
+        this.copyAngleMode.toolEvent(type, oriX, oriY);
+    }
+
+    /**
+     * 清空
+     */
+    clear() {
+        this.copyAngleMode.clear();
+    }
+}

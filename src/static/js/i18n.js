@@ -811,6 +811,7 @@ const TIP_EN = {
     'middlePoint': ['Midpoint tool', 'Midpoint of two points, or the center of a circle'],
     'threePointCircle': ['Three-point circle tool', 'Circle through three points'],
     'fixedAngle': ['Fixed angle tool', 'Pick a point on one side of the angle, then the vertex; a ray turning the given angle from that side is drawn'],
+    'copyAngle': ['Copy angle tool', 'Pick three points of the source angle, then a point on one of its sides and the target vertex; a ray copies that angle'],
     'choiceDraw': ['Select & drag', 'Select objects; only points can be dragged'],
     'moveView': ['Pan view', 'Avoid touching objects by accident'],
     'restoreTransform': ['Reset view', 'Restore the canvas transform to its initial value'],
