@@ -78,5 +78,13 @@
         "cover": "packcovers/xewpc.png",
         "icon": "",
         "source": "ref/Extra/XEuclidea-Puzzle"
+    },
+    {
+        "id": "geomcontest",
+        "name": "几何作图交流群群赛",
+        "description": "几何作图交流群一年一度的赛事。",
+        "cover": "packcovers/geomcontest.png",
+        "icon": "",
+        "source": ""
     }
 ]

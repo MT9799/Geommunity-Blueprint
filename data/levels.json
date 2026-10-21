@@ -9972,7 +9972,7 @@
         "subtitle": "已知6条直线，构造一个三角形，使各边的三等分点各在直线上。",
         "targetSteps": "130L / 182E",
         "diagram": "diagrams/xeuclidea-puzzle/xep38.png",
-        "note": "",
+        "note": "TP得意之作",
         "keywords": [
             "XEuclidea-Puzzle",
             "等分",
@@ -10337,6 +10337,230 @@
             },
             {
                 "file": "answers/xeuclidea-puzzle/xep48/2V.jpg",
+                "star": "2V"
+            }
+        ]
+    },
+    {
+        "id": "gc2024_1",
+        "pack": "geomcontest",
+        "file": "levels/geomcontest/gc2024_1.gmt",
+        "title": "网格长度相加和",
+        "subtitle": "在每个边长为1的正方形 网格中，点A、B在格点上，过A、B的圆上有一点C.仅用无刻度直尺 任作一对点P、Q（不与A、B、C重合），使点P在线段AC上，点 在线段BC上，且满足 AP+BQ=AC.",
+        "targetSteps": "9",
+        "diagram": "diagrams/geomcontest/gc2024_1.png",
+        "note": "",
+        "tools": "straightedge",
+        "keywords": [
+            "群赛",
+            "群赛2024",
+            "网格",
+            "圆",
+            "三角形",
+            "等式"
+        ],
+        "solutions": [
+        ]
+    },
+    {
+        "id": "gc2024_2",
+        "pack": "geomcontest",
+        "file": "levels/geomcontest/gc2024_2.gmt",
+        "title": "网格三角形周长平分线",
+        "subtitle": "在每个边长为1的正方形网 格中，A、B、D为格点，C在线段AB上，E在格线上，且A、C、D、E 四点共圆，F在 CE延长线上且DC=DF，过 C、D、F三点的圆上有一点 G，满足 AD//FG.仅用无刻度直尺求作一直线平分△CFG周长.",
+        "targetSteps": "6",
+        "diagram": "diagrams/geomcontest/gc2024_2.png",
+        "note": "",
+        "tools": "straightedge",
+        "keywords": [
+            "群赛",
+            "群赛2024",
+            "网格",
+            "圆",
+            "三角形",
+            "平分周长"
+        ],
+        "solutions": [
+        ]
+    },
+    {
+        "id": "gc2024_3",
+        "pack": "geomcontest",
+        "file": "levels/geomcontest/gc2024_3.gmt",
+        "title": "直角三角形圆弧",
+        "subtitle": "已知等腰直角三角形 ABC, 角ABC为直角，弧AB在△ABC内部，且对应圆心角为直角.仅用单尺 作出弧 AB所对圆的圆心O.",
+        "targetSteps": "10E",
+        "diagram": "diagrams/geomcontest/gc2024_3.png",
+        "note": "",
+        "tools": "straightedge",
+        "keywords": [
+            "群赛",
+            "群赛2024",
+            "单尺",
+            "圆弧",
+            "等腰直角三角形",
+            "圆心"
+        ],
+        "solutions": [
+        ]
+    },
+    {
+        "id": "gc2024_4",
+        "pack": "geomcontest",
+        "file": "levels/geomcontest/gc2024_4.gmt",
+        "title": "海伦三角形内心",
+        "subtitle": "已知直角三角形 ABC，其中 ABC为直角，AB=12，BC=5，给出其内切圆（不含圆心），仅用单尺 作出其圆心O",
+        "targetSteps": "7E",
+        "diagram": "diagrams/geomcontest/gc2024_4.png",
+        "note": "",
+        "tools": "straightedge",
+        "keywords": [
+            "群赛",
+            "群赛2024",
+            "单尺",
+            "内切圆",
+            "直角三角形",
+            "海伦三角形",
+            "内心"
+        ],
+        "solutions": [
+        ]
+    },
+    {
+        "id": "gc2024_5",
+        "pack": "geomcontest",
+        "file": "levels/geomcontest/gc2024_5.gmt",
+        "title": "中点旋风",
+        "subtitle": "已知三点 A、B、C，求作 求作过给定 与给定点光 三点D、E、F，使得AF中点为D，BD中点为E，CE中点为F.",
+        "targetSteps": "11E",
+        "diagram": "diagrams/geomcontest/gc2024_5.png",
+        "note": "",
+        "keywords": [
+            "群赛",
+            "群赛2024",
+            "多解",
+            "点集",
+            "中点"
+        ],
+        "solutions": [
+            {
+                "file": "answers/c-s-pzls-other/031.midp-windmill/9L.png",
+                "star": "9L"
+            },
+            {
+                "file": "answers/c-s-pzls-other/031.midp-windmill/10E.png",
+                "star": "10E"
+            },
+            {
+                "file": "answers/c-s-pzls-other/031.midp-windmill/2V.jpg",
+                "star": "2V"
+            }
+        ]
+    },
+    {
+        "id": "gc2024_6",
+        "pack": "geomcontest",
+        "file": "levels/geomcontest/gc2024_6.gmt",
+        "title": "光环",
+        "subtitle": "已知两个同心圆及大圆的 半径（以线段形式给出），求作菱形，其中两个顶点位于半径所在直线上，另外两 点位于大圆上，其中两边切于大圆，另外两边切于小圆。",
+        "targetSteps": "13E",
+        "diagram": "diagrams/geomcontest/gc2024_6.png",
+        "note": "",
+        "keywords": [
+            "群赛",
+            "群赛2024",
+            "切线",
+            "菱形",
+            "半径",
+            "多解",
+            "同心圆"
+        ],
+        "solutions": [
+            {
+                "file": "answers/xeuclidea-puzzle/xep31/9L.jpg",
+                "star": "9L"
+            },
+            {
+                "file": "answers/xeuclidea-puzzle/xep31/12E.jpg",
+                "star": "12E"
+            },
+            {
+                "file": "answers/xeuclidea-puzzle/xep31/12E-by-Ander.jpg",
+                "star": "12E"
+            },
+            {
+                "file": "answers/xeuclidea-puzzle/xep31/2V.jpg",
+                "star": "2V"
+            },
+            {
+                "file": "answers/xeuclidea-puzzle/xep31/XEP31.jpg",
+                "star": "XEP31"
+            }
+        ]
+    },
+    {
+        "id": "gc2024_7",
+        "pack": "geomcontest",
+        "file": "levels/geomcontest/gc2024_7.gmt",
+        "title": "过点等截弦",
+        "subtitle": "已知两相离的圆及圆外一 点，过给定点求作一直线，使其被两圆截得的两线段相等.",
+        "targetSteps": "20E",
+        "diagram": "diagrams/geomcontest/gc2024_7.png",
+        "note": "",
+        "keywords": [
+            "群赛",
+            "群赛2024",
+            "弦",
+            "长度相等",
+            "直线过点",
+            "割线"
+        ],
+        "solutions": [
+            {
+                "file": "answers/c-s-pzls-other/032.doublec-equchord/9L.png",
+                "star": "9L"
+            },
+            {
+                "file": "answers/c-s-pzls-other/032.doublec-equchord/10L.png",
+                "star": "10L"
+            },
+            {
+                "file": "answers/c-s-pzls-other/032.doublec-equchord/13E.png",
+                "star": "13E"
+            }
+        ]
+    },
+    {
+        "id": "gc2024_8",
+        "pack": "geomcontest",
+        "file": "levels/geomcontest/gc2024_8.gmt",
+        "title": "喀什迪兰PPX反演化",
+        "subtitle": "已知一圆和圆外一点， 求作过给定点的与给定圆外切的圆，及两圆的公切线，使得公切线切点 与给定点为所求圆的对径点（连成的线段为所求圆的直径）。",
+        "targetSteps": "40E",
+        "diagram": "diagrams/geomcontest/gc2024_8.png",
+        "note": "",
+        "keywords": [
+            "群赛",
+            "群赛2024",
+            "多解",
+            "对径点",
+            "相切",
+            "公切线",
+            "切点",
+            "圆",
+            "圆过点"
+        ],
+        "solutions": [
+            {
+                "file": "answers/c-s-pzls-other/033.diamp-tanl-c/10L.png",
+                "star": "10L"
+            },
+            {
+                "file": "answers/c-s-pzls-other/033.diamp-tanl-c/15E.png",
+                "star": "15E"
+            },
+            {
+                "file": "answers/c-s-pzls-other/033.diamp-tanl-c/2V.png",
                 "star": "2V"
             }
         ]

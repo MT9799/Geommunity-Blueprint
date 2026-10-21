@@ -2,6 +2,12 @@
 
 本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)，条目按 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 组织。
 
+## [1.2.8] - 2026-10-21
+
+### 新增
+
+- 新增关卡包。
+
 ## [1.2.7] - 2026-10-19
 
 ### 新增
