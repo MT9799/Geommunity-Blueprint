@@ -4442,101 +4442,6 @@
         ]
     },
     {
-        "id": "midp-windmill",
-        "pack": "c-s-pzls-other",
-        "file": "levels/c-s-pzls-other/031.midp-windmill.gmt",
-        "title": "MidP-Windmill",
-        "subtitle": "如图，已知三点，求作另外三点，使得这 三点依次为每条连接一给定点的线段的顶 点和下一条这样的线段的中点。",
-        "targetSteps": "9L / 10E",
-        "diagram": "diagrams/c-s-pzls-other/031.midp-windmill.png",
-        "note": "",
-        "keywords": [
-            "C-s-Pzls-Other",
-            "多解",
-            "点集",
-            "中点"
-        ],
-        "solutions": [
-            {
-                "file": "answers/c-s-pzls-other/031.midp-windmill/9L.png",
-                "star": "9L"
-            },
-            {
-                "file": "answers/c-s-pzls-other/031.midp-windmill/10E.png",
-                "star": "10E"
-            },
-            {
-                "file": "answers/c-s-pzls-other/031.midp-windmill/2V.jpg",
-                "star": "2V"
-            }
-        ]
-    },
-    {
-        "id": "doublec-equchord",
-        "pack": "c-s-pzls-other",
-        "file": "levels/c-s-pzls-other/032.doublec-equchord.gmt",
-        "title": "DoubleC-EquChord",
-        "subtitle": "如图，已知两相离的圆及圆外一点， 过给定点求作一直线，使其被两圆截 得的两线段相等.",
-        "targetSteps": "9L / 13E",
-        "diagram": "diagrams/c-s-pzls-other/032.doublec-equchord.png",
-        "note": "",
-        "keywords": [
-            "C-s-Pzls-Other",
-            "弦",
-            "长度相等",
-            "直线过点",
-            "割线"
-        ],
-        "solutions": [
-            {
-                "file": "answers/c-s-pzls-other/032.doublec-equchord/9L.png",
-                "star": "9L"
-            },
-            {
-                "file": "answers/c-s-pzls-other/032.doublec-equchord/10L.png",
-                "star": "10L"
-            },
-            {
-                "file": "answers/c-s-pzls-other/032.doublec-equchord/13E.png",
-                "star": "13E"
-            }
-        ]
-    },
-    {
-        "id": "diamp-tanl-c",
-        "pack": "c-s-pzls-other",
-        "file": "levels/c-s-pzls-other/033.diamp-tanl-c.gmt",
-        "title": "DiamP-TanL-C",
-        "subtitle": "如图，已知一圆和圆外一点，求作过给定点的 与给定圆外切的圆，及两圆的公切线，使得公 切线切点与给定点为所求圆的对径点（连成 的线段为所求圆的直径）.",
-        "targetSteps": "10L / 15E",
-        "diagram": "diagrams/c-s-pzls-other/033.diamp-tanl-c.png",
-        "note": "",
-        "keywords": [
-            "C-s-Pzls-Other",
-            "多解",
-            "对径点",
-            "相切",
-            "公切线",
-            "切点",
-            "圆",
-            "圆过点"
-        ],
-        "solutions": [
-            {
-                "file": "answers/c-s-pzls-other/033.diamp-tanl-c/10L.png",
-                "star": "10L"
-            },
-            {
-                "file": "answers/c-s-pzls-other/033.diamp-tanl-c/15E.png",
-                "star": "15E"
-            },
-            {
-                "file": "answers/c-s-pzls-other/033.diamp-tanl-c/2V.png",
-                "star": "2V"
-            }
-        ]
-    },
-    {
         "id": "vp-tan-inangle",
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/034.vp-tan-inangle.gmt",
@@ -10563,6 +10468,258 @@
                 "file": "answers/c-s-pzls-other/033.diamp-tanl-c/2V.png",
                 "star": "2V"
             }
+        ]
+    },
+    {
+        "id": "gc2025_1",
+        "pack": "geomcontest",
+        "file": "levels/geomcontest/gc2025_1.gmt",
+        "title": "网格梯形平分面积",
+        "subtitle": "在每个小正方形的边长为1的网格 中，A、B、C均在格线上，点C所在格线上有一点D满足AD//BC.请 用无刻度的直尺，作一对点E、F，使点E、F分别在线段BC、AD上, 满足四边形ABEF为平行四边形，且EF平分四边形ABCD的面积.",
+        "targetSteps": "5",
+        "diagram": "diagrams/geomcontest/gc2025_1.png",
+        "note": "",
+        "tools": "straightedge",
+        "keywords": [
+            "群赛",
+            "群赛2025",
+            "网格",
+            "梯形",
+            "平行四边形",
+            "平分面积"
+        ],
+        "solutions": [
+        ]
+    },
+    {
+        "id": "gc2025_2",
+        "pack": "geomcontest",
+        "file": "levels/geomcontest/gc2025_2.gmt",
+        "title": "网格圆上根号比",
+        "subtitle": "在每个小正方形的边长为1的 网格中，A、B均为格点，有一圆经过A、B两点，连接AB.请用无刻度 的直尺，在线段 AB 上找一点P,使得√3 PA=PB.",
+        "targetSteps": "5",
+        "diagram": "diagrams/geomcontest/gc2025_2.png",
+        "note": "",
+        "tools": "straightedge",
+        "keywords": [
+            "群赛",
+            "群赛2025",
+            "网格",
+            "圆",
+            "比例"
+        ],
+        "solutions": [
+        ]
+    },
+    {
+        "id": "gc2025_3",
+        "pack": "geomcontest",
+        "file": "levels/geomcontest/gc2025_3.gmt",
+        "title": "网格二倍角垂直",
+        "subtitle": "在每个小正方形的边长为1 的网格中，A为格点，B在格线上，△ABC为以AC为斜边的等腰直角三 角形，D为AC中点，过A、B、D三点作圆，已知圆上存在一点M(不 与D重合），直线CM上存在一点N，请用无刻度的直尺，在如图所示 的网格中，作出点M、N，使得角MBN=角ABM,且BN⊥CM.",
+        "targetSteps": "6",
+        "diagram": "diagrams/geomcontest/gc2025_3.png",
+        "note": "",
+        "tools": "straightedge",
+        "keywords": [
+            "群赛",
+            "群赛2025",
+            "网格",
+            "圆",
+            "等腰直角三角形",
+            "二倍角",
+            "垂直"
+        ],
+        "solutions": [
+        ]
+    },
+    {
+        "id": "gc2025_4",
+        "pack": "geomcontest",
+        "file": "levels/geomcontest/gc2025_4.gmt",
+        "title": "网格角度关系式",
+        "subtitle": "在每个小正方形的边长为1 的网格中，A在格线上，B为格点，△ABC为等腰直角三角形，斜边BC 与格线交于D，BD=4，过A、B两点作圆，请用无刻度的直尺，在如图 所示的网格中，作出一个点P,满足角PBC=角PCA=2角PAB.",
+        "targetSteps": "9",
+        "diagram": "diagrams/geomcontest/gc2025_4.png",
+        "note": "",
+        "tools": "straightedge",
+        "keywords": [
+            "群赛",
+            "群赛2025",
+            "网格",
+            "圆",
+            "等腰直角三角形",
+            "二倍角",
+            "等角"
+        ],
+        "solutions": [
+        ]
+    },
+    {
+        "id": "gc2025_5",
+        "pack": "geomcontest",
+        "file": "levels/geomcontest/gc2025_5.gmt",
+        "title": "直径上等弦找心",
+        "subtitle": "已知无心圆及其一直径（所在直线)， 直径与圆的一个交点为B，直径上有一点C，圆上有一点D，满足 BC=BD. 仅用无刻度的直尺作出给定圆的圆心O.",
+        "targetSteps": "8E",
+        "diagram": "diagrams/geomcontest/gc2025_5.png",
+        "note": "",
+        "tools": "straightedge",
+        "keywords": [
+            "群赛",
+            "群赛2025",
+            "单尺",
+            "圆",
+            "圆心",
+            "直径",
+            "弦",
+            "长度相等"
+        ],
+        "solutions": [
+        ]
+    },
+    {
+        "id": "gc2025_6",
+        "pack": "geomcontest",
+        "file": "levels/geomcontest/gc2025_6.gmt",
+        "title": "从正三角形到等边三角形",
+        "subtitle": "已知正三角形ABC及其中心O, AB上有一点D(AD<DB），BC上有一点E，且D、O、E共线，给出 过A、D、O三点的圆（不含圆心），仅用无刻度的直尺，在圆内找一点 P，使得△PDE是正三角形.",
+        "targetSteps": "7E",
+        "diagram": "diagrams/geomcontest/gc2025_6.png",
+        "note": "",
+        "tools": "straightedge",
+        "keywords": [
+            "群赛",
+            "群赛2025",
+            "单尺",
+            "圆",
+            "正三角形",
+            "共线"
+        ],
+        "solutions": [
+        ]
+    },
+    {
+        "id": "gc2025_7",
+        "pack": "geomcontest",
+        "file": "levels/geomcontest/gc2025_7.gmt",
+        "title": "圆内接三高三角形",
+        "subtitle": "已知一圆，圆上有三点A、B、C, 求作一内接△DEF，使其三条高的所在直线分别为DA、EB、FC.",
+        "targetSteps": "9E",
+        "diagram": "diagrams/geomcontest/gc2025_7.png",
+        "note": "",
+        "keywords": [
+            "群赛",
+            "群赛2025",
+            "圆",
+            "内接",
+            "三角形",
+            "高线"
+        ],
+        "solutions": [
+        ]
+    },
+    {
+        "id": "gc2025_8",
+        "pack": "geomcontest",
+        "file": "levels/geomcontest/gc2025_8.gmt",
+        "title": "同心圆内圆过点",
+        "subtitle": "已知一对同心圆及它们之间的 一点，求作一过给定点的圆，使其与两同心圆均相切.",
+        "targetSteps": "8E",
+        "diagram": "diagrams/geomcontest/gc2025_8.png",
+        "note": "",
+        "keywords": [
+            "群赛",
+            "群赛2025",
+            "圆",
+            "同心圆",
+            "相切",
+            "圆过点"
+        ],
+        "solutions": [
+        ]
+    },
+    {
+        "id": "gc2025_9",
+        "pack": "geomcontest",
+        "file": "levels/geomcontest/gc2025_9.gmt",
+        "title": "同心圆60度极大三角形",
+        "subtitle": "已知一对同心圆和一点A， 分别作两圆上各一点B、C，使得角BAC=60°且△ABC的面积最大.",
+        "targetSteps": "9E",
+        "diagram": "diagrams/geomcontest/gc2025_9.png",
+        "note": "",
+        "keywords": [
+            "群赛",
+            "群赛2025",
+            "圆",
+            "同心圆",
+            "顶点接圆",
+            "60度",
+            "极大值",
+            "面积"
+        ],
+        "solutions": [
+        ]
+    },
+    {
+        "id": "gc2025_10",
+        "pack": "geomcontest",
+        "file": "levels/geomcontest/gc2025_10.gmt",
+        "title": "切线长之和极小",
+        "subtitle": "已知两相离的圆及两圆外一直线， 在直线上找一点，使其到两圆的切线长之和最小.",
+        "targetSteps": "15E",
+        "diagram": "diagrams/geomcontest/gc2025_10.png",
+        "note": "",
+        "keywords": [
+            "群赛",
+            "群赛2025",
+            "圆",
+            "直线",
+            "切线段",
+            "算式",
+            "极小值"
+        ],
+        "solutions": [
+        ]
+    },
+    {
+        "id": "gc2025_11",
+        "pack": "geomcontest",
+        "file": "levels/geomcontest/gc2025_11.gmt",
+        "title": "自反射四边形的外接四边形",
+        "subtitle": "给定点E和三直线AB、m、n，过点E 作直线交m、n于C、D，使得四边形ABCD存在“自反射四边形”;",
+        "targetSteps": "6E",
+        "diagram": "diagrams/geomcontest/gc2025_11.png",
+        "note": "",
+        "keywords": [
+            "群赛",
+            "群赛2025",
+            "四边形",
+            "内接",
+            "直线反射",
+            "直线过点"
+        ],
+        "solutions": [
+        ]
+    },
+    {
+        "id": "gc2025_12",
+        "pack": "geomcontest",
+        "file": "levels/geomcontest/gc2025_12.gmt",
+        "title": "三线共点的自反射四边形",
+        "subtitle": "给定(i)中的四边形 ABCD所在直线， 作其一个“自反射四边形”PQRS，使得BC、AD、PR三线共点.",
+        "targetSteps": "24E",
+        "diagram": "diagrams/geomcontest/gc2025_12.png",
+        "note": "",
+        "keywords": [
+            "群赛",
+            "群赛2025",
+            "四边形",
+            "内接",
+            "直线反射",
+            "三线共点"
+        ],
+        "solutions": [
         ]
     }
 ]
