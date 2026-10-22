@@ -2956,6 +2956,14 @@ html.i18n-pending body { visibility: hidden; }
         animation-name: view-slide-in-left;
     }
 }
+/* 翻页（同一页面只改查询串）：不用横向切入 / 切出，改成交叉淡化。
+   放在上面 @media 之后，同优先级下覆盖手机端的 view-slide-* */
+html.vt-no-slide::view-transition-old(root) {
+    animation: view-fade-out .16s ease-in both;
+}
+html.vt-no-slide::view-transition-new(root) {
+    animation: view-fade-in .2s ease-out both;
+}
 /* VT 期间关掉**只在页面载入时**播放的入场动画，避免快照拍到半透明 / 位移中的内容。
    面板的动画还会在切换面板 / 页签时复用，不能整场关掉，所以这里只处理更多栏 */
 html.vt-reveal #container_canvas,
@@ -3004,12 +3012,12 @@ html.nav-pending #container_more {
     visibility: hidden;
 }
 @media (max-width: 900px), (pointer: coarse) {
-    html.nav-forward.nav-ready #container_canvas,
-    html.nav-forward.nav-ready #container_more {
+    html.nav-forward.nav-ready:not(.nav-no-slide) #container_canvas,
+    html.nav-forward.nav-ready:not(.nav-no-slide) #container_more {
         animation: view-slide-in-right .3s cubic-bezier(.32, .72, 0, 1);
     }
-    html.nav-back.nav-ready #container_canvas,
-    html.nav-back.nav-ready #container_more {
+    html.nav-back.nav-ready:not(.nav-no-slide) #container_canvas,
+    html.nav-back.nav-ready:not(.nav-no-slide) #container_more {
         animation: view-slide-in-left .3s cubic-bezier(.32, .72, 0, 1);
     }
 }

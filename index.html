@@ -8,7 +8,14 @@
     <style>
         :root { --ink: #263238; --muted: #68757a; --paper: #f4f0e8; --line: #d8dee0; --accent: #e5b42f; --blue: #277f96; }
         * { box-sizing: border-box; }
-        html { min-height: 100%; }
+        html { min-height: 100%; scrollbar-gutter: stable; }
+        /* 与 app.css 的 html 滚动条保持一致 */
+        html::-webkit-scrollbar { width: 8px; height: 8px; }
+        html::-webkit-scrollbar-thumb { background-color: rgb(165, 165, 175); border-radius: 4px; }
+        html::-webkit-scrollbar-track { background-color: transparent; }
+        @supports not selector(::-webkit-scrollbar) {
+            html { scrollbar-width: thin; scrollbar-color: rgb(165, 165, 175) transparent; }
+        }
         body { margin: 0; min-height: 100vh; color: var(--ink); background-color: var(--paper); font-family: "Segoe UI", "Microsoft YaHei", sans-serif; }
         /* 背景网格固定在视口上，不随页面滚动（与关卡包 / 关卡页一致） */
         body::before {
@@ -36,7 +43,7 @@
         .lang-switch button.active { background: transparent; color: #fff; }
         /* 中 / En 的蓝色滑块：切语言时平移 + 改宽，不是两个背景硬切 */
         .lang-thumb { position: absolute; top: 0; bottom: 0; left: 0; width: 0; border-radius: 999px; background: var(--blue); pointer-events: none; transition: transform .22s cubic-bezier(.2, .8, .2, 1), width .22s cubic-bezier(.2, .8, .2, 1); }
-        .hero { padding: 24px 0 20px; text-align: center; }
+        .hero { padding: 24px 0 15px; text-align: center; }
         /* 图片按宽度定尺寸、高度自适应（原来固定在 280×150 的框里 contain，四周留一大片空白） */
         .hero img { width: min(320px, 68vw); height: auto; max-height: 190px; object-fit: contain; margin-bottom: 5px; }
         .hero h1 { margin: 0; font-size: clamp(34px, 6vw, 58px); font-weight: 700; letter-spacing: .02em; }

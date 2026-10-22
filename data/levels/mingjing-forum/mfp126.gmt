@@ -31,7 +31,7 @@ S3=Segment[H,F]
 
 initial=A,B,C
 
-named=A
+named=A.D
 
 #hidden=pt1,pt2
 

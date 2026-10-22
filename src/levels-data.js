@@ -107,9 +107,28 @@ function restoreListScroll() {
     }
 }
 
-// 点关卡行 / 关卡包卡片跳转之前先记下滚动位置（捕获阶段，赶在默认跳转之前）
+// 点关卡行 / 关卡包卡片跳转之前先记下滚动位置（捕获阶段，赶在默认跳转之前）。
+// 翻页链接不记：翻到新一页要从顶部开始，也不把上一页的停留位置带过去
 document.addEventListener('click', event => {
-    if (event.target.closest('a[href*="level.html"], a[href*="pack.html"]')) saveListScroll();
+    const target = event.target instanceof Element ? event.target : null;
+    const link = target ? target.closest('a[href]') : null;
+    if (!link) return;
+    if (link.closest('.level-pager')) {
+        try {
+            // 清掉目标页可能残留的停留位置，保证翻过去后停在顶部
+            const url = new URL(link.href, location.href);
+            const params = new URLSearchParams(url.search);
+            const page = Number(params.get('page')) || 1;
+            if (page <= 1) params.delete('page');
+            else params.set('page', String(page));
+            const text = params.toString();
+            sessionStorage.removeItem('listScroll:' + url.pathname + (text ? '?' + text : ''));
+        } catch (error) {
+            // 隐私模式 / 非法地址：忽略即可
+        }
+        return;
+    }
+    if (link.href.includes('level.html') || link.href.includes('pack.html')) saveListScroll();
 }, true);
 
 /**
@@ -259,7 +278,7 @@ function levelRowHTML(level, options) {
 /**
  * 压缩缩略图路径 过程函数
  * 把相对 data/ 的原图路径换成 data/thumbs/ 下同路径的 .webp
- * （由 scripts/make-thumbs.js / npm run thumbs 生成）
+ * （由 scripts/make-thumbs.py / npm run thumbs 生成）
  * @param {string} original 形如 diagrams/ewp/ewp11.png
  * @returns {string} 形如 thumbs/diagrams/ewp/ewp11.webp
  */

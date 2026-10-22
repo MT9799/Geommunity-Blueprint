@@ -13,6 +13,7 @@ const title = document.getElementById('pack-title');
 const description = document.getElementById('pack-description');
 const list = document.getElementById('pack-levels');
 const pager = document.getElementById('pack-pager');
+const pagerTop = document.getElementById('pack-pager-top');
 const searchBox = document.getElementById('search-box');
 const backgroundImageContainer = document.getElementById("background-image-container");
 const heroBanner = document.querySelector('.hero-banner');
@@ -119,8 +120,10 @@ loadLevelsData().then(({ packs }) => {
         .slice(start, start + LEVELS_PAGE_SIZE)
         .map((level, index) => levelRowHTML(level, {index: start + index, page: page}))
         .join('');
-    pager.innerHTML = pagerHTML(page, levels.length, target =>
+    const pagerHtml = pagerHTML(page, levels.length, target =>
         `./pack.html?pack=${encodeURIComponent(packId)}&page=${target}`, true);
+    pager.innerHTML = pagerHtml;
+    if (pagerTop) pagerTop.innerHTML = pagerHtml;
     observeLevelThumbs();
     // 从关卡返回时停在原来那一屏，而不是回到列表顶部
     restoreListScroll();

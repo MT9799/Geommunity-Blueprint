@@ -29,6 +29,7 @@ if (!window.__pageReady) {
 }
 const results = document.getElementById('search-results');
 const pager = document.getElementById('search-pager');
+const pagerTop = document.getElementById('search-pager-top');
 let packScope = params.get('pack') || '';
 let currentPage = Math.max(Number(params.get('page')) || 1, 1);
 
@@ -79,8 +80,10 @@ loadLevelsData().then(({ packs, levels }) => {
                 terms,
             }))
             .join('');
-        pager.innerHTML = pagerHTML(page, matched.length, target =>
+        const pagerHtml = pagerHTML(page, matched.length, target =>
             searchURL({q: input.value.trim(), pack: packScope, page: target}), true);
+        pager.innerHTML = pagerHtml;
+        if (pagerTop) pagerTop.innerHTML = pagerHtml;
         observeLevelThumbs();
         if (terms.length || packScope) summary.textContent = t('search.found', {count: matched.length});
         else summary.textContent = t('search.all', {count: levels.length});

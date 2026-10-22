@@ -937,6 +937,11 @@ document.addEventListener('DOMContentLoaded', () => applyI18n());
     const fromOtherPage = !!referrer
         && referrer.origin === location.origin
         && !samePage;
+    // 同一页面只改了查询串（翻页 / 改筛选条件）：不算进到新的一层，
+    // 手机端不播「从右往左切入」，改成交叉淡化（见 CSS 的 nav-no-slide / vt-no-slide）
+    const samePath = !!referrer
+        && referrer.origin === location.origin
+        && normalizePath(referrer.pathname) === normalizePath(location.pathname);
     // 本次会话的第一个页面不播横滑：首次打开 / PWA 恢复 / WebView 启动都算，
     // 即使浏览器把 navigation type 记成 back_forward 也不会误播
     let firstPageInSession = false;
@@ -983,6 +988,7 @@ document.addEventListener('DOMContentLoaded', () => applyI18n());
     window.__entryDirection = direction;
     window.__firstPageInSession = firstPageInSession;
     window.__firstHomeEntry = firstHomeEntry;
+    window.__samePathNav = samePath;
     const root = document.documentElement;
     // 有异步内容的页面（关卡包 / 关卡列表 / 搜索 / 关卡页）在 head 里先挂了 __pageReady。
     // 这类页面先藏起来，等内容渲染完再加 nav-ready，横向动画才和项目一起出现；
@@ -990,6 +996,8 @@ document.addEventListener('DOMContentLoaded', () => applyI18n());
     const hasAsyncContent = !!window.__pageReady;
     if (direction) {
         root.classList.add(direction === 'back' ? 'nav-back' : 'nav-forward');
+        // 翻页（同页改查询串）不横向切入：CSS 里用淡入替代横滑
+        if (samePath) root.classList.add('nav-no-slide');
         if (hasAsyncContent) {
             root.classList.add('nav-pending');
             const finish = () => {
@@ -1044,6 +1052,8 @@ window.addEventListener('pagereveal', event => {
         if (document.documentElement.classList.contains(I18N_PENDING_CLASS)) applyI18n();
         return;
     }
+    // 翻页（同页只改查询串）：仍做跨文档过渡，但用交叉淡化，不横向切入
+    if (window.__samePathNav) document.documentElement.classList.add('vt-no-slide');
     let direction = '';
     try {
         direction = sessionStorage.getItem('vt-direction') || '';

@@ -850,6 +850,70 @@
      opacity: .45
  }
 
+ /* 页首翻页条：与底部同款，但不要底部的下边距和大留白 */
+ .pager-top {
+     margin-top: 24px
+ }
+
+ .pager-top .level-pager {
+     margin-top: 0;
+     margin-bottom: 12px;
+     padding-bottom: 0
+ }
+
+ /* 顶部翻页条与列表之间只留一个小间距，避免和 .level-list 的 36px 叠加成一大段 */
+ .pager-top + .level-list {
+     margin-top: 12px
+ }
+
+ /* 没有结果 / 单页不画翻页条时，不要把列表往下推 */
+ .pager-top:empty {
+     margin-top: 0
+ }
+
+ .pager-top:empty + .level-list {
+     margin-top: 36px
+ }
+
+ /* 手机端翻页条缩小并强制一行；极窄屏实在放不下时在条内横向滚动 */
+ @media(max-width:700px) {
+     .level-pager {
+         flex-wrap: nowrap;
+         justify-content: safe center;
+         gap: 3px;
+         overflow-x: auto;
+         scrollbar-width: none
+     }
+
+     .level-pager::-webkit-scrollbar {
+         display: none
+     }
+
+     .pager-item {
+         min-width: 24px;
+         padding: 5px 3px;
+         border-radius: 6px;
+         font-size: 11px;
+         line-height: 1.2
+     }
+
+     .pager-top {
+         margin-top: 16px
+     }
+ }
+
+ @media(max-width:360px) {
+     .level-pager {
+         gap: 2px
+     }
+
+     .pager-item {
+         min-width: 21px;
+         padding: 4px 2px;
+         font-size: 10.5px
+     }
+ }
+
  @media(max-width:700px) {
      .feature-grid {
          grid-template-columns: 1fr
@@ -988,6 +1052,14 @@ html.i18n-pending body { visibility: hidden; }
         animation-name: view-slide-in-left;
     }
 }
+/* 翻页（同一页面只改查询串）：不用横向切入 / 切出，改成交叉淡化。
+   放在上面 @media 之后，同优先级下覆盖手机端的 view-slide-* */
+html.vt-no-slide::view-transition-old(root) {
+    animation: view-fade-out .16s ease-in both;
+}
+html.vt-no-slide::view-transition-new(root) {
+    animation: view-fade-in .2s ease-out both;
+}
 /* VT 期间关掉页面外壳的入场动画，避免快照拍到半透明内容 */
 html.vt-reveal .home-shell,
 html.vt-reveal .home-shell-pack {
@@ -1022,12 +1094,12 @@ html.nav-pending .home-shell-pack {
     visibility: hidden;
 }
 @media (max-width: 900px), (pointer: coarse) {
-    html.nav-forward.nav-ready .home-shell,
-    html.nav-forward.nav-ready .home-shell-pack {
+    html.nav-forward.nav-ready:not(.nav-no-slide) .home-shell,
+    html.nav-forward.nav-ready:not(.nav-no-slide) .home-shell-pack {
         animation: view-slide-in-right .3s cubic-bezier(.32, .72, 0, 1);
     }
-    html.nav-back.nav-ready .home-shell,
-    html.nav-back.nav-ready .home-shell-pack {
+    html.nav-back.nav-ready:not(.nav-no-slide) .home-shell,
+    html.nav-back.nav-ready:not(.nav-no-slide) .home-shell-pack {
         animation: view-slide-in-left .3s cubic-bezier(.32, .72, 0, 1);
     }
 }

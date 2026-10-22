@@ -56,12 +56,12 @@
         "source": "ref/Extra/SprFes"
     },
     {
-        "id": "straightedge-only-pzls",
-        "name": "纯单尺精选集",
-        "description": "单尺作图-从入门到入土。",
-        "cover": "packcovers/straightedge-only-pzls.jpg",
+        "id": "geomcontest",
+        "name": "作图群群赛",
+        "description": "几何作图交流群一年一度的赛事。",
+        "cover": "packcovers/geomcontest.png",
         "icon": "",
-        "source": "ref/Extra/Straightedge-only-Pzls"
+        "source": ""
     },
     {
         "id": "xeuclidea-puzzle",
@@ -80,11 +80,11 @@
         "source": "ref/Extra/XEuclidea-Puzzle"
     },
     {
-        "id": "geomcontest",
-        "name": "几何作图交流群群赛",
-        "description": "几何作图交流群一年一度的赛事。",
-        "cover": "packcovers/geomcontest.png",
+        "id": "straightedge-only-pzls",
+        "name": "纯单尺精选集",
+        "description": "单尺作图-从入门到入土。",
+        "cover": "packcovers/straightedge-only-pzls.jpg",
         "icon": "",
-        "source": ""
+        "source": "ref/Extra/Straightedge-only-Pzls"
     }
 ]
