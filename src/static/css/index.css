@@ -61,6 +61,13 @@ body.mode-level .moves-layout {
     transform: none;
 }
 
+/* 受限工具的关卡：levels.json 回来前先藏起工具按钮与浮动栏（保留占位），
+   避免先按「不限」生成全套工具、随后再重建时闪一下 */
+body.tools-pending #container_toolbar,
+body.tools-pending .floating-bar {
+    visibility: hidden;
+}
+
 
 
 .thumbnail {
@@ -711,6 +718,42 @@ textarea {
 
 .board-dialog strong {
     font-size: 16px;
+}
+
+/* 代码框标题行：标题在左、复制图标在右上角 */
+.board-dialog-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.board-dialog-copy {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: #191919;
+    cursor: pointer;
+    transition: background-color .18s ease, color .18s ease;
+}
+
+.board-dialog-copy:hover {
+    background-color: rgb(200, 200, 205);
+}
+
+.board-dialog-copy.copied {
+    color: #277f96;
+}
+
+.board-dialog-copy svg {
+    width: 18px;
+    height: 18px;
 }
 
 /* 顶部提示条：用于「当前不可用」这类说明，不用点确认；样式与其他弹层保持一致 */

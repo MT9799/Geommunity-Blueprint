@@ -768,7 +768,7 @@
       // 按它登记网格（藏起辅助对象）并把视图适配回网格范围
       const savedGrid = JSON.parse(sessionStorage.getItem('gridMeta') || 'null');
       if (savedGrid) setGridMeta(savedGrid);
-      // 视图适配（并记下「初始视图」）：有网格就适配到网格范围，没有网格就按带过来的图形本身
+      // 视图适配（并记下「初始视图」）：按网格 + 图形各点的并集确定画幅
       fitViewToContent();
       const record = sessionStorage.getItem('constructRecord');
       // 记录只在「最后一个快照确实就是带进来的这份图形」时才沿用：
@@ -807,13 +807,12 @@
       // 它会按求解器的自动配色把对象重新涂成红 / 灰，游玩时已经显示出来的「所求显示」图形
       // 就莫名变灰了；快照会按带过来的颜色还原，之后再补一次标记色（所求金）
       loadStorageSnapshot(data.elements || []);
-      // 网格：从关卡 / 试玩带过来的网格，按同一份元信息登记并把视图适配到网格范围
-      if (data.grid) {
-        setGridMeta(data.grid);
-        fitViewToGrid(gridMeta);
-      }
+      // 网格：从关卡 / 试玩带过来的网格，按同一份元信息登记
+      if (data.grid) setGridMeta(data.grid);
       refreshElementListColors();
       seedMarkedStyles();
+      // 视图适配：带入的图形可能是任意尺寸，按网格 + 各点确定画幅
+      fitViewToContent();
       drawContent();
       // 带入的图形（含给定 / 所求标记）按顺序成为历史：可以一步步撤回
       if (typeof resetStorageHistoryInSteps === 'function') resetStorageHistoryInSteps();
@@ -990,7 +989,7 @@
     // 其余选定栏（关卡带过来的 result2 / resultShown2 / explore…）统统清空：
     // 求解器里只认「给定」与「所求」两种标记，别的标记性质不能跟着进来
     Object.keys(geometryElementLists).forEach(key => { if (!(key in lists)) lists[key] = []; });
-    // 网格也带过去：求解器里按它登记网格（藏起辅助对象、上样式）并把视图适配到网格范围
+    // 网格也带过去：求解器里按它登记网格（藏起辅助对象、上样式），返回时按网格 + 各点确定画幅
     sessionStorage.setItem('solverElements', JSON.stringify({elements: elements, lists: lists, grid: gridMetaSnapshot()}));
     // from：求解器的「返回」据此回到本页并还原图形（关卡游玩 / 试玩由 savePlayBackup 存备份）
     let from = typeof savePlayBackup === 'function' ? savePlayBackup() : '';
@@ -1539,16 +1538,77 @@
   });
 
   // gmt 代码窗口：只读查看 / 可编辑导入
+  const COPY_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true">'
+    + '<rect x="9" y="9" width="11" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/>'
+    + '<path d="M5 15V6a2 2 0 0 1 2-2h9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>'
+    + '</svg>';
+  const COPIED_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true">'
+    + '<polyline points="4 12, 10 18, 20 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'
+    + '</svg>';
+  /**
+   * 复制文本到剪贴板 过程函数
+   * 优先 Clipboard API；不可用时退回临时 textarea + execCommand
+   * @param {string} text
+   * @returns {Promise<boolean>}
+   */
+  const copyToClipboard = async text => {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+    } catch (error) { /* 退回下面的方案 */ }
+    try {
+      const helper = document.createElement('textarea');
+      helper.value = text;
+      helper.setAttribute('readonly', '');
+      helper.style.position = 'fixed';
+      helper.style.top = '-1000px';
+      helper.style.opacity = '0';
+      document.body.appendChild(helper);
+      helper.select();
+      const ok = document.execCommand('copy');
+      helper.remove();
+      return ok;
+    } catch (error) {
+      return false;
+    }
+  };
+  /**
+   * 代码框右上角的复制图标按钮 过程函数
+   * @param {string|Function} value 要复制的文本；传函数时每次点击取最新值
+   * @returns {HTMLButtonElement}
+   */
+  const codeCopyButton = value => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'board-dialog-copy';
+    button.title = t('board.recordCopy');
+    button.setAttribute('aria-label', button.title);
+    button.innerHTML = COPY_ICON;
+    button.addEventListener('click', async () => {
+      const text = typeof value === 'function' ? value() : value;
+      // 复制成功后勾一直保留到关闭这个代码框
+      if (!(await copyToClipboard(String(text ?? '')))) return;
+      button.innerHTML = COPIED_ICON;
+      button.classList.add('copied');
+    });
+    return button;
+  };
+
   const codeDialog = (title, value, onSubmit) => {
     const mask = document.createElement('div');
     mask.className = 'board-dialog-mask';
-    mask.innerHTML = '<div class="board-dialog"><strong></strong><textarea class="board-dialog-code" spellcheck="false"></textarea><p class="board-dialog-hint"></p><div class="board-dialog-actions"></div></div>';
+    mask.innerHTML = '<div class="board-dialog"><div class="board-dialog-head"><strong></strong></div><textarea class="board-dialog-code" spellcheck="false"></textarea><p class="board-dialog-hint"></p><div class="board-dialog-actions"></div></div>';
+    const head = mask.querySelector('.board-dialog-head');
     const area = mask.querySelector('.board-dialog-code');
     const hint = mask.querySelector('.board-dialog-hint');
     const actions = mask.querySelector('.board-dialog-actions');
     mask.querySelector('.board-dialog strong').textContent = title;
     area.value = value;
     area.readOnly = !onSubmit;
+    // 导出 / 查看代码框在右上角给一个复制按钮；可编辑的导入框不加
+    if (!onSubmit) head.appendChild(codeCopyButton(() => area.value));
     const closeButton = document.createElement('button');
     closeButton.type = 'button';
     closeButton.textContent = t('common.close');
@@ -1782,30 +1842,6 @@
   let boardInitialView = null;
 
   /**
-   * 把视图适配到网格范围 过程函数
-   * 网格铺在逻辑坐标 [0, m·单位] × [-n·单位, 0] —— 画布 +y 朝下，
-   * 所以屏幕上是「原点在左下角、网格往右上铺」
-   * @returns {{centerX: number, centerY: number, scale: number}} 适配出来的逻辑中心与比例
-   */
-  const fitViewToGrid = grid => {
-    const width = grid.m * grid.unit;
-    const height = grid.n * grid.unit;
-    const viewWidth = (typeof canvas !== 'undefined' && canvas ? canvas.clientWidth : 0) || 1280;
-    const viewHeight = (typeof canvas !== 'undefined' && canvas ? canvas.clientHeight : 0) || 720;
-    // 顶部菜单栏与各种浮层（工具面板 / 记录面板 / 元素一览…）浮在画布上，会盖住网格：
-    // 适配时按「没被盖住的那块空地」算大小与圆心
-    const insets = gridFitInsets();
-    const usableWidth = Math.max(120, viewWidth - insets.left - insets.right);
-    const usableHeight = Math.max(120, viewHeight - insets.top - insets.bottom);
-    // 留点边距、最多放大 2 倍（与 fitViewToElements 同一口径）
-    transform.scale = Math.min(usableWidth / (width * 1.3), usableHeight / (height * 1.3), 2);
-    transform.x = insets.left + usableWidth / 2 - (width / 2) * transform.scale;
-    transform.y = insets.top + usableHeight / 2 + (height / 2) * transform.scale;
-    // 网格在逻辑坐标里铺在 [0, width] × [-height, 0] 上，中心就是 (width/2, -height/2)
-    return {centerX: width / 2, centerY: -height / 2, scale: transform.scale};
-  };
-
-  /**
    * 画布上这批图形的外接矩形 过程函数
    * 只看**看得见、有效、且不属于网格**的对象：点取坐标，圆取「圆心 ± 半径」，线段取两端。
    * 射线 / 直线不封口，不拿它们那两个（取值任意的）坐标点撑范围 —— 一条往远处延伸的线会把
@@ -1865,14 +1901,12 @@
   };
 
   /**
-   * 把视图适配到画布上这批图形 过程函数
-   * 没有网格时用（从历史记录载入作图 / 导入 gmt）：图形可能是任意尺寸、任意位置，
-   * 不适配就会落在画布外或者小得看不清。口径与 fitViewToGrid 完全一致 ——
-   * 扣掉浮层占的地方、留 30% 边距、最多放大 2 倍
-   * @returns {boolean} 有没有动过视图（画布上一个能看的图形都没有时不动）
+   * 把视图适配到一组逻辑坐标范围 过程函数
+   * 按内容自然缩放，不设放大上限（小坐标的图也能铺满画布）。
+   * @param {{minX: number, maxX: number, minY: number, maxY: number}|null} bounds
+   * @returns {{centerX: number, centerY: number, scale: number}|false}
    */
-  const fitViewToElements = (extraItems) => {
-    const bounds = visibleBounds(extraItems);
+  const fitViewToBounds = bounds => {
     if (!bounds) return false;
     const viewWidth = (typeof canvas !== 'undefined' && canvas ? canvas.clientWidth : 0) || 1280;
     const viewHeight = (typeof canvas !== 'undefined' && canvas ? canvas.clientHeight : 0) || 720;
@@ -1885,20 +1919,38 @@
     const centerX = (bounds.minX + bounds.maxX) / 2;
     const centerY = (bounds.minY + bounds.maxY) / 2;
     transform.scale = Math.max(minScale,
-      Math.min(usableWidth / (width * 1.3), usableHeight / (height * 1.3), 2));
+      Math.min(usableWidth / (width * 1.3), usableHeight / (height * 1.3)));
     transform.x = insets.left + usableWidth / 2 - centerX * transform.scale;
     transform.y = insets.top + usableHeight / 2 - centerY * transform.scale;
     return {centerX: centerX, centerY: centerY, scale: transform.scale};
   };
 
   /**
-   * 把视图适配到画布上的内容 过程函数（首选的入口：导入 gmt / 载入记录 / 关卡载入都走它）
-   * 有网格就适配到网格范围（网格就是作答范围），没有网格就适配到图形本身
+   * 把视图适配到画布上的内容 过程函数
+   * 导入 gmt / 载入记录 / 关卡载入 / 从游玩返回都走它：
+   *   1. 先把各点坐标算一遍（交点 / 中点 / 圆心等依赖点要等基底接好后才有坐标）；
+   *   2. 有网格时只按网格范围（网格就是作答区域）；没有网格时按图形各点（含 extraItems）的范围；
+   *   3. 按内容自然缩放，不再限制 2 倍 —— 小坐标的图（如 0~10）也能铺满画布。
+   * @param {Object[]} [extraItems] 无网格时额外纳入画幅的对象（如关卡「所求」点）
    * @returns {{centerX: number, centerY: number, scale: number}|null} 逻辑中心与比例
    */
   const fitViewToContent = (extraItems) => {
-    const view = gridMeta ? fitViewToGrid(gridMeta) : fitViewToElements(extraItems);
-    // 记下这一刻的视图：「还原画布变化量」照它复位（有网格就是网格范围，没网格就是适配过的图形）
+    // 载入后的依赖点可能还没算坐标；先按 gmt / 记录的存储顺序算一遍
+    if (typeof geometryManager !== 'undefined' && geometryManager) {
+      geometryManager.getAllByOrder().forEach(item => {
+        if (typeof item.updateCoordinate === 'function') item.updateCoordinate();
+      });
+    }
+    let bounds = null;
+    if (gridMeta) {
+      const width = gridMeta.m * gridMeta.unit;
+      const height = gridMeta.n * gridMeta.unit;
+      bounds = {minX: 0, maxX: width, minY: -height, maxY: 0};
+    } else {
+      bounds = visibleBounds(extraItems);
+    }
+    const view = fitViewToBounds(bounds);
+    // 记下这一刻的视图：「还原画布变化量」照它复位
     if (view) boardInitialView = {centerX: view.centerX, centerY: view.centerY, scale: view.scale};
     return view;
   };
@@ -1970,7 +2022,7 @@
   /**
    * 生成 / 重新生成网格 过程函数
    * 画布上已有网格就先整块删掉（所以再点一次就是「改大小」），再按模板把新网格作上：
-   * 登记成 grid 集合、辅助对象隐藏、网格线段按 #gridstyle= 上样式、视图适配到网格范围。
+   * 登记成 grid 集合、辅助对象隐藏、网格线段按 #gridstyle= 上样式、视图按网格 + 已有图形确定画幅。
    * 整个过程只发一次 storage 事件 —— 撤销一步就把整块网格撤掉
    * @param {number} m 列数
    * @param {number} n 行数
@@ -1997,7 +2049,7 @@
     elements.forEach(item => { item.visible = true; });
     geometryManager.appendStorage(elements);
     setGridMeta(grid);
-    // 适配到网格范围，并记下「初始视图」（「还原画布变化量」回到这里）
+    // 按网格 + 已有图形确定画幅，并记下「初始视图」（「还原画布变化量」回到这里）
     fitViewToContent();
     // 制题器 / 求解器：生成网格就把格线记成「给定」——
     // 制题器里导出后落在 initial= 那一行（关卡 / 求解器读到的题目里网格就是题面的一部分），
@@ -2410,8 +2462,7 @@
     if (typeof window.normalizeGivenMarks === 'function') window.normalizeGivenMarks();
     // 网格关卡：登记网格对象、藏起辅助对象、按 #gridstyle= 上样式（没有网格就清掉）
     setGridMeta(grid);
-    // 导入 gmt / 载入记录都走这里：有网格就适配到网格范围，没有网格就适配到图形本身
-    // （图形可能是任意尺寸、任意位置，不适配就会落在画布外或小得看不清）
+    // 导入后立即算各点坐标并确定画幅（fitViewToContent 内部会先算点，再取网格与各点的并集）
     fitViewToContent();
     // 导入的标记要立刻上色（含多解的点亮规则），并记下样式色，取消标记时才恢复得回去
     refreshElementListColors();
@@ -2579,7 +2630,7 @@
     text: options => gmtText(options),
     load: text => loadGmt(text),
     /**
-     * 把视图适配到画布上的内容 过程函数（有网格适配网格、没有网格适配图形本身）
+     * 把视图适配到画布上的内容 过程函数（按网格 + 图形各点确定画幅）
      * 导入 gmt / 载入记录用它；游玩页的「初始图形适配」也用它（见 playPage 的 fitInitialView），
      * 那边拿返回的逻辑中心与比例记「初始视图」，供「还原视图」按钮回到这里
      */

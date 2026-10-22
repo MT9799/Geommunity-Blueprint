@@ -737,8 +737,8 @@ function resetTransform() {
     // 原地改，不要换成新对象：管理器持有的是同一个 transform 引用，
     // 换成新对象之后 near() 里的 15px 吸附阈值会一直用旧的 scale（缩放后命中范围全错）
     if (levelInitialView) {
-        // 回到关卡载入时那个适配视图（小图形会被放大到 2 倍），不是通用初始值。
-        // 算式与适配时完全一致（见 fitInitialView / board-tools 的 fitViewToElements）：
+        // 回到关卡载入时那个适配视图（小图形会按内容放大），不是通用初始值。
+        // 算式与适配时完全一致（见 fitInitialView / board-tools 的 fitViewToBounds）：
         // 中心落在「扣掉浮层之后那块空地」的正中 —— 浮层收起来 / 又打开、窗口大小变了都不会偏
         // 还原时不把 mobile info 的高度算进去：它消失后视图会显得太靠上
         const insets = typeof window.gridFitInsets === 'function'
@@ -1052,11 +1052,26 @@ function allowedPlayTools() {
  * 载入关卡数据、进 / 出探索模式时调用，尽量保留当前选中的工具
  */
 function refreshToolLimit() {
-    if (typeof generateTool !== 'function') return;
+    // 受限工具第一次确定时工具栏还藏着（tools-pending）：先清空旧的全量工具再重建。
+    // 否则 FLIP 会把被移除的工具克隆成 fixed 幽灵，挂在 body 上淡出 ——
+    // 工具栏虽然藏着，这些幽灵仍然可见，看起来就是「全套工具闪一下」。
+    const pending = document.body.classList.contains('tools-pending');
+    if (pending) {
+        const toolbar = document.getElementById('container_toolbar');
+        if (toolbar) toolbar.innerHTML = '';
+        const switches = document.getElementById('floating-bar-buttons');
+        if (switches) switches.innerHTML = '';
+    }
+    if (typeof generateTool !== 'function') {
+        document.body.classList.remove('tools-pending');
+        return;
+    }
     const keep = typeof tool !== 'undefined' && tool ? tool : null;
     const allowed = allowedPlayTools();
     generateTool('standard');
     if (keep && (!allowed || allowed.includes(keep))) choiceTool(keep);
+    // 重建完再显示：避免旧工具栏 / 移除动画被看到
+    document.body.classList.remove('tools-pending');
 }
 
 /**
@@ -1241,12 +1256,17 @@ function designMode() {
     lists.hidden = [];
     sessionStorage.setItem('elements', JSON.stringify(elements));
     sessionStorage.setItem('geometryElementLists', JSON.stringify(lists));
+    // 网格元信息直接取当前画布上的（关卡页从不往 sessionStorage 写 gridMeta，
+    // 原来读 sessionStorage 永远是 null，设计模式里的网格就丢了）
+    const liveGrid = typeof window.boardGmt?.grid === 'function' ? window.boardGmt.grid() : null;
     sessionStorage.setItem('makerBackup', JSON.stringify({
         elements: sessionStorage.getItem('elements'),
         geometryElementLists: sessionStorage.getItem('geometryElementLists'),
         thumbnail: sessionStorage.getItem('thumbnail'),
         // 网格元信息也带回去：制题器按 restore 还原编辑状态时网格同样要还原成一整块
-        gridMeta: sessionStorage.getItem('gridMeta'),
+        gridMeta: liveGrid
+            ? JSON.stringify({m: liveGrid.m, n: liveGrid.n, unit: liveGrid.unit, style: liveGrid.style})
+            : null,
         // 不作图记录：游玩页自己没有历史，sessionStorage 里的 constructRecord 只可能是
         // 上一次制题器留下的（对不上的图形）。带过去会让制题器套用别人的历史，
         // 一动再撤回就把图形退回那张陌生快照，所以这里一律不带。
@@ -1704,10 +1724,11 @@ function playStartDataLoad() {
     // 重建一次即可；关卡游玩不受影响（那边 window.levelTools 已由 level-loader 设过）
     // levelTools 是 level-loader 挂到 window 上的，这里不能直接写成裸变量（会 ReferenceError）
     const limitedByLevel = typeof window.levelTools === 'string' && window.levelTools;
-    if (hasGrid && !limitedByLevel && new URLSearchParams(location.search).get('mode') === 'maker-play') {
-        window.levelTools = 'grid';
-        if (typeof refreshToolLimit === 'function') refreshToolLimit();
-    }
+    const makerPlay = new URLSearchParams(location.search).get('mode') === 'maker-play';
+    if (hasGrid && !limitedByLevel && makerPlay) window.levelTools = 'grid';
+    // 试玩没有关卡文件的 tools 字段：按「题目里有没有网格」刷新一次工具栏，
+    // 同时把等待期间藏起的工具栏放出来（无网格时就是全量）
+    if (makerPlay && typeof refreshToolLimit === 'function') refreshToolLimit();
     // 与关卡游玩一致：只显示初始条件，解法先藏起来等玩家自己作
     // （从制题器 / 求解器返回时按备份原样还原，自己画的图形不会被藏掉）
     if (!playBackupRestored) showInitialOnly();
@@ -1723,8 +1744,8 @@ function playStartDataLoad() {
  */
 function fitInitialView() {
     // 适配口径与画板 / 记录载入完全共用（board-tools.js 的 fitViewToContent）：
-    // 有网格就适配到网格范围，没有网格就按可见图形的外接矩形适配 ——
-    // 扣掉浮层占的地方、留 30% 边距、最多放大 2 倍（旧的那套是 1.6 边距、非网格关卡不扣浮层）
+    // 按网格与可见图形（含所求点）的并集适配 —— 扣掉浮层占的地方、留 30% 边距、
+    // 按内容自然缩放（不再限 2 倍；旧的那套是 1.6 边距、非网格关卡不扣浮层）
     // 所求点（explore）也纳入画幅：进入关卡时玩家就能看清整个作答区域，
     // 而非只框住给定点后被答案点甩在视野外（普通模式下它们被藏起，这里强制计入）
     const extraItems = [];
@@ -2398,6 +2419,13 @@ function DOMLoaded() {
     canvas.addEventListener("touchend", touchendEventFunction);
     canvas.addEventListener("touchmove", touchmoveEventFunction, {passive: false});
     canvas.addEventListener("touchcancel", touchcancelEventFunction);
+    // 受限工具的关卡：levels.json 还没回来时先藏起工具栏，避免先按「不限」生成全套工具、
+    // 随后再按限制重建时闪一下（见 index.css 的 tools-pending）
+    const levelQuery = new URLSearchParams(location.search);
+    const makerPlay = levelQuery.get('mode') === 'maker-play';
+    if (((levelQuery.get('pack') && levelQuery.get('id')) || makerPlay) && typeof window.levelTools === 'undefined') {
+        document.body.classList.add('tools-pending');
+    }
     // 点击事件绑定
     choiceToolMenu('standard');
     document.getElementById("container_toolbar").addEventListener("click", toolbarChoice);

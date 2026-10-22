@@ -453,11 +453,10 @@
         // 样式表存的是图形**自己**的颜色，标记的显示色要按记录里的标记重上一次
         // （给定黑 / 所求金），否则带标记的记录载回来会看到给定 / 所求是它本来的红 / 灰
         window.refreshElementListColors?.();
-        // 视图适配：有网格的记录由 boardGmt.load 内部适配到网格范围；没有网格时按图形本身适配
-        // （记录里的图形可能是任意尺寸、任意位置，不适配就会落在画布外或小得看不清）。
-        // 放在隐藏名单与样式之后：刚被藏起来的对象不该参与范围
-        if (global.boardGmt && typeof global.boardGmt.grid === 'function'
-            && typeof global.boardGmt.fitView === 'function' && !global.boardGmt.grid()) {
+        // 视图适配：载入记录后统一按「网格 + 图形各点」的并集算一次画幅
+        // （有网格也要算：网格外的作图点、以及比网格大的图形都要看到；放在隐藏名单与样式之后，
+        // 刚被藏起来的对象不参与范围）
+        if (global.boardGmt && typeof global.boardGmt.fitView === 'function') {
             global.boardGmt.fitView();
             global.drawContent?.();
         }

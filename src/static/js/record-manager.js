@@ -61,6 +61,12 @@
             + '<rect x="35" y="35" width="130" height="130" rx="20" fill="none" stroke-width="10"/>'
             + '<polyline points="65 102, 92 130, 140 70" fill="none" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>'
             + '<line x1="45" y1="155" x2="155" y2="45" stroke-width="10" stroke-linecap="round"/></svg>',
+        // 代码框右上角的复制 / 已复制图标
+        copy: '<svg viewBox="0 0 24 24">'
+            + '<rect x="9" y="9" width="11" height="11" rx="2" stroke-width="1.8"/>'
+            + '<path d="M5 15V6a2 2 0 0 1 2-2h9" stroke-width="1.8" stroke-linecap="round"/></svg>',
+        check: '<svg viewBox="0 0 24 24">'
+            + '<polyline points="4 12, 10 18, 20 6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     };
 
     const text = (key, fallback) => (typeof t === 'function' ? t(key) : (fallback || key));
@@ -98,7 +104,7 @@
     function dialog(options) {
         const shell = document.createElement('div');
         shell.className = 'rec-dialog-mask';
-        shell.innerHTML = '<div class="rec-dialog"><strong></strong><p class="rec-dialog-hint"></p>'
+        shell.innerHTML = '<div class="rec-dialog"><div class="rec-dialog-head"><strong></strong></div><p class="rec-dialog-hint"></p>'
             + '<div class="rec-dialog-body"></div><div class="rec-dialog-actions"></div></div>';
         shell.querySelector('strong').textContent = options.title;
         const hint = shell.querySelector('.rec-dialog-hint');
@@ -152,13 +158,55 @@
         input.select();
     }
 
+    /**
+     * 复制文本到剪贴板 过程函数
+     * 优先 Clipboard API；不可用时退回临时 textarea + execCommand
+     * @param {string} value
+     * @returns {Promise<boolean>}
+     */
+    async function copyToClipboard(value) {
+        try {
+            if (navigator.clipboard && window.isSecureContext) {
+                await navigator.clipboard.writeText(value);
+                return true;
+            }
+        } catch (error) { /* 退回下面的方案 */ }
+        try {
+            const helper = document.createElement('textarea');
+            helper.value = value;
+            helper.setAttribute('readonly', '');
+            helper.style.position = 'fixed';
+            helper.style.top = '-1000px';
+            helper.style.opacity = '0';
+            document.body.appendChild(helper);
+            helper.select();
+            const ok = document.execCommand('copy');
+            helper.remove();
+            return ok;
+        } catch (error) {
+            return false;
+        }
+    }
+
     function codeDialog(title, code) {
         const shell = dialog({title: title, buttons: [
-            {label: text('board.recordCopy', '复制'), action: () => {
-                navigator.clipboard?.writeText(code);
-            }},
             {label: text('common.close', '关闭')},
         ]});
+        // 代码框右上角的复制图标：复制成功后短暂变成勾
+        const copy = document.createElement('button');
+        copy.type = 'button';
+        copy.className = 'rec-icon-button';
+        copy.title = text('board.recordCopy', '复制');
+        copy.setAttribute('aria-label', copy.title);
+        copy.innerHTML = ICON.copy;
+        copy.addEventListener('click', async () => {
+            // 复制成功后勾一直保留到关闭这个代码框
+            if (!(await copyToClipboard(code))) return;
+            copy.innerHTML = ICON.check;
+            copy.classList.add('rec-copied');
+        });
+        shell.querySelector('.rec-dialog-head').appendChild(copy);
+
         const pre = document.createElement('pre');
         pre.className = 'rec-dialog-code';
         pre.textContent = code;

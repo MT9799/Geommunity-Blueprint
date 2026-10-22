@@ -20,6 +20,10 @@
     packInfo = packs.find(item => item.id === pack);
     levelInfo = levels.find(item => item.id === id && item.pack === pack);
     if (!levelInfo) throw new Error(`Level not found: ${pack}/${id}`);
+    // 工具限制在 levels.json 回来时就能确定：先应用，别等 gmt 下载完再刷新工具栏
+    // （工具栏在 DOMLoaded 里先藏起来，见 index.css 的 tools-pending）
+    window.levelTools = levelInfo.tools || null;
+    if (typeof refreshToolLimit === 'function') refreshToolLimit();
     // 标题随关卡走：先用 levels.json 的标题，不必等 gmt 下载完
     document.title = `${levelInfo.title || id}${packInfo ? ' · ' + packInfo.name : ''}${titleSuffix}`;
     return fetch(`../data/${levelInfo.file}`).then(response => response.text());
@@ -37,8 +41,6 @@
     window.levelTools = levelInfo.tools || null;
     if (typeof geometryManagerResult !== 'undefined') {
       Object.entries(lists).forEach(([key, value]) => { geometryElementLists[key] = new Set(value); });
-      // 网格关卡（gmt 头部的 #grid=）：登记网格对象、藏起辅助对象、按 #gridstyle 上样式
-      if (grid && typeof window.boardGmt?.setGridFromGmt === 'function') window.boardGmt.setGridFromGmt(grid);
       // 缩略图（点开卡片后可见）：标题 / 说明 / 本关目标 L/E 与示意图
       // 文案来自 levels.json，可用 levels.meta.json 覆盖
       // （带 pack 参数时 playStartDataLoad 会提前返回，所以这里必须自己填）
@@ -54,6 +56,10 @@
         bottomInf.textContent = levelInfo.targetSteps.replace(/\s*\/\s*/g, ' ');
       }
       loadGeometryElementsStorage();
+      // 网格关卡（gmt 头部的 #grid=）：必须等图形载入之后再登记 ——
+      // setGridMeta 要按当前 geometryManager 里的 g* 对象收集 ids，
+      // 提前调用只会拿到空集合，之后网格就当普通图形了
+      if (grid && typeof window.boardGmt?.setGridFromGmt === 'function') window.boardGmt.setGridFromGmt(grid);
       if (typeof fitInitialView === 'function') fitInitialView();
       drawContent();
       const image = document.getElementById('thumbnail-picture');
@@ -90,6 +96,8 @@
     window.__resolvePageReady?.();
   }).catch(error => {
     console.error('GMT load failed', error);
+    // 加载失败也要把工具栏放出来，不然一直停在隐藏状态
+    document.body.classList.remove('tools-pending');
     window.__resolvePageReady?.();
   });
 })();
