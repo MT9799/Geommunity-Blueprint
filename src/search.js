@@ -32,6 +32,8 @@ const pager = document.getElementById('search-pager');
 const pagerTop = document.getElementById('search-pager-top');
 let packScope = params.get('pack') || '';
 let currentPage = Math.max(Number(params.get('page')) || 1, 1);
+// 翻页用 pushState，滚动位置统一由脚本控制，关掉浏览器自带的历史滚动恢复
+if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
 
 // 返回键：落点按「上一级」定 —— 从某个关卡包的关卡列表（pack.html?pack=…）进来的就回那个包，
 // 从关卡包总览（levels.html）进来的就回总览。不用 history.back()：直达才有确定的落点，
@@ -58,18 +60,26 @@ function searchURL(state) {
 loadLevelsData().then(({ packs, levels }) => {
     const packNames = new Map(packs.map(pack => [pack.id, pack.name]));
     const packOf = id => packNames.get(id) || id;
+    // 输入搜索词的防抖计时器（翻页时先清掉，避免它把页码拉回第 1 页）
+    let timer = null;
 
     /** 当前搜索词命中的关卡 */
     const matchesOf = words => levels.filter(level =>
         (!packScope || level.pack === packScope) && matchLevelSearch(level, words, packOf(level.pack)));
 
-    /** 渲染结果列表与分页 */
-    const render = () => {
+    /** 渲染结果列表与分页 过程函数
+     * @param {boolean} animate 翻页时让条目逐条进入
+     * @param {'replace'|'push'} historyMode 页码翻页用 push，输入 / 筛选仍用 replace
+     */
+    const render = (animate = false, historyMode = 'replace') => {
         const terms = input.value.trim().split(/\s+/).filter(Boolean);
         const matched = matchesOf(terms);
         const totalPages = Math.max(Math.ceil(matched.length / LEVELS_PAGE_SIZE), 1);
         const page = Math.min(currentPage, totalPages);
+        currentPage = page;
         const start = (page - 1) * LEVELS_PAGE_SIZE;
+        // 先摘掉动画类：输入搜索词等非翻页重绘不要误播
+        results.classList.remove('list-enter');
         results.innerHTML = matched
             .slice(start, start + LEVELS_PAGE_SIZE)
             .map((level, index) => levelRowHTML(level, {
@@ -87,8 +97,11 @@ loadLevelsData().then(({ packs, levels }) => {
         observeLevelThumbs();
         if (terms.length || packScope) summary.textContent = t('search.found', {count: matched.length});
         else summary.textContent = t('search.all', {count: levels.length});
-        // 搜索条件写进地址栏
-        history.replaceState(null, '', searchURL({q: input.value.trim(), pack: packScope, page: page}));
+        // 页码翻页 push 一条历史；输入 / 筛选仍只替换当前地址
+        const url = searchURL({q: input.value.trim(), pack: packScope, page: page});
+        if (historyMode === 'push') history.pushState(null, '', url);
+        else history.replaceState(null, '', url);
+        if (animate) animateListItems(results);
     };
 
     /** 渲染推荐搜索（带命中数量） */
@@ -107,6 +120,40 @@ loadLevelsData().then(({ packs, levels }) => {
         }
         scopeBox.innerHTML = `<button type="button" class="search-scope-chip" id="scope-clear">${t('search.scope', {name: packOf(packScope)})}<span>✕</span></button>`;
     };
+
+    /** 客户端翻页 过程函数：只重绘条目，不重新加载页面 / 头图 */
+    const goToPage = target => {
+        if (target === currentPage) return;
+        currentPage = target;
+        render(true, 'push');
+    };
+
+    const handlePagerClick = event => {
+        // Ctrl / Cmd / Shift 点击仍交给浏览器（可在新标签打开）
+        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+        const link = event.target.closest('a.pager-item');
+        if (!link) return;
+        event.preventDefault();
+        clearTimeout(timer);
+        const url = new URL(link.href, location.href);
+        goToPage(Math.max(Number(url.searchParams.get('page')) || 1, 1));
+    };
+    pager.addEventListener('click', handlePagerClick);
+    if (pagerTop) pagerTop.addEventListener('click', handlePagerClick);
+    // 浏览器前进 / 后退：从地址栏恢复搜索词、范围和页码，只重绘条目
+    window.addEventListener('popstate', () => {
+        clearTimeout(timer);
+        const state = new URLSearchParams(location.search);
+        currentPage = Math.max(Number(state.get('page')) || 1, 1);
+        input.value = state.get('q') || '';
+        packScope = state.get('pack') || '';
+        if (backLink) {
+            backLink.href = packScope ? `./pack.html?pack=${encodeURIComponent(packScope)}` : './levels.html';
+        }
+        renderScope();
+        renderChips();
+        render(true, 'replace');
+    });
 
     document.title = t('search.title');
     applyI18n();
@@ -154,7 +201,6 @@ loadLevelsData().then(({ packs, levels }) => {
         render();
     });
 
-    let timer = null;
     input.addEventListener('input', () => {
         clearTimeout(timer);
         // 输入停顿后再搜索，避免每敲一个字都重排

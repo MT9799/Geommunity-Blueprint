@@ -396,6 +396,22 @@ function pagerHTML(page, total, hrefOf, showSinglePage) {
 }
 
 /**
+ * 翻页时让条目逐条从下往上进入 过程函数
+ * 在列表 innerHTML 重建之后调用；给每个条目写 --row-i 作为错开延迟
+ * @param {HTMLElement} container .level-list
+ */
+function animateListItems(container) {
+    if (!container) return;
+    container.classList.remove('list-enter');
+    [...container.children].forEach((item, index) => {
+        item.style.setProperty('--row-i', String(index));
+    });
+    // 强制重排，保证重新加上类时动画会重播
+    void container.offsetWidth;
+    container.classList.add('list-enter');
+}
+
+/**
  * 关卡是否命中搜索词 过程函数
  * 空格分隔的多个词之间是「与」关系，每个词都要命中：
  * 标题、说明、关键词、步数（L / E 数，支持 5L、6E、5 这类写法）

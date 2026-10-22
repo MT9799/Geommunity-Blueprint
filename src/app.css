@@ -541,6 +541,24 @@
      margin-top: 36px
  }
 
+ /* 翻页时条目逐条从下往上进入（列表重建后由 levels-data.js 的 animateListItems 加类）。
+    fill-mode 用 backwards：动画结束后不占用 transform，:hover 的位移仍然有效 */
+ @keyframes level-row-in {
+     from {
+         opacity: 0;
+         transform: translateY(14px)
+     }
+     to {
+         opacity: 1;
+         transform: none
+     }
+ }
+
+ .level-list.list-enter > * {
+     animation: level-row-in .26s cubic-bezier(.2, .8, .2, 1) backwards;
+     animation-delay: calc(var(--row-i, 0) * 30ms)
+ }
+
  .level-row {
      display: grid;
      /* 序号 | 缩略图 | 标题 | 步数（与以前一致）。
@@ -875,12 +893,13 @@
      margin-top: 36px
  }
 
- /* 手机端翻页条缩小并强制一行；极窄屏实在放不下时在条内横向滚动 */
+ /* 手机端翻页条：强制一行，尺寸随屏宽用 clamp 稍微放大；
+    极窄屏放不下时在条内横向滚动 */
  @media(max-width:700px) {
      .level-pager {
          flex-wrap: nowrap;
          justify-content: safe center;
-         gap: 3px;
+         gap: clamp(2.5px, 0.9vw, 4px);
          overflow-x: auto;
          scrollbar-width: none
      }
@@ -890,27 +909,15 @@
      }
 
      .pager-item {
-         min-width: 24px;
-         padding: 5px 3px;
-         border-radius: 6px;
-         font-size: 11px;
+         min-width: clamp(21px, 6.6vw, 28px);
+         padding: 5px clamp(2.5px, 0.9vw, 4px);
+         border-radius: 7px;
+         font-size: clamp(11px, 3vw, 12.5px);
          line-height: 1.2
      }
 
      .pager-top {
          margin-top: 16px
-     }
- }
-
- @media(max-width:360px) {
-     .level-pager {
-         gap: 2px
-     }
-
-     .pager-item {
-         min-width: 21px;
-         padding: 4px 2px;
-         font-size: 10.5px
      }
  }
 
@@ -1104,8 +1111,8 @@ html.nav-pending .home-shell-pack {
     }
 }
 
-/* 关卡卡片 / 关卡行不再逐项播放入场动画：搜索 / 翻页整块重排时逐项动画会闪，
-   页面本身的淡入已经足够；缩略图仍单独淡入 */
+/* 首次载入仍由页面整体淡入；翻页时的逐条入场由上面的 .level-list.list-enter 负责。
+   缩略图 / 封面图从占位符换成图片时仍单独淡入 */
 
 /* 缩略图 / 封面图从占位符换成图片时淡入 */
 .level-thumb img,

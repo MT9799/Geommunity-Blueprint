@@ -17,6 +17,8 @@ const pagerTop = document.getElementById('pack-pager-top');
 const searchBox = document.getElementById('search-box');
 const backgroundImageContainer = document.getElementById("background-image-container");
 const heroBanner = document.querySelector('.hero-banner');
+// 翻页用 pushState，滚动位置统一由脚本控制，关掉浏览器自带的历史滚动恢复
+if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
 // 跨文档页面过渡：等关卡列表渲染完再让新页面切入
 // （head 里已经先挂了 promise；这里不要覆盖）
 if (!window.__pageReady) {
@@ -111,20 +113,58 @@ loadLevelsData().then(({ packs }) => {
     backgroundImage.addEventListener('load', () => applyHeroAverageColor(backgroundImage), {once: true});
     backgroundImage.src = `../data/${pack.cover || coverPath}`;
     backgroundImageContainer.appendChild(backgroundImage);
-    // 分页
+    // 分页：翻页只重绘条目和上下翻页条，不重新加载页面 / 头图
     const levels = pack.levels;
     const totalPages = Math.max(Math.ceil(levels.length / LEVELS_PAGE_SIZE), 1);
-    const page = Math.min(queryPage, totalPages);
-    const start = (page - 1) * LEVELS_PAGE_SIZE;
-    list.innerHTML = levels
-        .slice(start, start + LEVELS_PAGE_SIZE)
-        .map((level, index) => levelRowHTML(level, {index: start + index, page: page}))
-        .join('');
-    const pagerHtml = pagerHTML(page, levels.length, target =>
-        `./pack.html?pack=${encodeURIComponent(packId)}&page=${target}`, true);
-    pager.innerHTML = pagerHtml;
-    if (pagerTop) pagerTop.innerHTML = pagerHtml;
-    observeLevelThumbs();
+    let currentPage = Math.min(queryPage, totalPages);
+
+    /** 重绘当前页的条目与上下翻页条 过程函数 */
+    const renderPage = (page, animate) => {
+        const start = (page - 1) * LEVELS_PAGE_SIZE;
+        // 先摘掉动画类：首次渲染重新塞条目时不要误播
+        list.classList.remove('list-enter');
+        list.innerHTML = levels
+            .slice(start, start + LEVELS_PAGE_SIZE)
+            .map((level, index) => levelRowHTML(level, {index: start + index, page: page}))
+            .join('');
+        const pagerHtml = pagerHTML(page, levels.length, target =>
+            `./pack.html?pack=${encodeURIComponent(packId)}&page=${target}`, true);
+        pager.innerHTML = pagerHtml;
+        if (pagerTop) pagerTop.innerHTML = pagerHtml;
+        observeLevelThumbs();
+        if (animate) animateListItems(list);
+    };
+
+    /** 客户端翻页 过程函数 */
+    const goToPage = (target, url) => {
+        if (target === currentPage) return;
+        currentPage = target;
+        history.pushState(null, '', url || `./pack.html?pack=${encodeURIComponent(packId)}&page=${target}`);
+        renderPage(currentPage, true);
+    };
+
+    const handlePagerClick = event => {
+        // Ctrl / Cmd / Shift 点击仍交给浏览器（可在新标签打开）
+        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+        const link = event.target.closest('a.pager-item');
+        if (!link) return;
+        event.preventDefault();
+        const url = new URL(link.href, location.href);
+        const target = Math.min(Math.max(Number(url.searchParams.get('page')) || 1, 1), totalPages);
+        goToPage(target, url.href);
+    };
+    pager.addEventListener('click', handlePagerClick);
+    if (pagerTop) pagerTop.addEventListener('click', handlePagerClick);
+    // 浏览器前进 / 后退：同样只换条目
+    window.addEventListener('popstate', () => {
+        const params = new URLSearchParams(location.search);
+        const target = Math.min(Math.max(Number(params.get('page')) || 1, 1), totalPages);
+        if (target === currentPage) return;
+        currentPage = target;
+        renderPage(currentPage, true);
+    });
+
+    renderPage(currentPage, false);
     // 从关卡返回时停在原来那一屏，而不是回到列表顶部
     restoreListScroll();
     // 关卡行已经进 DOM，可以切入；缩略图继续按需加载
