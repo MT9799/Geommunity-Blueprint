@@ -1,0 +1,20 @@
+# Geommunity Blueprint custom level
+A=[227.3657760273,-25.2195339726]
+B=[55.3634199276,-20.5756953943]
+c1=Circle[A,B]
+S1=Segment[A,B]
+s1=FixAngle[B,A,36]
+C=Intersect[c1,s1,-,B]
+s2=PBisect[A,C]
+s3=Perp[A,S1]
+D=Intersect[s3,s2,0]
+c2=Circle[D,A]
+S2=Segment[A,C]
+S3=Segment[B,C]
+
+initial=S1,S2,c2,S3
+named=A,B.C,C.B
+movepoints=
+hidden=
+result=D
+explore=D

@@ -1,0 +1,20 @@
+# Geommunity Blueprint custom level
+A=[208.6013164158,-199.4119351313]
+B=[373.0638131238,-202.9893284579]
+C=[327.4446962561,-319.7266116477]
+s1=Line[A,C]
+c1=Circle[C,A]
+c2=Circle[C,B]
+s2=PolarLine[A,c2]
+D=Intersect[s1,s2,0]
+s4=Line[B,C]
+E=Intersect[c1,s4,0]
+F=Midpoint[E,D]
+s3=Line[F,C]
+
+initial=
+named=A,B,C.P
+movepoints=
+hidden=
+result=s3
+explore=s3

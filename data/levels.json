@@ -9832,7 +9832,7 @@
         "subtitle": "已知6条直线，构造一个三角形，使各边的三等分点各在直线上。",
         "targetSteps": "130L / 182E",
         "diagram": "diagrams/xeuclidea-puzzle/xep38.png",
-        "note": "TP得意之作",
+        "note": "登峰造极境",
         "keywords": [
             "XEuclidea-Puzzle",
             "等分",
@@ -10658,6 +10658,243 @@
             "内接",
             "直线反射",
             "三线共点"
+        ],
+        "solutions": []
+    },
+    {
+        "id": "gc2026-1",
+        "pack": "geomcontest",
+        "file": "levels/geomcontest/gc2026-1.gmt",
+        "title": "26.1 弦上倍角",
+        "subtitle": "在每个小正方形的边长为 1的网格中，点 A，B 均在格点上，点 C 在竖直网格线上，△ABC 内接于圆. 点 P 为线段 BC 上一点，请用无刻度的直尺，在如图所示的网格中，画出点 P，使得 2∠APC = 3∠ABC.",
+        "targetSteps": "6E",
+        "diagram": "diagrams/geomcontest/gc2026-1.png",
+        "note": "",
+        "tools": "straightedge",
+        "keywords": [
+            "群赛",
+            "群赛2026",
+            "网格",
+            "圆",
+            "角度比"
+        ],
+        "solutions": []
+    },
+    {
+        "id": "gc2026-2",
+        "pack": "geomcontest",
+        "file": "levels/geomcontest/gc2026-2.gmt",
+        "title": "26.2 反射共线",
+        "subtitle": "在每个小正方形的边长为 的网格中，△ABC的顶点A在格点上，过点A，B，C作圆，经过点A 作圆的切线，与 BC的延长线相交于点P.点D为线段BC中点，AD的 延长线与圆相交于点E.点M在线段AB上,线段 MP与线段AC相交于 点N，请用无刻度的直尺，在如图所示的网格中，画出点M,N，使得 EA平分△MEN.",
+        "targetSteps": "5E",
+        "diagram": "diagrams/geomcontest/gc2026-2.png",
+        "note": "",
+        "tools": "straightedge",
+        "keywords": [
+            "群赛",
+            "群赛2026",
+            "网格",
+            "圆",
+            "切线",
+            "中点",
+            "三点共线",
+            "角平分线"
+        ],
+        "solutions": []
+    },
+    {
+        "id": "gc2026-3",
+        "pack": "geomcontest",
+        "file": "levels/geomcontest/gc2026-3.gmt",
+        "title": "26.3 中点等距",
+        "subtitle": "在每个小正方形的边长为1 的网格中，点A，B，C在竖直网格线上，满足AB=BC，过点A,B,C 作圆，圆上有一点D满足△BAD=90°，连接四边形 ABCD.点P为圆 上一点（不与D重合），CP的中点为M，AD的中点为N，请用无刻度 的直尺，在如图所示的网格中，画出点P，使得DM=PN.",
+        "targetSteps": "5E",
+        "diagram": "diagrams/geomcontest/gc2026-3.png",
+        "note": "",
+        "tools": "straightedge",
+        "keywords": [
+            "群赛",
+            "群赛2026",
+            "网格",
+            "圆",
+            "长度相等",
+            "90度",
+            "中点"
+        ],
+        "solutions": []
+    },
+    {
+        "id": "gc2026-4",
+        "pack": "geomcontest",
+        "file": "levels/geomcontest/gc2026-4.gmt",
+        "title": "26.4 中点西姆松",
+        "subtitle": "在每个小正方形的边长为1 的网格中，点A，C在格点上，点B在竖直网格线上，点D在直线 AC 上，连接直线 BA，BD，过点A，B，D作圆.请用无刻度的直尺，在如 图所示的网格中，画出点R，点R在直线 AB，AC上分别投影，两投影 的中点N恰在直线BD上，且RNLBD.",
+        "targetSteps": "7E",
+        "diagram": "diagrams/geomcontest/gc2026-4.png",
+        "note": "",
+        "tools": "straightedge",
+        "keywords": [
+            "群赛",
+            "群赛2026",
+            "网格",
+            "圆",
+            "垂足",
+            "中点"
+        ],
+        "solutions": []
+    },
+    {
+        "id": "gc2026-5",
+        "pack": "geomcontest",
+        "file": "levels/geomcontest/gc2026-5.gmt",
+        "title": "26.5 切割黄金角",
+        "subtitle": "在等腰三角形ABC中，AB=AC, 角C=36°.有一个圆经过点B，且与边AC相切于点A.请仅用无刻度的 直尺，找出该圆的圆心O.",
+        "targetSteps": "9E",
+        "diagram": "diagrams/geomcontest/gc2026-5.png",
+        "note": "",
+        "tools": "straightedge",
+        "keywords": [
+            "群赛",
+            "群赛2026",
+            "单尺",
+            "圆",
+            "圆心",
+            "等腰三角形",
+            "36度",
+            "长度相等",
+            "切线"
+        ],
+        "solutions": []
+    },
+    {
+        "id": "gc2026-6",
+        "pack": "geomcontest",
+        "file": "levels/geomcontest/gc2026-6.gmt",
+        "title": "26.6 边角矩形与60度",
+        "subtitle": "给定一矩形OACB并延长 OA和OB(30°< LBOC<60°)，LAOB内还有一与OB夹60°角的射 线.请仅用无刻度的直尺，作一个顶角C为120°的等腰三角形CPQ，使 得 P，Q分别在射线 OA与射线OB上.",
+        "targetSteps": "13E",
+        "diagram": "diagrams/geomcontest/gc2026-6.png",
+        "note": "",
+        "tools": "straightedge",
+        "keywords": [
+            "群赛",
+            "群赛2026",
+            "单尺",
+            "矩形",
+            "60度",
+            "120度",
+            "等腰三角形"
+        ],
+        "solutions": []
+    },
+    {
+        "id": "gc2026-7",
+        "pack": "geomcontest",
+        "file": "levels/geomcontest/gc2026-7.gmt",
+        "title": "26.7 角平分线平行",
+        "subtitle": "给定一圆O及其内接△ABC，求 作一内接△DEF，记其内心为I,满足 DI// BC,EI// AC,FI// AB. ",
+        "targetSteps": "15E",
+        "diagram": "diagrams/geomcontest/gc2026-7.png",
+        "note": "",
+        "keywords": [
+            "群赛",
+            "群赛2026",
+            "三角形",
+            "外接圆",
+            "内心",
+            "平行"
+        ],
+        "solutions": []
+    },
+    {
+        "id": "gc2026-8",
+        "pack": "geomcontest",
+        "file": "levels/geomcontest/gc2026-8.gmt",
+        "title": "26.8 内接极大面积矩形",
+        "subtitle": "已知圆O内有一点M，过点M作 一条直线，交圆于 E，F两点，且M为EF的中点.在圆上另有一条弦 PQ平行于直线EF，分别过P，Q向直线EF作垂线，垂足为S,R.当 矩形 PQRS的面积取得最大值时，作出弦PQ.",
+        "targetSteps": "9E",
+        "diagram": "diagrams/geomcontest/gc2026-8.png",
+        "note": "",
+        "keywords": [
+            "群赛",
+            "群赛2026",
+            "圆",
+            "垂直",
+            "矩形",
+            "极大值",
+            "弦",
+            "面积"
+        ],
+        "solutions": []
+    },
+    {
+        "id": "gc2026-9",
+        "pack": "geomcontest",
+        "file": "levels/geomcontest/gc2026-9.gmt",
+        "title": "26.9 角和关系点",
+        "subtitle": "给定△ABC及其外接圆O，在 △ABC 内作一点D,满足角BAD+角BCD=角CAD+角CBD=45°",
+        "targetSteps": "7E",
+        "diagram": "diagrams/geomcontest/gc2026-9.png",
+        "note": "",
+        "keywords": [
+            "群赛",
+            "群赛2026",
+            "三角形",
+            "外接圆",
+            "45度",
+            "角度",
+            "等式"
+        ],
+        "solutions": []
+    },
+    {
+        "id": "gc2026-10",
+        "pack": "geomcontest",
+        "file": "levels/geomcontest/gc2026-10.gmt",
+        "title": "26.10 内接调和三角形",
+        "subtitle": "给定△ABC的各边所在直线 以及在△ABC外的两点D，E.作△ABC的一个内接△POR，其中P在 AB上，Q在AC上，R在BC上，且满足 D,P,R三点共线，E，Q,R 三点共线，以及 CP，BQ，AR三线共点。",
+        "targetSteps": "13E",
+        "diagram": "diagrams/geomcontest/gc2026-10.png",
+        "note": "",
+        "keywords": [
+            "群赛",
+            "群赛2026",
+            "三角形",
+            "内接",
+            "三点共线",
+            "三线共点"
+        ],
+        "solutions": []
+    },
+    {
+        "id": "gc2026-11-1",
+        "pack": "geomcontest",
+        "file": "levels/geomcontest/gc2026-11-1.gmt",
+        "title": "26.11.1 合引力方向",
+        "subtitle": "今日，歌者将巡查一个双星系统，他需 要建立一个局部引力场模型来辅助导航，如图所示.假设两天体质量相 同，分别位于点A和点B处.当他的飞船位于点P时，试作出其所受到 的引力合力方向所在的直线.(注：引力大小F ∝ 1/d²)",
+        "targetSteps": "10E",
+        "diagram": "diagrams/geomcontest/gc2026-11-1.png",
+        "note": "",
+        "keywords": [
+            "群赛",
+            "群赛2026",
+            "物理"
+        ],
+        "solutions": []
+    },
+    {
+        "id": "gc2026-11-2",
+        "pack": "geomcontest",
+        "file": "levels/geomcontest/gc2026-11-2.gmt",
+        "title": "26.11.2 变轨巡航",
+        "subtitle": "次日例行巡逻，歌者的飞船在以O为圆心的圆轨道上运行，如图所示.他接到指令，需要清理位于点A和 点B的两处太空垃圾.他必须自行选择变轨位置，在保持原有运行方向 的前提下，切入一条椭圆轨道，使其恰好经过这两个垃圾点.现在，他 需要找到圆O上的那个变轨位置T.",
+        "targetSteps": "15E",
+        "diagram": "diagrams/geomcontest/gc2026-11-2.png",
+        "note": "",
+        "keywords": [
+            "群赛",
+            "群赛2026",
+            "物理"
         ],
         "solutions": []
     }
