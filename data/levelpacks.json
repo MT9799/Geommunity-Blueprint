@@ -24,6 +24,14 @@
         "source": "ref/Extra/C-s-Pzls-Other"
     },
     {
+        "id": "weekly-tangent",
+        "name": "每周相切谜题",
+        "description": "馒头的切圆作图精选集。",
+        "cover": "packcovers/WeeklyTangentLogo.jpg",
+        "icon": "",
+        "source": ""
+    },
+    {
         "id": "euc-addit",
         "name": "欧几里得补充包",
         "description": "铃声末响春日暖的精选集。",
