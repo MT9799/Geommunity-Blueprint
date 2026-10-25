@@ -10225,7 +10225,7 @@
         "file": "levels/geomcontest/gc2024-1.gmt",
         "title": "24.1 长度和",
         "subtitle": "在每个小正方形的边长为1的正方形网格中，点A、B在格点上，过A、B的圆上有一点C。仅用无刻度直尺任作一对点P、Q（不与A、B、C重合），使点P在线段AC上，点在线段BC上，且满足AP+BQ=AC。",
-        "targetSteps": "9E",
+        "targetSteps": "8E",
         "diagram": "diagrams/geomcontest/gc2024-1.png",
         "note": "",
         "tools": "straightedge",
@@ -10237,7 +10237,12 @@
             "三角形",
             "等式"
         ],
-        "solutions": []
+        "solutions": [
+            {
+                "file": "answers/geomcontest/gc2024-1/gc24-1-8E.jpg",
+                "star": "8E"
+            }
+        ]
     },
     {
         "id": "gc2024-2",
@@ -10245,7 +10250,7 @@
         "file": "levels/geomcontest/gc2024-2.gmt",
         "title": "24.2 周长平分线",
         "subtitle": "在每个小正方形的边长为1的正方形网格中，A、B、D为格点，C在线段AB上，E在格线上，且A、C、D、E四点共圆，F在CE延长线上且DC=DF，过 C、D、F三点的圆上有一点 G，满足 AD//FG。仅用无刻度直尺求作一直线平分△CFG周长。",
-        "targetSteps": "6E",
+        "targetSteps": "5E",
         "diagram": "diagrams/geomcontest/gc2024-2.png",
         "note": "",
         "tools": "straightedge",
@@ -10257,7 +10262,12 @@
             "三角形",
             "平分周长"
         ],
-        "solutions": []
+        "solutions": [
+            {
+                "file": "answers/geomcontest/gc2024-2/gc24-2-5E.jpg",
+                "star": "5E"
+            }
+        ]
     },
     {
         "id": "gc2024-3",
@@ -10265,7 +10275,7 @@
         "file": "levels/geomcontest/gc2024-3.gmt",
         "title": "24.3 三角形圆弧找心",
         "subtitle": "已知等腰直角三角形ABC, 角ABC为直角，弧AB在△ABC内部，且对应圆心角为直角。仅用单尺作出弧AB所对圆的圆心O。",
-        "targetSteps": "10E",
+        "targetSteps": "8E",
         "diagram": "diagrams/geomcontest/gc2024-3.png",
         "note": "",
         "tools": "straightedge",
@@ -10277,7 +10287,12 @@
             "等腰直角三角形",
             "圆心"
         ],
-        "solutions": []
+        "solutions": [
+            {
+                "file": "answers/geomcontest/gc2024-3/gc24-3-8E.jpg",
+                "star": "8E"
+            }
+        ]
     },
     {
         "id": "gc2024-4",
@@ -10285,7 +10300,7 @@
         "file": "levels/geomcontest/gc2024-4.gmt",
         "title": "24.4 海伦三角形内心",
         "subtitle": "已知直角三角形ABC，其中ABC为直角，AB=12，BC=5，给出其内切圆（不含圆心），仅用单尺作出其圆心O。",
-        "targetSteps": "7E",
+        "targetSteps": "6E",
         "diagram": "diagrams/geomcontest/gc2024-4.png",
         "note": "",
         "tools": "straightedge",
@@ -10298,7 +10313,12 @@
             "海伦三角形",
             "内心"
         ],
-        "solutions": []
+        "solutions": [
+            {
+                "file": "answers/geomcontest/gc2024-4/gc24-4-6E.jpg",
+                "star": "6E"
+            }
+        ]
     },
     {
         "id": "gc2024-5",
@@ -10445,7 +10465,7 @@
         "file": "levels/geomcontest/gc2025-1.gmt",
         "title": "25.1 梯形面积平分线",
         "subtitle": "在每个小正方形的边长为1的网格中，A、B、C均在格线上，点C所在格线上有一点D满足AD//BC。请用无刻度的直尺，作一对点E、F，使点E、F分别在线段BC、AD上，满足四边形ABEF为平行四边形，且EF平分四边形ABCD的面积。",
-        "targetSteps": "5E",
+        "targetSteps": "3E",
         "diagram": "diagrams/geomcontest/gc2025-1.png",
         "note": "",
         "tools": "straightedge",
@@ -10457,7 +10477,12 @@
             "平行四边形",
             "平分面积"
         ],
-        "solutions": []
+        "solutions": [
+            {
+                "file": "answers/geomcontest/gc2025-1/gc25-1-3E.PNG",
+                "star": "3E"
+            }
+        ]
     },
     {
         "id": "gc2025-2",
@@ -10476,7 +10501,12 @@
             "圆",
             "比例"
         ],
-        "solutions": []
+        "solutions": [
+            {
+                "file": "answers/geomcontest/gc2025-2/gc25-2-5E.PNG",
+                "star": "5E"
+            }
+        ]
     },
     {
         "id": "gc2025-3",
@@ -10484,7 +10514,7 @@
         "file": "levels/geomcontest/gc2025-3.gmt",
         "title": "25.3 二倍角垂直",
         "subtitle": "在每个小正方形的边长为1的网格中，A为格点，B在格线上，△ABC为以AC为斜边的等腰直角三角形，D为AC中点，过A、B、D三点作圆，已知圆上存在一点M（不与D重合），直线CM上存在一点N，请用无刻度的直尺，在如图所示的网格中，作出点M、N，使得∠MBN=∠ABM，且BN⊥CM。",
-        "targetSteps": "6E",
+        "targetSteps": "4E",
         "diagram": "diagrams/geomcontest/gc2025-3.png",
         "note": "",
         "tools": "straightedge",
@@ -10497,7 +10527,12 @@
             "二倍角",
             "垂直"
         ],
-        "solutions": []
+        "solutions": [
+            {
+                "file": "answers/geomcontest/gc2025-3/gc25-3-4E.PNG",
+                "star": "4E"
+            }
+        ]
     },
     {
         "id": "gc2025-4",
@@ -10505,7 +10540,7 @@
         "file": "levels/geomcontest/gc2025-4.gmt",
         "title": "25.4 加权费马点",
         "subtitle": "在每个小正方形的边长为1的网格中，A在格线上，B为格点，△ABC为等腰直角三角形，斜边BC与格线交于D，BD=4，过A、B两点作圆，请用无刻度的直尺，在如图所示的网格中，作出一个点P，满足∠PBC=∠PCA=2∠PAB。",
-        "targetSteps": "9E",
+        "targetSteps": "2E",
         "diagram": "diagrams/geomcontest/gc2025-4.png",
         "note": "",
         "tools": "straightedge",
@@ -10518,7 +10553,12 @@
             "二倍角",
             "等角"
         ],
-        "solutions": []
+        "solutions": [
+            {
+                "file": "answers/geomcontest/gc2025-4/gc25-4-2E.PNG",
+                "star": "2E"
+            }
+        ]
     },
     {
         "id": "gc2025-5",
@@ -10526,7 +10566,7 @@
         "file": "levels/geomcontest/gc2025-5.gmt",
         "title": "25.5 径上等弦找心",
         "subtitle": "已知无心圆及其一直径（所在直线)， 直径与圆的一个交点为B，直径上有一点C，圆上有一点D，满足BC=BD。仅用无刻度的直尺作出给定圆的圆心O。",
-        "targetSteps": "8E",
+        "targetSteps": "9E",
         "diagram": "diagrams/geomcontest/gc2025-5.png",
         "note": "",
         "tools": "straightedge",
@@ -10540,7 +10580,12 @@
             "弦",
             "长度相等"
         ],
-        "solutions": []
+        "solutions": [
+            {
+                "file": "answers/geomcontest/gc2025-5/gc25-5-9E.PNG",
+                "star": "9E"
+            }
+        ]
     },
     {
         "id": "gc2025-6",
@@ -10548,7 +10593,7 @@
         "file": "levels/geomcontest/gc2025-6.gmt",
         "title": "25.6 正三角形的顶点",
         "subtitle": "已知正三角形ABC及其中心O，AB上有一点D（AD<DB），BC上有一点E，且D、O、E共线，给出过A、D、O三点的圆（不含圆心），仅用无刻度的直尺，在圆内找一点P，使得△PDE是正三角形。",
-        "targetSteps": "7E",
+        "targetSteps": "6E",
         "diagram": "diagrams/geomcontest/gc2025-6.png",
         "note": "",
         "tools": "straightedge",
@@ -10560,7 +10605,12 @@
             "正三角形",
             "共线"
         ],
-        "solutions": []
+        "solutions": [
+            {
+                "file": "answers/geomcontest/gc2025-6/gc25-6-6E.PNG",
+                "star": "6E"
+            }
+        ]
     },
     {
         "id": "gc2025-7",
@@ -10579,7 +10629,12 @@
             "三角形",
             "高线"
         ],
-        "solutions": []
+        "solutions": [
+            {
+                "file": "answers/geomcontest/gc2025-7/gc25-7-9E.PNG",
+                "star": "9E"
+            }
+        ]
     },
     {
         "id": "gc2025-8-1",
@@ -10598,7 +10653,12 @@
             "相切",
             "圆过点"
         ],
-        "solutions": []
+        "solutions": [
+            {
+                "file": "answers/geomcontest/gc2025-8/gc25-8-1-8E.PNG",
+                "star": "8E"
+            }
+        ]
     },
     {
         "id": "gc2025-8-2",
@@ -10619,7 +10679,12 @@
             "极大值",
             "面积"
         ],
-        "solutions": []
+        "solutions": [
+            {
+                "file": "answers/geomcontest/gc2025-8/gc25-8-2-9E.PNG",
+                "star": "9E"
+            }
+        ]
     },
     {
         "id": "gc2025-9",
@@ -10627,7 +10692,7 @@
         "file": "levels/geomcontest/gc2025-9.gmt",
         "title": "25.9 切线长之和",
         "subtitle": "已知两相离的圆及两圆外一直线，在直线上找一点，使其到两圆的切线长之和最小。",
-        "targetSteps": "15E",
+        "targetSteps": "12E",
         "diagram": "diagrams/geomcontest/gc2025-9.png",
         "note": "",
         "keywords": [
@@ -10639,7 +10704,12 @@
             "算式",
             "极小值"
         ],
-        "solutions": []
+        "solutions": [
+            {
+                "file": "answers/geomcontest/gc2025-9/gc25-9-12E.PNG",
+                "star": "12E"
+            }
+        ]
     },
     {
         "id": "gc2025-10-1",
@@ -10647,7 +10717,7 @@
         "file": "levels/geomcontest/gc2025-10-1.gmt",
         "title": "25.10.1 过点圆内接四边形",
         "subtitle": "给定点E和三直线AB、m、n，过点E作直线交m、n于C、D，使得四边形ABCD可以内接于某个圆。",
-        "targetSteps": "6E",
+        "targetSteps": "5E",
         "diagram": "diagrams/geomcontest/gc2025-10-1.png",
         "note": "",
         "keywords": [
@@ -10658,7 +10728,12 @@
             "直线反射",
             "直线过点"
         ],
-        "solutions": []
+        "solutions": [
+            {
+                "file": "answers/geomcontest/gc2025-10/gc25-10-1-5E.jpg",
+                "star": "5E"
+            }
+        ]
     },
     {
         "id": "gc2025-10-2",
@@ -10666,7 +10741,7 @@
         "file": "levels/geomcontest/gc2025-10-2.gmt",
         "title": "25.10.2 三线共点的自反射四边形",
         "subtitle": "给定一可以内接于圆的四边形ABCD四边所在直线， 作其一个内接四边形PQRS，使得P在AB上，Q在BC上，R在CD上，S在AD上，∠APS=∠BPQ，∠BQP=∠CQR，∠CRQ=∠DRS，∠DSR=∠ASP，且BC、AD、PR三线共点。",
-        "targetSteps": "24E",
+        "targetSteps": "17E",
         "diagram": "diagrams/geomcontest/gc2025-10-2.png",
         "note": "",
         "keywords": [
@@ -10677,7 +10752,12 @@
             "直线反射",
             "三线共点"
         ],
-        "solutions": []
+        "solutions": [
+            {
+                "file": "answers/geomcontest/gc2025-10/gc25-10-2-17E.jpg",
+                "star": "17E"
+            }
+        ]
     },
     {
         "id": "gc2026-1",
@@ -10696,7 +10776,12 @@
             "圆",
             "角度比"
         ],
-        "solutions": []
+        "solutions": [
+            {
+                "file": "answers/geomcontest/gc2026-1/gc2026-1-6E.png",
+                "star": "6E"
+            }
+        ]
     },
     {
         "id": "gc2026-2",
@@ -10718,7 +10803,12 @@
             "三点共线",
             "角平分线"
         ],
-        "solutions": []
+        "solutions": [
+            {
+                "file": "answers/geomcontest/gc2026-2/gc2026-2-4E.png",
+                "star": "4E"
+            }
+        ]
     },
     {
         "id": "gc2026-3",
@@ -10739,7 +10829,12 @@
             "90度",
             "中点"
         ],
-        "solutions": []
+        "solutions": [
+            {
+                "file": "answers/geomcontest/gc2026-3/gc2026-3-4E.png",
+                "star": "4E"
+            }
+        ]
     },
     {
         "id": "gc2026-4",
@@ -10759,7 +10854,12 @@
             "垂足",
             "中点"
         ],
-        "solutions": []
+        "solutions": [
+            {
+                "file": "answers/geomcontest/gc2026-4/gc2026-4-3E.png",
+                "star": "3E"
+            }
+        ]
     },
     {
         "id": "gc2026-5",
@@ -10782,7 +10882,12 @@
             "长度相等",
             "切线"
         ],
-        "solutions": []
+        "solutions": [
+            {
+                "file": "answers/geomcontest/gc2026-5/gc2026-5-9E.png",
+                "star": "9E"
+            }
+        ]
     },
     {
         "id": "gc2026-6",
@@ -10803,7 +10908,12 @@
             "120度",
             "等腰三角形"
         ],
-        "solutions": []
+        "solutions": [
+            {
+                "file": "answers/geomcontest/gc2026-6/gc2026-6-11E.png",
+                "star": "11E"
+            }
+        ]
     },
     {
         "id": "gc2026-7",
@@ -10822,7 +10932,12 @@
             "内心",
             "平行"
         ],
-        "solutions": []
+        "solutions": [
+            {
+                "file": "answers/geomcontest/gc2026-7/gc2026-7-9E.png",
+                "star": "9E"
+            }
+        ]
     },
     {
         "id": "gc2026-8",
@@ -10843,7 +10958,12 @@
             "弦",
             "面积"
         ],
-        "solutions": []
+        "solutions": [
+            {
+                "file": "answers/geomcontest/gc2026-8/gc2026-8-7E.png",
+                "star": "7E"
+            }
+        ]
     },
     {
         "id": "gc2026-9",
@@ -10863,7 +10983,12 @@
             "角度",
             "等式"
         ],
-        "solutions": []
+        "solutions": [
+            {
+                "file": "answers/geomcontest/gc2026-9/gc2026-9-7E.png",
+                "star": "7E"
+            }
+        ]
     },
     {
         "id": "gc2026-10",
@@ -10882,7 +11007,12 @@
             "三点共线",
             "三线共点"
         ],
-        "solutions": []
+        "solutions": [
+            {
+                "file": "answers/geomcontest/gc2026-10/gc2026-10-7E.png",
+                "star": "7E"
+            }
+        ]
     },
     {
         "id": "gc2026-11-1",
@@ -10898,7 +11028,12 @@
             "群赛2026",
             "物理"
         ],
-        "solutions": []
+        "solutions": [
+            {
+                "file": "answers/geomcontest/gc2026-11/gc2026-11-1-8E.png",
+                "star": "8E"
+            }
+        ]
     },
     {
         "id": "gc2026-11-2",
@@ -10914,7 +11049,12 @@
             "群赛2026",
             "物理"
         ],
-        "solutions": []
+        "solutions": [
+            {
+                "file": "answers/geomcontest/gc2026-11/gc2026-11-2-8E.png",
+                "star": "8E"
+            }
+        ]
     },
     {
         "id": "wt1",
