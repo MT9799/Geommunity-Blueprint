@@ -831,6 +831,10 @@ textarea {
     justify-content: flex-end;
 }
 
+.board-dialog-actions .main-button {
+    background-color: rgb(128, 128, 255);
+}
+
 /* 帮助窗口 */
 .help-dialog {
     width: min(560px, 90vw);

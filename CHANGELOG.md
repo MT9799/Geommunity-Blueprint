@@ -2,6 +2,17 @@
 
 本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)，条目按 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 组织。
 
+## [1.2.9] - 2026-10-25
+
+### 新增
+
+- 新增 Weekly Tangent 关卡包。
+
+### 变更
+
+- 调整部分样式。
+- 更新部分关卡的最优步数。
+
 ## [1.2.8] - 2026-10-22
 
 ### 新增

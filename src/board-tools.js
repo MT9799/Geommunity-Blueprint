@@ -1196,6 +1196,7 @@
     cancelButton.addEventListener('click', () => dismissMask(mask));
     const confirmButton = document.createElement('button');
     confirmButton.type = 'button';
+    confirmButton.className = 'main-button';
     confirmButton.textContent = t('common.confirm');
     confirmButton.addEventListener('click', () => { dismissMask(mask); onConfirm(); });
     actions.appendChild(cancelButton);
@@ -1320,6 +1321,7 @@
     cancelButton.addEventListener('click', close);
     const confirmButton = document.createElement('button');
     confirmButton.type = 'button';
+    confirmButton.className = 'main-button';
     confirmButton.textContent = t('common.confirm');
     // 传了 valid 就按它实时开关「确定」：内容非法（空 / 非数字）时按钮点不动
     const valid = typeof options.valid === 'function' ? options.valid : null;
@@ -6194,6 +6196,7 @@
     cancelButton.addEventListener('click', () => dismissMask(mask));
     const confirmButton = document.createElement('button');
     confirmButton.type = 'button';
+    confirmButton.className = 'main-button';
     confirmButton.textContent = t('common.confirm');
     confirmButton.addEventListener('click', () => {
       const columns = Math.trunc(Number(cols.value));
