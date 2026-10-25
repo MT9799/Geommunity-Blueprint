@@ -1613,16 +1613,19 @@
     if (!onSubmit) head.appendChild(codeCopyButton(() => area.value));
     const closeButton = document.createElement('button');
     closeButton.type = 'button';
-    closeButton.textContent = t('common.close');
+    // 导入框里这个键是「取消导入」，只读查看框里才是「关闭」
+    closeButton.textContent = onSubmit ? t('common.cancel') : t('common.close');
     closeButton.addEventListener('click', () => dismissMask(mask));
-    actions.appendChild(closeButton);
     if (onSubmit) {
       const confirmButton = document.createElement('button');
       confirmButton.type = 'button';
+      // 与「查看答案 / 生成网格」的确定键同一套主按钮样式，并且排在取消（关闭）前面
+      confirmButton.className = 'main-button';
       confirmButton.textContent = t('common.import');
       confirmButton.addEventListener('click', () => { if (onSubmit(area.value)) dismissMask(mask); else hint.textContent = t('board.gmtImportFailed'); });
       actions.appendChild(confirmButton);
     }
+    actions.appendChild(closeButton);
     mask.addEventListener('click', event => { if (event.target === mask) dismissMask(mask); });
     document.body.appendChild(mask);
     return mask;
@@ -4210,13 +4213,24 @@
     // 从关卡打开求解器时带了 solverTool（那一关限定单尺 / 单规）：可用工具默认就选到同一种模式
     const presetSolverTool = params.get('solverTool');
     const solverToolSelect = panel.querySelector('#geb-solver-tool');
-    if (solverToolSelect && ['0', '1', '2'].includes(presetSolverTool)) {
+    if (solverToolSelect && ['0', '1', '2', '3'].includes(presetSolverTool)) {
       solverToolSelect.value = presetSolverTool;
     }
     // 画布上已经有网格（画板里生成过 / 关卡自带）：切到网格模式并把最大步数切到 4
     syncSolverGridOption(panel);
     // 收进底部上拉栏：画布上只留一个圆形按钮（见 addSideButton）
     addSideButton('solver-params', solverSideIcon(), t('board.solverParams'), wrapInSheet(panel, t('board.solverParams')));
+
+    // 手机端画布 / 其他区域的 touchstart 会 preventDefault，输入框不会自动失焦；
+    // 点到输入类控件（或它们的 label）之外时手动收掉焦点 —— 面板空白处 / 按钮 / 面板外都算
+    document.addEventListener('pointerdown', event => {
+        const active = document.activeElement;
+        if (!active || typeof active.closest !== 'function' || !active.closest('.solver-panel')) return;
+        const target = event.target instanceof Element ? event.target : null;
+        if (!target || target === active) return;
+        if (target.closest('input, textarea, select, label')) return;
+        active.blur();
+    }, true);
 
     // 关系雷达（面板就在本文件里，与画板上其它面板一致；判定在 solver/bs-relations.js）：
     //   桌面端 —— 与求解面板共用右上角那一块浮层，靠面板顶部那条页签条切换（两块不能叠在一起）；
@@ -4432,7 +4446,23 @@
 
     /** 进度条的说明文字 过程函数（鼠标停在进度条上能看到：这个条按什么算、顺带几个数字） */
     const progressTitle = state => {
-      const parts = [t('board.solverProgressNote')];
+      const parts = [];
+      if (state.heuristic) {
+        // 启发式没有「情况总数」：分母用时间上限，进度按已用时间估（见 refreshSearchProgress）
+        parts.push(t('board.solverProgressHeuristic'));
+        parts.push(t('board.solverProgressHeuristicNodes', {nodes: progressNumber(state.nodes)}));
+        if (state.limitSeconds > 0) {
+          parts.push(t('board.solverProgressTime', {
+            elapsed: ((performance.now() - state.startedAt) / 1000).toFixed(1),
+            limit: state.limitSeconds,
+          }));
+        }
+        if (state.target > 0) {
+          parts.push(t('board.solverProgressFound', {found: liveResult.solutions.length, target: state.target}));
+        }
+        return parts.join(' · ');
+      }
+      parts.push(t('board.solverProgressNote'));
       const estimated = estimatedSituations(state);
       parts.push(t('board.solverProgressNodes', {
         nodes: progressNumber(state.nodes),
@@ -4489,6 +4519,18 @@
         return;
       }
       const state = progressState;
+      // 启发式没有「情况」可数：进度 = 已用时间 / 时间上限（随定时器持续推进）；
+      // 没有时间上限时按节点数给一个渐近值，避免永远停在 0
+      if (state.heuristic) {
+        if (state.limitSeconds > 0) {
+          const elapsed = (performance.now() - state.startedAt) / 1000;
+          state.ratio = Math.max(state.ratio || 0, Math.min(1, elapsed / state.limitSeconds));
+        } else {
+          state.ratio = Math.max(state.ratio || 0, 1 - Math.pow(0.5, (state.nodes || 0) / 1000));
+        }
+        paintSearchProgress(state.ratio, progressTitle(state));
+        return;
+      }
       const estimated = estimatedSituations(state);
       // 分母是「边搜边校准」出来的：搜完的情况一多，估计值就会变，条于是可能往回缩。
       // 这里只许往前走（记住见过的最大值）—— 进度条往回跳比估得粗还难理解
@@ -4503,6 +4545,15 @@
      */
     const takeSearchProgress = payload => {
       if (!progressState || !payload) return;
+      if (payload.heuristic) {
+        // 启发式只报节点数，进度由「已用时间 / 时间上限」在 refreshSearchProgress 里推进
+        progressState.heuristic = true;
+        progressState.nodes = payload.nodes || 0;
+        if (payload.budgetSeconds > 0) progressState.limitSeconds = payload.budgetSeconds;
+        refreshSearchProgress();
+        return;
+      }
+      progressState.heuristic = false;
       progressState.nodes = payload.nodes || 0;
       progressState.tasksDone = payload.tasksDone || 0;
       progressState.completedNodes = payload.completedNodes || 0;
@@ -4542,6 +4593,8 @@
         target: options.target || 0,
         limitSeconds: options.limitSeconds || 0,
         startedAt: performance.now(),
+        // 启发式没有「情况总数」，进度改用「已用时间 / 时间上限」
+        heuristic: !!options.heuristic,
         // 「情况」计数：nodes = 已搜节点数（分子）；tasksDone / completedNodes = 已搜完的情况数
         // 与它们的节点数合计（用来算平均规模）；tasksTotal = 边界层的情况总数（分母的一部分）
         nodes: 0,
@@ -5092,7 +5145,8 @@
       for (let step = 1; step <= settings.limit; step++) {
         if (searchStopToken !== stopToken || liveResult.solutions.length >= settings.solutions) break;
         // 新一轮从零开始数「情况」（上一轮的计数是它自己的搜索树，不能混在一起）
-        startSearchProgress({target: settings.solutions, limitSeconds: settings.timeLimitSeconds});
+        startSearchProgress({target: settings.solutions, limitSeconds: settings.timeLimitSeconds,
+          heuristic: !!(settings.advanced && settings.advanced.heuristic)});
         const round = await runSearchRound(Object.assign({}, settings, {limit: step}));
         lastTimedOut = !!(round && round.timedOut);
       }
@@ -5171,7 +5225,8 @@
       // 勾了它就按 1 个线程算，免得同时跑两套引擎
       const settings = {request, limit, toolType, timeLimitSeconds, solutions, advanced,
         threads: advanced.heuristic ? 1 : advanced.threads};
-      startSearchProgress({target: solutions, limitSeconds: timeLimitSeconds});
+      startSearchProgress({target: solutions, limitSeconds: timeLimitSeconds,
+        heuristic: advanced.heuristic === true});
       // 逐步搜索（高级选项）：1 步搜一遍、2 步搜一遍 …… 到设定步数（见 runStepwiseSearch）
       if (advanced.stepwise) {
         runStepwiseSearch(settings);
@@ -5818,7 +5873,9 @@
     {
       tool: 'given', labelKey: 'board.markInitial', templateId: 'markInitial', actionKey: 'mark-initial', cssClass: 'mark-initial',
       options: [
-        {key: 'initial', templateId: 'markInitial', actionKey: 'mark-initial', labelKey: 'board.markGiven'},
+        // 选项不要和上一级的总按钮共用 actionKey：移动端信息栏按 data-action 取文案，
+        // 共用就会把「标记给定 / 标记所求」的总说明当成这个选项的说明
+        {key: 'initial', templateId: 'markInitial', actionKey: 'mark-given', labelKey: 'board.markGiven'},
         {key: 'named', templateId: 'markNamed', actionKey: 'mark-named', labelKey: 'board.markNamed'},
         {key: 'movepoints', templateId: 'markMovepoints', actionKey: 'mark-movepoints', labelKey: 'board.markMovepoints'},
       ].filter(option => !solverMode || option.key === 'initial'),
@@ -5826,7 +5883,7 @@
     {
       tool: 'goal', labelKey: 'board.markResult', templateId: 'markResult', actionKey: 'mark-result', cssClass: 'mark-result',
       options: [
-        {key: 'result', templateId: 'markResult', actionKey: 'mark-result', labelKey: 'board.markResultJudge'},
+        {key: 'result', templateId: 'markResult', actionKey: 'mark-result-judge', labelKey: 'board.markResultJudge'},
         {key: 'resultShown', templateId: 'markResultShown', actionKey: 'mark-result-shown', labelKey: 'board.markResultShown'},
         {key: 'explore', templateId: 'explore', actionKey: 'mark-explore', labelKey: 'board.markExplore'},
       ].filter(option => !solverMode || option.key === 'result'),

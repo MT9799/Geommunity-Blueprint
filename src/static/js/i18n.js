@@ -68,6 +68,7 @@ const I18N_DICT = {
         // 本关限定了工具（关卡列表 / 搜索结果里跟在关卡名后面的橙色标签）
         'pack.toolStraightedge': '单尺',
         'pack.toolCompass': '单规',
+        'pack.toolGrid': '网格',
         'pack.prev': '上一页',
         'pack.next': '下一页',
         'search.title': '搜索关卡 | Geommunity Blueprint',
@@ -198,6 +199,8 @@ const I18N_DICT = {
         // 进度条的说明（鼠标停在进度条上）：进度 = 已搜情况数 / 预估总情况数（「情况」= 搜索树
         // 的一个节点，无解的也算），顺带已找到的解数与已用时。条右边的百分比就是条的比例
         'board.solverProgressNote': '进度条 = 已搜情况数 / 预估总情况数',
+        'board.solverProgressHeuristic': '启发式搜索：进度按已用时间估算',
+        'board.solverProgressHeuristicNodes': '已搜 {nodes} 个节点',
         'board.solverProgressNodes': '已搜 {nodes} 个情况（预估共 {total} 个）',
         'board.solverProgressFound': '已找到 {found}/{target} 个解',
         'board.solverProgressTime': '已用时 {elapsed}/{limit} 秒',
@@ -433,6 +436,7 @@ const I18N_DICT = {
         // Levels restricted to one tool (the orange tag after a level name in the lists)
         'pack.toolStraightedge': 's-only',
         'pack.toolCompass': 'c-only',
+        'pack.toolGrid': 'Grid',
         'pack.prev': 'Prev',
         'pack.next': 'Next',
         'search.title': 'Search levels | Geommunity Blueprint',
@@ -561,6 +565,8 @@ const I18N_DICT = {
         // (a "situation" is one node of the search tree, dead ends included), plus a few figures.
         // The percentage on the right is simply the bar's fill ratio
         'board.solverProgressNote': 'bar = situations searched / estimated total',
+        'board.solverProgressHeuristic': 'heuristic search: progress estimated by elapsed time',
+        'board.solverProgressHeuristicNodes': '{nodes} nodes searched',
         'board.solverProgressNodes': '{nodes} situations searched (about {total} expected)',
         'board.solverProgressFound': '{found}/{target} solution(s) found',
         'board.solverProgressTime': '{elapsed}/{limit}s elapsed',
@@ -756,9 +762,11 @@ const TIP_EN = {
     'design-mode': ['Design mode', 'Switch to level design mode'],
     'explore': ['Explore', 'Toggle the explore view of the goal objects'],
     'mark-initial': ['Mark given', 'Click objects on the canvas to mark them as given (black)'],
+    'mark-given': ['Given', 'Mark objects as given conditions (black)'],
     'mark-named': ['Labelled given', 'Mark objects as labelled given (black with a label); a label prompt appears'],
     'mark-movepoints': ['Movepoints', 'Mark objects as movepoints (blue); dragging them changes the figure'],
-    'mark-result': ['Goal (judged)', 'Mark objects as the judged goal (gold)'],
+    'mark-result': ['Mark goal', 'Mark objects as the goal (gold)'],
+    'mark-result-judge': ['Goal (judged)', 'Mark objects as the judged goal (gold)'],
     'mark-result-shown': ['Goal (shown)', 'Mark objects to show after a goal is solved (gold)'],
     'mark-explore': ['Explore (shown)', 'Mark the objects listed in explore mode (shown in the explore view)'],
     'clear-marks': ['Clear marks', 'Clear the given, labelled, movepoint and goal marks'],

@@ -1552,6 +1552,7 @@ body.mode-stepview #container_more [data-action="make-grid"] {
 
 /* 标记工具的选项（放在 #container_toolbar 里）：图标一直是各自标记的颜色，选中时只加深绿色边框 */
 #container_toolbar .mark-choice[data-action="mark-initial"] .svg-icon,
+#container_toolbar .mark-choice[data-action="mark-given"] .svg-icon,
 #container_toolbar .mark-choice[data-action="mark-named"] .svg-icon {
     stroke: #191919;
 }
@@ -1560,7 +1561,8 @@ body.mode-stepview #container_more [data-action="make-grid"] {
     stroke: #0099ff;
 }
 
-#container_toolbar .mark-choice[data-action="mark-result"] .svg-icon {
+#container_toolbar .mark-choice[data-action="mark-result"] .svg-icon,
+#container_toolbar .mark-choice[data-action="mark-result-judge"] .svg-icon {
     stroke: #ffd700;
 }
 

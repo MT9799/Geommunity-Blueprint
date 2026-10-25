@@ -116,9 +116,10 @@ const toolItems = {
     'polePolar': {
         // 浮动栏两种小项：极线（默认）/ 极点；图标分别是 svg-polarLine / svg-polarPoint。
         // 极点 = 线 + 圆（choice1 / choice2），极线 = 点 + 圆（point / circle）——
-        // 键名分别对应 ExceptPointBaseToolTemplate 与 MixPointBaseToolTemplate 的缓存键
+        // 键名分别对应 ExceptPointBaseToolTemplate 与 MixPointBaseToolTemplate 的缓存键。
+        // 样式按钮两个都建好，按当前小项只显示对应的那个：极线用线样式、极点用点样式
         'switch': ['polarLine', 'polarPoint'],
-        "button": ["clear"],
+        "button": ["clear", "lineStyle", "pointStyle"],
         "choice": {"polarPoint": {"choice1": 'line', "choice2": 'circle'},
             "polarLine": {"point": 'point', "circle": 'circle'}},
     },
@@ -263,9 +264,25 @@ function loadToolSwitchButton(tool) {
     }
 
     refreshToolFloating();
+    // 极点极线：只显示当前小项对应的样式按钮（极线 → 线样式、极点 → 点样式）
+    refreshPolePolarStyleButton(tool);
     // 先显示，再读一次布局让手机上当帧排好；不再先隐藏一下（会闪）
     toolSwitchButton.style.display = 'flex';
     void toolSwitchButton.offsetWidth;
+}
+
+/**
+ * 极点极线的样式按钮 过程函数
+ * 浮动栏里直线 / 点两个样式按钮都建好，按当前小项只留一个
+ * @param {string} currentTool
+ */
+function refreshPolePolarStyleButton(currentTool) {
+    if (currentTool !== 'polePolar') return;
+    const visible = subTool === 'polarPoint' ? 'pointStyle' : 'lineStyle';
+    ['lineStyle', 'pointStyle'].forEach(name => {
+        const button = document.getElementById(`button-${currentTool}-${name}`);
+        if (button) button.style.display = name === visible ? '' : 'none';
+    });
 }
 
 /**
@@ -406,6 +423,8 @@ function choiceToolSwitch(selectTool) {
     drawContent();
     loadChoice(tool);
     refreshToolFloating();
+    // 极点极线：切换极线 / 极点时同步换样式按钮
+    refreshPolePolarStyleButton(tool);
 }
 
 /**

@@ -5972,7 +5972,7 @@
         "id": "miquel-point-simtri",
         "pack": "from-baidu-tieba",
         "file": "levels/from-baidu-tieba/015.miquel-point-simtri.gmt",
-        "title": "密克点",
+        "title": "顺相似中心",
         "subtitle": "给定A、B、C、D四点，求作一点E，使得△ABE和△CDE相似，且∠AEB=∠CED，且两三角形能仅通过位似和旋转重合。",
         "targetSteps": "8L / 16E",
         "diagram": "diagrams/from-baidu-tieba/015.miquel-point-simtri.png",
@@ -5983,6 +5983,7 @@
             "相似",
             "角度相等",
             "顺相似",
+            "密克点",
             "Miquel-point"
         ],
         "solutions": [
@@ -10228,7 +10229,7 @@
         "targetSteps": "8E",
         "diagram": "diagrams/geomcontest/gc2024-1.png",
         "note": "",
-        "tools": "straightedge",
+        "tools": "grid",
         "keywords": [
             "群赛",
             "群赛2024",
@@ -10253,7 +10254,7 @@
         "targetSteps": "5E",
         "diagram": "diagrams/geomcontest/gc2024-2.png",
         "note": "",
-        "tools": "straightedge",
+        "tools": "grid",
         "keywords": [
             "群赛",
             "群赛2024",
@@ -10468,7 +10469,7 @@
         "targetSteps": "3E",
         "diagram": "diagrams/geomcontest/gc2025-1.png",
         "note": "",
-        "tools": "straightedge",
+        "tools": "grid",
         "keywords": [
             "群赛",
             "群赛2025",
@@ -10493,7 +10494,7 @@
         "targetSteps": "5E",
         "diagram": "diagrams/geomcontest/gc2025-2.png",
         "note": "",
-        "tools": "straightedge",
+        "tools": "grid",
         "keywords": [
             "群赛",
             "群赛2025",
@@ -10517,7 +10518,7 @@
         "targetSteps": "4E",
         "diagram": "diagrams/geomcontest/gc2025-3.png",
         "note": "",
-        "tools": "straightedge",
+        "tools": "grid",
         "keywords": [
             "群赛",
             "群赛2025",
@@ -10543,7 +10544,7 @@
         "targetSteps": "2E",
         "diagram": "diagrams/geomcontest/gc2025-4.png",
         "note": "",
-        "tools": "straightedge",
+        "tools": "grid",
         "keywords": [
             "群赛",
             "群赛2025",
@@ -10768,7 +10769,7 @@
         "targetSteps": "6E",
         "diagram": "diagrams/geomcontest/gc2026-1.png",
         "note": "",
-        "tools": "straightedge",
+        "tools": "grid",
         "keywords": [
             "群赛",
             "群赛2026",
@@ -10792,7 +10793,7 @@
         "targetSteps": "4E",
         "diagram": "diagrams/geomcontest/gc2026-2.png",
         "note": "",
-        "tools": "straightedge",
+        "tools": "grid",
         "keywords": [
             "群赛",
             "群赛2026",
@@ -10819,7 +10820,7 @@
         "targetSteps": "4E",
         "diagram": "diagrams/geomcontest/gc2026-3.png",
         "note": "",
-        "tools": "straightedge",
+        "tools": "grid",
         "keywords": [
             "群赛",
             "群赛2026",
@@ -10845,7 +10846,7 @@
         "targetSteps": "3E",
         "diagram": "diagrams/geomcontest/gc2026-4.png",
         "note": "",
-        "tools": "straightedge",
+        "tools": "grid",
         "keywords": [
             "群赛",
             "群赛2026",

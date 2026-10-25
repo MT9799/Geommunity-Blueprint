@@ -434,6 +434,16 @@ function runSearch(request, id) {
         };
         const engineSolver = new HeuristicSolver(graph, limit, solver.toolType,
             readHeuristicOptions(request), collector, control);
+        // 启发式没有「情况总数」：按已用时间上报进度，页面按时间上限估算百分比
+        const heuristicStartedAt = WORKER_NOW();
+        engineSolver.onProgress = payload => self.postMessage({
+            type: 'progress',
+            id: id,
+            nodes: (payload && payload.nodes) || 0,
+            heuristic: true,
+            elapsedSeconds: (WORKER_NOW() - heuristicStartedAt) / 1000,
+            budgetSeconds: settings.timeLimitSeconds,
+        });
         const outcome = engineSolver.run();
         mergeSearchStats(stats, engineSolver.stats);
         heuristicMetrics = outcome.metrics;

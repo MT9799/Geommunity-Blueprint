@@ -865,9 +865,11 @@ const infDict = {
     "design-mode": {title: "设计模式", context: "切换到几何设计模式"},
     "explore": {title: "探索", context: "切换到探索视图，查看目标对象"},
     "mark-initial": {title: "标记给定", context: "点击对象标记为给定的条件（黑色）"},
+    "mark-given": {title: "给定", context: "点击对象标记为给定的条件（黑色）"},
     "mark-named": {title: "带标签给定", context: "点击对象标记为带标签的给定（黑色 + 标签），会弹出命名框"},
     "mark-movepoints": {title: "可移动点", context: "点击对象标记为可移动点（蓝色），拖动它时图形随之变化"},
     "mark-result": {title: "标记所求", context: "点击对象标记为所求（金色）"},
+    "mark-result-judge": {title: "所求判定", context: "点击对象标记为所求判定（金色）"},
     "mark-result-shown": {title: "所求显示", context: "点击对象标记为判定成功后要显示出来的图形（金色）"},
     "mark-explore": {title: "探索显示", context: "点击对象标记为探索模式里要显示的内容（金色）"},
     "clear-marks": {title: "清除标记", context: "清空给定与所求标记"},
@@ -947,7 +949,9 @@ window.addEventListener("click", showInformationMobile);
  */
 function showInformationMobile(event) {
     if (widthTypeEquipment !== "mobile") return;
-    const inf = event.target?.dataset.action;
+    // 点到的可能是按钮里的 svg / path：往上找带 data-action 的按钮
+    const target = event.target instanceof Element ? event.target : null;
+    const inf = target?.closest?.('[data-action]')?.dataset.action || target?.dataset.action;
     if (!inf) return;
     if (!Object.keys(infDict).includes(inf)) return;
     

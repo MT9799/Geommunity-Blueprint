@@ -156,15 +156,17 @@ function markTargetSteps(steps, level, terms) {
 
 /**
  * 本关限定工具的小标签 过程函数
- * levels.json 的 tools 字段：straightedge = 单尺、compass = 单规；尺规不限的关卡不挂标签
+ * levels.json 的 tools 字段：straightedge = 单尺、compass = 单规、grid = 网格；
+ * 尺规不限的关卡不挂标签
  * @param {Object} level 关卡数据
  * @returns {string}
  */
 function toolTagHTML(level) {
-    const kind = {straightedge: 'line', compass: 'circle'}[String(level?.tools || '')];
-    const key = {straightedge: 'pack.toolStraightedge', compass: 'pack.toolCompass'}[String(level?.tools || '')];
+    const tools = String(level?.tools || '');
+    const kind = {straightedge: 'line', compass: 'circle', grid: 'grid'}[tools];
+    const key = {straightedge: 'pack.toolStraightedge', compass: 'pack.toolCompass', grid: 'pack.toolGrid'}[tools];
     if (!kind || !key || typeof t !== 'function') return '';
-    // 单尺橙色、单规黄色（见 app.css 的 .level-tool-line / .level-tool-circle）
+    // 单尺橙色、单规黄色、网格绿色（见 app.css 的 .level-tool-*）
     return `<i class="level-tool level-tool-${kind}">${t(key)}</i>`;
 }
 

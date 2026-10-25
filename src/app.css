@@ -832,6 +832,12 @@
      color: #8a6a00
  }
 
+ .level-tool-grid {
+     border-color: #5bbf7a;
+     background: #eefaf1;
+     color: #237a43
+ }
+
  /* 分页 */
  .level-pager {
      display: flex;
