@@ -65,6 +65,87 @@ function highlightFiguresThroughPoint(toolName, pointId) {
     });
 }
 
+/**
+ * Arc 选第三点时，前两个点已经确定了一个尚未落库的整圆。
+ * 如果光标靠近这个整圆与其它图形的交点，预览和吸附都应落在交点上，
+ * 而不是把光标当前位置当作圆上的自由点。
+ * @param {string} toolName
+ * @param {number} x
+ * @param {number} y
+ * @returns {{x: number, y: number, element: Object, index: number}|null}
+ */
+function prospectiveArcIntersection(toolName, x, y) {
+    if (toolName !== 'arc') return null;
+    const point1 = geometryManager.getToolKey(toolName, 'point1');
+    const point2 = geometryManager.getToolKey(toolName, 'point2');
+    if (!point1 || !point2 || point1.getType() !== 'point' || point2.getType() !== 'point') return null;
+    const center = point1.getCoordinate();
+    const edge = point2.getCoordinate();
+    if (!center || !edge) return null;
+    const radius = Math.hypot(edge[0] - center[0], edge[1] - center[1]);
+    if (!Number.isFinite(radius) || radius < 1e-10) return null;
+
+    const previewCircle = {
+        getType: () => 'circle',
+        getCoordinate: () => [center, edge],
+        getBase: () => null,
+    };
+    const limit = 15 / ((typeof transform !== 'undefined' && transform.scale) || 1);
+    let nearest = null;
+    geometryManager.getAllByOrder().forEach(element => {
+        if (!element || element.getId?.() === point1.getId() || element.getId?.() === point2.getId()) return;
+        if (element.getType?.() !== 'line' && element.getType?.() !== 'circle') return;
+        if (element.getVisible && !element.getVisible()) return;
+        if (element.getValid && !element.getValid()) return;
+        const candidates = ToolsFunction.intersectionCandidates(previewCircle, element);
+        candidates.forEach(candidate => {
+            if (!ToolsFunction.pointInElementRange(candidate.x, candidate.y, element)) return;
+            const distance = Math.hypot(candidate.x - x, candidate.y - y);
+            if (distance >= limit || (nearest && distance >= nearest.distance)) return;
+            nearest = {
+                x: candidate.x,
+                y: candidate.y,
+                element: element,
+                index: candidate.index,
+                distance: distance,
+            };
+        });
+    });
+    return nearest;
+}
+
+/**
+ * 返回 Arc 第三点的统一有效位置。无论光标是否靠近其它图形，
+ * 判定位置都先投影到前两点确定的整圆上。
+ * @param {string} toolName
+ * @param {number} x
+ * @param {number} y
+ * @returns {{x: number, y: number, intersection: Object|null}|null}
+ */
+function prospectiveArcPoint(toolName, x, y) {
+    if (toolName !== 'arc') return null;
+    const point1 = geometryManager.getToolKey(toolName, 'point1');
+    const point2 = geometryManager.getToolKey(toolName, 'point2');
+    if (!point1 || !point2) return null;
+    const center = point1.getCoordinate();
+    const edge = point2.getCoordinate();
+    if (!center || !edge) return null;
+    const radius = Math.hypot(edge[0] - center[0], edge[1] - center[1]);
+    if (!Number.isFinite(radius) || radius < 1e-10) return null;
+    const distance = Math.hypot(x - center[0], y - center[1]);
+    const angle = distance < 1e-10
+        ? Math.atan2(edge[1] - center[1], edge[0] - center[0])
+        : Math.atan2(y - center[1], x - center[0]);
+    const projected = {
+        x: center[0] + radius * Math.cos(angle),
+        y: center[1] + radius * Math.sin(angle),
+    };
+    const intersection = prospectiveArcIntersection(toolName, projected.x, projected.y);
+    return intersection
+        ? {x: intersection.x, y: intersection.y, intersection: intersection}
+        : {x: projected.x, y: projected.y, intersection: null};
+}
+
 class PointBaseToolTemplate {
     /**
      * 初始构造器
@@ -117,6 +198,7 @@ class PointBaseToolTemplate {
      * @param {number} y
      */
     click(x, y) {
+        [x, y] = this.normalizedPoint(x, y);
         const [pointId] = geometryManager.near([x, y], ["point"]);
         if (pointId) {
             // 已经点过这个点：这个位置不允许重复时按「再点一次＝取消」处理（见 repeatPointAllowed）
@@ -157,6 +239,16 @@ class PointBaseToolTemplate {
     repeatPointAllowed(index) {
         return false;
     }
+
+    resolvePointPosition(x, y, index = this.status + 1) {
+        return this.resolveThirdPoint ? this.resolveThirdPoint(x, y, index) : null;
+    }
+
+    normalizedPoint(x, y, index = this.status + 1) {
+        const resolved = this.resolvePointPosition(x, y, index);
+        this.pointProjection = resolved && !resolved.intersection ? resolved : null;
+        return resolved ? [resolved.x, resolved.y] : [x, y];
+    }
     
     /**
      * 拖拽
@@ -186,6 +278,7 @@ class PointBaseToolTemplate {
     drawComplete() {
         this.cacheFlag = false;
         if (this.status >= this.maxStatus) {
+            if (typeof this.finalizeDraw === 'function') this.finalizeDraw();
             this.status = 0;
             geometryManager.loadTool(this.toolName);
             // 触发存储事件
@@ -368,10 +461,84 @@ class PointBaseToolTemplate {
      * @param {number} y
      */
     movePoint(x, y) {
+        const rawX = x;
+        const rawY = y;
+        const pointIndex = this.status;
+        const resolved = this.resolvePointPosition(rawX, rawY, pointIndex);
+        [x, y] = resolved ? [resolved.x, resolved.y] : [rawX, rawY];
         const [pointId] = geometryManager.near([x, y], ["point"]);
+        // Arc 第三点拖动必须落在「自身整圆」上，且不能和 create() 已建好的弧 figure 脱节：
+        // 通用逻辑会复用光标附近任意已有点（含别的图形的交点 G），导致弧端点脱离圆弧、
+        // 且弧 figure[2] 仍指向 mousedown 时创建的临时点，撤销 / 重做也随之错乱。
+        // 这里统一解析：附近有「在弧所在圆上」的点才复用，否则在圆上造 / 更新点，并同步刷新弧 figure。
+        if (this.resolveThirdPoint && pointIndex === 3) {
+            const p1 = geometryManager.getToolKey(this.toolName, 'point1');
+            const p2 = geometryManager.getToolKey(this.toolName, 'point2');
+            const goal = geometryManager.getToolKey(this.toolName, this.goal);
+            const third = this.resolveThirdPoint(rawX, rawY, pointIndex);
+            if (p1 && p2 && third) {
+                const center = p1.getCoordinate();
+                const edge = p2.getCoordinate();
+                const radius = Math.hypot(edge[0] - center[0], edge[1] - center[1]);
+                let onCircleId = null;
+                const [nearId] = geometryManager.near([third.x, third.y], ["point"]);
+                if (nearId) {
+                    const p = geometryManager.get(nearId);
+                    const pc = p?.getCoordinate?.();
+                    if (pc && Math.abs(Math.hypot(pc[0] - center[0], pc[1] - center[1]) - radius) < 1e-3) {
+                        onCircleId = nearId;
+                    }
+                }
+                const point = geometryManager.getToolKey(this.toolName, `point${pointIndex}`);
+                if (point && onCircleId) {
+                    // 复用恰好在弧所在圆上的已有交点，并让弧 figure 与之保持一致
+                    geometryManager.modifyToolObject(this.toolName, `point${pointIndex}`, "quote", onCircleId);
+                    this.pointResolution = third.intersection && third.intersection.element === onCircleId
+                        ? third.intersection : null;
+                    this.pointProjection = this.pointResolution ? null : {x: third.x, y: third.y};
+                    if (goal) goal.modifyDefine(this.mode.define, [p1, p2, geometryManager.get(onCircleId)]);
+                    return;
+                }
+                if (point) {
+                    geometryManager.modifyToolObject(this.toolName, `point${pointIndex}`, "create", [third.x, third.y]);
+                    const updatedPoint = geometryManager.getToolKey(this.toolName, `point${pointIndex}`);
+                    if (third.intersection) {
+                        this.pointResolution = third.intersection;
+                        this.pointProjection = null;
+                        if (geometryManager.geometryStyle?.point?.colorChoice === 'auto'
+                            || geometryManager.geometryStyle?.point?.colorChoice === 'autoPlayMode') {
+                            updatedPoint.modifyColor('#808080');
+                        }
+                    } else {
+                        this.pointResolution = null;
+                        this.pointProjection = {x: third.x, y: third.y};
+                        if (geometryManager.geometryStyle?.point?.colorChoice === 'auto'
+                            || geometryManager.geometryStyle?.point?.colorChoice === 'autoPlayMode') {
+                            updatedPoint.modifyColor('#ff0000');
+                        }
+                    }
+                    return;
+                }
+            }
+        }
         // 光标压在一个已标出的交点上：经过它的每条线 / 每个圆都一起高亮
         // （按住拖动时每次移动都重算一次，离开交点自动撤掉）
         if (typeof highlightFiguresThroughPoint === 'function') highlightFiguresThroughPoint(this.toolName, pointId);
+        const special = !pointId && this.resolvePoint
+            ? this.resolvePoint(x, y, this.status)
+            : null;
+        if (special) {
+            geometryManager.modifyToolObject(this.toolName, `point${this.status}`, "create", [special.x, special.y]);
+            const point = geometryManager.getToolKey(this.toolName, `point${this.status}`);
+            point.clearBase();
+            this.pointResolution = special;
+            if (this.changedVerify !== "move") {
+                this.changedVerify = "move";
+                this.setDefine();
+            }
+            return;
+        }
+        if (this.resolvePoint) this.pointResolution = null;
         if (pointId) {
             // 已经点过的点：默认跳过（不把同一个点引用两次）；
             // 三点圆规的圆心（第三个点）允许重复，那时照常切成引用
@@ -583,7 +750,9 @@ class PointBaseToolTemplate {
         // 用当前指针位置建点，而不是按下位置（startCoord）：
         // 拖动过程中 movePoint 里有若干 early-return（光标下是缓存里已有点、附近两图形没有有效交点等），
         // 用按下位置建的点就会留在原地不动 —— 看上去「即将创建的点」离光标很远
-        const coord = Number.isFinite(x) && Number.isFinite(y) ? [x, y] : this.startCoord;
+        const coord = Number.isFinite(x) && Number.isFinite(y)
+            ? this.normalizedPoint(x, y, this.status + 1)
+            : this.startCoord;
         geometryManager.addToolObject(this.toolName, `point${this.status + 1}`, "create", coord);
     }
     

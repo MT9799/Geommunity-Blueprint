@@ -173,6 +173,7 @@ function loadGeometryElements() {
     const geometryElements = [];
     let gridRowPlaced = false;
     allElements.forEach(element => {
+        if (element.getInternal?.()) return;
         if (gridIds.includes(element.getId())) {
             // 整块网格只在遇到第一个网格对象时插一行
             if (gridRow && !gridRowPlaced) {

@@ -26,8 +26,8 @@ N=Intersect[c5,s1,0]
 O=Intersect[c5,s1,1]
 c6=Circle3[C,D,N]
 c7=Circle3[C,D,O]
-P=Centerpoint[c5]
-Q=Centerpoint[c6]
+P=CenterPoint[c5]
+Q=CenterPoint[c6]
 S2=Segment[C,D]
 
 initial=C,D,E,F,S1,s1

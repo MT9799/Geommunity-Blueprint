@@ -24,6 +24,7 @@ class GeometryElement {
         this.width = 1;
         // 虚线：只有直线与圆用得上（点在样式面板里没有这个开关），各模式默认关闭
         this.dashed = false;
+        this.internal = false;
     }
     
     /**
@@ -120,6 +121,14 @@ class GeometryElement {
      */
     modifyDashed(bool) {
         this.dashed = !!bool;
+    }
+
+    modifyInternal(bool) {
+        this.internal = !!bool;
+    }
+
+    getInternal() {
+        return !!this.internal;
     }
 
     /**
@@ -230,7 +239,7 @@ class Point extends GeometryElement {
      * @param {Object[]} geometryElements
      * @param {number} [value=0] 
      */
-    modifyBase(type, geometryElements, value = 0, exclude = null) {
+    modifyBase(type, geometryElements, value = 0, exclude = null, update = true) {
         // 基底换了就要换上层引用：新基底登记「本点依赖它」，旧基底撤掉登记。
         // 与 Line / Circle.modifyDefine 同一口径 —— 少了这步，拖动基底时本点不在更新链里，
         // 位置就不会实时刷新（各工具原先只能各自手写 addSuperstructure，漏一个就漏一处）
@@ -245,11 +254,19 @@ class Point extends GeometryElement {
         // 交点编号时要排除的已知点（gmt 里 Intersect[a,b,x,已知点] 的第四个参数）
         this.base.exclude = exclude || null;
         if (Array.isArray(geometryElements)) {
-            for (const item of geometryElements) item?.addSuperstructure?.(this);
+            for (const item of geometryElements) {
+                // Arc 的自动终点写成 Linepoint[该 Arc,x]。这是一个用于保存参数的
+                // 自引用，不能把 Arc 登记为该点的上游，否则会形成 Arc ↔ 点循环。
+                const selfArcReference = (type === 'online' || type === 'intersection')
+                    && item?.getType?.() === 'circle'
+                    && item.getBase?.()?.type === 'arc';
+                if (!selfArcReference) item?.addSuperstructure?.(this);
+            }
         }
         
-        // 更新坐标
-        this.updateCoordinate();
+        // 某些工具在草稿结束时已经算好了坐标；延迟重算可避免 Arc
+        // 的自引用端点在绑定最终基底时递归更新。
+        if (update) this.updateCoordinate();
     }
     
     /**
@@ -282,6 +299,7 @@ class Point extends GeometryElement {
         dict.valid = this.valid;
         dict.color = this.color;
         dict.width = this.width;
+        dict.internal = this.internal;
         dict.x = this.x;
         dict.y = this.y;
         dict.base = {type: this.base.type};
@@ -311,7 +329,7 @@ class Point extends GeometryElement {
      * 更新坐标
      */
     updateCoordinate() {
-        const typeCoordinate = ToolsFunction.updatePointCoordinate(this.base);
+        const typeCoordinate = ToolsFunction.updatePointCoordinate(this.base, this);
         const type = typeCoordinate?.type;
         
         if (type === "keep") {
@@ -393,6 +411,7 @@ class Line extends GeometryElement {
         dict.color = this.color;
         dict.width = this.width;
         dict.dashed = this.dashed;
+        dict.internal = this.internal;
         dict.coordinate = this.coordinate;
         dict.base = {type: this.base.type};
         if (this.base.type !== "none") {
@@ -500,6 +519,7 @@ class Circle extends GeometryElement {
         dict.color = this.color;
         dict.width = this.width;
         dict.dashed = this.dashed;
+        dict.internal = this.internal;
         dict.coordinate = this.coordinate;
         dict.base = {type: this.base.type};
         if (this.base.type !== "none") {
@@ -525,7 +545,10 @@ class Circle extends GeometryElement {
         // （载入时基底可能是 undefined，跳过这类空位，别在接基底的过程中抛错）
         if (this.base.figure) for (const item of this.base.figure) item?.deleteSuperstructure?.(this.id);
         this.base.figure = figures;
-        for (const item of figures) item?.addSuperstructure?.(this);
+        // Arc 的第三点可能是 Linepoint[该弧自身,x]。它参与弧段范围，
+        // 但圆心和半径只由前两点决定；把它登记回 Arc 会形成 Arc ↔ C 循环。
+        const dependencyFigures = type === 'arc' ? figures.slice(0, 2) : figures;
+        for (const item of dependencyFigures) item?.addSuperstructure?.(this);
         
         // 更新坐标
         this.updateCoordinate();
@@ -734,7 +757,7 @@ class GeometryElementManager {
     
     /**
      * 按当前配色方案给对象上样式色 过程函数
-     * auto：线上点红、构造点灰；autoPlayMode：自由点（坐标点 / 线上点）红，构造点与线圆灰
+     * auto：线上点红、构造点灰；autoPlayMode：自由点（坐标点）深红、线上点红，构造点与线圆灰
      * 注意它依赖 base.type，所以反序列化时要等基础图元接好再调一次，否则点会被当成自由点全涂红
      * @param {Object} object
      */
@@ -752,7 +775,11 @@ class GeometryElementManager {
                 // 默认显示标签，可在「配置点样式」中关闭
                 object.modifyShowName(this.geometryStyle.point.showName !== false);
             }else if (choice === "autoPlayMode") {
-                if (baseType === "none" || baseType === "online") {
+                // 非自由画板模式（关卡游玩 / 求解）下，完全由坐标定义的自由点用深红，
+                // 线上点（online）仍用纯红；构造点（交点 / 中点 / 圆心）灰
+                if (baseType === "none") {
+                    object.modifyColor("#b30000");
+                }else if (baseType === "online") {
                     object.modifyColor("#ff0000");
                 }else if (baseType === "intersection" || baseType === "middlePoint" || baseType === "center") {
                     object.modifyColor("#808080");
@@ -773,8 +800,13 @@ class GeometryElementManager {
         // 对象信息
         let id = object.getId();
         const type = object.getType();
-        
-        // id查重
+        // 同一个对象已经在仓库里：重复 addObject 直接跳过（幂等）。
+        // 复用为弧第三点等场景会对同一个点二次 addObject，若顺着下面的 id 查重走，
+        // 会把对象改名再插入一份 —— 仓库里出现同 id 的两份，快照也跟着重复，
+        // 撤销恢复时第二份又被改名，凭空多出一个点。
+        if (Object.values(this.repository).includes(object)) return;
+
+        // id查重（不同对象占了同一个 id 才改名）
         if (Object.keys(this.repository).includes(id)) {
             // 存在重复id，需要变更（按它自己的类型接着往下取名：线段就是 S 开头那种）
             id = type === "point" ? this.getId("point")
@@ -798,7 +830,14 @@ class GeometryElementManager {
         // 这里用**最终 id** 再登记一次：既补回被覆盖的那条，也保证键与对象一致（幂等，重复登记无害）
         const base = typeof object.getBase === 'function' ? object.getBase() : null;
         if (base) {
-            [base.bases, base.figure].filter(Array.isArray).flat().forEach(parent => {
+            const figures = base.type === 'arc' && Array.isArray(base.figure)
+                ? base.figure.slice(0, 2)
+                : base.figure;
+            [base.bases, figures].filter(Array.isArray).flat().forEach(parent => {
+                const selfArcReference = (base.type === 'online' || base.type === 'intersection')
+                    && parent?.getType?.() === 'circle'
+                    && parent.getBase?.()?.type === 'arc';
+                if (selfArcReference) return;
                 if (parent && typeof parent.addSuperstructure === 'function') parent.addSuperstructure(object);
             });
         }
@@ -1077,6 +1116,12 @@ class GeometryElementManager {
      */
     findSameElement(element) {
         if (!element || typeof element.getType !== 'function') return null;
+        // 弧段以整圆作为 GMT / 几何基础回退，但它本身不是整圆。
+        // 因此不能拿弧段（或工具生成的内部辅助圆）与画布上的整圆做相同图形判定，
+        // 否则会阻止在已有圆上创建圆弧。
+        if (element.getInternal?.()) return null;
+        const baseType = element.getBase?.()?.type;
+        if (['semicircle', 'arc', 'arc3'].includes(baseType)) return null;
         const type = element.getType();
         if (type !== 'line' && type !== 'circle') return null;
         if (typeof element.updateCoordinate === 'function') element.updateCoordinate();
@@ -1219,6 +1264,7 @@ class GeometryElementManager {
          */
         const collect = (elementList, groupOf, rankOf, measure) => {
             elementList.forEach(element => {
+                if (element.getInternal?.()) return;
                 if (!element.getValid()) return;
                 if (!element.getVisible()) return;
                 const type = element.getType();
@@ -1310,6 +1356,8 @@ class GeometryElementManager {
             const distance = Math.hypot((centerX - x), (centerY - y));
             // 到**圆周**的距离：在圆里 / 圆外都算
             const offset = Math.abs(distance - radius);
+            if (!ToolsFunction.pointInElementRange(centerX + (x - centerX) * radius / Math.max(distance, 1e-20),
+                centerY + (y - centerY) * radius / Math.max(distance, 1e-20), element)) return null;
             return offset < minDistance ? offset : null;
         }
     }
@@ -1461,6 +1509,7 @@ class GeometryElementManager {
         const visitedId = new Set(); // 添加对象时验证
         const rangeId = new Set();
         const processedId = new Set();
+        const deferredCount = new Map();
         
         // 确定遍历范围，性能优化
         queue.unshift(element);
@@ -1513,7 +1562,7 @@ class GeometryElementManager {
                     // 更新
                     let valid1 = false, valid2 = false;
                     
-                    const validCoord = ToolsFunction.updateIntersectionCoordinate(base);
+                    const validCoord = ToolsFunction.updateIntersectionCoordinate(base, currentElement);
                     valid1 = validCoord.valid;
                     if (valid1) {
                         const [x, y] = validCoord.coordinate;
@@ -1543,7 +1592,10 @@ class GeometryElementManager {
                     }
                 }
             }else if (type === "line" || type === "circle") {
-                const defines = currentElement.getDefine();
+                const define = currentElement.getDefine();
+                const defines = currentElement.getBase?.().type === 'arc'
+                    ? define.slice(0, 2)
+                    : define;
                 // 延迟更新
                 let delay = false;
                 for (const item of defines) {
@@ -1554,8 +1606,15 @@ class GeometryElementManager {
                     }
                 }
                 if (delay) {
-                    queue.unshift(currentElement);
-                    continue;
+                    const attempts = (deferredCount.get(currentElementId) || 0) + 1;
+                    deferredCount.set(currentElementId, attempts);
+                    // A malformed or cyclic dependency must not freeze dragging.
+                    // Once every object in the reachable range has been deferred,
+                    // process with the latest available coordinates instead.
+                    if (attempts <= rangeId.size) {
+                        queue.unshift(currentElement);
+                        continue;
+                    }
                 }
                 
                 // 更新
@@ -1569,6 +1628,26 @@ class GeometryElementManager {
                 if (valid) {
                     currentElement.updateCoordinate();
                     currentElement.modifyValid(true);
+                    // Arc 的终点 C 用 Linepoint[Arc,x] 或 Intersect[Arc,...] 保存参数，
+                    // 但不登记 Arc 的反向依赖，否则会形成循环。Arc 更新后在这里主动刷新 C。
+                    if (currentElement.getBase?.().type === 'arc') {
+                        const endpoint = currentElement.getBase().figure?.[2];
+                        const endpointBase = endpoint?.getBase?.();
+                        if ((endpointBase?.type === 'online' || endpointBase?.type === 'intersection')
+                            && endpointBase.bases?.[0] === currentElement) {
+                            const result = ToolsFunction.updatePointCoordinate(endpointBase, endpoint);
+                            if (result?.type === 'update') {
+                                endpoint.modifyCoordinate(result.coordinate[0], result.coordinate[1]);
+                                endpoint.modifyValid(true);
+                                // Arc 为避免自引用不会把 C 登记为 Arc 的反向依赖，
+                                // 但 C 仍可能是后续图形的基底；C 变化后要继续传播到这些图形。
+                                this.#updateSuperstructureChain(endpoint);
+                            }else if (result?.type === 'invalid') {
+                                endpoint.modifyValid(false);
+                                this.#updateSuperstructureChain(endpoint);
+                            }
+                        }
+                    }
                 }else{
                     currentElement.modifyValid(false);
                 }
@@ -1753,6 +1832,7 @@ class GeometryElementManager {
             // 存档 / gmt / 记录里没带粗细的（gmt 本来就不写）用当前模式的默认，不再是写死的 1
             element.modifyWidth(typeof width === 'number' ? width : defaultElementWidth(type));
             element.modifyDashed(!!elementDict.dashed);
+            element.modifyInternal(!!elementDict.internal || String(id).startsWith('med'));
             return element;
         }
     }

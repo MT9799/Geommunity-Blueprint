@@ -1673,6 +1673,9 @@
         case 'twoPoints': return `${id}=Circle[${args[0]},${args[1]}]`;
         case 'compass': return `${id}=Compass[${args[0]},${args[1]},${args[2]}]`;
         case 'threePointCircle': return `${id}=Circle3[${args[0]},${args[1]},${args[2]}]`;
+        case 'semicircle': return `${id}=Circle[${args[0]},${args[1]}]`;
+        case 'arc': return `${id}=Circle[${args[0]},${args[1]}]`;
+        case 'arc3': return `${id}=Circle3[${args[0]},${args[1]},${args[2]}]`;
         default: return `# 无法导出：${id}（${base.type || 'none'}）`;
       }
     }
@@ -2104,7 +2107,34 @@
     // 「隐藏」一律只写进 styles（记录的 `a@`，见 recordStore.js），gmt 的 hidden= 行导出时留空：
     // 它只作读取用（导入别人的 gmt 时按它藏起那些对象），不再作为关卡语义的一部分
     // （options.omitHidden 是旧调用的兼容项，现在不影响输出）
-    geometryManager.getAllByOrder().forEach(item => { content.push(gmtLineOf(item)); });
+    const orderedItems = geometryManager.getAllByOrder();
+    const itemsById = new Map(orderedItems.map(item => [item.getId(), item]));
+    // Arc 按自然作图顺序输出：先是兼容 GMT 的基础圆，再是第三点，
+    // 最后用 #geom 标记弧段。第三点不延迟到整个文件末尾。
+    const emitted = new Set();
+    const appendGeometryExtension = (item, base) => {
+      if (item.getInternal?.()) content.push(`#internal=${item.getId()}`);
+      if (base.type === 'semicircle') content.push(`#geom=${item.getId()}:SemiCircle[${base.basesId[1]},${base.basesId[2]}]`);
+      if (base.type === 'arc') content.push(`#geom=${item.getId()}:Arc[${base.basesId[0]},${base.basesId[1]},${base.basesId[2]}]`);
+      if (base.type === 'arc3') content.push(`#geom=${item.getId()}:Arc3[${base.basesId[0]},${base.basesId[1]},${base.basesId[2]}]`);
+    };
+    orderedItems.forEach(item => {
+      const base = item.getDict().base || {};
+      // Arc 的整圆只是兼容 GMT 的基础回退，不是用户图形，也不应导出成 med。
+      if (item.getInternal?.() && item.getType() === 'circle' && base.type === 'twoPoints') return;
+      if (emitted.has(item.getId())) return;
+      content.push(gmtLineOf(item));
+      emitted.add(item.getId());
+      if (base.type === 'arc') {
+        const endpoint = itemsById.get(base.basesId[2]);
+        // C 已经在前面时已被 emitted；C 在后面时在 #geom 前补出。
+        if (endpoint && !emitted.has(endpoint.getId())) {
+          content.push(gmtLineOf(endpoint));
+          emitted.add(endpoint.getId());
+        }
+      }
+      appendGeometryExtension(item, base);
+    });
     // named：标成「带标签给定」的对象（标签名与对象 ID 不同时写成「ID.标签名」）。
     // 只看标记表 —— 光是显示标签、或改了个名字而没标成带标签给定的不算：
     // 那两种是样式方向的事（记录里记在 styles，见 recordStore.js），
@@ -2155,12 +2185,14 @@
    */
   window.parseGmt = text => {
     const declarations = new Map();
+    const shapeExtensions = new Map();
+    const internalIds = new Set();
     const lists = {initial: [], named: [], hidden: [], movepoints: [], result: [], resultShown: [], explore: []};
     // named=A.M 里 M 是要显示出来的标签名
     const namedLabels = new Map();
     // result 可以有多条（多解），每条各自记录：判定对象 + 判定成功后要显示的图形
     const resultGroups = [];
-    // 指令名大小写不敏感（gmt 里 CenterPoint / Centerpoint 都出现过）
+    // 指令名大小写不敏感
     const directiveNames = {
       point: 'Point', line: 'Line', segment: 'Segment', ray: 'Ray', circle: 'Circle', compass: 'Compass',
       circle3: 'Circle3', intersect: 'Intersect', linepoint: 'Linepoint', midpoint: 'Midpoint',
@@ -2177,6 +2209,16 @@
       // 「#grid=」/「#gridstyle=」是网格关卡的元信息（老版本读到只会当注释跳过）
       if (line.startsWith('#grid=')) { grid = parseGridSpec(line.slice('#grid='.length)); continue; }
       if (line.startsWith('#gridstyle=')) { gridStyle = line.slice('#gridstyle='.length).trim(); continue; }
+      if (line.startsWith('#internal=')) {
+        line.slice('#internal='.length).split(',').map(item => item.trim()).filter(Boolean).forEach(id => internalIds.add(id));
+        continue;
+      }
+      if (line.startsWith('#geom=')) {
+        const extension = line.slice('#geom='.length).trim();
+        const separator = extension.indexOf(':');
+        if (separator > 0) shapeExtensions.set(extension.slice(0, separator).trim(), extension.slice(separator + 1).trim());
+        continue;
+      }
       // 「#」在行首表示整行注释
       if (line.startsWith('#')) continue;
       // 行尾注释同样去掉；rules 行里的 “#” 是「两者必须相交」，不能截断
@@ -2244,6 +2286,28 @@
       const dict = createElement(id, declaration);
       building.delete(id);
       if (!dict) return null;
+      const extension = shapeExtensions.get(id);
+      if (dict && extension) {
+        const match = extension.match(/^([A-Za-z]+)\s*\[(.*)\]$/);
+        const args = match ? match[2].split(',').map(item => item.trim()) : [];
+        const name = match ? match[1].toLowerCase() : '';
+        if (dict.type === 'circle' && ['semicircle', 'arc', 'arc3'].includes(name)) {
+          // Arc 的第三点可能是 Intersect[c1,...]，而 c1 自身又由 #geom
+          // 标成 Arc。这里不能在 c1 仍处于 building 状态时递归 build(C)，
+          // 否则会把合法的 GMT 顺序误判成循环依赖。先保存引用 ID，
+          // 由 loadStorage 在全部声明建立后统一接线。
+          const required = name === 'semicircle' ? 2 : 3;
+          const refsAvailable = args.length >= required
+            && args.slice(0, required).every(item => declarations.has(item));
+          if (refsAvailable) {
+            dict.base.type = name;
+            if (name === 'semicircle') dict.base.basesId = [dict.base.basesId[0], args[0], args[1]];
+            else if (name === 'arc') dict.base.basesId = [dict.base.basesId[0], args[1], args[2]];
+            else dict.base.basesId = args.slice(0, required);
+          }
+        }
+      }
+      if (dict && (internalIds.has(id) || id.startsWith('med'))) dict.internal = true;
       built.set(id, dict);
       elements.push(dict);
       return dict;
@@ -2398,8 +2462,16 @@
       }
     };
 
-    // 按文件顺序构建，依赖先于自身
+    // 按文件顺序触发构建；build 会递归先构建依赖，所以 elements 此时是
+    // 「依赖后序」而不是 GMT 文件顺序。这里必须恢复声明顺序，否则载入后
+    // 第一次导出或撤回重做会把 C、Arc 端点以及其它无直接依赖的对象重新排序。
     declarations.forEach((declaration, id) => build(id));
+    const builtInDeclarationOrder = [];
+    declarations.forEach((declaration, id) => {
+      const element = built.get(id);
+      if (element) builtInDeclarationOrder.push(element);
+    });
+    elements.splice(0, elements.length, ...builtInDeclarationOrder);
 
     const ids = new Set(elements.map(item => item.id));
     // 无穷远点（EdgePoint）：只在作图里提供方向，不进 initial / named，也不显示（见下）
@@ -2453,7 +2525,7 @@
     if (!elements.length) return false;
     // 画板里所有对象都要可见：关卡中「预绘制出的解」在制作时也要能看到
     // 无穷远点（EdgePoint）除外：它是假想的点、坐标在很远处，画出来会让画布糊掉一大片
-    elements.forEach(item => { item.visible = item.base?.type !== 'edgePoint'; });
+    elements.forEach(item => { item.visible = item.base?.type !== 'edgePoint' && !item.internal; });
     geometryManager.loadStorage(elements);
     // 换了一整套图形：画到一半的工具状态（工具缓存 + 管理器里的 choice 缓存）要一并扔掉，
     // 否则它们还指着刚被换掉的旧对象 —— 之后再作图会取到 null（报错、点一下没反应），
@@ -3370,6 +3442,8 @@
     close.innerHTML = '&times;';
     close.setAttribute('aria-label', title);
     close.addEventListener('click', () => {
+      // 关闭上拉栏时再收焦点（不在 pointerdown 阶段抢），键盘不会留在已收起的面板上
+      document.activeElement?.blur?.();
       collapseSheet(sheet);
       sheet.style.transform = '';
       const button = sheetButtons.get(sheet);
@@ -3467,6 +3541,8 @@
     button.innerHTML = svg;
     button.addEventListener('click', () => {
       const open = sheet.classList.toggle('open');
+      // 收起上拉栏时顺手收掉输入框焦点，键盘不留在已隐藏的面板上
+      if (!open) document.activeElement?.blur?.();
       // 半展开（或被拖到任意高度）状态下点按钮 = 直接拉满
       sheet.classList.remove('peek');
       sheet.style.height = '';
@@ -4222,13 +4298,16 @@
     addSideButton('solver-params', solverSideIcon(), t('board.solverParams'), wrapInSheet(panel, t('board.solverParams')));
 
     // 手机端画布 / 其他区域的 touchstart 会 preventDefault，输入框不会自动失焦；
-    // 点到输入类控件（或它们的 label）之外时手动收掉焦点 —— 面板空白处 / 按钮 / 面板外都算
+    // 点到输入类控件之外时手动收掉焦点。但上拉栏（含标题 / 关闭按钮）和按钮 / 链接等
+    // 交给它们自己的点击处理：在 pointerdown 阶段 blur 会让键盘和面板先缩一下，
+    // 结果就是关闭按钮点不到
     document.addEventListener('pointerdown', event => {
         const active = document.activeElement;
         if (!active || typeof active.closest !== 'function' || !active.closest('.solver-panel')) return;
         const target = event.target instanceof Element ? event.target : null;
         if (!target || target === active) return;
-        if (target.closest('input, textarea, select, label')) return;
+        if (target.closest('.panel-sheet')) return;
+        if (target.closest('button, a, input, textarea, select, label, summary, [role="button"]')) return;
         active.blur();
     }, true);
 
@@ -6470,7 +6549,12 @@
     const typeLabel = element => {
       const type = element.getType();
       if (type === 'point') return t('board.objectPoint');
-      if (type === 'circle') return t('board.objectCircle');
+      if (type === 'circle') {
+        const baseType = element.getBase?.()?.type;
+        if (baseType === 'semicircle') return t('board.objectSemicircle');
+        if (baseType === 'arc' || baseType === 'arc3') return t('board.objectArc');
+        return t('board.objectCircle');
+      }
       const drawType = typeof element.getDrawType === 'function' ? element.getDrawType() : 'line';
       if (drawType === 'lineSegment') return t('board.objectSegment');
       if (drawType === 'ray') return t('board.objectRay');
@@ -6677,8 +6761,12 @@
           candidates.push(target);
         }
         if (!candidates.length) return null;
-        // 距离一样近（含浮点噪声）时取更「实」的那个：已有点 → 隐藏点 → 交点位置
-        candidates.sort((one, two) => Math.abs(one.distance - two.distance) < 1e-6
+        // 造点场合：光标处已有点时**直接用那个点**，即使极近处还有个相交位置也忽略 ——
+        // 否则交点只比已有点近一点点，就会在已有点的位置上再造一个几乎重合的交点。
+        // 所以两者距离差在这个容差内（差不多重合）时取更「实」的那个：已有点 → 隐藏点 → 交点位置。
+        // 容差不能大到反客为主：明显更远的已有点仍要输给更近的交点，否则想标交点时会被远处的点挡住。
+        const tie = 3 / transform.scale;
+        candidates.sort((one, two) => Math.abs(one.distance - two.distance) < tie
             ? one.kind - two.kind
             : one.distance - two.distance);
         return candidates[0];
@@ -6765,6 +6853,15 @@
           // 极点两步都是选图形，光标点预览始终不显示（它的预览是计算出来的极点，见 canvas.js）
           || (tool === 'polePolar'
               && (subTool !== 'polarLine' || !geometryManager.getToolKey(tool, 'circle')))
+          // Arc 的第三点由 canvas.js 单独画在圆周投影 / 交点位置；
+          // 这里的通用光标预览点仍在原始光标下，会与它重叠成两个点。
+          || (subTool === 'arc'
+              && geometryManager.getToolKey(tool, 'point1')
+              && geometryManager.getToolKey(tool, 'point2')
+              && (
+                !geometryManager.getToolKey(tool, 'point3')
+                || geometryManager.getToolKey(tool, tool)
+              ))
           // 样式刷 / 隐藏刷 / 切换线类型：光标自己已经画成圆环（或隐藏刷的方块）了，
           // 再叠一个点预览只会互相干扰
           || tool === 'styleBrush'

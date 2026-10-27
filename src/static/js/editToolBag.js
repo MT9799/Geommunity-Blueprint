@@ -105,15 +105,36 @@ class MoveTool {
     /**
      * 图形的自由定义点 过程函数
      * 图形的定义点（base.figure）全是自由点（坐标为 none 的点）时，拖着图形就能整体平移：
-     * 把这些定义点一起挪，依此作出的直线 / 线段 / 圆会跟着走
+     * 把这些定义点一起挪，依此作出的直线 / 线段 / 圆会跟着走。
+     * 圆弧 / 半圆会带几个「从属点」：圆弧的端点是压在弧上的 Linepoint（online，由这条弧决定）、
+     * 半圆的中点是两端点的中点（middlePoint，由这两端自由点决定）。它们本身不是自由点，
+     * 但跟着弧 / 端点走，所以只要从属点只依赖「这条图形自身」或「图形里其它定义点」，
+     * 整体就仍能被自由点平移 —— 只返回真正能平移的自由点即可。
      * @param {Object} element 图形对象
      * @returns {Object[]} 可以一起平移的自由点；条件不满足时返回空数组
      */
     freeDefinitionPoints(element) {
-        const figure = element.getBase?.()?.figure || [];
+        const base = element.getBase?.() || {};
+        const figure = base.figure || [];
         if (!figure.length) return [];
-        const allFreePoints = figure.every(item => item.getType() === 'point' && item.getBase?.()?.type === 'none');
-        return allFreePoints ? figure : [];
+        const id = element.getId();
+        const figureIds = new Set(figure.map(item => item.getId()));
+        // 从属点：定义只依赖「这条图形自身」或「图形里其它定义点」时，跟着自由点一起走，不算障碍
+        const isDependentOnSelfOrFigure = item => {
+            const b = item.getBase?.();
+            if (!b || !Array.isArray(b.bases)) return false;
+            return b.bases.some(parent => {
+                const parentId = typeof parent?.getId === 'function' ? parent.getId() : null;
+                return parentId === id || figureIds.has(parentId);
+            });
+        };
+        const draggable = figure.every(item =>
+            item.getType() === 'point'
+            && (item.getBase?.()?.type === 'none' || isDependentOnSelfOrFigure(item))
+        );
+        if (!draggable) return [];
+        // 只平移真正的自由点；Linepoint / 中点会随图形自动跟随
+        return figure.filter(item => item.getBase?.()?.type === 'none');
     }
     
     /**

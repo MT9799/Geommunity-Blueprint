@@ -94,6 +94,9 @@ const tools = {
     lineSegment: new LineSegmentTool(),
     lineType: new LineTypeTool(),
     circle: new CircleTool(),
+    semicircle: new SemicircleTool(),
+    arc: new ArcTool(),
+    arc3: new ThreePointArcTool(),
     intersection: new IntersectionTool(),
     parallelLine: new ParallelConstructTool(),
     perpendicularLine: new PerpendicularConstructTool(),
@@ -162,7 +165,9 @@ function touchstartEventFunction(e) {
     preX = startX;
     preY = startY;
     // 坑点：touchstartEvent不能检测多指
-    operateEventFunction("start", startX, startY);
+    const snapStart = typeof snapCursorPosition === 'function'
+        ? snapCursorPosition(startX, startY) : [startX, startY];
+    operateEventFunction("start", snapStart[0], snapStart[1]);
 }
 
 /**
@@ -189,10 +194,14 @@ function touchendEventFunction(e) {
     if (touchType === 1) {
         if (dragged) {
             // 拖拽
-            operateEventFunction("drawComplete", endX, endY);
+            const snapEnd = typeof snapCursorPosition === 'function'
+                ? snapCursorPosition(endX, endY) : [endX, endY];
+            operateEventFunction("drawComplete", snapEnd[0], snapEnd[1]);
         } else {
             // 点击（按住多久都算点击：手一直按着没挪地方，松手时不该按拖拽处理）
-            operateEventFunction("click", endX, endY);
+            const snapEnd = typeof snapCursorPosition === 'function'
+                ? snapCursorPosition(endX, endY) : [endX, endY];
+            operateEventFunction("click", snapEnd[0], snapEnd[1]);
             if (typeof previewWaitForMove === 'function') previewWaitForMove(endX, endY);
         }
     }
@@ -306,7 +315,9 @@ function touchmoveEventFunction(e) {
         }
         if (!isDragging) return;
 
-        operateEventFunction("draw", x, y);
+        const snapDraw = typeof snapCursorPosition === 'function'
+            ? snapCursorPosition(x, y) : [x, y];
+        operateEventFunction("draw", snapDraw[0], snapDraw[1]);
         touchType = 1;
     }
 }
@@ -904,6 +915,9 @@ const infDict = {
     "brushHidden": {title: "隐藏刷模式", context: "点一下图形把它隐藏起来（撤销、或到元素一览的「隐藏」档里可以找回来）"},
     "line": {title: "直线工具", context: ""},
     "circle": {title: "圆工具", context: ""},
+    "semicircle": {title: "半圆工具", context: "选择两个端点，构造半圆"},
+    "arc": {title: "圆弧工具", context: "依次选择圆心、弧起点和弧终点，构造圆弧"},
+    "arc3": {title: "三点圆弧工具", context: "依次选择起点、经过点和终点，构造圆弧"},
     "intersection": {title: "交点工具", context: ""},
     "ray": {title: "射线工具", context: ""},
     "lineSegment": {title: "线段工具", context: ""},

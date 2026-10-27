@@ -987,12 +987,20 @@ class ToolsFunction {
      * @param {{type: string, bases: Object[], value: number}} define
      * @returns {{valid: boolean, coordinate: [x, y]}}
      */
-    static updateIntersectionCoordinate(define) {
+    static updateIntersectionCoordinate(define, owner = null) {
         const base = define.bases;
         const element1 = base[0];
         const element2 = base[1];
         if (!element1.getValid()) return {valid: false};
         if (!element2.getValid()) return {valid: false};
+        const inElementRange = (x, y, element) => {
+            const elementBase = element.getBase?.();
+            // Arc 的终点 C 本身是由整圆与其它图形求交得到的。
+            // 计算这个 C 时必须使用基础整圆范围，否则会先要求 C 已经存在，
+            // 形成“C 决定弧段范围、弧段范围又决定 C 是否有效”的循环。
+            if (owner && elementBase?.type === 'arc' && elementBase.figure?.[2] === owner) return true;
+            return ToolsFunction.pointInElementRange(x, y, element);
+        };
         
         const index = define.value || 0;
         // 候选表只算一次：下面那份「编号用的原始候选表」也用它（重算一次纯属浪费，
@@ -1016,8 +1024,8 @@ class ToolsFunction {
             }
             return list;
         })();
-        const rangeKept = numberingBase.filter(candidate => ToolsFunction.pointInElementRange(candidate.x, candidate.y, element1)
-            && ToolsFunction.pointInElementRange(candidate.x, candidate.y, element2));
+        const rangeKept = numberingBase.filter(candidate => inElementRange(candidate.x, candidate.y, element1)
+            && inElementRange(candidate.x, candidate.y, element2));
         // ① 编号定过之后的重算：以「记住的那个候选」为准，只判范围。
         //    初次编号的规则（「第一个 Intersect 取非定义点」、范围过滤后的编号）只在最开始那一次说了算，
         //    重算时若再让它们说话，就会出问题 ——
@@ -1028,8 +1036,8 @@ class ToolsFunction {
         //    例外：有「身份」且这次范围过滤没挡掉候选时，交给下面的身份分支（README：身份优先，不跳变）
         const rememberedIndex = Number.isInteger(define.rawIndex) ? numberingBase[define.rawIndex] : null;
         if (rememberedIndex && (!define.candidateIdentity || rangeKept.length < numberingBase.length)) {
-            if (!ToolsFunction.pointInElementRange(rememberedIndex.x, rememberedIndex.y, element1)) return {valid: false};
-            if (!ToolsFunction.pointInElementRange(rememberedIndex.x, rememberedIndex.y, element2)) return {valid: false};
+            if (!inElementRange(rememberedIndex.x, rememberedIndex.y, element1)) return {valid: false};
+            if (!inElementRange(rememberedIndex.x, rememberedIndex.y, element2)) return {valid: false};
             return {valid: true, coordinate: [rememberedIndex.x, rememberedIndex.y]};
         }
         // 取编号之前先按「是否落在对象范围内」过一遍：线段 / 射线上的交点只可能是范围内的那个
@@ -1037,8 +1045,8 @@ class ToolsFunction {
         //  不过滤的话 0 号会取到反向那个，再被范围检查判成失效，整个图形就画不出来）
         // 一个都不在范围内时保留原列表：编号照旧取，最后仍按「失效但不删除」处理，
         // 拖动图形使交点暂时跑到线外时不会跳到另一个交点上
-        const inRange = candidates.filter(candidate => ToolsFunction.pointInElementRange(candidate.x, candidate.y, element1)
-            && ToolsFunction.pointInElementRange(candidate.x, candidate.y, element2));
+        const inRange = candidates.filter(candidate => inElementRange(candidate.x, candidate.y, element1)
+            && inElementRange(candidate.x, candidate.y, element2));
         if (inRange.length) candidates = inRange.map((candidate, i) => ({index: i, x: candidate.x, y: candidate.y}));
         // gmt 里 Intersect[a,b,x,已知点]：第四个参数是「已知的那个交点」，
         // 编号时先把它排掉 —— 不排的话编号会错位，取到已知点自己（得到重合的退化交点）
@@ -1063,8 +1071,8 @@ class ToolsFunction {
                 ? ToolsFunction.circleCircleCandidateList(element1, element2)
                 : ToolsFunction.lineCircleCandidateList(line, circle);
             // 先按「是否落在对象范围内」过一遍（线段 / 射线上的交点只可能是范围内的那个）
-            const rangeOk = list.filter(candidate => ToolsFunction.pointInElementRange(candidate.x, candidate.y, element1)
-                && ToolsFunction.pointInElementRange(candidate.x, candidate.y, element2));
+            const rangeOk = list.filter(candidate => inElementRange(candidate.x, candidate.y, element1)
+                && inElementRange(candidate.x, candidate.y, element2));
             if (rangeOk.length) list = rangeOk;
             // gmt 的第四个参数（Intersect[a,b,x,已知点]）：先把已知的那个交点排掉，免得它占着编号
             const excludeCoord = exclude && typeof exclude.getCoordinate === 'function' ? exclude.getCoordinate() : null;
@@ -1077,8 +1085,8 @@ class ToolsFunction {
             // 记下这个候选在原始候选表里的位置（供上面那处范围判断用）
             const chosenSlot = numberingBase.findIndex(candidate => Math.hypot(candidate.x - chosen.x, candidate.y - chosen.y) < 1e-6);
             if (chosenSlot >= 0) define.rawIndex = chosenSlot;
-            if (!ToolsFunction.pointInElementRange(chosen.x, chosen.y, element1)) return {valid: false};
-            if (!ToolsFunction.pointInElementRange(chosen.x, chosen.y, element2)) return {valid: false};
+            if (!inElementRange(chosen.x, chosen.y, element1)) return {valid: false};
+            if (!inElementRange(chosen.x, chosen.y, element2)) return {valid: false};
             return {valid: true, coordinate: [chosen.x, chosen.y]};
         }
         
@@ -1088,8 +1096,8 @@ class ToolsFunction {
         const targetSlot = numberingBase.findIndex(candidate => Math.hypot(candidate.x - target.x, candidate.y - target.y) < 1e-6);
         if (targetSlot >= 0) define.rawIndex = targetSlot;
         // 相交于线段、射线之外时该交点失效：对象保留（不显示），重新相交后自动恢复
-        if (!ToolsFunction.pointInElementRange(target.x, target.y, element1)) return {valid: false};
-        if (!ToolsFunction.pointInElementRange(target.x, target.y, element2)) return {valid: false};
+        if (!inElementRange(target.x, target.y, element1)) return {valid: false};
+        if (!inElementRange(target.x, target.y, element2)) return {valid: false};
         return {valid: true, coordinate: [target.x, target.y]};
     }
     
@@ -1381,6 +1389,14 @@ class ToolsFunction {
      * @returns {boolean}
      */
     static pointInElementRange(x, y, element) {
+        if (element.getType() === "circle") {
+            const base = element.getBase?.();
+            if (!base || !['semicircle', 'arc', 'arc3'].includes(base.type)) return true;
+            const coord = element.getCoordinate?.();
+            if (!coord) return false;
+            const angle = Math.atan2(y - coord[0][1], x - coord[0][0]);
+            return ToolsFunction.pointInArcRange(angle, element);
+        }
         if (element.getType() !== "line") return true;
         const drawType = element.getDrawType();
         if (drawType !== "lineSegment" && drawType !== "ray") return true;
@@ -1394,6 +1410,52 @@ class ToolsFunction {
         const projection = (x - point1[0]) * vectorX + (y - point1[1]) * vectorY;
         if (drawType === "lineSegment") return projection >= 0 && projection <= lengthSquared;
         return projection >= 0;
+    }
+
+    static clockwiseDelta(from, to) {
+        let delta = to - from;
+        while (delta < 0) delta += Math.PI * 2;
+        while (delta >= Math.PI * 2) delta -= Math.PI * 2;
+        return delta;
+    }
+
+    /**
+     * Canvas coordinates use clockwise angular progression for positive arc direction.
+     */
+    static pointInArcRange(angle, element) {
+        const base = element.getBase?.();
+        const figure = base?.figure;
+        const coord = element.getCoordinate?.();
+        if (!Array.isArray(figure) || figure.length < 2 || !coord) return false;
+        const center = coord[0];
+        const startPoint = (base.type === 'arc3'
+            ? figure[0]?.getCoordinate?.()
+            : figure[1]?.getCoordinate?.()) || coord[1];
+        const start = Math.atan2(startPoint[1] - center[1], startPoint[0] - center[0]);
+        let end;
+        let delta;
+        if (base.type === 'semicircle') {
+            const endPoint = figure[0]?.getCoordinate?.();
+            if (!endPoint) return false;
+            end = Math.atan2(endPoint[1] - center[1], endPoint[0] - center[0]);
+            delta = Math.PI;
+        } else {
+            const endPoint = figure[2]?.getCoordinate?.();
+            if (!endPoint) return false;
+            end = Math.atan2(endPoint[1] - center[1], endPoint[0] - center[0]);
+            delta = ToolsFunction.clockwiseDelta(start, end);
+            if (base.type === 'arc3') {
+                const throughPoint = figure[1]?.getCoordinate?.();
+                if (!throughPoint) return false;
+                const through = Math.atan2(throughPoint[1] - center[1], throughPoint[0] - center[0]);
+                const throughDelta = ToolsFunction.clockwiseDelta(start, through);
+                if (throughDelta > delta) delta -= Math.PI * 2;
+            }
+        }
+        const position = delta >= 0
+            ? ToolsFunction.clockwiseDelta(start, angle)
+            : ToolsFunction.clockwiseDelta(angle, start);
+        return position <= Math.abs(delta) + 1e-8;
     }
     
     /**
@@ -1447,14 +1509,14 @@ class ToolsFunction {
      * @param {{type: string, bases: Object[], value: number}} define
      * @returns {{type: string, coordinate: [x, y] | null}}
      */
-    static updatePointCoordinate(define) {
+    static updatePointCoordinate(define, owner = null) {
         if (define.type === "none") return {type: 'keep', coordinate: null};
         if (define.type === "online") {
             const coord = ToolsFunction.updateOnlineCoordinate(define);
             if (!coord) return {type: 'invalid', coordinate: null};
             return {type: 'update', coordinate: coord};
         }else if (define.type === "intersection") {
-            const validCoord = ToolsFunction.updateIntersectionCoordinate(define);
+            const validCoord = ToolsFunction.updateIntersectionCoordinate(define, owner);
             if (validCoord.valid) {
                 return {type: 'update', coordinate: validCoord.coordinate};
             }else{
@@ -1805,6 +1867,18 @@ class ToolsFunction {
             if (!flagValue.flag) return null;
             const coordList = flagValue.value;
             return [[coordList.x, coordList.y], [x1, y1]];
+        }else if (define.type === 'semicircle' || define.type === 'arc') {
+            const [center, start] = define.figure;
+            return [center.getCoordinate(), start.getCoordinate()];
+        }else if (define.type === 'arc3') {
+            const [start, through, end] = define.figure;
+            const points = [start, through, end].map(point => {
+                const [x, y] = point.getCoordinate();
+                return {x: x, y: y};
+            });
+            const circle = ToolsFunction.threePointsCircle(points[0], points[1], points[2]);
+            if (!circle.flag) return null;
+            return [[circle.value.x, circle.value.y], start.getCoordinate()];
         }
     }
 

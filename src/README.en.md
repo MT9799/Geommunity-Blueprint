@@ -196,15 +196,19 @@ Levels and the board's "Import gmt" share one parser. For the syntax see ggb2gmt
 | `Circle[A,B]` | circle (two-point base) | A is the centre, B lies on it |
 | `Compass[A,B,C]` | circle (compass base) | centre C, radius AB |
 | `Circle3[A,B,C]` | circle (three-point base) | through A, B, C |
+| `#geom=c:SemiCircle[A,B]` | semicircle | the GMT fallback is `Circle[Midpoint[A,B],A]`; the arc is on the left of directed AB |
+| `#geom=c:Arc[A,B,C]` | arc | the fallback is `Circle[A,B]`; clockwise from B to C |
+| `#geom=c:Arc3[A,B,C]` | three-point arc | the fallback is `Circle3[A,B,C]`; from A to C through B |
 | `EdgePoint[s,x]` | point at infinity | the imaginary point on line s in the negative (`x=0`) / positive (`x=1`) direction. Constructions use its exact direction (`Line[A,E]` is the parallel through A, `Segment[E,H]` is the half-line from H, `CopyAngle` treats E as one side), and the point itself is **never drawn** |
 | `PolarPoint[s,c]` | pole | the pole of line s with respect to circle c (inverse of the polar line) |
 | `Intersect[object1,object2,x]` | intersection | see "Intersection indexing" below |
 | `Linepoint[object,x]` | point on an object | see "How the parameter is computed" below |
+| `#internal=id` | internal construction object | retained for dependencies and export, but omitted from drawing, lists, styles and user picking; `med*` ids are implicit internal objects |
 | `Midpoint[A,B]` | midpoint | |
 | `Perp[A,s]` / `Parallel[A,s]` | perpendicular / parallel | |
 | `PBisect[A,B]` | perpendicular bisector | |
 | `ABisect[A,B,C]` | angle bisector | B is the vertex (gmt only has the three-point form) |
-| `CenterPoint[c]` | circle centre | case-insensitive (`Centerpoint` works too) |
+| `CenterPoint[c]` | circle centre | cannot be used at the center of a segment |
 | `Tangent[A,c,x]` | tangent | tangents to circle c through A; only one when A is on the circle; `x` counts counter-clockwise from the centre towards A |
 | `PolarLine[A,c]` | polar line | perpendicular to the centre line, distance r²/｜CP｜ from the centre; the direction is A→centre rotated 90° counter-clockwise **as seen on screen** (the canvas y axis points down, so this is `(x,y)→(y,-x)` in canvas coordinates), one unit is ｜CP｜, and the foot (centre line ∩ polar line) is `Linepoint[...,1]` |
 | `CopyAngle[A,B,C,D,E]` | copied-angle ray | vertex E, with D a point on one side |

@@ -105,6 +105,19 @@
      */
     function markBaseline() {
         if (typeof geometryManager === 'undefined') return;
+        // 游玩模式以关卡文件本身的对象为基线：level-loader 把关卡对象写进了 sessionStorage.elements。
+        // 从设计模式 / 求解器返回时，画布上还带着玩家自己画的图形；直接拿当前几何当基线
+        // 会把它们也算成「关卡自带」，记录面板的加号就一直是灰的。
+        if (isPlay) {
+            try {
+                const raw = sessionStorage.getItem('elements');
+                const list = raw ? JSON.parse(raw) : null;
+                if (Array.isArray(list) && list.length) {
+                    baseline = new Set(list.map(item => item && item.id).filter(Boolean));
+                    return;
+                }
+            } catch (error) { /* 数据坏了就退回当前几何 */ }
+        }
         baseline = new Set(geometryManager.getAllByOrder().map(item => item.getId()));
     }
 
@@ -208,6 +221,7 @@
         // 不要再记一份进 styles：那两套规则会打架（读了 named 就被当成给定）
         const namedMark = typeof geometryElementLists !== 'undefined' && geometryElementLists.named ? geometryElementLists.named : null;
         all.forEach(item => {
+            if (item.getInternal?.()) return;
             const entry = {};
             const id = item.getId();
             // 网格当作一整块：它的样式只走 gmt 里的 #gridstyle= 一行，不再逐条写进记录 styles

@@ -665,6 +665,9 @@ const previewShapes = {
     lineSegment: 'lineSegment',
     circle: 'circle',
     threePointCircle: 'circle3',
+    semicircle: 'semicircle',
+    arc: 'arc',
+    arc3: 'arc3',
     perpendicularBisector: 'perpendicularBisector',
     middlePoint: 'middlePoint',
     // 切换项里的工具：键名用 subTool
@@ -772,6 +775,30 @@ function toolPreviewState() {
             && Math.abs(coord[0] - cursor[0]) < 1e-6 && Math.abs(coord[1] - cursor[1]) < 1e-6;
     });
     if (sameAsSelected) return null;
+    // 弧工具的预览必须和最终弧段保持一致，不能直接复用整圆预览。
+    if (subTool === 'semicircle') {
+        return {shape: 'semicircle', coords: [selected[0].getCoordinate(), cursor]};
+    }
+    if (subTool === 'arc') {
+        const center = selected[0].getCoordinate();
+        const start = selected[1].getCoordinate();
+        const radius = Math.hypot(start[0] - center[0], start[1] - center[1]);
+        const resolved = typeof prospectiveArcPoint === 'function'
+            ? prospectiveArcPoint(subTool, rawCursor[0], rawCursor[1])
+            : null;
+        const endpoint = resolved
+            ? [resolved.x, resolved.y]
+            : cursor;
+        const angle = Math.atan2(endpoint[1] - center[1], endpoint[0] - center[0]);
+        return {
+            shape: 'arc',
+            coords: [center, start, [center[0] + radius * Math.cos(angle), center[1] + radius * Math.sin(angle)]],
+            previewPoint: endpoint,
+        };
+    }
+    if (subTool === 'arc3') {
+        return {shape: 'arc3', coords: [selected[0].getCoordinate(), selected[1].getCoordinate(), cursor]};
+    }
     // 复制圆规：先点了一个圆之后，光标处就是圆心，半径跟着那个圆（还没点圆时没有预览）
     if (subTool === 'compassCopy') {
         const circle = selected.find(item => item.getType() === 'circle');
@@ -1080,6 +1107,39 @@ function drawToolPreview() {
             ct.arc(center[0], center[1], Math.hypot(first[0] - center[0], first[1] - center[1]), 0, 2 * Math.PI);
             ct.stroke();
         }
+    }else if (state.shape === 'semicircle') {
+        const center = [(first[0] + second[0]) / 2, (first[1] + second[1]) / 2];
+        const radius = Math.hypot(second[0] - first[0], second[1] - first[1]) / 2;
+        if (radius) {
+            const from = Math.atan2(first[1] - center[1], first[0] - center[0]);
+            ct.beginPath();
+            ct.arc(center[0], center[1], radius, from, from + Math.PI, false);
+            ct.stroke();
+        }
+    }else if (state.shape === 'arc') {
+        const center = first;
+        const radius = Math.hypot(second[0] - center[0], second[1] - center[1]);
+        if (radius) {
+            const from = Math.atan2(second[1] - center[1], second[0] - center[0]);
+            const end = Math.atan2(third[1] - center[1], third[0] - center[0]);
+            ct.beginPath();
+            ct.arc(center[0], center[1], radius, from, from + ToolsFunction.clockwiseDelta(from, end), false);
+            ct.stroke();
+        }
+        if (state.previewPoint) drawPreviewPoint(state.previewPoint);
+    }else if (state.shape === 'arc3') {
+        const center = previewCircumcenter(first, second, third);
+        if (center) {
+            const radius = Math.hypot(first[0] - center[0], first[1] - center[1]);
+            const from = Math.atan2(first[1] - center[1], first[0] - center[0]);
+            const through = Math.atan2(second[1] - center[1], second[0] - center[0]);
+            const end = Math.atan2(third[1] - center[1], third[0] - center[0]);
+            const delta = ToolsFunction.clockwiseDelta(from, end);
+            const anticlockwise = ToolsFunction.clockwiseDelta(from, through) > delta;
+            ct.beginPath();
+            ct.arc(center[0], center[1], radius, from, anticlockwise ? end : from + delta, anticlockwise);
+            ct.stroke();
+        }
     }else if (state.shape === 'perpendicularBisector') {
         // 垂直平分线：过两点的中点，方向与两点连线垂直
         const middle = [(first[0] + second[0]) / 2, (first[1] + second[1]) / 2];
@@ -1334,6 +1394,7 @@ function drawShapes() {
     
     // 除了点的几何对象（线段在射线之上、射线在直线之上）
     for (const element of sortLineLayers(exceptPoints)) {
+        if (element.getInternal?.()) continue;
         if (!element.getValid()) continue;
         if (!element.getVisible()) continue;
         
@@ -1343,6 +1404,7 @@ function drawShapes() {
     }
     // 除了点的目标几何对象
     for (const element of sortLineLayers(resultexceptPoints)) {
+        if (element.getInternal?.()) continue;
         if (!element.getValid()) continue;
         if (!element.getVisible()) continue;
         
@@ -1352,6 +1414,7 @@ function drawShapes() {
     }
     // 除了点的缓存几何对象
     for (const element of exceptPointsCache) {
+        if (element.getInternal?.()) continue;
         if (!element.getValid()) continue;
         if (!element.getVisible()) continue;
         
@@ -1366,6 +1429,7 @@ function drawShapes() {
     }
     // 点
     for (const point of points) {
+        if (point.getInternal?.()) continue;
         if (!point.getValid()) continue;
         if (!point.getVisible()) continue;
         drawPoint(point);
@@ -1666,9 +1730,38 @@ function drawCircle(element) {
     const dy = y1 - y2;
     const distance = Math.hypot(dx, dy);
 
+    const base = element.getBase?.();
+    const arc = base && ['semicircle', 'arc', 'arc3'].includes(base.type);
+    let from = 0;
+    let to = 2 * Math.PI;
+    let counterClockwise = false;
+    if (arc && Array.isArray(base.figure)) {
+        const start = (base.type === 'arc3'
+            ? base.figure[0]?.getCoordinate?.()
+            : base.figure[1]?.getCoordinate?.()) || coordList[1];
+        const end = base.type === 'semicircle'
+            ? base.figure[0]?.getCoordinate?.()
+            : base.figure[2]?.getCoordinate?.();
+        if (start && end) {
+            from = Math.atan2(start[1] - y1, start[0] - x1);
+            const endAngle = Math.atan2(end[1] - y1, end[0] - x1);
+            let delta = base.type === 'semicircle' ? Math.PI : ToolsFunction.clockwiseDelta(from, endAngle);
+            if (base.type === 'arc3') {
+                const through = base.figure[1]?.getCoordinate?.();
+                if (through) {
+                    const throughAngle = Math.atan2(through[1] - y1, through[0] - x1);
+                    if (ToolsFunction.clockwiseDelta(from, throughAngle) > delta) {
+                        counterClockwise = true;
+                        delta = 0;
+                    }
+                }
+            }
+            to = counterClockwise ? endAngle : from + delta;
+        }
+    }
     ct.beginPath();
     ct.strokeStyle = color;
-    ct.arc(x1, y1, distance, 0, 2 * Math.PI)
+    ct.arc(x1, y1, distance, from, to, counterClockwise)
     ct.lineWidth = (LINE_WIDTH_BASE * width) / transform.scale;
     // 虚线：划段只在自己这里有效，画完立刻还原（圆的划段按周长取整，起点不会多出一段）
     if (element.getDashed()) ct.setLineDash(circleDashPatternOf(distance, width));
@@ -1695,16 +1788,45 @@ function drawChoiceCircle(element) {
     const offset = 6 * width;
     const strokeWidth = 2 * width / transform.scale;
 
+    const base = element.getBase?.();
+    const arc = base && ['semicircle', 'arc', 'arc3'].includes(base.type);
+    let from = 0;
+    let to = 2 * Math.PI;
+    let counterClockwise = false;
+    if (arc && Array.isArray(base.figure)) {
+        const start = (base.type === 'arc3'
+            ? base.figure[0]?.getCoordinate?.()
+            : base.figure[1]?.getCoordinate?.()) || coordList[1];
+        const end = base.type === 'semicircle'
+            ? base.figure[0]?.getCoordinate?.()
+            : base.figure[2]?.getCoordinate?.();
+        if (start && end) {
+            from = Math.atan2(start[1] - y1, start[0] - x1);
+            const endAngle = Math.atan2(end[1] - y1, end[0] - x1);
+            let delta = base.type === 'semicircle' ? Math.PI : ToolsFunction.clockwiseDelta(from, endAngle);
+            if (base.type === 'arc3') {
+                const through = base.figure[1]?.getCoordinate?.();
+                if (through) {
+                    const throughAngle = Math.atan2(through[1] - y1, through[0] - x1);
+                    if (ToolsFunction.clockwiseDelta(from, throughAngle) > delta) {
+                        counterClockwise = true;
+                        delta = 0;
+                    }
+                }
+            }
+            to = counterClockwise ? endAngle : from + delta;
+        }
+    }
     ct.beginPath();
     ct.strokeStyle = color;
-    ct.arc(x1, y1, distance + offset / transform.scale, 0, 2 * Math.PI)
+    ct.arc(x1, y1, distance + offset / transform.scale, from, to, counterClockwise)
     ct.lineWidth = strokeWidth;
     ct.stroke();
     
     if (distance - offset / transform.scale < 0) return;
     ct.beginPath();
     ct.strokeStyle = color;
-    ct.arc(x1, y1, distance - offset / transform.scale, 0, 2 * Math.PI)
+    ct.arc(x1, y1, distance - offset / transform.scale, from, to, counterClockwise)
     ct.lineWidth = strokeWidth;
     ct.stroke();
 }

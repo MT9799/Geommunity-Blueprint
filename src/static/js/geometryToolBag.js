@@ -706,7 +706,7 @@ class CircleTool {
             this.define
             );
     }
-    
+
     /**
      * 圆工具
      * @param {string} type
@@ -716,13 +716,291 @@ class CircleTool {
     toolEvent(type, oriX, oriY) {
         this.circleMode.toolEvent(type, oriX, oriY);
     }
-    
+
     /**
      * 清空
      */
     clear() {
         this.circleMode.clear();
     }
+}
+
+class ArcConstructTool {
+    constructor(toolName, define, maxStatus) {
+        this.toolName = toolName;
+        this.mode = new PointBaseToolTemplate(toolName, maxStatus, toolName, 'circle', define);
+        this.mode.create = () => this.create();
+        this.mode.setDefine = () => this.setDefine();
+        const applyArcPointPreviewStyle = (point, intersection) => {
+            const choice = geometryManager.geometryStyle?.point?.colorChoice;
+            if (choice !== 'auto' && choice !== 'autoPlayMode') return;
+            point.modifyColor(intersection ? '#808080' : '#ff0000');
+        };
+        this.mode.finalizeDraw = () => {
+            if (define !== 'arc') return;
+            const point = geometryManager.getToolKey(toolName, 'point3');
+            const arc = geometryManager.getToolKey(toolName, toolName);
+            if (!point || !arc || point.getType() !== 'point') return;
+            const resolution = this.mode.pointResolution;
+            if (resolution) {
+                point.modifyBase('intersection', [arc, resolution.element], resolution.index, null, false);
+                geometryManager.applyAutoStyle(point);
+                return;
+            }
+            const projection = this.mode.pointProjection;
+            if (!projection) return;
+            const center = geometryManager.getToolKey(toolName, 'point1')?.getCoordinate();
+            if (!center) return;
+            const angle = Math.atan2(projection.y - center[1], projection.x - center[0]);
+            point.modifyBase('online', [arc], angle, null, false);
+            geometryManager.applyAutoStyle(point);
+        };
+        if (define === 'arc') {
+            const createPoint = this.mode.createPoint.bind(this.mode);
+            this.mode.resolveThirdPoint = (x, y, index) => {
+                if (index !== 3) return null;
+                return prospectiveArcPoint(this.toolName, x, y);
+            };
+            this.mode.resolvePoint = (x, y, index) => {
+                if (index !== 3) return null;
+                return prospectiveArcIntersection(this.toolName, x, y);
+            };
+            // 第三点必须落在「自身整圆」上：通用的 click 会先 near(["point"]) 复用附近已有点，
+            // 于是恰好压在附近、却不在弧所在圆上的交点（如别的图形的交点 G）会被误当成第三点，
+            // 导致弧端点脱离圆弧、元素排序也跟着错乱。这里不走通用复用，改为先按前两点算出的整圆
+            // 解析第三点位置，仅当附近已有「在弧所在圆上」的点时才复用，否则交给 createPoint 在圆上造点
+            // （prospectiveArcPoint 会优先取该圆与其它图形的交点）。
+            const baseClick = this.mode.click.bind(this.mode);
+            this.mode.click = (x, y) => {
+                if (this.mode.status + 1 !== 3) {
+                    baseClick(x, y);
+                    // 选完两点（圆心 + 边上点）后立即创建弧所在整圆：
+                    // 让它排在第三点之前，第三点照常怎么建就怎么建，缓存里不再需要挪来挪去。
+                    // 第二点被取消（再点一次已选的点）时把整圆一起撤掉，免得留下半成品
+                    if (this.mode.status === 2) this.createCircle();
+                    else if (this.mode.status < 2) geometryManager.deleteToolKey(this.toolName, this.toolName);
+                    return;
+                }
+                [x, y] = this.mode.normalizedPoint(x, y);
+                const p1 = geometryManager.getToolKey(this.toolName, 'point1');
+                const p2 = geometryManager.getToolKey(this.toolName, 'point2');
+                if (!p1 || !p2) { baseClick(x, y); return; }
+                const center = p1.getCoordinate();
+                const edge = p2.getCoordinate();
+                const radius = Math.hypot(edge[0] - center[0], edge[1] - center[1]);
+                // 只复用「恰好在弧所在圆上」的已有点；不在圆上的附近点不复用，
+                // 交给 createPoint 在「弧所在整圆 ∩ 其它图形」的交点处新建第三点
+                let reuseId = null;
+                const [nearId] = geometryManager.near([x, y], ["point"]);
+                if (nearId) {
+                    const pc = geometryManager.get(nearId)?.getCoordinate?.();
+                    if (pc && Math.abs(Math.hypot(pc[0] - center[0], pc[1] - center[1]) - radius) < 1e-3) {
+                        reuseId = nearId;
+                    }
+                }
+                if (reuseId) {
+                    geometryManager.addToolObject(this.toolName, 'point3', "quote", reuseId);
+                    this.mode.pointResolution = null;
+                    this.mode.pointProjection = null;
+                    this.mode.status++;
+                } else {
+                    this.mode.createPoint(x, y);
+                    this.mode.status++;
+                }
+                if (this.mode.status >= this.mode.maxStatus) {
+                    this.mode.create();
+                    this.mode.status = 0;
+                    geometryManager.loadTool(this.toolName);
+                    const event = new CustomEvent("storage", { detail: { type: this.toolName } });
+                    window.dispatchEvent(event);
+                }
+            };
+            this.mode.createPoint = (x, y) => {
+                const special = this.mode.resolveThirdPoint(x, y, this.mode.status + 1);
+                if (!special) {
+                    this.mode.pointResolution = null;
+                    this.mode.pointProjection = null;
+                    createPoint(x, y);
+                    return;
+                }
+                const point = geometryManager.createPoint(special.x, special.y);
+                geometryManager.addToolObject(this.toolName, `point${this.mode.status + 1}`, 'append', point);
+                applyArcPointPreviewStyle(point, special.intersection);
+                this.mode.pointResolution = special.intersection;
+                this.mode.pointProjection = special.intersection ? null : special;
+            };
+        } else if (define === 'semicircle') {
+            // 半圆是「点 - 拖 - 放」的两点工具（与线工具同构），但 create() 会在 mousedown 阶段
+            // 用退化（两端点重合）的 a、b 算好 helper 中点，之后 b 被拖动而 helper 不跟着更新，
+            // 预览 / 最终半圆就停在退化状态。这里在 movePoint 里把 helper 和半圆一并刷新。
+            const baseMovePoint = this.mode.movePoint.bind(this.mode);
+            this.mode.movePoint = (x, y) => {
+                baseMovePoint(x, y);
+                const helper = geometryManager.getToolKey(this.toolName, 'helper');
+                if (helper && typeof helper.updateCoordinate === 'function') helper.updateCoordinate();
+                const goal = geometryManager.getToolKey(this.toolName, this.goal);
+                if (goal && typeof goal.updateCoordinate === 'function') goal.updateCoordinate();
+            };
+        }
+    }
+
+    toolEvent(type, oriX, oriY) {
+        this.mode.toolEvent(type, oriX, oriY);
+    }
+
+    clear() {
+        this.mode.clear();
+    }
+
+    /**
+     * 选完两点（圆心 + 边上点）后立即创建弧所在整圆 过程函数
+     * 让整圆在「创建顺序」上排在第三点之前：第三点无论新建还是复用已有点，都天然排在整圆之后
+     * 或保持原位，缓存里不再需要把第三点挪来挪去。构造期间先隐藏，第三点定下来（create）再显示。
+     */
+    createCircle() {
+        const a = geometryManager.getToolKey(this.toolName, 'point1');
+        const b = geometryManager.getToolKey(this.toolName, 'point2');
+        if (!a || !b) return;
+        let arc = geometryManager.getToolKey(this.toolName, this.toolName);
+        if (!arc) {
+            geometryManager.createGeometryElementInputTool('circle', this.toolName, this.toolName);
+            arc = geometryManager.getToolKey(this.toolName, this.toolName);
+        }
+        if (!arc) return;
+        // 每次都按当前圆心 / 边上点重建 figure（第二点被取消重选时也跟着更新）
+        arc.modifyDefine(this.mode.define, [a, b]);
+        arc.modifyVisible(false);
+    }
+
+    create() {
+        const nextInternalId = () => {
+            let index = 1;
+            while (geometryManager.get(`med${index}`)) index++;
+            return `med${index}`;
+        };
+        const points = [];
+        for (let index = 1; index <= this.mode.maxStatus; index++) {
+            points.push(geometryManager.getToolKey(this.toolName, `point${index}`));
+        }
+        if (points.some(point => !point)) return;
+        let figures = points;
+        if (this.mode.define === 'semicircle') {
+            const [a, b] = points;
+            const midpoint = geometryManager.createPoint(
+                (a.getCoordinate()[0] + b.getCoordinate()[0]) / 2,
+                (a.getCoordinate()[1] + b.getCoordinate()[1]) / 2
+            );
+            midpoint.modifyId(nextInternalId());
+            midpoint.modifyName(midpoint.getId());
+            midpoint.modifyBase('middlePoint', [a, b]);
+            midpoint.modifyInternal(true);
+            // 圆心只是半圆几何需要的中点 helper，不应作为可见点画出：
+            // 预览期 drawShapes 的「缓存点」循环只查 getValid()/getVisible()、不查 getInternal()，
+            // 所以仅靠 internal 拦不住；这里直接置为不可见，使拖拽与最终都看不到圆心。
+            midpoint.modifyVisible(false);
+            geometryManager.addToolObject(this.toolName, 'helper', 'append', midpoint);
+            figures = [midpoint, a, b];
+        } else if (this.mode.define === 'arc') {
+            // 弧所在整圆已在选完两点时创建（见 createCircle）。这里只定第三点、补全整圆的 figure：
+            // 第三点按「它在什么时候建的」留在原位 —— 复用的已有点保持原基底、不挪位置；
+            // 新建的点（落在弧与其它图形交点 / 弧上）重定基到弧。全程不做任何重排。
+            const [a, b] = points;
+            let c = points[2];
+            const pointResolution = this.mode.pointResolution;
+            const point3Entry = geometryManager.choice?.[this.toolName]?.point3;
+            const center = a.getCoordinate();
+            const radius = Math.hypot(b.getCoordinate()[0] - center[0], b.getCoordinate()[1] - center[1]);
+            let arc = geometryManager.getToolKey(this.toolName, this.toolName);
+            if (!arc) {
+                // 兜底：正常流程下整圆已建好
+                geometryManager.createGeometryElementInputTool('circle', this.toolName, this.toolName);
+                arc = geometryManager.getToolKey(this.toolName, this.toolName);
+            }
+            arc.modifyVisible(true);   // 构造期间隐藏的基础圆，到这里恢复显示
+            // 先把第三点的基底定下来，但 update=false（暂不算坐标）：
+            // 此刻整圆的 figure 还只有 [圆心, 边上点]（没有第三点），若马上算坐标，
+            // 弧段范围判断会把「弧 ∩ 图形」的交点判成不在范围内 → 点被置为 invalid、画不出来
+            // （要等拖动别的东西触发重算才显示）。等整圆 figure 补全后再算即可。
+            if (point3Entry?.type === 'quote') {
+                // 复用「在弧所在圆上」的已有点：保持原基底（它是先建的点，不能反过来依赖后建的弧）
+            } else if (pointResolution) {
+                c.modifyBase('intersection', [arc, pointResolution.element], pointResolution.index, null, false);
+            } else if (this.mode.pointProjection) {
+                const coord = c.getCoordinate();
+                const angle = Math.atan2(coord[1] - center[1], coord[0] - center[0]);
+                c.modifyBase('online', [arc], angle, null, false);
+            } else {
+                const coord = c.getCoordinate();
+                if (Math.abs(Math.hypot(coord[0] - center[0], coord[1] - center[1]) - radius) > 1e-3) {
+                    const angle = Math.atan2(coord[1] - center[1], coord[0] - center[0]);
+                    const projected = geometryManager.createPoint(
+                        center[0] + radius * Math.cos(angle),
+                        center[1] + radius * Math.sin(angle)
+                    );
+                    geometryManager.addToolObject(this.toolName, 'point3', 'append', projected);
+                    c = projected;
+                    c.modifyBase('online', [arc], angle, null, false);
+                }
+            }
+            // 先补全整圆的 figure（第三点归属上来），之后第三点再算坐标时，弧段范围判断用的是完整整圆
+            figures = [a, b, c];
+            arc.modifyDefine(this.mode.define, figures);
+            if (typeof c.updateCoordinate === 'function') c.updateCoordinate();
+            this.mode.pointResolution = null;
+            this.mode.pointProjection = null;
+            return;
+        }
+        geometryManager.createGeometryElementInputTool('circle', this.toolName, this.toolName);
+        geometryManager.getToolKey(this.toolName, this.toolName).modifyDefine(this.mode.define, figures);
+    }
+
+    /**
+     * 重建目标图形定义。基类 PointBaseToolTemplate.setDefine 只把已选点拼成 figure，
+     * 会丢掉半圆所需的「中点 helper」，导致半圆 figure 退化成 [point1, point2]、
+     * figure[0] 被当作圆心（首绘「第一个点变成圆心」）。这里按 define 重新组装 figure。
+     */
+    setDefine() {
+        const points = [];
+        for (let index = 1; index <= this.mode.maxStatus; index++) {
+            const point = geometryManager.getToolKey(this.toolName, `point${index}`);
+            if (point) points.push(point);
+            else break;
+        }
+        let figures = points;
+        if (this.mode.define === 'semicircle') {
+            const mid = geometryManager.getToolKey(this.toolName, 'helper');
+            if (mid) figures = [mid, points[0], points[1]];
+        } else if (this.mode.define === 'arc') {
+            const third = geometryManager.getToolKey(this.toolName, 'point3');
+            const arc = geometryManager.getToolKey(this.toolName, this.mode.goal);
+            if (third && arc) {
+                const inter = this.mode.pointResolution;
+                if (inter) {
+                    figures = [points[0], points[1], third];
+                    if (!third.getBase() || third.getBase().type !== 'intersection' || third.getBase().basesId[0] !== inter.element.getId()) {
+                        third.modifyBase('intersection', [arc, inter.element], inter.index);
+                    }
+                } else {
+                    figures = [points[0], points[1], third];
+                }
+            }
+        }
+        geometryManager.createGeometryElementInputTool(this.mode.goalType, this.toolName, this.mode.goal, this.mode.drawType);
+        const goal = geometryManager.getToolKey(this.toolName, this.mode.goal);
+        if (goal) goal.modifyDefine(this.mode.define, figures);
+    }
+}
+
+class SemicircleTool extends ArcConstructTool {
+    constructor() { super('semicircle', 'semicircle', 2); }
+}
+
+class ArcTool extends ArcConstructTool {
+    constructor() { super('arc', 'arc', 3); }
+}
+
+class ThreePointArcTool extends ArcConstructTool {
+    constructor() { super('arc3', 'arc3', 3); }
 }
 
 /**
@@ -734,15 +1012,16 @@ class CircleTool {
  * 写成模块级函数而不是类方法：createIntersection 是作为回调传给模板的（未绑定），里面的 this 是模板
  * @param {number} x 逻辑 x
  * @param {number} y 逻辑 y
+ * @param {number} tolerance 判定半径（逻辑坐标），默认 1e-6（几乎完全重合才算）
  * @returns {boolean}
  */
-function hasPointAtPosition(x, y) {
+function hasPointAtPosition(x, y, tolerance = 1e-6) {
     return geometryManager.getAllByOrder().some(item => {
         if (item.getType() !== 'point') return false;
         if (!item.getVisible()) return false;
         const coord = item.getCoordinate?.();
         if (!coord) return false;
-        return Math.hypot(coord[0] - x, coord[1] - y) < 1e-6;
+        return Math.hypot(coord[0] - x, coord[1] - y) <= tolerance;
     });
 }
 
@@ -914,21 +1193,19 @@ function revealHiddenIntersection(x, y, ownStep = false) {
         // （游玩模式里不翻隐藏点，这里就会返回 false，工具照常自己作点）
         return revealHiddenPoint(existing, ownStep);
     }
-    // 这个位置上没点，但画布上已经有**别的点**落在吸附范围内时不要再造 —— 玩家这一下很可能就是
-    // 想选那个点（作图工具选已有点、或是想把它拖走），而不是在它旁边多插一个交点。
-    // nearestIntersection 找的是「离光标最近的任意两条图形的交点」，不限于点中的那两条：
-    // 于是一条经过已有点附近的图形与另一条图形相交时，点已有点会顺手在几像素外造出一个交点
-    // （「不仅选中已有点、还在很近的相交位置建了点」）。
-    // 交点上原本就有个点对象时也不该造（与点工具那一句同一口径，见 PointTool.createPoint）：
-    // 那个位置在 gmt 的编号规则里就是「已知交点」，硬建出来的点还会落到另一个候选上。
-    // 隐藏点算不算「已有」？算 —— pointAtPosition 不看可见性，这里的口径跟它保持一致：
-    // 上面能显示就显示，显示不出来（游玩模式）也不叠一个重合的新点。
-    //
-    // **只在触屏上认这一条**（见 canvas.js 的 pointerIsTouch）：手指落点粗，十几像素外的
-    // 已有点很可能就是玩家想选的那个；鼠标精确得多，光标压在相交处就是想在那儿作交点，
-    // 旁边有点也不该挡掉它（预览那边 board-tools.js 的 landingPickOf 用同一条件，两边始终一致）
-    if (typeof pointerIsTouch === 'function' && pointerIsTouch()
-        && geometryManager.near([x, y], ["point"], 1).length) return false;
+    // 光标处已经有一个**别的点**时不要再造 —— 玩家这一下就是想选 / 用那个点，而不是在它旁边
+    // 多插一个交点。nearestIntersection 找的是「离光标最近的任意两条图形的交点」，不限于点中的
+    // 那两条：于是一条经过已有点附近的图形与另一条图形相交时，点已有点会顺手在几像素外造出
+    // 一个交点（「不仅选中已有点、还在很近的相交位置建了点」）。
+    // 只在「点就在光标处」时认：明显更远的点是另一个对象，光标压在相交处仍是想在那儿作交点，
+    // 远处有点不该挡掉它。触屏落点粗，十几像素外的已有点很可能就是想选的那个，所以触屏沿用吸附半径
+    //（预览那边 board-tools.js 的 landingPickOf 用同一口径，两边始终一致）
+    const [nearCursorId] = geometryManager.near([x, y], ["point"], 1);
+    if (nearCursorId) {
+        if (typeof pointerIsTouch === 'function' && pointerIsTouch()) return false;
+        const coord = geometryManager.get(nearCursorId)?.getCoordinate?.();
+        if (coord && Math.hypot(coord[0] - x, coord[1] - y) <= 3 / transform.scale) return false;
+    }
     const point = geometryManager.createPoint(snap.x, snap.y);
     applyIntersectionBase(point, snap);
     snap.element1.addSuperstructure(point);
@@ -956,6 +1233,11 @@ function revealHiddenIntersection(x, y, ownStep = false) {
 function revealHiddenIntersectionAtClick(oriX, oriY) {
     if (typeof tool !== 'string' || typeof transform === 'undefined') return false;
     if (tool === 'move' || tool === 'eraser' || tool === 'styleBrush' || tool === 'lineType') return false;
+    // 弧工具的第三点由它自己解析「弧所在整圆 ∩ 其它图形」的交点来建（见 ArcConstructTool 的 createPoint）：
+    // 这里若照常顺手在「最近交点（任取两条图形）」处造点，会在一个并不在弧圆上的交点处多造一个点。
+    // 前两次点击（圆心 / 边上点）仍照常允许取交点，所以只在第三点（已选两点、status === 2）时跳过。
+    if (tool === 'arc' && typeof tools !== 'undefined' && tools && tools[tool]
+        && tools[tool].mode && tools[tool].mode.status === 2) return false;
     // 点工具 / 交点工具这一下本来就是「在这儿放个点」：显示 / 作出的点自己占一格历史。
     // 其它工具（直线、圆、构造类…）随后会完成自己那一步，那个点跟着那一步一起撤回
     const ownStep = tool === 'point' || tool === 'intersection';
@@ -1094,8 +1376,11 @@ class IntersectionTool {
         // 这一次点击就是「要这个交点」，先把选了一半的对象丢掉
         geometryManager.deleteTool(this.toolName);
         // 这个位置已经有点了（交点 / 线上点 / 给定点都算）就不再重复作
-        //（这一下点击仍然算数，不改选中状态）
-        if (hasPointAtPosition(snap.x, snap.y)) return true;
+        //（这一下点击仍然算数，不改选中状态）。
+        // 判定半径取落点吸附那一档（见 board-tools.js 的 landingPickOf）：光标处（＝吸附到的
+        // 交点处）那个点才算「已经有了」，直接用它；明显更远的点是另一个对象，交点照旧作出，
+        // 免得想标这个交点时被远处某个点挡住
+        if (hasPointAtPosition(snap.x, snap.y, 3 / transform.scale)) return true;
         const point = geometryManager.createPoint(snap.x, snap.y);
         // 基底走统一入口：另一个候选上已经有点时（如圆上已有 C、直线过 C）自动记成已知交点，
         // 这个交点于是有自己的身份（不会滑到 C 上），导出时写成 Intersect[图形1,图形2,-,C]

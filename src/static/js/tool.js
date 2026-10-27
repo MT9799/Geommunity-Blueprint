@@ -14,7 +14,7 @@ const toolMenus = {
         'line', 'ray', 'lineSegment', 'lineType'
     ],
     'circle': [
-        'circle', 'compass'
+        'circle', 'compass', 'semicircle', 'arc', 'arc3'
     ],
     'construct': [
         'parallelLine', 
@@ -148,6 +148,18 @@ const toolItems = {
         "button": ["clear", "circleStyle"], 
         "choice": {"general": {"point1": 'point', "point2": 'point', "point3": 'point'}},
     }, 
+    'semicircle': {
+        "button": ["clear", "circleStyle"],
+        "choice": {"general": {"point1": 'point', "point2": 'point'}},
+    },
+    'arc': {
+        "button": ["clear", "circleStyle"],
+        "choice": {"general": {"point1": 'point', "point2": 'point', "point3": 'point'}},
+    },
+    'arc3': {
+        "button": ["clear", "circleStyle"],
+        "choice": {"general": {"point1": 'point', "point2": 'point', "point3": 'point'}},
+    },
     'fixedAngle': {
         "button": ["clear", "lineStyle"], 
         // 取点顺序：先角的一条边上的点（point1），再顶点（point2）——
