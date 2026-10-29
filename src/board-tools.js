@@ -12,7 +12,7 @@
   const roundTrip = !!params.get('from');
   // 精简画板（答案的「逐步绘制」）也带 from（返回要回到关卡页），但它要自己载入那份记录，
   // 不能让上一页残留的图形先冒出来，所以照「新开」处理、照样清一遍
-  if (!isLevel && mode !== 'maker-play' && !restoreMaker && (!roundTrip || mode === 'stepview')) ['elements', 'geometryElementLists', 'thumbnail', 'constructRecord', 'makerBackup', 'gridMeta'].forEach(key => sessionStorage.removeItem(key));
+  if (!isLevel && mode !== 'maker-play' && !restoreMaker && (!roundTrip || mode === 'stepview')) ['elements', 'geometryElementLists', 'thumbnail', 'constructRecord', 'makerBackup', 'gridMeta', 'boardBaseline'].forEach(key => sessionStorage.removeItem(key));
   // 仅当从画板主动跳转进入 solver（restore=1）时沿用图形，其余入口（首页等）清空画板
   if (!restoreSolver) sessionStorage.removeItem('solverElements');
   // 自制/求解模式的几何默认样式与关卡游玩模式保持一致（初始点红色、构造出的点与线圆灰色）
@@ -65,8 +65,11 @@
     }
   }
   // 页面标题随模式走（关卡游玩页的标题由 level-loader / 试玩数据决定，这里只管画板本身）
-  const modeTitles = {normal: t('board.pageTitleBoard'), maker: t('board.pageTitleMaker'), solver: t('board.pageTitleSolver')};
-  if (modeTitles[mode]) document.title = `${modeTitles[mode]} | Geommunity Blueprint`;
+  // 入群题（quizMode）自行管理标题（选关页 / 具体题），不在这里覆盖，否则选关页会被写成「画板」
+  if (!window.quizMode) {
+    const modeTitles = {normal: t('board.pageTitleBoard'), maker: t('board.pageTitleMaker'), solver: t('board.pageTitleSolver')};
+    if (modeTitles[mode]) document.title = `${modeTitles[mode]} | Geommunity Blueprint`;
+  }
   // 标记显示色：给定 / 带标签给定黑、可移动点蓝、所求类与探索显示金
   const markColors = {initial: '#191919', named: '#191919', movepoints: '#0099ff', result: '#ffd700', resultShown: '#ffd700', explore: '#ffd700'};
   // 标记的互斥关系：给定三项（给定 / 带标签给定 / 可移动点）互相排斥，一个对象只属于其中一个；
@@ -702,6 +705,8 @@
       try { backup = JSON.parse(sessionStorage.getItem('boardBackup')); } catch (error) { backup = null; }
       sessionStorage.removeItem('boardBackup');
       if (!backup) return;
+      // 还原离开时的基线：已有内容（含用户作图）不算初始内容，再退出仍会提示
+      if (backup.baseline && typeof window.__boardUseRestoredBaseline === 'function') window.__boardUseRestoredBaseline(backup.baseline);
       if (Array.isArray(backup.elements)) geometryManager.loadStorage(backup.elements);
       if (backup.lists) Object.entries(backup.lists).forEach(([key, value]) => { geometryElementLists[key] = new Set(value || []); });
       if (backup.grid && typeof setGridMeta === 'function') setGridMeta(backup.grid);
@@ -762,6 +767,12 @@
     document.addEventListener('DOMContentLoaded', () => {
       const elements = JSON.parse(sessionStorage.getItem('elements'));
       geometryManager.loadStorage(elements);
+      // 从试玩返回：还原离开制题器时的基线，已有内容（含用户作图）不算初始内容，再退出仍会提示
+      const savedBaseline = sessionStorage.getItem('boardBaseline');
+      if (savedBaseline) {
+        sessionStorage.removeItem('boardBaseline');
+        if (typeof window.__boardUseRestoredBaseline === 'function') window.__boardUseRestoredBaseline(savedBaseline);
+      }
       const savedLists = JSON.parse(sessionStorage.getItem('geometryElementLists') || '{}');
       Object.entries(savedLists).forEach(([key, value]) => { geometryElementLists[key] = new Set(value); });
       // 网格：制题器里生成过网格时这份会话带着网格元信息（见 index.js 的 dataTransfer）——
@@ -1003,6 +1014,8 @@
         lists: lists,
         grid: typeof gridMetaSnapshot === 'function' ? gridMetaSnapshot() : null,
         view: typeof transform !== 'undefined' ? {x: transform.x, y: transform.y, scale: transform.scale} : null,
+        // 离开时的基线也带走：返回后已有内容不算初始内容，再退出仍会提示
+        baseline: typeof window.__boardGetBaselineSnapshot === 'function' ? window.__boardGetBaselineSnapshot() : null,
       };
       // 撤销 / 重做历史也带上：不带的话返回后只能把「刚还原的图形」当历史起点，就再也撤不动了
       try {
@@ -1024,6 +1037,8 @@
     const levelTool = typeof window.levelTools === 'string' ? window.levelTools : '';
     // grid：这一关限定网格直尺 → 求解器默认就选「网格」模式（面板再按网格大小与步数 4 调整）
     const solverTool = levelTool === 'straightedge' ? '1' : levelTool === 'compass' ? '0' : levelTool === 'grid' ? '3' : '';
+    // 前进式跳转（关卡游玩 / 自由画板 → 求解器）：作图已临时存好、不算离开，放行 beforeunload
+    window.__boardSuppressUnload = true;
     location.href = './board.html?mode=solver&restore=1'
       + (solverTool ? '&solverTool=' + solverTool : '')
       + (from ? '&from=' + encodeURIComponent(from) : '');
@@ -1183,25 +1198,31 @@
    * @param {string} message 补充说明
    * @param {Function} onConfirm 点「确定」后执行
    */
-  const confirmDialog = (title, message, onConfirm) => {
+  const confirmDialog = (title, message, onConfirm, onCancel) => {
     const mask = document.createElement('div');
     mask.className = 'board-dialog-mask';
     mask.innerHTML = '<div class="board-dialog board-dialog-confirm"><strong></strong><p class="board-dialog-hint"></p><div class="board-dialog-actions"></div></div>';
     mask.querySelector('strong').textContent = title;
     mask.querySelector('.board-dialog-hint').textContent = message || '';
     const actions = mask.querySelector('.board-dialog-actions');
+    // 统一收尾：确认执行 onConfirm，取消（取消按钮 / 点遮罩关窗）执行 onCancel
+    const close = confirmed => {
+      dismissMask(mask);
+      if (confirmed && typeof onConfirm === 'function') onConfirm();
+      else if (!confirmed && typeof onCancel === 'function') onCancel();
+    };
     const cancelButton = document.createElement('button');
     cancelButton.type = 'button';
     cancelButton.textContent = t('common.cancel');
-    cancelButton.addEventListener('click', () => dismissMask(mask));
+    cancelButton.addEventListener('click', () => close(false));
     const confirmButton = document.createElement('button');
     confirmButton.type = 'button';
     confirmButton.className = 'main-button';
     confirmButton.textContent = t('common.confirm');
-    confirmButton.addEventListener('click', () => { dismissMask(mask); onConfirm(); });
+    confirmButton.addEventListener('click', () => close(true));
     actions.appendChild(cancelButton);
     actions.appendChild(confirmButton);
-    mask.addEventListener('click', event => { if (event.target === mask) dismissMask(mask); });
+    mask.addEventListener('click', event => { if (event.target === mask) close(false); });
     document.body.appendChild(mask);
     return mask;
   };
@@ -1451,6 +1472,8 @@
             // 关卡游玩 / 试玩页先存一份备份（playBackup），返回时带 restorePlay=1 让关卡页
             // 把玩家刚才的作图、步数与撤销历史原样恢复 —— 不然从答案窗口回来画的东西就没了
             const backUrl = typeof savePlayBackup === 'function' ? savePlayBackup() : location.href;
+            // 前进式跳转（关卡游玩 → 逐步绘制）：作图已临时存好、不算离开，放行 beforeunload
+            window.__boardSuppressUnload = true;
             location.href = './board.html?mode=stepview&gmt=' + encodeURIComponent(image.gmt)
               + '&from=' + encodeURIComponent(backUrl);
           });
@@ -1628,6 +1651,10 @@
     actions.appendChild(closeButton);
     mask.addEventListener('click', event => { if (event.target === mask) dismissMask(mask); });
     document.body.appendChild(mask);
+    // 打开就把焦点放进文本框：否则焦点还停在画布上，Ctrl/Cmd+A 会触发画布全选而非选中代码文本
+    // （keydown 处理器对 INPUT/TEXTAREA 让路，见下方 isTyping 分支）。只读查看框顺手全选代码便于复制。
+    area.focus();
+    // if (area.readOnly) area.select();
     return mask;
   };
 
@@ -6254,11 +6281,12 @@
   ];
   // 历史记录：试玩模式（maker-play）不进菜单 —— 试玩只是预览自己做的关卡，
   // 记录该由关卡游玩那份负责（两者共用同一份记录清单，见 recordStore.js）
-  if (mode !== 'maker-play') {
+  // 入群题不提供历史记录功能（菜单里不进「记录」，也不自动保存）；否则在 mode==='level' 下会照常出现
+  if (mode !== 'maker-play' && !window.quizMode) {
     menuItems.splice(2, 0, { label: t('board.record'), templateId: 'menuRecord', actionKey: 'switch-record', action: () => menuChoice('switch-record') });
   }
-  if (mode === 'level' && typeof designMode === 'function') menuItems.push({ label: t('board.designMode'), templateId: 'menuDesign', actionKey: 'design-mode', action: () => menuChoice('design-mode') });
-  if (mode === 'level') {
+  if (mode === 'level' && !window.quizMode && typeof designMode === 'function') menuItems.push({ label: t('board.designMode'), templateId: 'menuDesign', actionKey: 'design-mode', action: () => menuChoice('design-mode') });
+  if (mode === 'level' && !window.quizMode) {
     // 提前把答案索引读进来，没有收录答案图的关卡直接把菜单项置灰
     loadSolutionsData();
     menuItems.push({
@@ -6270,7 +6298,7 @@
       disabledHint: t('board.answerEmpty'),
     });
   }
-  if (mode !== 'maker' && mode !== 'solver') menuItems.push({
+  if (mode !== 'maker' && mode !== 'solver' && !window.quizMode) menuItems.push({
     label: t('board.openSolver'),
     templateId: 'openSolver',
     actionKey: 'open-solver',
@@ -6402,6 +6430,8 @@
       return true;
     };
     add(t('board.testPlay'), () => {
+      // 试玩往返：把当前基线一并存下，试玩返回制题器后还原，已有内容（含用户作图）不算初始内容
+      try { sessionStorage.setItem('boardBaseline', (typeof window.__boardGetBaselineSnapshot === 'function' ? window.__boardGetBaselineSnapshot() : '') || ''); } catch (e) {}
       if (typeof dataTransfer === 'function' && !transferToTestPlay()) {
         boardToast(t('board.testPlayFailed'));
         return;
@@ -6410,6 +6440,7 @@
       // from 要一起带上：试玩返回制题器后，返回按钮还得知道最初是从哪个界面进来的（否则会退回首页）
       const keepFrom = params.get('from') ? '&from=' + encodeURIComponent(params.get('from')) : '';
       history.replaceState(null, '', './board.html?mode=maker&restore=1' + keepFrom);
+      window.__boardSuppressUnload = true; // 试玩切画板：不算离开，放行 beforeunload
       location.href = './level.html?mode=maker-play' + keepFrom;
     }, { templateId: 'testPlay', actionKey: 'switch-to-play' });
   } else if (mode === 'solver') {
@@ -6417,17 +6448,89 @@
   }
   // from：从关卡游玩 / 试玩跳过来时带着来处地址，返回按钮就回到那个界面并还原图形
   const backFrom = params.get('from');
-  const backLabel = backFrom ? t('board.backPrevious') : mode === 'level' ? t('board.backPack') : mode === 'maker-play' ? t('board.backMaker') : t('board.backHome');
+  const backLabel = backFrom ? t('board.backPrevious') : mode === 'level' ? (window.quizMode ? t('board.backQuiz') : t('board.backPack')) : mode === 'maker-play' ? t('board.backMaker') : t('board.backHome');
   const backActionKey = backFrom ? 'return-to-previous' : mode === 'level' ? 'return-to-pack' : mode === 'maker-play' ? 'return-to-maker' : 'return-to-home';
   // 返回按钮排在更多栏所有按钮的最后，显示在最右侧
   // 试玩返回制题器要带 restore=1：不带的话进入制题器会清空 elements 等本地数据，制题器里的图形就没了
-  add(backLabel, () => {
-    if (backFrom && mode !== 'maker-play') { location.href = backFrom; return; }
-    // 试玩返回制题器：restore=1 还原编辑状态，from 继续往下传（制题器的返回按钮据此回到最初的界面）
+  // —— 离开确认框（本段）只做两件事：① 点「返回」键时若确实改过就弹一次自定义确认；
+  // ② 浏览器后退 / 关闭 / 刷新用 beforeunload 拦一下。不改动任何跳转地址、传参或历史恢复逻辑。
+  // 「有没有改过」= 当前画布内容快照 与 刚进本页时的基线 是否不同；光点了画布（平移 / 没作出东西）
+  // 不算改过。基线在内容异步载入期间用 storage 事件不断追平（__pageReady 就绪时再追一次），
+  // 一旦用户在画布上动了手就冻结基线，之后的改动才会被识别。
+  let __boardBaseline = null;
+  let __boardBaselineLocked = false;   // 由「返回上一画板」的还原流程锁住：别再用还原后的内容覆盖基线
+  let __boardUserActed = false;
+  const __boardSnapshot = () => {
+    try {
+      // 关卡游玩有普通 / 探索两套管理器，且当前活动的可能是探索那套：
+      // 快照要把两套都算进去，否则在探索时判「改过没」只看到探索内容，基线比不一致
+      if (typeof geometryManagerResult !== 'undefined' && typeof geometryManagerExplore !== 'undefined') {
+        return JSON.stringify({ r: geometryManagerResult.toStorage(), e: geometryManagerExplore.toStorage() });
+      }
+      return JSON.stringify(geometryManager.toStorage());
+    } catch (e) { return null; }
+  };
+  const __boardCapture = () => {
+    if (__boardUserActed || __boardBaselineLocked) return;
+    const s = __boardSnapshot();
+    if (s !== null) __boardBaseline = s;
+  };
+  const __boardChanged = () => {
+    if (__boardBaseline === null) return true;
+    return __boardSnapshot() !== __boardBaseline;
+  };
+  // 供「返回上一画板」的还原流程复用：离开时把基线快照随备份带走，回来时再交回来，
+  // 这样还原出来的已有内容（含用户作图）不会被当成初始内容，下次退出仍会提示。
+  // 不参与「保存图形 / 步数 / 撤销历史」的还原 —— 只是把「刚进页面时的基线」原样延续。
+  window.__boardGetBaselineSnapshot = () => __boardBaseline;
+  window.__boardUseRestoredBaseline = (snapshot) => {
+    if (typeof snapshot === 'string' && snapshot.length) {
+      __boardBaseline = snapshot;
+      __boardBaselineLocked = true;
+    }
+  };
+  __boardCapture();
+  window.addEventListener('load', __boardCapture);
+  setTimeout(__boardCapture, 600);
+  setTimeout(__boardCapture, 2500);
+  window.addEventListener('storage', () => { if (!__boardUserActed) __boardCapture(); });
+  if (window.__pageReady && typeof window.__pageReady.then === 'function') window.__pageReady.then(__boardCapture);
+  ['pointerdown', 'keydown', 'touchstart'].forEach((ev) => {
+    window.addEventListener(ev, (e) => {
+      if (e.target && e.target.closest && e.target.closest('button,a,input,select,textarea,.panel,.popup,[data-no-draw]')) return;
+      __boardUserActed = true;
+    }, { capture: true });
+  });
+  // 返回按钮排在更多栏所有按钮的最后，显示在最右侧
+  // 试玩返回制题器要带 restore=1：不带的话进入制题器会清空 elements 等本地数据，制题器里的图形就没了
+  // 返回目标：原样沿用既有跳转（from / restore / restorePlay / page / 入群题 等一概照旧），
+  // 不前进式 push、也不 history.back()，保持进入画板前的地址与传参不变。
+  const __boardBackTarget = () => {
+    const isQuizPlay = window.quizMode && new URLSearchParams(location.search).get('q');
     const fromParam = backFrom ? '&from=' + encodeURIComponent(backFrom) : '';
     const pageParam = params.get('page') ? '&page=' + encodeURIComponent(params.get('page')) : '';
-    location.href = mode === 'level' ? './pack.html?pack=' + encodeURIComponent(params.get('pack')) + pageParam : mode === 'maker-play' ? './board.html?mode=maker&restore=1' + fromParam : '../index.html';
+    return isQuizPlay ? './ruqunti.html'
+      : (backFrom && mode !== 'maker-play') ? backFrom
+      : mode === 'level' ? './pack.html?pack=' + encodeURIComponent(params.get('pack')) + pageParam
+      : mode === 'maker-play' ? './board.html?mode=maker&restore=1' + fromParam
+      : '../index.html';
+  };
+  // 应用内按钮触发的跳转（返回 / 切画板）都置「主动离开」标记让 beforeunload 放行：只动这个标记，
+  // 不动跳转地址与参数
+  const __boardLeaveTo = (url) => { window.__boardSuppressUnload = true; location.href = url; };
+  add(backLabel, () => {
+    // 只有「确实改过」才弹一次确认；没改过直接走。确认与直接走都走同一套原样跳转
+    if (!__boardChanged()) { __boardLeaveTo(__boardBackTarget()); return; }
+    boardConfirm(t('board.backConfirm'), '', () => __boardLeaveTo(__boardBackTarget()), () => { window.__boardSuppressUnload = false; });
   }, { templateId: 'back', actionKey: backActionKey });
+  // 浏览器「后退 / 关闭 / 刷新 / 输入地址跳转」等离开：用 beforeunload 拦截；
+  // 应用内按钮跳转已置 __boardSuppressUnload 放行，所以只有浏览器自身的后退在这里弹原生确认
+  window.addEventListener('beforeunload', (e) => {
+    if (window.__boardSuppressUnload) return;
+    if (!__boardChanged()) return;
+    e.preventDefault();
+    e.returnValue = '';
+  });
   if (mode === 'maker' || mode === 'solver') {
     // 收进底部上拉栏，画布上只留一个圆形按钮（见 addSideButton）
     // （面板里的各分组默认展开与否见 renderMarkPanel 的 foldOpened；上拉栏本身仍是收起的）

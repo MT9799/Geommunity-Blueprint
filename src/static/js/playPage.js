@@ -1037,6 +1037,22 @@ const limitedToolSets = {
     // 能作的就是「连两点」「求交」，圆规用不上（与内核里 mode 3 只允许直尺一致）
     grid: ['move', 'point', 'line', 'intersection'],
 };
+// levels.json 的 tools 字段支持「多字母工具组」：用一串大写字母表示允许使用的工具，例如 "OC"
+//   I 直线  O 圆  C 圆规  L 垂线  Z 平行线  T 中垂线  A 角平分线  3 三点圆
+// 移动 / 点 / 交点在受限关卡里始终可用（见 toolGroupToTools）
+const TOOL_GROUP = {
+    I: 'line', O: 'circle', C: 'compass',
+    L: 'perpendicularLine', Z: 'parallelLine',
+    T: 'perpendicularBisector', A: 'angleBisector', '3': 'threePointCircle'
+};
+function toolGroupToTools(code) {
+    const set = ['move', 'point', 'intersection'];
+    for (const ch of code) {
+        const tool = TOOL_GROUP[ch];
+        if (tool && !set.includes(tool)) set.push(tool);
+    }
+    return set;
+}
 /**
  * 本关允许的工具 过程函数
  * 探索模式要给全工具（探索视图本身不受限），关卡文件没写限制时也不限
@@ -1045,7 +1061,11 @@ const limitedToolSets = {
 function allowedPlayTools() {
     if (exploreFlag) return null;
     const limit = typeof levelTools === 'string' ? levelTools : null;
-    return limit ? (limitedToolSets[limit] || null) : null;
+    if (!limit) return null;
+    if (limitedToolSets[limit]) return limitedToolSets[limit];
+    // 新的「多字母工具组」格式（如 "OC"）：每个字母对应一种允许的工具，外加始终可用的 移动 / 点 / 交点
+    if (/^[IOCLZTA3]+$/.test(limit)) return toolGroupToTools(limit);
+    return null;
 }
 /**
  * 按当前工具限制重建工具栏 过程函数
@@ -1165,20 +1185,30 @@ function exploreMode() {
 function savePlayBackup() {
     const lists = {};
     Object.entries(geometryElementLists).forEach(([key, value]) => { lists[key] = [...value]; });
+    // 步数也取「普通（result）管理器」的终值，而不是当前显示的 movesCounter：
+    // 探索模式下它显示的是探索的步数，拿它当返回值会让普通模式回来时步数错成探索的
+    const resultMoves = (typeof movesStorageManagerResult.get === 'function' ? movesStorageManagerResult.get() : null) || {};
     const backup = {
-        elements: geometryManager.toStorage(),
+        // 永远取「普通（result）管理器」的内容，而不是当前活动的 geometryManager：
+        // 探索模式下活动的是 explore，直接用会把探索图形当成普通模式的图形带回去
+        elements: geometryManagerResult.toStorage(),
         lists: lists,
-        moves: {l: movesCounter.l, e: movesCounter.e},
+        moves: {l: resultMoves.l || 0, e: resultMoves.e || 0},
         // 已达成的 L / E 勾也一起带走：返回是一次整页重载，这些标记只活在内存里，
         // 不带的话回来就全灰了（步数对得上也显示不出来）
         progress: {reachedTarget: reachedTarget, thumbnailTicks: thumbnailTicks},
+        // 「刚进本页时的基线」一起带走：返回后还原出来的已有内容（含用户作图）才不会被
+        // 当成初始内容，退出时仍能判出「改过」（见 board-tools.js 的 __boardUseRestoredBaseline）
+        baseline: (typeof window.__boardGetBaselineSnapshot === 'function') ? window.__boardGetBaselineSnapshot() : null,
         // 撤销 / 重做历史也一起带走：历史每一格都只活在内存里，不带的话回来只剩
         // 「当前状态」一格，玩家去求解器 / 制题器之前作的图形就再也撤不回来了。
         // 结果 / 探索两套各存各的：都塞同一份的话，在探索视图里撤销会回到普通模式的快照
-        history: storageManager.serialization(),
+        // 「history / movesHistory」的还原目标是普通（result）管理器（加载时 storageManager 即指向它），
+        // 所以这里也取 result 的；取 active 的话探索模式下是 explore，覆盖过去就把普通模式的历史弄错位
+        history: storageManagerResult.serialization(),
         historyResult: storageManagerResult.serialization(),
         historyExplore: storageManagerExplore.serialization(),
-        movesHistory: movesStorageManager.serialization(),
+        movesHistory: movesStorageManagerResult.serialization(),
         movesHistoryResult: movesStorageManagerResult.serialization(),
         movesHistoryExplore: movesStorageManagerExplore.serialization(),
         // 探索视图里玩家自己画的图形（只在探索管理器、且不是结果管理器里的同一个对象）
@@ -1204,7 +1234,12 @@ function savePlayBackup() {
     // 归一化地址并打上 restorePlay 标记（本来就有的话不重复加，免得 URL 越来越长）
     const params = new URLSearchParams(location.search);
     params.set('restorePlay', '1');
-    return location.pathname + '?' + params.toString();
+    const url = location.pathname + '?' + params.toString();
+    // 同时把当前（关卡游玩）页自身的地址也打上 restorePlay=1：这样从制题器 / 求解器 / 逐步绘制「返回」时，
+    // 即便 bfcache 被浏览器逐出、需要整页重载，地址里带 restorePlay=1 也能让 takePlayBackup 把刚才的作图、
+    // 步数与撤销历史原样恢复，不会丢东西（应用内「返回」与浏览器后退都落到这个带标记的地址）
+    try { history.replaceState(null, '', url); } catch (e) {}
+    return url;
 }
 
 /**
@@ -1245,7 +1280,21 @@ function designMode() {
         rawElements = null;
         rawLists = null;
     }
-    const elements = (rawElements && rawElements.length) ? rawElements : geometryManager.toStorage();
+    // 「逐步绘制」等从关卡页跳转进画板时，board-tools.js 会清掉 sessionStorage 的 elements /
+    // geometryElementLists（避免把上一页作图带进制题器）；从那儿返回后这俩就可能为空，
+    // 导致进入设计模式丢给定 / 所求标记。这里用 savePlayBackup 刚写好的 playBackup 顶上
+    // （它本来就是关卡本页的图形与标记），再不行才退回当前画布
+    if (sessionStorage.getItem('playBackup')) {
+        try {
+            const pb = JSON.parse(sessionStorage.getItem('playBackup'));
+            if (pb && pb.elements) {
+                if (!(rawElements && rawElements.length)) rawElements = pb.elements;
+                if (!(rawLists && Object.keys(rawLists).length)) rawLists = pb.lists;
+            }
+        }catch (error2) { /* 解析失败就走下面的 geometryManager 兜底 */ }
+    }
+    // 兜底也取普通（result）管理器：探索模式下活动的 explore 内容不该带进制题器
+    const elements = (rawElements && rawElements.length) ? rawElements : geometryManagerResult.toStorage();
     const lists = (rawLists && Object.keys(rawLists).length) ? rawLists : {};
     // 制题器里所有对象都要显示（含关卡预绘制的解法），这一步只写进带过去的这份数据里：
     // 不改动当前画布，否则跳转前会先在游玩界面闪一下解法
@@ -1273,6 +1322,11 @@ function designMode() {
         constructRecord: '',
     }));
     // from：制题器的「返回」据此回到本页并还原图形（见 takePlayBackup）
+    // 前进式跳转（关卡游玩 → 制题器）：作图已由 savePlayBackup 临时存好，不会丢，
+    // 故不需要离开确认框。标记「主动离开」，让 beforeunload 别再弹原生确认
+    // 制题器是「新开」的板，别把上一次试玩往返留下的基线带进来
+    sessionStorage.removeItem('boardBaseline');
+    window.__boardSuppressUnload = true;
     window.location.href = "./board.html?mode=maker&restore=1&from=" + encodeURIComponent(backUrl);
 }
 
@@ -1793,8 +1847,6 @@ function takePlayBackup() {
         movesCounter.l = backup.moves.l || 0;
         movesCounter.e = backup.moves.e || 0;
         movesCounterDE.innerText = `${movesCounter.l}L ${movesCounter.e}E`;
-        // 步数历史随备份一起还原时不要再补一格：补了会和图形历史的格数错开，撤销时步数就错位
-        if (!backup.movesHistory) movesStorageManager.append({l: movesCounter.l, e: movesCounter.e});
     }
     // 已达成的 L / E 勾（本关内点亮过就不熄灭）也还原回来
     if (backup.progress) {
@@ -1804,13 +1856,20 @@ function takePlayBackup() {
     // 撤销 / 重做历史：结果 / 探索各还原各的（反序列化顺带把 status 打开，
     // 之后玩家新画的图形照常进历史）
     const restoreHistory = (manager, data) => { if (manager && data) manager.deserialization(data); };
-    restoreHistory(storageManagerResult, backup.historyResult);
-    restoreHistory(storageManagerExplore, backup.historyExplore);
-    restoreHistory(storageManager, backup.history);
-    restoreHistory(movesStorageManagerResult, backup.movesHistoryResult);
-    restoreHistory(movesStorageManagerExplore, backup.movesHistoryExplore);
-    restoreHistory(movesStorageManager, backup.movesHistory);
-    if (backup.history && backup.historyResult && backup.historyExplore) playBackupHistoryRestored = true;
+    // 几何历史与步数历史必须成对还原：两个撤销栈长度要对齐，否则撤回时会「图形不动、
+    // 步数却减」（或反过来）。任一侧历史丢失（如大作图触发 sessionStorage 配额上限被
+    // 丢弃）就都不还原，交给 level-loader 的 resetStorageHistory 把两个栈对齐到初始态，
+    // 避免错位后撤回只动其中一个栈
+    const histOK = !!(backup.history && backup.historyResult && backup.historyExplore && backup.movesHistory);
+    if (histOK) {
+        restoreHistory(storageManagerResult, backup.historyResult);
+        restoreHistory(storageManagerExplore, backup.historyExplore);
+        restoreHistory(storageManager, backup.history);
+        restoreHistory(movesStorageManagerResult, backup.movesHistoryResult);
+        restoreHistory(movesStorageManagerExplore, backup.movesHistoryExplore);
+        restoreHistory(movesStorageManager, backup.movesHistory);
+        playBackupHistoryRestored = true;
+    }
     playBackupRestored = true;
     return backup;
 }
@@ -1821,6 +1880,8 @@ function takePlayBackup() {
 function loadGeometryElementsStorage() {
     // 从制题器 / 求解器返回：这份备份就是要还原的图形
     const backup = takePlayBackup();
+    // 延续离开时的基线：还原出来的图形（含用户作图）不算「初始内容」，再退出仍会提示
+    if (backup && typeof window.__boardUseRestoredBaseline === 'function') window.__boardUseRestoredBaseline(backup.baseline);
     const elementsJSON = backup ? JSON.stringify(backup.elements) : sessionStorage.getItem('elements');
     if (elementsJSON) {
         const elements = JSON.parse(elementsJSON);
@@ -1831,10 +1892,15 @@ function loadGeometryElementsStorage() {
         // 不能混进 elements 里按 id 判断 —— 两套管理器的对象各自独立命名，常会同名（如都有 L）
         const exploreOnly = (backup && backup.exploreElements) || [];
         const exploreOwnIds = new Set(exploreOnly.map(item => item.id));
+        // 从备份还原时，探索管理器只放「关卡自带」的对象（两套管理器共用同一实例，可见性联动靠它）；
+        // 玩家在普通模式画的图形只进 result，不进 explore —— 普通模式与探索画布各自命名常撞车，
+        // 混进 explore 会被当成重复对象改名，于是探索视图里冒出普通模式的点。
+        // 新开（无备份）时全部都是关卡自带，两套都放；老备份没有 level 名单时也退回两套都放
+        const restoreLevelIds = (backup && backup.lists && Array.isArray(backup.lists.level)) ? new Set(backup.lists.level) : null;
         elements.forEach((item) => {
             const element = deserialization(item);
             geometryManagerResult.addObject(element);
-            geometryManagerExplore.addObject(element);
+            if (!backup || !restoreLevelIds || restoreLevelIds.has(item.id)) geometryManagerExplore.addObject(element);
             if (geometryElementLists.initial.has(item.id) || (geometryElementLists.named || new Set()).has(item.id)) {
                 element.modifyColor("#191919");
             }else if (geometryElementLists.movepoints.has(item.id)) {
@@ -1907,7 +1973,9 @@ function loadGeometryElementsStorage() {
 
         // 从制题器 / 求解器返回：按还原后的画布重新算一次步数与判定（勾、通关界面随之复位）
         if (backup) {
-            refreshMovesCounter();
+            // 用备份里的步数（权威值）重算，不要改回读 movesStorageManager：
+            // 万一步数历史没被还原回来，读到的会是 {0,0}，反而把步数清零
+            refreshMovesCounterByRestore(backup.moves);
             refreshLevelStatus();
             resultVerify();
             // 撤销 / 重做的可用性按还原后的历史重判：DOMContentLoaded 里判过一次，
@@ -2388,7 +2456,7 @@ function unsuccess() {
     // 步数字体变化
     const moves = document.getElementById('moves');
     moves.style.color = '#000000';
-    moves.style.setProperty('font-weight', 'normal');
+    moves.style.setProperty('font-weight', 'bold');
 
     // 未完成时 L / E 的达成记录也清零：通关界面的勾要跟着「所求还在不在画布上」走，
     // 撤销掉所求后不该还亮着（再作出所求时会重新评定）

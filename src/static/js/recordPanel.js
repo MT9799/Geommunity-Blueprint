@@ -951,6 +951,7 @@
      * 当前上下文里已经有一致的构造时也算这一次存过了（不再反复尝试）
      */
     global.recordPanelAutoSave = () => {
+        if (window.quizMode) return;
         if (mode !== 'level') return;
         if (autoSaved) return;
         if (!reachedGoal()) return;

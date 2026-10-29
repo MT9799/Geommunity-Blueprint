@@ -132,7 +132,7 @@ Edit those two files directly — whatever you write there is what the page show
 | `targetSteps` | steps (right of the list, bottom of the level page), e.g. `5L / 6E` | the list shows "steps not recorded" |
 | `diagram` | diagram path (relative to `data/`) | the list shows a ◇ placeholder and the card has no image |
 | `note` | hover hint on the level list row | none |
-| `tools` | tool restriction: `"straightedge"`, `"compass"` or `"grid"` (grid straightedge) | unrestricted, all tools |
+| `tools` | tool restriction: `"straightedge"`, `"compass"`, `"grid"` (grid straightedge) or specified (IOCLZTA3, e.g., `"OC3"`) | unrestricted, all tools |
 | `keywords` | keywords used by search | search only looks at title and `subtitle` |
 | `solutions` | recorded solution diagrams: `[{"file": "answers/<pack id>/…", "star": "5L", "gmt": "answers/<pack id>/…/5L.txt"}, …]` (`file` / `gmt` relative to `data/`) | no recorded answers ("View answers" greyed out) |
 

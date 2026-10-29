@@ -163,6 +163,10 @@ function markTargetSteps(steps, level, terms) {
  */
 function toolTagHTML(level) {
     const tools = String(level?.tools || '');
+    // 新的「多字母工具组」格式（如 "OC"）：统一显示紫色「特殊」标签（见 app.css 的 .level-tool-special）
+    if (/^[IOCLZTA3]+$/.test(tools)) {
+        return typeof t === 'function' ? `<i class="level-tool level-tool-special">${t('pack.toolSpecial')}</i>` : '<i class="level-tool level-tool-special">特殊</i>';
+    }
     const kind = {straightedge: 'line', compass: 'circle', grid: 'grid'}[tools];
     const key = {straightedge: 'pack.toolStraightedge', compass: 'pack.toolCompass', grid: 'pack.toolGrid'}[tools];
     if (!kind || !key || typeof t !== 'function') return '';

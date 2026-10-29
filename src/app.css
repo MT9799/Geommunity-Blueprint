@@ -833,10 +833,16 @@
  }
 
  .level-tool-grid {
-     border-color: #5bbf7a;
-     background: #eefaf1;
-     color: #237a43
- }
+    border-color: #5bbf7a;
+    background: #eefaf1;
+    color: #237a43
+}
+
+ .level-tool-special {
+    border-color: #b388e8;
+    background: #f3eaff;
+    color: #6a2fc0
+}
 
  /* 分页 */
  .level-pager {

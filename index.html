@@ -381,5 +381,23 @@
         syncLangSwitch(false);
         window.addEventListener('resize', () => syncLangSwitch(false));
     </script>
+    <!-- 隐蔽入口：点击首页 hero 头图 (443,80) 像素位置（图片原始坐标）进入入群题答题页 -->
+    <script>
+    (function () {
+      const heroImg = document.querySelector('.hero img');
+      if (!heroImg) return;
+      heroImg.addEventListener('click', event => {
+        const rect = heroImg.getBoundingClientRect();
+        if (!rect.width || !rect.height || !heroImg.naturalWidth) return;
+        const scaleX = heroImg.naturalWidth / rect.width;
+        const scaleY = heroImg.naturalHeight / rect.height;
+        const nx = (event.clientX - rect.left) * scaleX;
+        const ny = (event.clientY - rect.top) * scaleY;
+        if (Math.abs(nx - 443) < 18 && Math.abs(ny - 80) < 18) {
+          window.location.href = './src/ruqunti.html';
+        }
+      });
+    })();
+    </script>
 </body>
 </html>
