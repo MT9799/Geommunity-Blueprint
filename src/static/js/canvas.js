@@ -105,6 +105,13 @@ function previewPointerMoved(x, y) {
 function previewWaiting() {
     return !!previewWaitPointer;
 }
+/**
+ * 双指缩放进行中：先不画工具预览 过程变量 / 过程函数
+ * 手机双指缩放时画布每帧都在按新比例重绘，半成品预览会跟着缩放反复跳；
+ * 由触摸处理在双指手势开始时置位、结束时复位（见 playPage.js / index.js 的 touch 处理）
+ */
+let previewSuppressed = false;
+function setPreviewSuppressed(suppressed) { previewSuppressed = !!suppressed; }
 const hex = '0123456789abcdef';
 
 // 当窗口大小改变时调整画布
@@ -755,6 +762,8 @@ function previewCursor() {
  */
 function toolPreviewState() {
     if (typeof isDragging === 'undefined' || isDragging) return null;
+    // 双指缩放进行中：先不画预览（否则会跟着缩放反复跳）
+    if (previewSuppressed) return null;
     // 刚点完一下、指针还没真的移动：先不画预览
     if (previewWaiting()) return null;
     // 没吸附过的原始光标位置：用来判断「光标靠近了哪个圆 / 哪条线」

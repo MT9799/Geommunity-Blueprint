@@ -319,6 +319,14 @@ function touchstartEventFunction(e) {
     if (typeof markTouchInput === 'function') markTouchInput();
     const touches = e.touches;
 
+    // 多指（双指缩放）：不当作一次作图开始，也不更新工具预览，否则预览会跟着缩放反复跳
+    if (touches.length >= 2) {
+        if (typeof setPreviewSuppressed === 'function') setPreviewSuppressed(true);
+        touchType = 2;
+        return;
+    }
+    if (typeof setPreviewSuppressed === 'function') setPreviewSuppressed(false);
+
     // 起始点记录
     startX = touches[0].clientX - canvasLeft;
     startY = touches[0].clientY - canvasTop;
@@ -370,6 +378,8 @@ function touchendEventFunction(e) {
     if (e.touches.length === 0) {
         touchType = 1;
         touchDoubleFlag = false;
+        // 手势结束：恢复工具预览
+        if (typeof setPreviewSuppressed === 'function') setPreviewSuppressed(false);
     }
 }
 
@@ -382,6 +392,7 @@ function touchcancelEventFunction(e) {
     isDragging = false;
     touchType = 1;
     touchDoubleFlag = false;
+    if (typeof setPreviewSuppressed === 'function') setPreviewSuppressed(false);
     // 触摸被系统取消了（来电 / 手势）：工具光标也收掉
     if (typeof hidePointerCursor === 'function') hidePointerCursor();
     drawContent();
@@ -444,6 +455,8 @@ function touchmoveEventFunction(e) {
             offsetY = currentScaleCenterY - oldLogicY * transform.scale;
         }
 
+        // 双指缩放：先压住工具预览，limitLoad 重绘时就不会带着半成品预览反复跳
+        if (typeof setPreviewSuppressed === 'function') setPreviewSuppressed(true);
         // 变量存储
         limitLoad(offsetX, offsetY, currentScale);
         preX = offsetX;
@@ -463,6 +476,8 @@ function touchmoveEventFunction(e) {
 
         pointerPosition.x = x;
         pointerPosition.y = y;
+        // 单指作图：恢复工具预览
+        if (typeof setPreviewSuppressed === 'function') setPreviewSuppressed(false);
         // 手指真的动了：解除「点完一下先不画预览」（用未吸附的原始坐标判断，见 canvas.js）
         if (typeof previewPointerMoved === 'function') previewPointerMoved(x, y);
         // 手指还在移动：工具光标该显示（force = 触摸自己的动作，不受「刚抬手」的忽略窗口影响）
@@ -985,11 +1000,16 @@ function morebarChoice(e) {
 function menuChoice(action) {
     if (action === "clear-canvas") {
         boardConfirm(t('level.restartAsk'), '', () => {
+            // 关卡里的网格是题面：清空前记下 #grid= 元信息，重载关卡图形后再登记回去
+            // （清空会删掉所有对象，网格辅助对象 / 格线也会没掉，靠这次重新登记恢复）
+            const levelGrid = (typeof window.boardGmt?.grid === 'function') ? window.boardGmt.grid() : null;
             // 结果 / 探索两个管理器里的图形都要清掉，否则重新载入关卡图形时 ID 冲突会被改名
             if (typeof clearAllCanvases === 'function') clearAllCanvases(); else clearCanvas();
             // 画到一半的工具状态也丢掉，否则之后作图会点击错位
             if (typeof resetToolState === 'function') resetToolState();
             loadGeometryElementsStorage();
+            // 按原 #grid= 重新登记网格（藏辅助对象、上 #gridstyle= 样式、同步求解面板、补回网格名单）
+            if (levelGrid && typeof window.boardGmt?.setGridFromGmt === 'function') window.boardGmt.setGridFromGmt(levelGrid);
             // 重载进来的图形带的是快照里的样式色，移动工具下那几个蓝点要重新染一次
             // （不然后自由点会「变黑」，见 refreshMovePointColors）
             refreshMovePointColors();

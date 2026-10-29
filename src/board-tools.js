@@ -361,7 +361,10 @@
     // 画布清空了，网格元信息也得跟着清：不然导出 / 记录仍会写 #grid= 那两行，
     // 而且清空之后紧接着记的历史快照里也带着网格 —— 求解器每撤回一次就以为回到了网格模式
     // （见 gmtText / loadStorageSnapshot 里同一件事的两道保险）
-    setGridMeta(null);
+    // 但关卡游玩 / 试玩 / 逐步绘制里的网格是题面的一部分：清空后紧接着会重新载入关卡图形、
+    // 由关卡页再按 #grid= 登记回来，这里别清 —— 否则 setGridMeta(null) 会把网格 id 从
+    // initial 等标记表里一并删掉，重载后网格就认不出来了
+    if (mode !== 'level' && mode !== 'maker-play' && mode !== 'stepview') setGridMeta(null);
   };
   /**
    * 丢弃画到一半的工具状态 过程函数
