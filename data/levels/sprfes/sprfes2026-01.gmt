@@ -1,0 +1,23 @@
+# Geommunity Blueprint custom level
+A=[183.1315017111,-513.170691608]
+B=[-450.7852349812,36.2238135253]
+S1=Segment[A,B]
+C=[342.1137944054,26.1616431016]
+S2=Segment[B,C]
+S3=Segment[C,A]
+s1=ABisect[B,A,C]
+D=Intersect[S2,s1,0]
+c1=Compass[C,D,B]
+E=Intersect[S2,c1,1]
+s2=Parallel[E,S3]
+s3=Parallel[E,S1]
+F=Intersect[S1,s2,0]
+G=Intersect[S3,s3,0]
+S4=Segment[F,G]
+
+initial=S1,A,B,S2,C,S3
+named=
+movepoints=
+hidden=
+result=S4
+explore=S4,F,G
