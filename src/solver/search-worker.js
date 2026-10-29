@@ -102,6 +102,24 @@ function readCircles(raw) {
     return out;
 }
 
+/** 弧：每 8 个数一组（圆心 x,y、半径平方、端点1 x,y、端点2 x,y、逆时针标志 0/1） */
+function readArcs(raw) {
+    const out = [];
+    if (!raw || !raw.length) return out;
+    if (isObjectList(raw)) {
+        raw.forEach(arc => out.push({
+            a: arc.a, b: arc.b, r: arc.r,
+            x1: arc.x1, y1: arc.y1, x2: arc.x2, y2: arc.y2, ccw: !!arc.ccw,
+        }));
+    } else {
+        for (let i = 0; i + 7 < raw.length; i += 8) out.push({
+            a: raw[i], b: raw[i + 1], r: raw[i + 2],
+            x1: raw[i + 3], y1: raw[i + 4], x2: raw[i + 5], y2: raw[i + 6], ccw: !!raw[i + 7],
+        });
+    }
+    return out;
+}
+
 /**
  * 按请求装配一张图 过程函数
  * 顺序与原版一致：给定点 → 网格线 → 直线 → 射线 → 线段 → 圆 → 目标
@@ -139,6 +157,12 @@ function buildGraph(request) {
     readCircles(request.circles).forEach(circle => {
         // 请求里的 r 就是半径平方（页面侧用 dx²+dy² 算的，与搜索里的圆系数同一条算式）
         graph.addInitial(makeElementFromCoefficients(circle.a, circle.b, circle.r, TYPE_CIRCLE));
+    });
+
+    // 弧：与圆同一套系数，额外带角度区间（落在弧外的那一半圆不算题面，交点会被丢弃）
+    readArcs(request.arcs).forEach(arc => {
+        graph.addInitialArc({x: arc.a, y: arc.b}, arc.r,
+            {x: arc.x1, y: arc.y1}, {x: arc.x2, y: arc.y2}, !!arc.ccw);
     });
 
     graph.initialElementCount = graph.elements.length;
@@ -187,10 +211,18 @@ function dumpElements(elements) {
 
 /** 把图里的范围表转成页面侧的写法 过程函数（与请求里的 x1,y1,x2,y2 一致） */
 function dumpBounds(bounds) {
-    return (bounds || []).map(bound => ({
-        x1: bound.p1.x, y1: bound.p1.y,
-        x2: bound.p2.x, y2: bound.p2.y,
-    }));
+    return (bounds || []).map(bound => {
+        const dumped = {
+            x1: bound.p1.x, y1: bound.p1.y,
+            x2: bound.p2.x, y2: bound.p2.y,
+        };
+        // 弧的范围：带 arc 标记与方向，页面据此按角度裁剪交点
+        if (bound.arc) {
+            dumped.arc = true;
+            dumped.ccw = !!bound.ccw;
+        }
+        return dumped;
+    });
 }
 
 /** 请求 → 求解器设置 过程函数（各条路径共用；默认值＝内核默认） */

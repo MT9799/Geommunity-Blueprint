@@ -2850,6 +2850,16 @@
         stretch(values[i + 3]);
       }
     });
+    // 弧：圆心、两端点（半径平方不算长度尺度）
+    const arcValues = request.arcs || [];
+    for (let i = 0; i + 7 < arcValues.length; i += 8) {
+      stretch(arcValues[i]);
+      stretch(arcValues[i + 1]);
+      stretch(arcValues[i + 3]);
+      stretch(arcValues[i + 4]);
+      stretch(arcValues[i + 5]);
+      stretch(arcValues[i + 6]);
+    }
     [[request.lines, 3], [request.goalLines, 3]].forEach(([list, stride]) => {
       const values = list || [];
       for (let i = 0; i + 2 < values.length; i += stride) {
@@ -2875,6 +2885,47 @@
    * 目标 = 标为「所求判定」的直线 / 圆 / 点，三类可以同时存在
    * @returns {Object} 画板扁平数组写法（与旧求解面板一致）：points/lines/circles + goalPoints/goalLines/goalCircles
    */
+  /**
+   * 圆的弧范围 过程函数
+   * 非整圆（semicircle / arc / arc3）返回圆弧两端点 + 方向 {x1,y1,x2,y2,ccw}（ccw=从起点到终点走逆角度），
+   * 整圆返回 null。取法与 ToolsFunction.pointInArcRange 完全一致 —— 求解器与关系雷达共用同一口径。
+   * @param {Object} item 圆对象
+   * @param {number[]} first 圆心坐标
+   * @param {number[]} second 圆上一点坐标（兜底起点）
+   */
+  const arcRangeOfCircle = (item, first, second) => {
+    const base = item.getBase?.();
+    if (!base || !['semicircle', 'arc', 'arc3'].includes(base.type)) return null;
+    const figure = base.figure || [];
+    const center = first;
+    const startPoint = ((base.type === 'arc3' ? figure[0] : figure[1])?.getCoordinate?.()) || second;
+    const startAngle = Math.atan2(startPoint[1] - center[1], startPoint[0] - center[0]);
+    let endPoint = null;
+    let delta = Math.PI;
+    if (base.type === 'semicircle') {
+      const radius = Math.hypot(second[0] - center[0], second[1] - center[1]);
+      endPoint = [center[0] + radius * Math.cos(startAngle + Math.PI),
+                  center[1] + radius * Math.sin(startAngle + Math.PI)];
+    } else {
+      endPoint = figure[2]?.getCoordinate?.() || null;
+      if (!endPoint) return null;
+      const endAngle = Math.atan2(endPoint[1] - center[1], endPoint[0] - center[0]);
+      if (typeof ToolsFunction !== 'undefined' && typeof ToolsFunction.clockwiseDelta === 'function') {
+        delta = ToolsFunction.clockwiseDelta(startAngle, endAngle);
+        if (base.type === 'arc3') {
+          const through = figure[1]?.getCoordinate?.();
+          if (through) {
+            const throughAngle = Math.atan2(through[1] - center[1], through[0] - center[0]);
+            if (ToolsFunction.clockwiseDelta(startAngle, throughAngle) > delta) delta -= Math.PI * 2;
+          }
+        }
+      } else {
+        delta = endAngle - startAngle;
+      }
+    }
+    return {x1: startPoint[0], y1: startPoint[1], x2: endPoint[0], y2: endPoint[1], ccw: delta < 0};
+  };
+
   const buildSolverRequest = () => {
     const goalIds = geometryElementLists.result || new Set();
     // 已知条件取「给定」栏：initial 与 named（带标签给定）都算给定 —— 记录 / 关卡 gmt 里
@@ -2888,9 +2939,9 @@
     // pointIds / lineIds / circleIds 与上面三个坐标数组一一对应：
     // 求解器返回的「构造计划」靠它们把已知点、已知元素映射回画布对象，于是拖动图形时能重算解法
     const request = {
-      points: [], lines: [], rays: [], segments: [], circles: [],
+      points: [], lines: [], rays: [], segments: [], circles: [], arcs: [],
       goalPoints: [], goalLines: [], goalCircles: [],
-      pointIds: [], lineIds: [], rayIds: [], segmentIds: [], circleIds: [],
+      pointIds: [], lineIds: [], rayIds: [], segmentIds: [], circleIds: [], arcIds: [],
     };
     geometryManager.getAllByOrder().forEach(item => {
       if (item.getValid && !item.getValid()) return;
@@ -2944,11 +2995,18 @@
         // 求解器里圆的系数就是这个公式，两边保持同一条算式才不会差出 ulp（见下面 eps 的说明）
         const circle = [first[0], first[1],
           (first[0] - second[0]) * (first[0] - second[0]) + (first[1] - second[1]) * (first[1] - second[1])];
-        if (isGoal) request.goalCircles.push(...circle);
-        else {
-          request.circles.push(...circle);
-          request.circleIds.push(id);
+        if (isGoal) { request.goalCircles.push(...circle); return; }
+        // 非整圆（弧 / 半圆）：和线段一样按「圆 + 范围」送，范围按角度裁剪（见 arcRangeOfCircle）
+        const arcRange = arcRangeOfCircle(item, first, second);
+        if (arcRange) {
+          request.arcs.push(circle[0], circle[1], circle[2],
+            arcRange.x1, arcRange.y1, arcRange.x2, arcRange.y2,
+            arcRange.ccw ? 1 : 0);
+          request.arcIds.push(id);
+          return;
         }
+        request.circles.push(...circle);
+        request.circleIds.push(id);
       }
     });
     // 容差按图幅量级放大：圆的比较落在半径平方上（量级 ~r²），而搜索器默认的绝对 1e-11
@@ -2979,6 +3037,22 @@
           list[i + 3] = y2;
         }
       };
+      // 弧：圆心 / 两端点按点缩放，半径平方除 u²；反射会翻转角度走向，方向标志跟着翻
+      const scaleArcs = list => {
+        for (let i = 0; i + 7 < list.length; i += 8) {
+          const [cx, cy] = toKernel(list[i], list[i + 1]);
+          const [x1, y1] = toKernel(list[i + 3], list[i + 4]);
+          const [x2, y2] = toKernel(list[i + 5], list[i + 6]);
+          list[i] = cx;
+          list[i + 1] = cy;
+          list[i + 2] /= unit * unit;
+          list[i + 3] = x1;
+          list[i + 4] = y1;
+          list[i + 5] = x2;
+          list[i + 6] = y2;
+          list[i + 7] = list[i + 7] ? 0 : 1;
+        }
+      };
       // 直线 a·x + b·y = c 代进 x = uX、y = -uY：a·u·X - b·u·Y = c ⇒ [a·u, -b·u, c]
       const scaleLines = list => {
         for (let i = 0; i + 2 < list.length; i += 3) {
@@ -2998,6 +3072,7 @@
       scalePairs(request.goalPoints);
       scaleQuads(request.rays);
       scaleQuads(request.segments);
+      scaleArcs(request.arcs);
       scaleLines(request.lines);
       scaleLines(request.goalLines);
       scaleCircles(request.circles);
@@ -3078,6 +3153,8 @@
       bound.y1 *= -unit;
       bound.x2 *= unit;
       bound.y2 *= -unit;
+      // 弧的范围是「端点 + 方向」：从内核坐标换回画布坐标时 y 取了反，方向也要跟着翻
+      if (bound.arc) bound.ccw = !bound.ccw;
     });
     return solution;
   };
@@ -3116,7 +3193,7 @@
     }
     const sentElements = solverLastRequest.lines.length / 3
       + solverLastRequest.rays.length / 4 + solverLastRequest.segments.length / 4
-      + solverLastRequest.circles.length / 3;
+      + solverLastRequest.circles.length / 3 + (solverLastRequest.arcs || []).length / 8;
     return sentElements + gridLines === result.initialElementCount;
   };
 
@@ -3140,7 +3217,8 @@
       // （网格模式下内核自己先铺网格线，不把它们排在最前面，构造计划里的下标会整体错位）
       elementIds: (solverLastRequest.gridUnit ? gridSegmentIdsInKernelOrder() : [])
         .concat(solverLastRequest.lineIds
-          .concat(solverLastRequest.rayIds || [], solverLastRequest.segmentIds || [], solverLastRequest.circleIds)),
+          .concat(solverLastRequest.rayIds || [], solverLastRequest.segmentIds || [],
+            solverLastRequest.circleIds, solverLastRequest.arcIds || [])),
       // 射线 / 线段的端点表：解法里与它们的交点必须落在范围内（见 canvas.js 的 solverPlanInRange）
       bounds: solution.bounds || null,
       eps: solverLastRequest.eps,
@@ -3664,7 +3742,9 @@
         // 圆心那个点对象：等距中心要据它判断「这两个点本来就在同一个圆上」（见 bs-relations 的 scanEquidistant）
         const figure = item.getDefine?.();
         const centerId = figure && figure[0] && figure[0].getType?.() === 'point' ? figure[0].getId() : null;
-        snapshot.circles.push({id: id, cx: cx, cy: cy, r: radius, centerId: centerId});
+        // 非整圆（弧）：带上角度区间，雷达求交时落在弧外的点不算
+        const arc = arcRangeOfCircle(item, [cx, cy], [px, py]);
+        snapshot.circles.push({id: id, cx: cx, cy: cy, r: radius, centerId: centerId, arc: arc});
         return;
       }
       if (type === 'line') {
@@ -4980,8 +5060,11 @@
       R: request.rays.length / 4,
       S: request.segments.length / 4,
       C: request.circles.length / 3,
+      // 弧每 8 个数字（圆心、半径平方、两端点、方向）
+      A: request.arcs.length / 8,
       rays: request.rays,
       segments: request.segments,
+      arcs: request.arcs,
       solutions: settings.solutions,
       timeLimitSeconds: settings.timeLimitSeconds,
       symmetry: advanced.symmetry,

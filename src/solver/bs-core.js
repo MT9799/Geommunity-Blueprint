@@ -405,7 +405,7 @@ class Graph {
         copy.points = this.points.map(p => ({x: p.x, y: p.y}));
         copy.pointBirth = this.pointBirth.slice();
         copy.elements = this.elements.map(e => ({...e}));
-        copy.bounds = this.bounds.map(b => ({p1: {...b.p1}, p2: {...b.p2}}));
+        copy.bounds = this.bounds.map(b => ({p1: {...b.p1}, p2: {...b.p2}, arc: !!b.arc, ccw: !!b.ccw}));
         copy.goalPoints = this.goalPoints.map(p => ({x: p.x, y: p.y}));
         copy.goalElements = this.goalElements.map(e => ({...e}));
         copy.initialElementCount = this.initialElementCount;
@@ -448,6 +448,13 @@ class Graph {
     /** 点是否落在元素的（含范围的）有效部分上 过程函数 */
     isInRange(e, p) {
         if (e.type === TYPE_LINE) return true;
+        if (e.type === TYPE_CIRCLE) {
+            // 整圆（无 bound）恒在范围内；弧按角度区间裁剪（见 addInitialArc / pointInArcBound）
+            if (e.bound === NO_BOUND || e.bound >= this.bounds.length) return true;
+            const bound = this.bounds[e.bound];
+            if (!bound || !bound.arc) return true;
+            return this.pointInArcBound(bound, e, p);
+        }
         if (e.type === TYPE_RAY || e.type === TYPE_SEGMENT) {
             if (e.bound === NO_BOUND || e.bound >= this.bounds.length) return false;
             const bound = this.bounds[e.bound];
@@ -461,6 +468,22 @@ class Graph {
             return dotx + doty < EPS;
         }
         return false;
+    }
+
+    /**
+     * 点是否落在「弧」的角度区间内 过程函数
+     * bound.p1 / bound.p2 是弧的两个端点，bound.ccw 表示从 p1 到 p2 是否走「逆角度」方向
+     * （与页面 ToolsFunction.pointInArcRange 同一口径：canvas 坐标里正方向为顺时针）
+     */
+    pointInArcBound(bound, e, p) {
+        const TAU = Math.PI * 2;
+        const a1 = Math.atan2(bound.p1.y - e.b, bound.p1.x - e.a);
+        const a2 = Math.atan2(bound.p2.y - e.b, bound.p2.x - e.a);
+        const ap = Math.atan2(p.y - e.b, p.x - e.a);
+        const mod = v => { v %= TAU; return v < 0 ? v + TAU : v; };
+        const tol = 1e-8;
+        if (!bound.ccw) return mod(a2 - a1) >= mod(ap - a1) - tol;
+        return mod(a1 - a2) >= mod(a1 - ap) - tol;
     }
 
     /**
@@ -498,7 +521,7 @@ class Graph {
         const error = 32.0 * ROBUST_U *
             (denom * circle.c + Math.abs(dist) * scale + ROBUST_U * SQ(scale));
         if (!isFinite(delta) || !isFinite(error)) return false;
-        const emit = p => robustFinite(p) && this.isInRange(line, p) && visitor(p);
+        const emit = p => robustFinite(p) && this.isInRange(line, p) && this.isInRange(circle, p) && visitor(p);
         if (delta < -error) return false;
         if (delta <= error) {
             const foot = {x: circle.a - line.a * dist / denom, y: circle.b - line.b * dist / denom};
@@ -523,7 +546,9 @@ class Graph {
      * 两个圆的交点遍历 过程函数（对应 C++ 的 VisitCircleCircle）
      * 用**局部**根轴方程（对平移稳定），同样区分良态交点与不确定接触
      */
-    visitCircleCircle(e1, e2, visitor) {
+    visitCircleCircle(e1, e2, rawVisitor) {
+        // 弧是「圆 + 角度范围」：交点要同时落在两个元素各自的范围内
+        const visitor = p => this.isInRange(e1, p) && this.isInRange(e2, p) && rawVisitor(p);
         if (!(e1.c >= 0.0) || !(e2.c >= 0.0)) return false;
         const dx = e2.a - e1.a;
         const dy = e2.b - e1.b;
@@ -589,6 +614,16 @@ class Graph {
     /** 已存元素与 e 是否同一对象（射线只看起点与方向、线段不分端点顺序） 过程函数 */
     sameStoredElement(e, f) {
         if (!SAME_ELEMENT(e, f)) return false;
+        if (e.type === TYPE_CIRCLE) {
+            // 弧与整圆、或同一圆上不同角度的两段弧，都不是同一个元素
+            const eArc = e.bound !== NO_BOUND && this.bounds[e.bound] && this.bounds[e.bound].arc;
+            const fArc = f.bound !== NO_BOUND && this.bounds[f.bound] && this.bounds[f.bound].arc;
+            if (!eArc && !fArc) return true;
+            if (eArc !== fArc) return false;
+            const be = this.bounds[e.bound];
+            const bf = this.bounds[f.bound];
+            return SAME_POINT(be.p1, bf.p1) && SAME_POINT(be.p2, bf.p2) && be.ccw === bf.ccw;
+        }
         if (e.type !== TYPE_RAY && e.type !== TYPE_SEGMENT) return true;
         if (e.bound === NO_BOUND || f.bound === NO_BOUND ||
             e.bound >= this.bounds.length || f.bound >= this.bounds.length) {
@@ -636,7 +671,7 @@ class Graph {
     /** 点是否在元素上（含范围判断） 过程函数 */
     pointOnElement(p, e) {
         if (e.type === TYPE_CIRCLE) {
-            return IS_ZERO(SQ(p.x - e.a) + SQ(p.y - e.b) - e.c);
+            return IS_ZERO(SQ(p.x - e.a) + SQ(p.y - e.b) - e.c) && this.isInRange(e, p);
         }
         if (!IS_ZERO(e.a * p.x + e.b * p.y - e.c)) return false;
         return this.isInRange(e, p);
@@ -739,6 +774,18 @@ class Graph {
     /** 加入初始元素 过程函数 */
     addInitial(element) {
         return this.apply(element, 0);
+    }
+
+    /** 加入带角度范围的初始圆（弧） 过程函数 */
+    addInitialArc(center, r2, p1, p2, ccw) {
+        const boundIndex = this.bounds.length;
+        this.bounds.push({p1: {...p1}, p2: {...p2}, arc: true, ccw: !!ccw});
+        const element = makeElementFromCoefficients(center.x, center.y, r2, TYPE_CIRCLE, boundIndex);
+        if (!this.apply(element, 0)) {
+            this.bounds.pop();
+            return false;
+        }
+        return true;
     }
 
     /**

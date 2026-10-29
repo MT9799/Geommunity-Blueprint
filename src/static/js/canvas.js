@@ -366,10 +366,23 @@ const SOLVER_PLAN_RANGE_EPS = 1e-9;
  * @returns {boolean}
  */
 function solverPlanInRange(element, point, bounds, eps) {
-    if (!element || (element.type !== 2 && element.type !== 3)) return true;
+    if (!element) return true;
     const bound = bounds && element.bound !== undefined && element.bound !== null ? bounds[element.bound] : null;
     if (!bound) return true;
     const tolerance = typeof eps === 'number' && eps > 0 ? eps : SOLVER_PLAN_RANGE_EPS;
+    // 弧也是「元素 + 范围」：圆（type 0）带 arc 范围时按角度区间裁剪交点（a / b 是圆心）
+    if (element.type === 0) {
+        if (!bound.arc) return true;
+        const TAU = Math.PI * 2;
+        const a1 = Math.atan2(bound.y1 - element.b, bound.x1 - element.a);
+        const a2 = Math.atan2(bound.y2 - element.b, bound.x2 - element.a);
+        const ap = Math.atan2(point.y - element.b, point.x - element.a);
+        const mod = v => { v %= TAU; return v < 0 ? v + TAU : v; };
+        const tol = Math.max(tolerance, 1e-8);
+        if (!bound.ccw) return mod(a2 - a1) >= mod(ap - a1) - tol;
+        return mod(a1 - a2) >= mod(a1 - ap) - tol;
+    }
+    if (element.type !== 2 && element.type !== 3) return true;
     if (element.type === 2) {
         // 射线：点要在起点「往后」那一侧
         const dx = (bound.x1 - point.x) * (bound.x1 - bound.x2);

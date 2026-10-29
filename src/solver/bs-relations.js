@@ -368,10 +368,39 @@ const GeoRelations = (function () {
      * 把「所有相交位置」补成伪点喂进快照 过程函数（第 10 条）
      * 线 × 线 / 线 × 圆 / 圆 × 圆 两两求交；与已有真点重合的跳过（那个点本来就在画板上）。
      */
+    /** 交点是否落在这条线段 / 射线的范围内 过程函数（直线恒真） */
+    function pointOnLineRange(obj, x, y, tolLength) {
+        if (obj.kind !== 'line') return true;
+        if (obj.drawType !== 'ray' && obj.drawType !== 'lineSegment') return true;
+        const dx = obj.x2 - obj.x1;
+        const dy = obj.y2 - obj.y1;
+        const lengthSquared = dx * dx + dy * dy;
+        if (!(lengthSquared > 0)) return false;
+        const t = ((x - obj.x1) * dx + (y - obj.y1) * dy) / lengthSquared;
+        const length = Math.sqrt(lengthSquared);
+        const slack = tolLength / Math.max(length, tolLength);
+        if (obj.drawType === 'ray') return t >= -slack;
+        return t >= -slack && t <= 1 + slack;
+    }
+
+    /** 交点是否落在这段弧的角度范围内 过程函数（整圆恒真） */
+    function pointOnArcRange(obj, x, y, tolLength) {
+        if (obj.kind !== 'circle' || !obj.arc) return true;
+        const range = obj.arc;
+        const TAU = Math.PI * 2;
+        const a1 = Math.atan2(range.y1 - obj.cy, range.x1 - obj.cx);
+        const a2 = Math.atan2(range.y2 - obj.cy, range.x2 - obj.cx);
+        const ap = Math.atan2(y - obj.cy, x - obj.cx);
+        const mod = v => { v %= TAU; return v < 0 ? v + TAU : v; };
+        const tol = Math.max(1e-9, tolLength / Math.max(obj.r, tolLength));
+        if (!range.ccw) return mod(a2 - a1) >= mod(ap - a1) - tol;
+        return mod(a1 - a2) >= mod(a1 - ap) - tol;
+    }
+
     function augmentWithIntersections(board, tolLength) {
         const objects = [];
-        board.lines.forEach(line => objects.push({id: line.id, kind: 'line', x1: line.x1, y1: line.y1, x2: line.x2, y2: line.y2}));
-        board.circles.forEach(circle => objects.push({id: circle.id, kind: 'circle', cx: circle.cx, cy: circle.cy, r: circle.r}));
+        board.lines.forEach(line => objects.push({id: line.id, kind: 'line', x1: line.x1, y1: line.y1, x2: line.x2, y2: line.y2, drawType: line.drawType}));
+        board.circles.forEach(circle => objects.push({id: circle.id, kind: 'circle', cx: circle.cx, cy: circle.cy, r: circle.r, arc: circle.arc}));
         // 「是不是同一个位置」用合并口径，不跟着关系容差一起收紧（见 COINCIDENT_RATIO）
         const merge = Math.max(tolLength, (board.span || 0) * COINCIDENT_RATIO);
         const collected = [];
@@ -381,6 +410,11 @@ const GeoRelations = (function () {
                 if (++combos > MAX_INTERSECTION_COMBOS) return;
                 const list = intersectionCandidates(objects[i], objects[j]);
                 list.forEach((point, index) => {
+                    // 交点要在两个图形各自的范围内：线段 / 射线按线性范围、弧按角度范围裁剪
+                    if (!pointOnLineRange(objects[i], point.x, point.y, tolLength)
+                        || !pointOnLineRange(objects[j], point.x, point.y, tolLength)
+                        || !pointOnArcRange(objects[i], point.x, point.y, tolLength)
+                        || !pointOnArcRange(objects[j], point.x, point.y, tolLength)) return;
                     // 与已有「真点」重合：那个点已经在画板上了，不再当作交点
                     if (board.points.some(p => Math.abs(p.x - point.x) <= merge && Math.abs(p.y - point.y) <= merge)) return;
                     collected.push({id: intersectionId(objects[i].id, objects[j].id, index), x: point.x, y: point.y});
