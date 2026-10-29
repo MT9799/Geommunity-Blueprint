@@ -7358,6 +7358,115 @@
         ]
     },
     {
+        "id": "sprfes2026-01",
+        "pack": "sprfes",
+        "file": "levels/sprfes/sprfes2026-01.gmt",
+        "title": "sprfes2026-01",
+        "subtitle": "给定三角形ABC满足b<c<2b，求作线段DE，其中D在线段AB上，E在线段AC上，使得BD=CE且AD·AE=BD·CE.",
+        "targetSteps": "9E",
+        "diagram": "diagrams/sprfes/sprfes2026-01.png",
+        "note": "",
+        "keywords": [
+            "SprFes",
+            "长度",
+            "线段相等",
+            "等式"
+        ],
+        "solutions": [
+            {
+                "file": "answers/sprfes/sprfes2026-01/01-9E.png",
+                "star": "9E"
+            }
+        ]
+    },
+    {
+        "id": "sprfes2026-02",
+        "pack": "sprfes",
+        "file": "levels/sprfes/sprfes2026-02.gmt",
+        "title": "sprfes2026-02",
+        "subtitle": "已知圆O和内部一点A，过A作相互垂直的两条直线，分别与圆有交点B、C，使得BC和给定直线平行。",
+        "targetSteps": "13E",
+        "diagram": "diagrams/sprfes/sprfes2026-02.png",
+        "note": "",
+        "keywords": [
+            "SprFes",
+            "平行线",
+            "垂直",
+            "圆",
+            "弦"
+        ],
+        "solutions": [
+            {
+                "file": "answers/sprfes/sprfes2026-02/02-13E.png",
+                "star": "13E"
+            }
+        ]
+    },
+    {
+        "id": "sprfes2026-03",
+        "pack": "sprfes",
+        "file": "levels/sprfes/sprfes2026-03.gmt",
+        "title": "sprfes2026-03",
+        "subtitle": "直线上顺次排列有四点A、B、C、D，求作直线外一点P，使得∠APB：∠BPC：∠CPD = 3：1：2.",
+        "targetSteps": "10E",
+        "diagram": "diagrams/sprfes/sprfes2026-03.png",
+        "note": "",
+        "keywords": [
+            "SprFes",
+            "角度比例"
+        ],
+        "solutions": [
+            {
+                "file": "answers/sprfes/sprfes2026-03/03-10E.png",
+                "star": "10E"
+            }
+        ]
+    },
+    {
+        "id": "sprfes2026-04",
+        "pack": "sprfes",
+        "file": "levels/sprfes/sprfes2026-04.gmt",
+        "title": "sprfes2026-04",
+        "subtitle": "已知两平行线和两点A、B，过A作直线分别交两平行线于两点C、D，使得圆（BCD）与两平行线中的一条相切。",
+        "targetSteps": "11E",
+        "diagram": "diagrams/sprfes/sprfes2026-04.png",
+        "note": "",
+        "keywords": [
+            "SprFes",
+            "平行线",
+            "相切",
+            "圆"
+        ],
+        "solutions": [
+            {
+                "file": "answers/sprfes/sprfes2026-04/04-11E.png",
+                "star": "11E"
+            }
+        ]
+    },
+    {
+        "id": "sprfes2026-05",
+        "pack": "sprfes",
+        "file": "levels/sprfes/sprfes2026-05.gmt",
+        "title": "sprfes2026-05",
+        "subtitle": "三角形ABC中，记点A所对的旁切圆与直线AB、AC的切点连线为l_A，同理定义l_B、l_C，仅给出l_A、l_B、l_C，复原三角形。",
+        "targetSteps": "18E",
+        "diagram": "diagrams/sprfes/sprfes2026-05.png",
+        "note": "",
+        "keywords": [
+            "SprFes",
+            "旁切圆",
+            "切点",
+            "复原三角形"
+        ],
+        "solutions": [
+            {
+                "file": "answers/sprfes/sprfes2026-05/05-18E.png",
+                "star": "18E"
+            }
+        ]
+    },
+    {
         "id": "lmidpoint",
         "pack": "straightedge-only-pzls",
         "file": "levels/straightedge-only-pzls/001.lmidpoint.gmt",
