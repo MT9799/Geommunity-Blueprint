@@ -1,4 +1,4 @@
-# Geommunity Blueprint custom level
+# EqualSegmentsAndEquation
 A=[183.1315017111,-513.170691608]
 B=[-450.7852349812,36.2238135253]
 S1=Segment[A,B]
@@ -13,11 +13,12 @@ s2=Parallel[E,S3]
 s3=Parallel[E,S1]
 F=Intersect[S1,s2,0]
 G=Intersect[S3,s3,0]
+s4=Line[F,G]
 S4=Segment[F,G]
 
 initial=S1,A,B,S2,C,S3
 named=
 movepoints=
 hidden=
-result=S4
+result=s4:S4,F,G
 explore=S4,F,G

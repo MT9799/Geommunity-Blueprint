@@ -1,4 +1,4 @@
-# Geommunity Blueprint custom level
+# FromEscribeTangentChordsReTriangle
 A=[6.0481479721,-588.6864026141]
 B=[-340.7123357595,-90.7222195809]
 s1=Line[A,B]
@@ -39,5 +39,5 @@ initial=s1,s3,s2,B,C,A
 named=
 movepoints=
 hidden=
-result=S3,O,N,S2,I,S1
+result=s11,s12,s13:S3,O,N,S2,I,S1
 explore=S3,N,S2,O,S1,I

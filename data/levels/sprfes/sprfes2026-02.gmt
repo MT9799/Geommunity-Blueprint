@@ -1,4 +1,4 @@
-# Geommunity Blueprint custom level
+# PerpTriangleOnPointCircleAndParallel
 A=[63.9642081198,-459.7427458613]
 B=[347.8053816516,-227.8724914269]
 c1=Circle[A,B]
@@ -27,5 +27,5 @@ initial=s1,c1,A,C
 named=
 movepoints=
 hidden=
-result=S2,S3,J,S4,K:S2,J,S4,S3,K
+result=S2,S3,s4:C,S2,J,S4,S3,K
 explore=S2,J,S4,K,S3

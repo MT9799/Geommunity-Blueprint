@@ -1,4 +1,4 @@
-# Geommunity Blueprint custom level
+# LineCutParallelAndTangentCircle
 A=[-259.9341007793,105.9731333946]
 B=[279.9290316085,101.9741472288]
 s1=Line[A,B]
@@ -26,5 +26,5 @@ initial=s2,s1,D,E
 named=
 movepoints=
 hidden=
-result=s4
+result=s4:s4,M,L
 explore=s4,M,L
