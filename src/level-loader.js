@@ -35,7 +35,7 @@
     sessionStorage.setItem('elements', JSON.stringify(elements));
     sessionStorage.setItem('geometryElementLists', JSON.stringify(lists));
     // 缩略图与页面标题的文案全部来自 levels.json（可用 levels.meta.json 覆盖）
-    sessionStorage.setItem('thumbnail', JSON.stringify({ title_input: levelInfo?.title || id, body_input: levelInfo?.subtitle || 'GMT 已加载', bottom_input: levelInfo?.targetSteps || '', pictureData: levelInfo?.diagram ? `../data/${levelInfo.diagram}` : null }));
+    sessionStorage.setItem('thumbnail', JSON.stringify({ title_input: levelInfo?.title || id, body_input: levelInfo?.subtitle || (typeof t === 'function' ? t('level.gmtLoaded') : 'GMT 已加载'), bottom_input: levelInfo?.targetSteps || '', pictureData: levelInfo?.diagram ? `../data/${levelInfo.diagram}` : null }));
 
     // 关卡限定工具（levels.json 的 tools 字段）：straightedge = 单尺、compass = 单规
     window.levelTools = levelInfo.tools || null;

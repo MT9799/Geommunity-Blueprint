@@ -8130,28 +8130,27 @@
         ]
     },
     {
-        "id": "equal-chord",
+        "id": "convex-lens",
         "pack": "straightedge-only-pzls",
-        "file": "levels/straightedge-only-pzls/028.equal-chord.gmt",
-        "title": "等弦",
-        "subtitle": "已知圆O及互垂直径AB、CD，E为线段AO上一点（不与A、O重合）。单尺求作一弦CP，使CP=CE，且角AOP为锐角。",
-        "targetSteps": "7E",
-        "diagram": "diagrams/straightedge-only-pzls/028.equal-chord.png",
+        "file": "levels/straightedge-only-pzls/028.convex-lens.gmt",
+        "title": "透镜找心",
+        "subtitle": "已知相交两圆的公共部分，其余部分被剪去，请仅用一把无刻度直尺作出圆心。",
+        "targetSteps": "36E",
+        "diagram": "diagrams/straightedge-only-pzls/028.convex-lens.png",
         "note": "",
         "tools": "straightedge",
         "keywords": [
             "Straightedge-only-Pzls",
-            "弦",
             "多解",
             "圆",
-            "直径",
-            "距离相等",
+            "圆心",
+            "切线",
             "单尺",
-            "垂直"
+            "圆弧"
         ],
         "solutions": [
             {
-                "file": "answers/straightedge-only-pzls/028.equal-chord/10E.png",
+                "file": "answers/straightedge-only-pzls/028.convex-lens/10E.png",
                 "star": "10E"
             }
         ]

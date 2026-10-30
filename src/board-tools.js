@@ -2586,7 +2586,7 @@
   };
   const saveGmtFile = () => download('custom-level.gmt', gmtText(), 'text/plain');
   const submitGmtIssue = () => {
-    const body = encodeURIComponent('请将下面的 GMT 保存到 data/levels/custom：\n\n```\n' + gmtText() + '\n```\n');
+    const body = encodeURIComponent(t('board.gmtIssueBody') + '\n\n```\n' + gmtText() + '\n```\n');
     window.open('https://github.com/MT9799/Geommunity-Blueprint/issues/new?title=Custom%20level&body=' + body, '_blank');
   };
   const readGmtFile = () => {
@@ -5382,7 +5382,7 @@
       if (advanced.eps) request.eps = advanced.eps;
       // 把这次**实际生效**的自动容差写在输入框的提示里：省得以为内核按 1e-11 判定
       // （实际是 1e-11 × 图幅，而且内核坐标系在网格模式下是「格」，不是画布 px）
-      else if (advancedFields.eps) advancedFields.eps.placeholder = `自动 ${request.eps.toExponential(2)}`;
+      else if (advancedFields.eps) advancedFields.eps.placeholder = `${t('board.gmtAuto')} ${request.eps.toExponential(2)}`;
       const goalCount = request.goalPoints.length / 2 + request.goalLines.length / 3 + request.goalCircles.length / 3;
       if (!goalCount) {
         status.textContent = t('board.solverNeedGoal');
@@ -6400,16 +6400,16 @@
       {
         label: t('board.importGmt'), templateId: 'importGmt', actionKey: 'import-gmt',
         action: () => optionDialog(t('board.importGmt'), [
-          { label: '导入 gmt 代码', templateId: 'gmtPaste', actionKey: 'gmt-paste', action: () => codeDialog('导入 gmt 代码', '', loadGmt) },
-          { label: '导入 gmt 文件', templateId: 'gmtRead', actionKey: 'gmt-read', action: readGmtFile },
+          { label: t('board.menuImportGmtCode'), templateId: 'gmtPaste', actionKey: 'gmt-paste', action: () => codeDialog(t('board.menuImportGmtCode'), '', loadGmt) },
+          { label: t('board.menuImportGmtFile'), templateId: 'gmtRead', actionKey: 'gmt-read', action: readGmtFile },
         ]),
       },
       {
         label: t('board.exportGmt'), templateId: 'exportGmt', actionKey: 'export-gmt',
         action: () => optionDialog(t('board.exportGmt'), [
-          { label: '查看 gmt 代码', templateId: 'gmtView', actionKey: 'gmt-view', action: () => codeDialog('gmt 代码', gmtText()) },
-          { label: '导出为 gmt 文件', templateId: 'gmtSave', actionKey: 'gmt-save', action: saveGmtFile },
-          { label: '导出至 Issue', templateId: 'gmtIssue', actionKey: 'gmt-issue', action: submitGmtIssue },
+          { label: t('board.menuViewGmt'), templateId: 'gmtView', actionKey: 'gmt-view', action: () => codeDialog(t('board.gmtCodeTitle'), gmtText()) },
+          { label: t('board.menuSaveGmt'), templateId: 'gmtSave', actionKey: 'gmt-save', action: saveGmtFile },
+          { label: t('board.menuIssueGmt'), templateId: 'gmtIssue', actionKey: 'gmt-issue', action: submitGmtIssue },
         ]),
       });
   }

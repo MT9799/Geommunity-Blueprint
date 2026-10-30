@@ -246,6 +246,13 @@
             else if (showName && mode === 'normal') entry.showName = true;
             // 虚线默认关闭：只记开着的那些（标记期间也不改它，标记色与虚线互不相干）
             if (typeof item.getDashed === 'function' && item.getDashed()) entry.dashed = true;
+            // 线段记号默认 0（无）：只记 1–6，写成 `S1>1`（见 recordStore.js 的 styles 符号表）
+            if (typeof item.getMark === 'function') {
+                const mark = item.getMark();
+                if (mark >= 1 && mark <= 6 && item.getType?.() === 'line' && item.getDrawType?.() === 'lineSegment') {
+                    entry.mark = mark;
+                }
+            }
             if (typeof item.getVisible === 'function' && !item.getVisible()) entry.visible = false;
             else if (writesVisibility(id)) entry.visible = true;
             if (Object.keys(entry).length) styles[id] = entry;
@@ -396,6 +403,7 @@
                 }
             }
             if (entry.dashed !== undefined && typeof item.modifyDashed === 'function') item.modifyDashed(!!entry.dashed);
+            if (entry.mark !== undefined && typeof item.modifyMark === 'function') item.modifyMark(entry.mark);
         });
     }
 
@@ -420,7 +428,7 @@
             const picture = document.createElement('img');
             picture.id = 'thumbnail-picture';
             picture.src = thumbnail.thumbnailSrc;
-            picture.alt = '此处放置缩略图';
+            picture.alt = t('board.thumbnailAlt');
             (document.getElementById('thumbnail-middle') || document.body).appendChild(picture);
         }
     }

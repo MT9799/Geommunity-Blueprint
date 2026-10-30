@@ -3,9 +3,42 @@
  * 搜索范围：标题 / 说明 / 关键词 / L、E 步数；空格分隔的多个条件是「与」关系
  * 地址栏参数：q 关键词、pack 只在某个关卡包内搜索、page 页码，方便收藏与分享
  */
+// 推荐搜索：q 是真正拿去搜的中文关键词（关卡说明是中文），labelKey 是界面上显示的名字。
+// 条目大致按「题干 + 关键词」的词频排（高频在前）；「最值」「正多边形」这类出现不多但常用的也保留。
 const RECOMMENDED_SEARCHES = [
-    '中点', '垂直平分线', '角平分线', '垂线', '平行线', '切线', '内切圆', '外接圆',
-    '正三角形', '正方形', '正多边形', '黄金比例', '弦', '最值', '多解', '5L', '6E', '单尺',
+    {q: '三角形', labelKey: 'search.chipTriangle'},
+    {q: '直线', labelKey: 'search.chipLine'},
+    {q: '多解', labelKey: 'search.chipMultiSolution'},
+    {q: '线段', labelKey: 'search.chipSegment'},
+    {q: '弦', labelKey: 'search.chipChord'},
+    {q: '切线', labelKey: 'search.chipTangent'},
+    {q: '正方形', labelKey: 'search.chipSquare'},
+    {q: '圆心', labelKey: 'search.chipCenter'},
+    {q: '平行线', labelKey: 'search.chipParallel'},
+    {q: '直径', labelKey: 'search.chipDiameter'},
+    {q: '单尺', labelKey: 'search.chipStraightedge'},
+    {q: '中点', labelKey: 'search.chipMidpoint'},
+    {q: '内接', labelKey: 'search.chipInscribed'},
+    {q: '平分', labelKey: 'search.chipBisect'},
+    {q: '直角三角形', labelKey: 'search.chipRightTriangle'},
+    {q: '正三角形', labelKey: 'search.chipEquilateral'},
+    {q: '垂直', labelKey: 'search.chipPerpendicular'},
+    {q: '内切圆', labelKey: 'search.chipIncircle'},
+    {q: '外接圆', labelKey: 'search.chipCircumcircle'},
+    {q: '面积', labelKey: 'search.chipArea'},
+    {q: '等长', labelKey: 'search.chipEqualLength'},
+    {q: '网格', labelKey: 'search.chipGrid'},
+    {q: '角平分线', labelKey: 'search.chipAngleBisector'},
+    {q: '内心', labelKey: 'search.chipIncenter'},
+    {q: '半径', labelKey: 'search.chipRadius'},
+    {q: '菱形', labelKey: 'search.chipRhombus'},
+    {q: '等腰三角形', labelKey: 'search.chipIsosceles'},
+    {q: '半圆', labelKey: 'search.chipSemicircle'},
+    {q: '共圆', labelKey: 'search.chipConcyclic'},
+    {q: '最值', labelKey: 'search.chipExtremum'},
+    {q: '正多边形', labelKey: 'search.chipRegularPolygon'},
+    {q: '5L', labelKey: 'search.chip5L'},
+    {q: '6E', labelKey: 'search.chip6E'},
 ];
 
 const params = new URLSearchParams(location.search);
@@ -106,9 +139,11 @@ loadLevelsData().then(({ packs, levels }) => {
 
     /** 渲染推荐搜索（带命中数量） */
     const renderChips = () => {
-        chipsBox.innerHTML = RECOMMENDED_SEARCHES.map(word => {
+        chipsBox.innerHTML = RECOMMENDED_SEARCHES.map(item => {
+            const word = item.q;
+            const label = t(item.labelKey);
             const count = matchesOf([word]).length;
-            return `<button type="button" class="search-chip" data-word="${word}"${count ? '' : ' disabled'}>${word}<span>${count}</span></button>`;
+            return `<button type="button" class="search-chip" data-word="${word}"${count ? '' : ' disabled'}>${label}<span>${count}</span></button>`;
         }).join('');
     };
 

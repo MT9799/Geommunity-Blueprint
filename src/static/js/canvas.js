@@ -1404,6 +1404,50 @@ function sortLineLayers(elements) {
     return sorted;
 }
 
+// 样式刷「样式来源」的动态虚线高亮：相位随时间推移，由下面的动画循环驱动
+let sourceHighlightPhase = 0;
+let sourceHighlightFrame = null;
+
+/**
+ * 画「样式刷来源」的选中效果 过程函数
+ * 与普通选中是同一套包围式描边（线的双线 / 圆的双环 / 点的圆环），
+ * 只把描边换成流动的虚线 —— 与之后被刷样式的选中（实线）区分开，
+ * 又不会像单独画一圈那样和图形本身重合、看不清
+ * @param {Object} element 样式来源图形
+ */
+function drawChoiceDashed(element) {
+    const scale = transform.scale || 1;
+    const type = element.getType();
+    ct.save();
+    // 虚线间距与相位折算到世界坐标（画布整体按 scale 缩放）
+    ct.setLineDash([14 / scale, 10 / scale]);
+    ct.lineDashOffset = -sourceHighlightPhase / scale;
+    if (type === 'point') drawChoicePoint(element);
+    else if (type === 'line') drawChoiceInfiniteLine(element);
+    else if (type === 'circle') drawChoiceCircle(element);
+    ct.restore();
+}
+
+/**
+ * 维护来源高亮的动画循环 过程函数
+ * 有来源时才跑（每帧推进相位并重绘），来源取消 / 换工具时停掉
+ * @param {boolean} active 当前是否存在样式来源
+ */
+function ensureSourceHighlightAnimation(active) {
+    if (active) {
+        if (sourceHighlightFrame !== null) return;
+        const step = () => {
+            sourceHighlightPhase = (sourceHighlightPhase + 0.35) % 1000;
+            sourceHighlightFrame = requestAnimationFrame(step);
+            if (typeof drawContent === 'function') drawContent();
+        };
+        sourceHighlightFrame = requestAnimationFrame(step);
+    } else if (sourceHighlightFrame !== null) {
+        cancelAnimationFrame(sourceHighlightFrame);
+        sourceHighlightFrame = null;
+    }
+}
+
 function drawShapes() {
     const geometryElements = geometryManager.getAllByType(tool);
     const exceptPoints = geometryElements['exceptPoints'];
@@ -1413,6 +1457,10 @@ function drawShapes() {
     const pointsCache = geometryElements['pointsCache'];
     const resultPoints = geometryElements['resultPoints'];
     const choice = geometryElements['choice'];
+    // 样式刷的「样式来源」单列出来画（动态虚线），不按普通选中画
+    const sourceElement = typeof geometryManager.getToolKey === 'function'
+        ? geometryManager.getToolKey(tool, 'source') : null;
+    const sourceId = sourceElement ? sourceElement.getId() : null;
     
     // 除了点的几何对象（线段在射线之上、射线在直线之上）
     for (const element of sortLineLayers(exceptPoints)) {
@@ -1471,15 +1519,21 @@ function drawShapes() {
         drawPoint(point);
         drawChoicePoint(point);
     }
-    // 选中对象
+    // 选中对象（样式来源不在这批里画：它要的是动态虚线，见下）
     for (const element of choice) {
         if (!element.getValid()) continue;
         if (!element.getVisible()) continue;
+        if (sourceId && element.getId() === sourceId) continue;
 
         if (element.getType() === "point") drawChoicePoint(element);
         if (element.getType() === 'line') drawChoiceInfiniteLine(element);
         if (element.getType() === 'circle') drawChoiceCircle(element);
     }
+    // 样式刷的样式来源：同样的包围式选中，但画成流动的虚线，与之后被刷样式的选中区分开
+    if (sourceElement && sourceElement.getValid?.() && sourceElement.getVisible?.()) {
+        drawChoiceDashed(sourceElement);
+    }
+    ensureSourceHighlightAnimation(!!sourceElement);
 }
 
 /**
@@ -1580,6 +1634,63 @@ function isMarkedLineElement(id) {
 }
 
 /**
+ * 绘制线段中央的记号 过程函数
+ * 1/2/3 = 中竖线 1/2/3 道，4/5/6 = 箭头 1/2/3 道（箭头沿「起点 → 终点」方向）
+ * 尺寸按屏幕像素算（画布整体按 transform.scale 缩放，所以世界坐标要先除掉缩放）
+ * @param {Object} element 线段对象
+ * @param {number} startX 起点 x
+ * @param {number} startY 起点 y
+ * @param {number} endX 终点 x
+ * @param {number} endY 终点 y
+ * @param {string} color 颜色
+ * @param {number} lineWidth 线宽（世界坐标）
+ */
+function drawSegmentMark(element, startX, startY, endX, endY, color, lineWidth) {
+    const mark = typeof element.getMark === 'function' ? element.getMark() : 0;
+    if (!mark || mark < 1 || mark > 6) return;
+    const dx = endX - startX;
+    const dy = endY - startY;
+    const length = Math.hypot(dx, dy);
+    if (!(length > 1e-6)) return;
+    const ux = dx / length;
+    const uy = dy / length;
+    // 垂直方向（顺时针转 90°），竖线沿它画
+    const nx = -uy;
+    const ny = ux;
+    const midX = (startX + endX) / 2;
+    const midY = (startY + endY) / 2;
+    const isArrow = mark >= 4;
+    const count = isArrow ? mark - 3 : mark;
+    const scale = transform.scale || 1;
+    // 屏幕厚度 = 线宽 × 缩放；记号大小与它成比例，但不小于 5 屏幕像素
+    const thickness = Math.max(lineWidth * scale, 1);
+    const half = Math.max(5, thickness * 2) / scale;
+    const gap = half * 2.4;
+    ct.save();
+    ct.strokeStyle = color;
+    ct.lineWidth = lineWidth;
+    ct.lineCap = 'round';
+    ct.setLineDash([]);
+    for (let i = 0; i < count; i++) {
+        const offset = (i - (count - 1) / 2) * gap;
+        const cx = midX + ux * offset;
+        const cy = midY + uy * offset;
+        ct.beginPath();
+        if (isArrow) {
+            // 箭头：尖端沿线段方向，两笔从尖端往后叉开
+            ct.moveTo(cx - ux * half + nx * half, cy - uy * half + ny * half);
+            ct.lineTo(cx + ux * half, cy + uy * half);
+            ct.lineTo(cx - ux * half - nx * half, cy - uy * half - ny * half);
+        } else {
+            ct.moveTo(cx - nx * half, cy - ny * half);
+            ct.lineTo(cx + nx * half, cy + ny * half);
+        }
+        ct.stroke();
+    }
+    ct.restore();
+}
+
+/**
  * 绘制直线 过程函数
  * @param {Object} element 直线对象
  */
@@ -1645,6 +1756,8 @@ function drawInfiniteLine(element) {
         stroke(endX, endY, far.x, far.y, extensionAlpha);
     }else if (drawType === 'lineSegment') {
         stroke(startX, startY, endX, endY, 1);
+        // 线段中央的记号（竖线 / 箭头），叠在线段本体之上
+        drawSegmentMark(element, startX, startY, endX, endY, color, lineWidth);
     }
 }
 

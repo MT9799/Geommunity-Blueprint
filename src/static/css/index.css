@@ -471,7 +471,12 @@ textarea {
 
 /* 样式弹层：颜色 / 粗细 / 标签 */
 .style-popup {
-    min-width: 200px;
+    /* 英文标题（Colour / Dashed / Mark…）比中文两字宽，稍微放宽一点，
+       一行里「标题 + 开关 + 标题 + 下拉」才不至于挤在一起 */
+    min-width: 220px;
+    /* 宽屏上不至于被英文长标题撑得太宽；窄屏（手机）仍需留出边距 */
+    max-width: calc(100vw - 24px);
+    box-sizing: border-box;
 }
 
 .style-popup-row {
@@ -481,10 +486,13 @@ textarea {
 }
 
 .style-popup-title {
-    /* 两字标题（颜色 / 粗细 / 标签 / 虚线 / 隐藏）在 13px 下正好 26px，
-       留 2px 余量：一行里并排放两组「标题 + 开关」时也不至于把中间那列撑宽 */
-    width: 28px;
+    /* 中文两字标题（颜色 / 粗细 / 标签 / 虚线 / 隐藏）约 26px，留 2px 余量；
+       英文（Colour / Dashed / Label / Mark…）比两字长，所以宽度按内容走、
+       不换行 —— 原来固定 28px，英文会溢出到开关下面被挡住 */
+    width: auto;
+    min-width: 28px;
     flex-shrink: 0;
+    white-space: nowrap;
     color: rgb(90, 90, 95);
     font-size: 13px;
 }
@@ -681,6 +689,85 @@ textarea {
     opacity: 0.4;
     cursor: default;
     pointer-events: none;
+}
+
+/* 线段记号下拉（自定义 SVG 下拉）：与开关同高，放在「隐藏」开关右侧（或预设里单独一行） */
+.style-mark-select {
+    position: relative;
+    flex: 1;
+    min-width: 52px;
+    max-width: 96px;
+}
+
+.style-mark-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 26px;
+    padding: 0 2px;
+    color: rgb(40, 40, 45);
+    background-color: #fff;
+    border: 1px solid rgb(214, 214, 214);
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.style-mark-button:hover {
+    background-color: #fef7e5;
+}
+
+.style-mark-icon {
+    display: block;
+    width: 44px;
+    height: 16px;
+    overflow: visible;
+}
+
+/* 下拉列表：绝对定位在按钮下方，选项也是 SVG 示意图 */
+.style-mark-menu {
+    position: absolute;
+    z-index: 20;
+    top: calc(100% + 4px);
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 100%;
+    max-height: 220px;
+    padding: 4px;
+    background-color: #fff;
+    border: 1px solid rgb(214, 214, 214);
+    border-radius: 8px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.16);
+    overflow: auto;
+}
+
+.style-mark-menu[hidden] {
+    display: none;
+}
+
+.style-mark-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 26px;
+    padding: 0 4px;
+    color: rgb(40, 40, 45);
+    background-color: transparent;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.style-mark-item:hover {
+    background-color: #f0f0f0;
+}
+
+.style-mark-item.active {
+    background-color: #d7e8eb;
+    outline: 2px solid #277f96;
+    outline-offset: -2px;
 }
 
 /* 取色输入：藏在视口外但保留在文档中，避免取色过程中被移除导致 change 事件丢失。
@@ -2167,9 +2254,17 @@ body.mode-stepview #container_more [data-action="make-grid"] {
     min-width: 0;
 }
 
-#geometry-item .item-container-column:nth-child(2),
+/* 中间列是样式控件：英文标题更长，且还要放「记号」下拉，向左多要一点宽度
+   （第一列的内容够长、少 26px 也不影响阅读）；右列（上层构造 / 有效性）略收窄 */
+#geometry-item .item-container-column:nth-child(2) {
+    width: 236px;
+    flex: 0 0 auto;
+    padding-left: 4px;
+    padding-right: 4px;
+}
+
 #geometry-item .item-container-column:nth-child(3) {
-    width: 210px;
+    width: 190px;
     flex: 0 0 auto;
     padding-left: 4px;
     padding-right: 4px;

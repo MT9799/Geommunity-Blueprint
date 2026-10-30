@@ -1,4 +1,7 @@
 /* geometryItem.js */
+/* geometryItem-i18n-helper */
+/** 元素一览取词 过程函数（i18n.js 未载入时退回中文） */
+const itemText = (key, fallback) => (typeof t === 'function' ? t(key) : fallback);
 
 const overviewPanelSelector = document.getElementById("overview-select");
 let overviewPanelSelect = 'all';
@@ -579,11 +582,11 @@ function selectElementByOverview(event) {
 
         let textNode = document.createElement('p');
         if (type === "point") {
-            textNode.innerText = '点';
+            textNode.innerText = itemText('board.itemPoint', '点');
         }else if (type === "line") {
-            textNode.innerText = '线';
+            textNode.innerText = itemText('board.itemLine', '线');
         }else if (type === "circle") {
-            textNode.innerText = '圆';
+            textNode.innerText = itemText('board.itemCircle', '圆');
         }
         dataItem.appendChild(textNode);
 
@@ -613,11 +616,11 @@ function selectElementByOverview(event) {
 
         let textNode = document.createElement('p');
         if (type === "point") {
-            textNode.innerText = '点';
+            textNode.innerText = itemText('board.itemPoint', '点');
         }else if (type === "line") {
-            textNode.innerText = '线';
+            textNode.innerText = itemText('board.itemLine', '线');
         }else if (type === "circle") {
-            textNode.innerText = '圆';
+            textNode.innerText = itemText('board.itemCircle', '圆');
         }
         dataItem.appendChild(textNode);
 
@@ -711,9 +714,9 @@ function selectElementByOverview(event) {
 
         let textNode = document.createElement('p');
         if (type === "line") {
-            textNode.innerText = '斜率';
+            textNode.innerText = itemText('board.itemSlope', '斜率');
         }else if (type === "circle") {
-            textNode.innerText = '圆心';
+            textNode.innerText = itemText('board.itemCenter', '圆心');
         }
         dataItem1.appendChild(textNode);
         const inputDE = document.createElement('input');
@@ -723,9 +726,9 @@ function selectElementByOverview(event) {
 
         textNode = document.createElement('p');
         if (type === "line") {
-            textNode.innerText = '截距';
+            textNode.innerText = itemText('board.itemIntercept', '截距');
         }else if (type === "circle") {
-            textNode.innerText = '半径';
+            textNode.innerText = itemText('board.itemRadius', '半径');
         }
         dataItem2.appendChild(textNode);
         const inputDE2 = document.createElement('input');
@@ -748,7 +751,7 @@ function selectElementByOverview(event) {
         dataItem1.className = "item-container-row";
 
         const textNode = document.createElement('p');
-        textNode.innerText = '基底';
+        textNode.innerText = itemText('board.itemBase', '基底');
         dataItem1.appendChild(textNode);
 
         // 基底的「结果」放进只读框：基底类型 + 各个基底图形
@@ -781,7 +784,7 @@ function selectElementByOverview(event) {
             });
 
             const textNode = document.createElement('p');
-            textNode.innerText = '参数值';
+            textNode.innerText = itemText('board.itemValue', '参数值');
             dataItem2.appendChild(textNode);
 
             // 基底值：游玩界面不能改
@@ -803,7 +806,7 @@ function selectElementByOverview(event) {
         dataItem.className = "item-container-row";
 
         const textNode = document.createElement('p');
-        textNode.innerText = '显示';
+        textNode.innerText = itemText('board.itemShow', '显示');
         dataItem.appendChild(textNode);
 
         const inputDE = document.createElement('p');
@@ -815,7 +818,7 @@ function selectElementByOverview(event) {
         dataItem.appendChild(inputDE);
 
         const textNode2 = document.createElement('p');
-        textNode2.innerText = '显示名称';
+        textNode2.innerText = itemText('board.itemShowName', '显示名称');
         dataItem.appendChild(textNode2);
 
         const inputDE2 = document.createElement('p');
@@ -834,7 +837,7 @@ function selectElementByOverview(event) {
         dataItem.className = "item-container-row";
 
         const textNode = document.createElement('p');
-        textNode.innerText = '颜色';
+        textNode.innerText = itemText('board.itemColor', '颜色');
         dataItem.appendChild(textNode);
         
         const inputDE = document.createElement('p');
@@ -851,7 +854,7 @@ function selectElementByOverview(event) {
         dataItem1.className = "item-container-row";
 
         const textNode = document.createElement('p');
-        textNode.innerText = '有效性';
+        textNode.innerText = itemText('board.itemValid', '有效性');
         dataItem1.appendChild(textNode);
         dataItem.appendChild(dataItem1);
 
@@ -859,7 +862,7 @@ function selectElementByOverview(event) {
         dataItem2.className = "item-container-row";
         // 结果放进不可编辑（disabled）的输入框
         const validInput = document.createElement('input');
-        validInput.value = element.getValid() ? '有效' : '无效';
+        validInput.value = element.getValid() ? itemText('board.itemValidYes', '有效') : itemText('board.itemInvalid', '无效');
         validInput.disabled = true;
         dataItem2.appendChild(validInput);
         dataItem.appendChild(dataItem2);
@@ -877,12 +880,12 @@ function selectElementByOverview(event) {
         const superstructure = element.getSuperstructure();
 
         const textNode = document.createElement('p');
-        textNode.innerText = '上层构造';
+        textNode.innerText = itemText('board.itemSuper', '上层构造');
         dataItem1.appendChild(textNode);
 
         // 结果放进不可编辑（disabled）的输入框：上层构造的各个图形（或「无」）
         const superInput = document.createElement('input');
-        superInput.value = superstructure.length === 0 ? '无' : superstructure.map(item => item.getId()).join(' ');
+        superInput.value = superstructure.length === 0 ? itemText('board.itemNone', '无') : superstructure.map(item => item.getId()).join(' ');
         superInput.disabled = true;
         dataItem2.appendChild(superInput);
         

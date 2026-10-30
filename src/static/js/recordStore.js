@@ -75,10 +75,12 @@
         showNameOff: '^',
         // 虚线（只有线 / 圆有，默认关闭所以只写「开」这一面）
         dashed: '&',
+        // 线段记号（1–6，默认 0 = 无记号所以只写有记号的那些），如 `S1>1`
+        mark: '>',
         hidden: '@',
         visible: '!',
     };
-    const STYLE_MARK_PATTERN = /[%#~$^@!&]/;
+    const STYLE_MARK_PATTERN = /[%#~$^@!&>]/;
     // styles 一行里各项用逗号隔开，显示名里可能有逗号：转义后再写，读回来按未转义的逗号切
     /**
      * 点线径档位表 过程函数
@@ -609,6 +611,7 @@
             if (entry.showName === true) parts.push(id + STYLE_MARKS.showNameOn);
             if (entry.showName === false) parts.push(id + STYLE_MARKS.showNameOff);
             if (entry.dashed === true) parts.push(id + STYLE_MARKS.dashed);
+            if (entry.mark) parts.push(id + STYLE_MARKS.mark + entry.mark);
             if (entry.visible === false) parts.push(id + STYLE_MARKS.hidden);
             if (entry.visible === true) parts.push(id + STYLE_MARKS.visible);
         });
@@ -645,6 +648,10 @@
                 else if (item.mark === STYLE_MARKS.showNameOn) entry.showName = true;
                 else if (item.mark === STYLE_MARKS.showNameOff) entry.showName = false;
                 else if (item.mark === STYLE_MARKS.dashed) entry.dashed = true;
+                else if (item.mark === STYLE_MARKS.mark) {
+                    const mark = Number(item.value);
+                    if (Number.isFinite(mark) && mark >= 1 && mark <= 6) entry.mark = mark;
+                }
                 else if (item.mark === STYLE_MARKS.hidden) entry.visible = false;
                 else if (item.mark === STYLE_MARKS.visible) entry.visible = true;
             });
@@ -681,6 +688,10 @@
             else if (mark === STYLE_MARKS.showNameOn) entry.showName = true;
             else if (mark === STYLE_MARKS.showNameOff) entry.showName = false;
             else if (mark === STYLE_MARKS.dashed) entry.dashed = true;
+            else if (mark === STYLE_MARKS.mark) {
+                const parsed = Number(value);
+                if (Number.isFinite(parsed) && parsed >= 1 && parsed <= 6) entry.mark = parsed;
+            }
             else if (mark === STYLE_MARKS.hidden) entry.visible = false;
             else if (mark === STYLE_MARKS.visible) entry.visible = true;
         });

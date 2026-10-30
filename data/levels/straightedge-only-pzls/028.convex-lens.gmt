@@ -1,0 +1,17 @@
+# convex lens
+A=[-395.1911055172,-86.6035923929]
+B=[-108.5033513888,-325.5100541665]
+c1=Circle[A,B]
+C=Linepoint[c1,0.6724763618171095]
+#geom=c1:Arc[A,B,C]
+s1=PBisect[C,B]
+D=Linepoint[s1,0.9369602382929295]
+c2=Circle[D,C]
+#geom=c2:Arc[D,C,B]
+
+initial=c1,c2,C,B
+named=
+movepoints=
+hidden=
+result=A,D
+explore=A,D

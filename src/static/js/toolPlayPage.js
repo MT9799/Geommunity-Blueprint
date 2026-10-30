@@ -28,7 +28,7 @@ function playHideAllowed(id) {
 function setPlayElementVisible(element, visible) {
     if (!element) return;
     if (!playHideAllowed(element.getId())) {
-        if (typeof boardToast === 'function') boardToast('这是关卡给定的图形，不能隐藏');
+        if (typeof boardToast === 'function') boardToast(t('board.toastGivenNoHide'));
         return;
     }
     if (typeof setElementVisible === 'function') setElementVisible(element, visible);
@@ -782,7 +782,7 @@ function clickToolFloatingButton(action, event) {
         // 关卡自带的图形（给定 / 关卡预绘制）是题目的一部分，不允许删掉
         const choice = geometryManager.getToolKey(tool, 'choice');
         if (choice && typeof isProtectedElement === 'function' && isProtectedElement(choice.getId())) {
-            if (typeof boardToast === 'function') boardToast('这是关卡给定的图形，不能删除');
+            if (typeof boardToast === 'function') boardToast(t('board.toastGivenNoDelete'));
         }else if (choice) {
             // 删掉这一笔就该把它当初记的步数与消耗退回来：先算出退回量（删除会连带删掉子对象，
             // 所以要在删之前把仓库里的对象记下来，删完比对差异），再连着 storage 事件一起发出去，
@@ -801,7 +801,7 @@ function clickToolFloatingButton(action, event) {
         }else{
             hideBrushMode = !hideBrushMode;
             if (typeof boardToast === 'function') {
-                boardToast(hideBrushMode ? '隐藏刷模式' : '已退出隐藏刷');
+                boardToast(hideBrushMode ? t('board.toastHideBrushOn') : t('board.toastHideBrushOff'));
             }
         }
     }

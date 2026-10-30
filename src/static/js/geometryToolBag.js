@@ -1505,7 +1505,7 @@ class StyleBrushTool {
         if (!id) return;
         if (typeof window.isGridObjectId === 'function' && window.isGridObjectId(id)) return;
         if (typeof isProtectedElement === 'function' && isProtectedElement(id)) {
-            if (typeof boardToast === 'function') boardToast('这是关卡给定的图形，不能删除');
+            if (typeof boardToast === 'function') boardToast(t('board.toastGivenNoDelete'));
             return;
         }
         geometryManager.deleteObject(id);
@@ -1585,6 +1585,13 @@ class StyleBrushTool {
         target.modifyShowName(own ? own.showName : source.getShowName());
         // 虚线（线 / 圆的样式）一并复制；点没有虚线，复制过去就是关闭
         target.modifyDashed(source.getDashed());
+        // 记号只属于线段：目标线段跟着来源走 —— 来源是线段就复制记号，
+        // 来源是直线 / 射线 / 圆（本来就没有记号）就把目标线段的记号去掉
+        const isSegment = item => item && typeof item.getType === 'function'
+            && item.getType() === 'line' && item.getDrawType?.() === 'lineSegment';
+        if (isSegment(target) && typeof target.modifyMark === 'function') {
+            target.modifyMark(isSegment(source) && source.getMark ? source.getMark() : 0);
+        }
     }
 
     /**

@@ -41,10 +41,10 @@ const toolMenuDefaultValue = {
     'construct': "parallelLine",
 }
 // 工具栏里的分隔线：值为「某个工具之后插一条竖线」，用来把功能性质不同的工具分组
-// 通用档：样式刷之后的作图类工具；线档：三种线之后的「切换线类型」
 const toolMenuDividers = {
     'general': ['styleBrush'],
     'line': ['lineSegment'],
+    'circle': ['compass'],
 }
 const toolItems = {
     'move': {

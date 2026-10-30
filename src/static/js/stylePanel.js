@@ -25,6 +25,15 @@ function createStyleSwitch(active, ariaLabel, title, onClick) {
 }
 
 /**
+ * 样式面板取词 过程函数
+ * i18n.js 未载入时退回中文，保证单独引用本文件也不至于显示键名
+ * @param {string} key i18n 键
+ * @param {string} fallback 中文兜底
+ * @returns {string}
+ */
+const styleText = (key, fallback) => (typeof t === 'function' ? t(key) : fallback);
+
+/**
  * 开关行里再追加一个「标题 + 控件」 过程函数
  * 「标签」与「虚线」并排在一行时用：第二个标题与第一个同宽，两个控件各占剩下的
  * @param {Object} row 开关行
@@ -39,6 +48,98 @@ function appendStyleControl(row, title, control) {
     row.appendChild(control);
 }
 
+/** 记号的无障碍/悬停文字（示意图本身用 SVG 画，避免不同设备字体差异） */
+const MARK_LABELS = ['——', '—|—', '—||—', '—|||—', '—>—', '—>>—', '—>>>—'];
+
+/**
+ * 记号的 SVG 示意图 过程函数
+ * 一条水平线 + 中央竖线（1–3 道）或箭头（1–3 道）
+ * @param {number} mark 0–6
+ * @returns {Object} svg 元素
+ */
+function markSvgElement(mark) {
+    const NS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('viewBox', '0 0 44 16');
+    svg.setAttribute('width', '44');
+    svg.setAttribute('height', '16');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.classList.add('style-mark-icon');
+    const add = (tag, attrs) => {
+        const node = document.createElementNS(NS, tag);
+        Object.entries(attrs).forEach(([key, value]) => node.setAttribute(key, value));
+        node.setAttribute('stroke', 'currentColor');
+        node.setAttribute('stroke-width', '1.5');
+        node.setAttribute('stroke-linecap', 'round');
+        svg.appendChild(node);
+        return node;
+    };
+    add('line', {x1: '2', y1: '8', x2: '42', y2: '8'});
+    if (mark >= 1 && mark <= 3) {
+        for (let i = 0; i < mark; i++) {
+            const x = 22 + (i - (mark - 1) / 2) * 5;
+            add('line', {x1: x, y1: '3.5', x2: x, y2: '12.5'});
+        }
+    } else if (mark >= 4) {
+        const count = mark - 3;
+        for (let i = 0; i < count; i++) {
+            const cx = 22 + (i - (count - 1) / 2) * 6;
+            add('polyline', {points: `${cx - 3},4.5 ${cx + 2},8 ${cx - 3},11.5`, fill: 'none', 'stroke-linejoin': 'round'});
+        }
+    }
+    return svg;
+}
+
+/**
+ * 线段记号下拉选择栏 过程函数
+ * 无记号（——）+ 6 种：—|— / —||— / —|||— / —>— / —>>— / —>>>—
+ * 按钮与选项都用 SVG 示意图，避免不同设备字体渲染不一致
+ * @param {number} current 当前记号 0–6
+ * @param {Function} onChange 选中某一项
+ * @returns {Object} 容器元素
+ */
+function createMarkSelect(current, onChange) {
+    const box = document.createElement('div');
+    box.className = 'style-mark-select';
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'style-mark-button';
+    button.setAttribute('aria-label', typeof t === 'function' ? t('board.styleMark') : '记号');
+    const menu = document.createElement('div');
+    menu.className = 'style-mark-menu';
+    menu.hidden = true;
+    const close = () => { menu.hidden = true; box.classList.remove('open'); };
+    const setIcon = value => {
+        button.innerHTML = '';
+        button.appendChild(markSvgElement(value));
+        button.title = MARK_LABELS[value] || MARK_LABELS[0];
+    };
+    for (let value = 0; value <= 6; value++) {
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.className = 'style-mark-item';
+        item.title = MARK_LABELS[value];
+        item.setAttribute('aria-label', MARK_LABELS[value]);
+        if (Number(current) === value) item.classList.add('active');
+        item.appendChild(markSvgElement(value));
+        item.addEventListener('click', event => {
+            event.stopPropagation();
+            close();
+            onChange(value);
+        });
+        menu.appendChild(item);
+    }
+    button.addEventListener('click', event => {
+        event.stopPropagation();
+        menu.hidden = !menu.hidden;
+        box.classList.toggle('open', !menu.hidden);
+    });
+    box.appendChild(button);
+    box.appendChild(menu);
+    setIcon(Number(current) || 0);
+    return box;
+}
+
 /**
  * 样式面板：颜色 / 粗细（点的大小） / 标签显示 / 虚线（线圆）
  * 画板（board.html 用 tool.js）与关卡游玩（level.html 用 toolPlayPage.js）共用，
@@ -49,16 +150,17 @@ function appendStyleControl(row, title, control) {
 // 粗细档位：点的大小与线、圆的粗细，默认值 1 为「中」。
 // 「大」与「中」之间、「中」与「小」之间各再加一挡（共 5 挡），用挡位条选（见 addWidthBar）
 const styleWidths = [
-    {value: 0.5, name: '细', pointName: '小'},
-    {value: 0.75, name: '较细', pointName: '较小'},
-    {value: 1, name: '中', pointName: '中'},
-    {value: 1.25, name: '较粗', pointName: '较大'},
-    {value: 1.5, name: '粗', pointName: '大'},
+    {value: 0.5, nameKey: 'board.widthThin', name: '细', pointKey: 'board.pointSizeSmall', pointName: '小'},
+    {value: 0.75, nameKey: 'board.widthSlim', name: '较细', pointKey: 'board.pointSizeSmaller', pointName: '较小'},
+    {value: 1, nameKey: 'board.widthMedium', name: '中', pointKey: 'board.pointSizeMedium', pointName: '中'},
+    {value: 1.25, nameKey: 'board.widthBold', name: '较粗', pointKey: 'board.pointSizeLarger', pointName: '较大'},
+    {value: 1.5, nameKey: 'board.widthThick', name: '粗', pointKey: 'board.pointSizeLarge', pointName: '大'},
 ];
 /** 档位名 过程函数（按值找名字，找不到就用原值） */
 const styleWidthNameOf = (value, isPoint) => {
     const hit = styleWidths.find(item => Math.abs(value - item.value) < 0.01);
-    return hit ? (isPoint ? hit.pointName : hit.name) : String(value);
+    if (!hit) return String(value);
+    return isPoint ? styleText(hit.pointKey, hit.pointName) : styleText(hit.nameKey, hit.name);
 };
 
 /**
@@ -234,12 +336,12 @@ function openStylePopup(options) {
         popup.innerHTML = '';
 
         // 颜色（拖动取色时即时生效但不记历史，取色确定后才记一步）
-        const colorRow = addRow('颜色');
+        const colorRow = addRow(styleText('board.styleColor', '颜色'));
         const colorButton = document.createElement('button');
         colorButton.type = 'button';
         colorButton.className = 'style-popup-color';
         colorButton.style.backgroundColor = style.color;
-        colorButton.setAttribute('aria-label', '选择颜色');
+        colorButton.setAttribute('aria-label', styleText('board.stylePickColor', '选择颜色'));
         colorButton.addEventListener('click', () => {
             let picked = style.color;
             const applyColor = live => { apply({color: picked, colorChoice: 'color'}, live); draw(); };
@@ -248,30 +350,43 @@ function openStylePopup(options) {
         colorRow.appendChild(colorButton);
 
         // 粗细 / 大小（挡位条）
-        const widthRow = addRow(isPoint ? '大小' : '粗细');
+        const widthRow = addRow(isPoint ? styleText('board.styleSize', '大小') : styleText('board.styleWidth', '粗细'));
         addWidthBar(widthRow, width, isPoint, value => { apply({width: value}); draw(); });
 
         // 标签：一个开关（开 = 显示标签，关 = 不显示）
         // 虚线与它并排在同一行（只有直线与圆有，点没有这个开关）：开 = 画成虚线，各模式默认关
         // 网格（格线）不给「标签」开关：那一行只剩虚线（行名也跟着换）
-        const labelRow = addRow(options.hideLabel ? '虚线' : '标签');
+        const dashedTip = styleText('board.styleDashed', '虚线');
+        const labelRow = addRow(options.hideLabel ? dashedTip : styleText('board.styleLabel', '标签'));
         labelRow.classList.add('style-popup-row-pair');
         if (!options.hideLabel) {
-            labelRow.appendChild(createStyleSwitch(!!style.showName, '显示标签', style.showName ? '显示标签' : '不显示标签',
+            labelRow.appendChild(createStyleSwitch(!!style.showName, styleText('board.styleShowLabel', '显示标签'),
+                style.showName ? styleText('board.styleShowLabel', '显示标签') : styleText('board.styleHideLabel', '不显示标签'),
                 () => { apply({showName: !style.showName}); draw(); }));
         }
         if (!isPoint) {
             const dashed = style.dashed === true;
-            appendStyleControl(labelRow, '虚线', createStyleSwitch(dashed, '虚线', dashed ? '虚线，点一下变回实线' : '实线，点一下变虚线',
+            appendStyleControl(labelRow, dashedTip, createStyleSwitch(dashed, dashedTip,
+                dashed ? styleText('board.styleDashedOnTip', '虚线，点一下变回实线') : styleText('board.styleDashedOffTip', '实线，点一下变虚线'),
                 () => { apply({dashed: !dashed}); draw(); }));
         }
 
         // 隐藏对象（只有「调整已选中对象的样式」这个弹层有）：点一下就把当前对象藏起来
         if (options.showHide) {
-            const hideRow = addRow('隐藏');
+            const hideRow = addRow(styleText('board.styleHide', '隐藏'));
             const hidden = style.visible === false;
-            hideRow.appendChild(createStyleSwitch(hidden, '隐藏对象', hidden ? '已隐藏，点一下恢复显示' : '点一下隐藏这个对象',
+            hideRow.appendChild(createStyleSwitch(hidden, styleText('board.styleHideObject', '隐藏对象'),
+                hidden ? styleText('board.styleRestoreObjectTip', '已隐藏，点一下恢复显示') : styleText('board.styleHideThisObjectTip', '点一下隐藏这个对象'),
                 () => { apply({visible: hidden ? true : false}); draw(); }));
+            // 线段记号的下拉放在「隐藏」开关右边
+            if (options.showMark) {
+                appendStyleControl(hideRow, styleText('board.styleMark', '记号'), createMarkSelect(style.mark || 0,
+                    value => { apply({mark: value}); draw(); }));
+            }
+        }else if (options.showMark) {
+            // 没有隐藏开关时（线段工具的预设）单独一行放记号下拉
+            const markRow = addRow(styleText('board.styleMark', '记号'));
+            markRow.appendChild(createMarkSelect(style.mark || 0, value => { apply({mark: value}); draw(); }));
         }
     };
     draw();
@@ -300,6 +415,8 @@ function openStyleConfigPopup(type, anchor) {
         anchor: button,
         key: `config-${type}`,
         isPoint: type === 'point',
+        // 只有线段工具才有「记号」（直线 / 射线没有中央记号）
+        showMark: type === 'line' && tool === 'lineSegment',
         get: () => geometryStyle[type],
         apply: patch => {
             Object.assign(geometryStyle[type], patch);
@@ -346,6 +463,9 @@ function openObjectStylePopup(anchor) {
         const list = selected.map(item => geometryManager.get(item.getId())).filter(Boolean);
         return list.length ? list : [geometryManager.get(element.getId()) || element];
     };
+    // 选中的全是线段时才给「记号」（直线 / 射线 / 圆没有中央记号）
+    const allSegments = !isGrid && targetsOf().every(item => item.getType?.() === 'line'
+        && item.getDrawType?.() === 'lineSegment');
     openStylePopup({
         anchor: button,
         key: 'object',
@@ -353,13 +473,16 @@ function openObjectStylePopup(anchor) {
         isPoint: targetsOf().every(item => item.getType() === 'point'),
         // 这个弹层多一个「隐藏」开关（非游玩模式才能隐藏对象）—— 网格不给
         showHide: !isGrid,
+        // 选中线段时在「隐藏」右侧多一个「记号」下拉
+        showMark: allSegments,
         hideLabel: isGrid,
-        get: () => ({color: element.getColor(), width: element.getWidth(), showName: element.getShowName(), visible: element.getVisible(), dashed: element.getDashed()}),
+        get: () => ({color: element.getColor(), width: element.getWidth(), showName: element.getShowName(), visible: element.getVisible(), dashed: element.getDashed(), mark: element.getMark ? element.getMark() : 0}),
         apply: (patch, live) => {
             targetsOf().forEach(item => {
                 if (patch.color) item.modifyColor(patch.color);
                 if (patch.width) item.modifyWidth(patch.width);
                 if (patch.dashed !== undefined) item.modifyDashed(patch.dashed);
+                if (!isGrid && patch.mark !== undefined) item.modifyMark(patch.mark);
                 if (!isGrid && patch.showName !== undefined) item.modifyShowName(patch.showName);
                 if (!isGrid && patch.visible !== undefined) setElementVisible(item, patch.visible);
             });
@@ -426,6 +549,8 @@ function renderInlineStyleControls(container, element, onChange, readOnly) {
         const target = current();
         holder.innerHTML = '';
         const isPoint = target.getType() === 'point';
+        // 线段才谈得上记号（直线 / 射线 / 圆没有中央记号）
+        const isSegment = !isPoint && target.getType() === 'line' && target.getDrawType?.() === 'lineSegment';
         const addRow = title => {
             const row = document.createElement('div');
             row.className = 'style-popup-row';
@@ -439,13 +564,13 @@ function renderInlineStyleControls(container, element, onChange, readOnly) {
 
         // 只读展示（游玩界面不允许改样式）：色块 + 文字，控件不可点
         if (readOnly) {
-            const roColorRow = addRow('颜色');
+            const roColorRow = addRow(styleText('board.styleColor', '颜色'));
             const swatch = document.createElement('span');
             swatch.className = 'style-popup-color';
             swatch.style.backgroundColor = target.getColor();
             roColorRow.appendChild(swatch);
 
-            const roWidthRow = addRow(isPoint ? '大小' : '粗细');
+            const roWidthRow = addRow(isPoint ? styleText('board.styleSize', '大小') : styleText('board.styleWidth', '粗细'));
             const widthText = document.createElement('span');
             widthText.className = 'style-inline-value';
             // 只读时直接写档位名（细 / 较细 / 中 / 较粗 / 粗），比裸数字好读
@@ -453,31 +578,31 @@ function renderInlineStyleControls(container, element, onChange, readOnly) {
             roWidthRow.appendChild(widthText);
 
             // 标签与虚线并排一行（虚线只有直线与圆有）
-            const roLabelRow = addRow('标签');
+            const roLabelRow = addRow(styleText('board.styleLabel', '标签'));
             roLabelRow.classList.add('style-popup-row-pair');
             const labelText = document.createElement('span');
             labelText.className = 'style-inline-value';
-            labelText.textContent = target.getShowName() ? '显示' : '不显示';
+            labelText.textContent = target.getShowName() ? styleText('board.styleShown', '显示') : styleText('board.styleNotShown', '不显示');
             roLabelRow.appendChild(labelText);
             if (!isPoint) {
                 const dashText = document.createElement('span');
                 dashText.className = 'style-inline-value';
-                dashText.textContent = target.getDashed() ? '是' : '否';
-                appendStyleControl(roLabelRow, '虚线', dashText);
+                dashText.textContent = target.getDashed() ? styleText('board.styleYes', '是') : styleText('board.styleNo', '否');
+                appendStyleControl(roLabelRow, styleText('board.styleDashed', '虚线'), dashText);
             }
 
             // 隐藏：只读档位里这一项是**可用**的（游玩模式也能藏 / 显示自己画的图形）；
             // 题面对象（给定 / 关卡自带 / 所求）与「关卡自己藏起来的图形」不给动，开关置灰。
             // 判据：游玩页用 playHideAllowed、画板等用 boardHideAllowed；外加「现在看不见、
             // 又不在 hidden 集合里」＝关卡预绘制就藏着的，同样不给动
-            const roHideRow = addRow('隐藏');
+            const roHideRow = addRow(styleText('board.styleHide', '隐藏'));
             const allowHide = typeof playHideAllowed === 'function' ? playHideAllowed
                 : (typeof window.boardHideAllowed === 'function' ? window.boardHideAllowed : null);
             const playerControlled = typeof geometryElementLists !== 'undefined' && geometryElementLists.hidden
                 ? geometryElementLists.hidden.has(targetId) : false;
             const canHide = (allowHide ? allowHide(targetId) : true) && (target.getVisible() || playerControlled);
-            const hideSwitch = createStyleSwitch(!target.getVisible(), '隐藏',
-                target.getVisible() ? '点一下隐藏这个图形' : '已隐藏，点一下显示',
+            const hideSwitch = createStyleSwitch(!target.getVisible(), styleText('board.styleHide', '隐藏'),
+                target.getVisible() ? styleText('board.styleHideThisTip', '点一下隐藏这个图形') : styleText('board.styleShowThisTip', '已隐藏，点一下显示'),
                 () => {
                     if (!canHide) return;
                     const item = current();
@@ -492,12 +617,12 @@ function renderInlineStyleControls(container, element, onChange, readOnly) {
         }
 
         // 颜色
-        const colorRow = addRow('颜色');
+        const colorRow = addRow(styleText('board.styleColor', '颜色'));
         const colorButton = document.createElement('button');
         colorButton.type = 'button';
         colorButton.className = 'style-popup-color';
         colorButton.style.backgroundColor = target.getColor();
-        colorButton.setAttribute('aria-label', '选择颜色');
+        colorButton.setAttribute('aria-label', styleText('board.stylePickColor', '选择颜色'));
         colorButton.addEventListener('click', () => {
             let picked = current().getColor();
             const applyColor = live => {
@@ -512,7 +637,7 @@ function renderInlineStyleControls(container, element, onChange, readOnly) {
         colorRow.appendChild(colorButton);
 
         // 粗细 / 大小（挡位条）
-        const widthRow = addRow(isPoint ? '大小' : '粗细');
+        const widthRow = addRow(isPoint ? styleText('board.styleSize', '大小') : styleText('board.styleWidth', '粗细'));
         const width = target.getWidth() || 1;
         addWidthBar(widthRow, width, isPoint, value => {
             each(item => item.modifyWidth(value));
@@ -522,26 +647,40 @@ function renderInlineStyleControls(container, element, onChange, readOnly) {
 
         // 标签开关，虚线与它并排在同一行（只有直线与圆有）：开 = 画成虚线，各模式默认关
         // 网格（格线）不给「标签」开关：那一行只剩虚线（与画布上的样式弹层同一口径）
+        const dashedLabel = styleText('board.styleDashed', '虚线');
+        const dashedOnTip = styleText('board.styleDashedOnTip', '虚线，点一下变回实线');
+        const dashedOffTip = styleText('board.styleDashedOffTip', '实线，点一下变虚线');
         if (isGrid) {
             const gridDashed = target.getDashed();
-            appendStyleControl(addRow('虚线'), '虚线', createStyleSwitch(gridDashed, '虚线', gridDashed ? '虚线，点一下变回实线' : '实线，点一下变虚线',
+            appendStyleControl(addRow(dashedLabel), dashedLabel, createStyleSwitch(gridDashed, dashedLabel, gridDashed ? dashedOnTip : dashedOffTip,
                 () => { each(item => item.modifyDashed(!item.getDashed())); draw(); done(); }));
         } else {
-            const labelRow = addRow('标签');
+            const labelRow = addRow(styleText('board.styleLabel', '标签'));
             labelRow.classList.add('style-popup-row-pair');
-            labelRow.appendChild(createStyleSwitch(!!target.getShowName(), '显示标签', target.getShowName() ? '显示标签' : '不显示标签',
+            labelRow.appendChild(createStyleSwitch(!!target.getShowName(), styleText('board.styleShowLabel', '显示标签'),
+                target.getShowName() ? styleText('board.styleShowLabel', '显示标签') : styleText('board.styleHideLabel', '不显示标签'),
                 () => { const item = current(); item.modifyShowName(!item.getShowName()); draw(); done(); }));
             if (!isPoint) {
                 const dashed = target.getDashed();
-                appendStyleControl(labelRow, '虚线', createStyleSwitch(dashed, '虚线', dashed ? '虚线，点一下变回实线' : '实线，点一下变虚线',
+                appendStyleControl(labelRow, dashedLabel, createStyleSwitch(dashed, dashedLabel, dashed ? dashedOnTip : dashedOffTip,
                     () => { const item = current(); item.modifyDashed(!item.getDashed()); draw(); done(); }));
             }
 
             // 隐藏对象（网格不给：它当作一整块，不能被隐藏）
-            const hideRow = addRow('隐藏');
+            const hideRow = addRow(styleText('board.styleHide', '隐藏'));
             const hidden = !target.getVisible();
-            hideRow.appendChild(createStyleSwitch(hidden, '隐藏对象', hidden ? '已隐藏，点一下恢复显示' : '点一下隐藏这个对象',
+            hideRow.appendChild(createStyleSwitch(hidden, styleText('board.styleHideObject', '隐藏对象'),
+                hidden ? styleText('board.styleRestoreObjectTip', '已隐藏，点一下恢复显示') : styleText('board.styleHideThisObjectTip', '点一下隐藏这个对象'),
                 () => { const item = current(); setElementVisible(item, !item.getVisible()); draw(); done(); }));
+            // 线段记号放在「隐藏」开关右侧（与画布上的样式弹层一致）
+            if (isSegment) {
+                appendStyleControl(hideRow, styleText('board.styleMark', '记号'),
+                    createMarkSelect(target.getMark ? target.getMark() : 0, value => {
+                        each(item => item.modifyMark(value));
+                        draw();
+                        done();
+                    }));
+            }
         }
     };
     draw();

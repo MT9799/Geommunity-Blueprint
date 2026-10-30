@@ -24,6 +24,8 @@ class GeometryElement {
         this.width = 1;
         // 虚线：只有直线与圆用得上（点在样式面板里没有这个开关），各模式默认关闭
         this.dashed = false;
+        // 线段中央的记号：0 = 无；1/2/3 = 中竖线 1/2/3 道；4/5/6 = 箭头 1/2/3 道（见 canvas.js）
+        this.mark = 0;
         this.internal = false;
     }
     
@@ -123,6 +125,15 @@ class GeometryElement {
         this.dashed = !!bool;
     }
 
+    /**
+     * 修改线段记号，默认 0（无）
+     * @param {number} value 0–6
+     */
+    modifyMark(value) {
+        const mark = Number(value) || 0;
+        this.mark = mark >= 0 && mark <= 6 ? mark : 0;
+    }
+
     modifyInternal(bool) {
         this.internal = !!bool;
     }
@@ -201,6 +212,14 @@ class GeometryElement {
      */
     getDashed() {
         return !!this.dashed;
+    }
+
+    /**
+     * 访问线段记号
+     * @returns {number} 0–6
+     */
+    getMark() {
+        return Number(this.mark) || 0;
     }
 }
 
@@ -411,6 +430,8 @@ class Line extends GeometryElement {
         dict.color = this.color;
         dict.width = this.width;
         dict.dashed = this.dashed;
+        // 记号只在有它的对象上写（线段），旧存档里没有这个字段 = 0
+        if (this.mark) dict.mark = this.mark;
         dict.internal = this.internal;
         dict.coordinate = this.coordinate;
         dict.base = {type: this.base.type};
@@ -599,7 +620,7 @@ class GeometryElementManager {
         this.duplicatedFlag = false;
         this.transform = {x: 0, y: 0, scale: 1};
         this.geometryStyle = {point: {colorChoice: "auto", color: "#191919"}, 
-            line: {colorChoice: "auto", color: "#191919", dashed: false}, 
+            line: {colorChoice: "auto", color: "#191919", dashed: false, mark: 0}, 
             circle: {colorChoice: "auto", color: "#191919", dashed: false}
         };
         this.geometryElementLists = {
@@ -1482,6 +1503,8 @@ class GeometryElementManager {
             }
             lineObject.modifyWidth(style.width || defaultElementWidth(type));
             lineObject.modifyDashed(!!style.dashed);
+            // 记号只属于线段（直线 / 射线没有中央记号）
+            lineObject.modifyMark(drawType === 'lineSegment' ? (style.mark || 0) : 0);
             if (style.showName) lineObject.modifyShowName(true);
             this.addToolObject(tool, key, "append", lineObject);
         }else if (type === "circle") {
@@ -1832,6 +1855,8 @@ class GeometryElementManager {
             // 存档 / gmt / 记录里没带粗细的（gmt 本来就不写）用当前模式的默认，不再是写死的 1
             element.modifyWidth(typeof width === 'number' ? width : defaultElementWidth(type));
             element.modifyDashed(!!elementDict.dashed);
+            // 线段记号（旧存档没有这个字段就按无记号）
+            element.modifyMark(elementDict.mark || 0);
             element.modifyInternal(!!elementDict.internal || String(id).startsWith('med'));
             return element;
         }

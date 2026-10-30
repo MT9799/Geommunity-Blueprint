@@ -279,7 +279,7 @@ class EraserTool {
             if (!id) return;
             // 关卡自带的图形是题目的一部分，游玩时不允许擦掉
             if (typeof isProtectedElement === 'function' && isProtectedElement(id)) {
-                if (typeof boardToast === 'function') boardToast('这是关卡给定的图形，不能删除');
+                if (typeof boardToast === 'function') boardToast(t('board.toastGivenNoDelete'));
                 return;
             }
             geometryManager.deleteObject(id);
@@ -295,7 +295,7 @@ class EraserTool {
             if (!id) return;
             // 关卡自带的图形是题目的一部分，游玩时不允许擦掉
             if (typeof isProtectedElement === 'function' && isProtectedElement(id)) {
-                if (typeof boardToast === 'function') boardToast('这是关卡给定的图形，不能删除');
+                if (typeof boardToast === 'function') boardToast(t('board.toastGivenNoDelete'));
                 return;
             }
             geometryManager.deleteObject(id);

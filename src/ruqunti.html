@@ -37,8 +37,8 @@
     <!-- 入群题选关页：无 ?q= 参数时显示，点击卡片进入对应题的游玩页 -->
     <div id="quiz-select" class="quiz-select">
         <div class="quiz-select-inner">
-            <h1 class="quiz-title">入群题</h1>
-            <p class="quiz-sub">以下 6 道作图题任选一题完成（Q1、Q5 网格；Q4 单尺；Q6 单规；Q2、Q3 尺规）。</p>
+            <h1 class="quiz-title" data-i18n="quiz.title">入群题</h1>
+            <p class="quiz-sub" data-i18n="quiz.sub">以下 6 道作图题任选一题完成（Q1、Q5 网格；Q4 单尺；Q6 单规；Q2、Q3 尺规）。</p>
             <div class="quiz-grid"></div>
         </div>
     </div>
@@ -105,7 +105,7 @@ fill="transparent" stroke-width="10"  stroke-linejoin="round"/>
         <div class="complete-body">
             <span class="complete-item" data-complete="done">
                 <span class="complete-check">&#10004;</span>
-                <span class="complete-name">完成</span>
+                <span class="complete-name" data-i18n="level.done">完成</span>
             </span>
             <span class="complete-item" data-complete="l">
                 <span class="complete-check">&#10004;</span>
@@ -164,7 +164,7 @@ fill="transparent" stroke-width="10"  stroke-linejoin="round"/>
     <div id="overviewPanel" class="panel">
         <div class="panel-container" id="geometry-item-list">
             <div class="item-container-title">
-                <p>几何元素一览</p>
+                <p data-i18n="board.elementsTitle">几何元素一览</p>
                 <button type="button" class="panel-close-button" id="overview-close" data-action="close-overview"></button>
             </div>
             <select id="overview-select">
@@ -651,33 +651,45 @@ fill="transparent" stroke-width="10" stroke-linejoin="round"/>
         {
           id: 'q1', title: 'Q1', file: 'Q1.gmt', tools: 'grid', targetSteps: '3E', image: 'Q1.jpg',
           problem: '如图，在每个边长为1的正方形网格中，点A，B均落在格点上，点C在线段AB上，点D在网格线上，给出△BCD的外接圆，请用无刻度的直尺，在线段AB上找到一个点P，使CP=DP。',
+          problemEn: 'As shown, in a unit square grid, points A and B are grid points, C lies on segment AB and D lies on a grid line. The circumcircle of △BCD is given. Using only an unmarked straightedge, find a point P on segment AB such that CP = DP.',
         },
         {
           id: 'q2', title: 'Q2', file: 'Q2.gmt', tools: '', targetSteps: '8E', image: 'Q2.jpg',
           problem: '∠AOB内有一点C，作正三角形CDE，使得D在OA上，E在OB上。',
+          problemEn: 'Inside angle AOB there is a point C. Construct an equilateral triangle CDE such that D lies on OA and E lies on OB.',
         },
         {
           id: 'q3', title: 'Q3', file: 'Q3.gmt', tools: '', targetSteps: '4E', image: 'Q3.jpg',
           problem: '过点B作弦DE，使得该点截弦比例为1:2。',
+          problemEn: 'Draw a chord DE through point B such that B divides the chord in the ratio 1 : 2.',
         },
         {
           id: 'q4', title: 'Q4', file: 'Q4.gmt', tools: 'straightedge', targetSteps: '7E', image: 'Q4.jpg',
           problem: '已知圆O及互垂直径AB、CD，E为线段AO上一点（不与A、O重合）。仅用无刻度的直尺，求作一弦CP，使CP=CE，且∠AOP为锐角。',
+          problemEn: 'Circle O with perpendicular diameters AB and CD is given, and E is a point on segment AO (not A or O). Using only an unmarked straightedge, construct a chord CP such that CP = CE and ∠AOP is acute.',
         },
         {
           id: 'q5', title: 'Q5', file: 'Q5.gmt', tools: 'grid', targetSteps: '3E', image: 'Q5.jpg',
           problem: '如图，在每个边长为1的正方形网格中，半圆经过格点A、B，BC是半圆的直径，请用无刻度的直尺，在半圆上确定一点P，使线段PB:PC=6:7。',
+          problemEn: 'As shown, in a unit square grid, a semicircle passes through grid points A and B, and BC is the diameter of the semicircle. Using only an unmarked straightedge, locate a point P on the semicircle such that PB : PC = 6 : 7.',
         },
         {
           id: 'q6', title: 'Q6', file: 'Q6.gmt', tools: 'OC', targetSteps: '6L', image: 'Q6.jpg',
           problem: '仅使用圆工具（圆规亦可），求作一点，使其"黄金分割"给定线段。',
+          problemEn: 'Using only the circle (compass) tool, construct a point that divides the given segment in the golden ratio.',
         }
       ];
 
       const params = new URLSearchParams(location.search);
       const q = params.get('q');
       const selectEl = document.getElementById('quiz-select');
-      const toolLabel = t => ({ grid: '网格', straightedge: '单尺', compass: '单规', '': '尺规' })[t] || '特殊';
+      const toolLabel = value => ({
+        grid: t('quiz.tagGrid'), straightedge: t('quiz.tagStraightedge'),
+        compass: t('quiz.tagCompass'), '': t('quiz.tagStandard'),
+      })[value] || t('quiz.tagSpecial');
+      // 题面按当前语言取：英文界面用 problemEn（缺失时退回中文）
+      const problemOf = level => (typeof currentLang === 'function' && currentLang() === 'en' && level.problemEn)
+        ? level.problemEn : level.problem;
 
       // 选关页：无 ?q= 时渲染卡片；带 ?q= 时隐藏覆盖层、进入游玩页
       if (!q) {
@@ -724,14 +736,14 @@ fill="transparent" stroke-width="10" stroke-linejoin="round"/>
               sessionStorage.setItem('geometryElementLists', JSON.stringify(lists));
               sessionStorage.setItem('thumbnail', JSON.stringify({
                 title_input: level.title,
-                body_input: level.problem,
+                body_input: problemOf(level),
                 bottom_input: level.targetSteps || '',
                 pictureData: level.image ? '../data/ruqunti/' + level.image : null
               }));
               if (typeof geometryManagerResult !== 'undefined') {
                 Object.entries(lists).forEach(([key, value]) => { geometryElementLists[key] = new Set(value); });
                 const titleInf = document.getElementById('title_inf'); if (titleInf) titleInf.textContent = level.title;
-                const bodyInf = document.getElementById('body_inf'); if (bodyInf) bodyInf.textContent = level.problem;
+                const bodyInf = document.getElementById('body_inf'); if (bodyInf) bodyInf.textContent = problemOf(level);
                 const bottomInf = document.getElementById('bottom_inf');
                 if (bottomInf && level.targetSteps) { bottomInf.dataset.goalSteps = '1'; bottomInf.textContent = level.targetSteps; }
                 loadGeometryElementsStorage();

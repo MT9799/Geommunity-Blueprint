@@ -50,7 +50,7 @@ let transform = {
 // showName：是否显示标签（未设置时沿用自动配色模式的默认标签策略）
 let geometryStyle = {
     point: {colorChoice: "autoPlayMode", color: "#191919", width: 0.75}, 
-    line: {colorChoice: "autoPlayMode", color: "#191919", width: 0.75, dashed: false}, 
+    line: {colorChoice: "autoPlayMode", color: "#191919", width: 0.75, dashed: false, mark: 0}, 
     circle: {colorChoice: "autoPlayMode", color: "#191919", width: 0.75, dashed: false}
 };
 
@@ -1384,7 +1384,7 @@ function thumbnailPictureZoom(event) {
     mask.className = "thumbnail-zoom";
     const zoomImage = document.createElement("img");
     zoomImage.src = image.src;
-    zoomImage.alt = image.alt || "示意图";
+    zoomImage.alt = image.alt || t('board.zoomImageAlt');
     mask.appendChild(zoomImage);
     mask.addEventListener("click", () => mask.remove());
     document.body.appendChild(mask);
@@ -1768,7 +1768,7 @@ function playStartDataLoad() {
             const pictureDE = document.createElement('img');
             pictureDE.id = 'thumbnail-picture';
             pictureDE.src = thumbnail.pictureData;
-            pictureDE.alt = "此处放置缩略图";
+            pictureDE.alt = t('board.thumbnailAlt');
             const container = document.getElementById('thumbnail-middle');
             container.appendChild(pictureDE);
         }

@@ -60,7 +60,7 @@ let transform = {
 // showName：是否显示标签 —— 点默认显示标签（与 addObject 的默认策略一致），直线与圆默认不显示
 let geometryStyle = {
     point: {colorChoice: "auto", color: "#191919", width: 0.75, showName: true}, 
-    line: {colorChoice: "auto", color: "#191919", width: 0.75, showName: false, dashed: false}, 
+    line: {colorChoice: "auto", color: "#191919", width: 0.75, showName: false, dashed: false, mark: 0}, 
     circle: {colorChoice: "auto", color: "#191919", width: 0.75, showName: false, dashed: false}
 };
 
