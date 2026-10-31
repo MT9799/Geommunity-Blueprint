@@ -1,0 +1,17 @@
+# SegSymDbl
+A=[-308.0607789681,-94.7112427248]
+B=[507.4528689152,-106.6747681217]
+S1=Segment[A,B]
+C=Midpoint[A,B]
+D=Linepoint[S1,0.11014421726423494]
+c1=Circle[C,D]
+E=Intersect[S1,c1,-,D]
+c2=Circle[E,B]
+F=Intersect[S1,c2,-,B]
+
+initial=S1,D,A,B
+named=C.M
+movepoints=
+hidden=
+result=F
+explore=F

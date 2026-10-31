@@ -73,10 +73,12 @@
   // 标记显示色：给定 / 带标签给定黑、可移动点蓝、所求类与探索显示金
   const markColors = {initial: '#191919', named: '#191919', movepoints: '#0099ff', result: '#ffd700', resultShown: '#ffd700', explore: '#ffd700'};
   // 标记的互斥关系：给定三项（给定 / 带标签给定 / 可移动点）互相排斥，一个对象只属于其中一个；
-  // 所求判定 / 所求显示 / 探索显示**彼此可以共存**，但它们与给定那三类互斥 ——
-  // 一个图形要么是题面条件，要么是目标 / 探索对象，不能两头都占（见 markExclusive）
+  // 所求判定 / 探索显示 与给定那三类互斥 —— 把「给定」标成「所求判定」会撤掉给定、反之亦然；
+  // 但「所求显示」允许与「给定」共存（一个图形可以既是题面条件、又作为目标的显示对象），
+  // 所求判定 / 所求显示 / 探索显示彼此仍可共存（见 markExclusive）
   const givenMarkKeys = ['initial', 'named', 'movepoints'];
-  const goalMarkKeys = ['result', 'resultShown', 'explore'];
+  const goalMarkKeys = ['result', 'explore'];    // 与给定互斥
+  const shownMarkKeys = ['resultShown'];         // 所求显示：与给定 / 其他类别都不互斥
   // 求解器只保留「给定」与「所求判定」，制题器保留完整的 3 + 3
   const solverMode = mode === 'solver';
   const markSetOf = key => geometryElementLists[key] || new Set();
@@ -267,24 +269,26 @@
   };
   /**
    * 标上某一类之前先撤掉与它互斥的标记 过程函数
-   * 规则：给定三项（给定 / 带标签给定 / 可移动点）互相排斥；所求判定 / 所求显示 / 探索显示
-   * 彼此可以共存，但与给定三类互斥 —— 例如把「给定」的图形标成「所求判定」，
-   * 它的给定标记就被撤掉（反之把「所求判定」的图形标成「给定」，所求判定也撤掉）
+   * 规则：给定三项（给定 / 带标签给定 / 可移动点）互相排斥；所求判定 / 探索显示 与给定三类互斥
+   * （例如把「给定」标成「所求判定」会撤掉给定、反之亦然）；但「所求显示」允许与给定共存，
+   * 一个图形可以既是题面条件、又作为目标的显示对象。所求判定 / 所求显示 / 探索显示彼此仍可共存。
    * @param {string} id 对象 id
    * @param {string} key 要标的这一类（initial / named / movepoints / result / resultShown / explore）
    */
   const markExclusive = (id, key) => {
     if (givenMarkKeys.includes(key)) {
-      // 给定：同类里只留这一个；所求（含多解每一组的判定与显示）与探索显示一并撤掉
+      // 给定：同类里只留这一个；撤掉与给定互斥的「所求判定」各解与「探索显示」，
+      // 但**保留「所求显示」**（允许一个图形既是给定、又作为目标显示对象）
       givenMarkKeys.forEach(other => { if (other !== key) markSetOf(other).delete(id); });
-      resultMarkSets().forEach(item => item.set.delete(id));
+      resultMarkSets().forEach(item => { if (item.kind === 'judged') item.set.delete(id); });
       markSetOf('explore').delete(id);
       return;
     }
     if (goalMarkKeys.includes(key)) {
-      // 所求类 / 探索显示：彼此共存、不动对方，只撤掉给定那三类
+      // 所求判定 / 探索显示：只撤掉给定那三类，不动所求显示、也不动彼此
       givenMarkKeys.forEach(other => markSetOf(other).delete(id));
     }
+    // shownMarkKeys（所求显示）：与任意类别都不互斥，不撤任何标记
   };
   // 元素一览（geometryItem.js）补标记时也要守同一条互斥规则
   window.markExclusive = (id, key) => markExclusive(id, key);

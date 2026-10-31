@@ -1,0 +1,26 @@
+# H-M-AonL
+A=[-330.3443348506,-54.8910526187]
+B=[72.8553971121,-58.8831291728]
+C=[507.9917415074,188.6256171805]
+D=[-478.0511673517,-629.750076407]
+s1=Line[C,D]
+s2=Line[B,A]
+s3=Perp[A,s2]
+s4=Perp[B,s2]
+E=Intersect[s4,s1,0]
+F=Intersect[s3,s1,0]
+c1=Circle[E,F]
+G=Intersect[s2,c1,1]
+s5=Line[F,G]
+H=Intersect[s2,c1,0]
+s6=Line[F,H]
+S1=Segment[G,H]
+S2=Segment[H,F]
+S3=Segment[F,G]
+
+initial=s1
+named=A.H,B.M
+movepoints=C,D
+hidden=
+result=s5,s2,s6:S1,G,S3,F,S2,H
+explore=S1,G,S3,F,S2,H

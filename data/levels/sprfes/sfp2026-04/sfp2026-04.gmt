@@ -1,0 +1,20 @@
+# CircTri-HPerp
+A=[0.9969605533,-218.3343611636]
+B=[-258.212783294,-461.5927361587]
+c1=Circle[A,B]
+C=Linepoint[c1,2.5829933382462307]
+D=Linepoint[c1,0.5453070468848723]
+E=Linepoint[c1,-0.06852001555869539]
+s1=Line[C,D]
+s2=PBisect[C,D]
+F=Intersect[s2,s1,0]
+s3=Line[F,E]
+s4=Perp[E,s3]
+G=Intersect[s4,c1,-,E]
+
+initial=c1
+named=C.B,D.C,E.D
+movepoints=B,A
+hidden=
+result=G
+explore=G

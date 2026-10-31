@@ -4380,30 +4380,6 @@
         ]
     },
     {
-        "id": "insctri-squsum-min",
-        "pack": "c-s-pzls-other",
-        "file": "levels/c-s-pzls-other/028.insctri-squsum-min/insctri-squsum-min.gmt",
-        "title": "内接三角形最小平方和",
-        "subtitle": "构造三角形的内接三角形，使得该三角形三边的平方和最小。",
-        "targetSteps": "12L / 26E",
-        "diagram": "levels/c-s-pzls-other/028.insctri-squsum-min/insctri-squsum-min.jpg",
-        "note": "",
-        "keywords": [
-            "C-s-Pzls-Other",
-            "三角形",
-            "内接",
-            "边长度",
-            "平方和",
-            "极小值"
-        ],
-        "solutions": [
-            {
-                "star": "12L 26E",
-                "file": "levels/c-s-pzls-other/028.insctri-squsum-min/12L26E.jpg"
-            }
-        ]
-    },
-    {
         "id": "2angles-diff-45",
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/029.2angles-diff-45/2angles-diff-45.gmt",
@@ -4468,34 +4444,6 @@
             {
                 "star": "Applicability",
                 "file": "levels/c-s-pzls-other/030.oncircle-c-orthoc/Applicability.png"
-            }
-        ]
-    },
-    {
-        "id": "vp-tan-inangle",
-        "pack": "c-s-pzls-other",
-        "file": "levels/c-s-pzls-other/034.vp-tan-inangle/vp-tan-inangle.gmt",
-        "title": "旁切圆与外接圆的交点",
-        "subtitle": "圆O与角A的两边相切，B为圆O上一点，求作一圆经过AB，且与角A两边相交形成的线段与圆O相切。",
-        "targetSteps": "8L / 12E",
-        "diagram": "levels/c-s-pzls-other/034.vp-tan-inangle/vp-tan-inangle.png",
-        "note": "",
-        "keywords": [
-            "C-s-Pzls-Other",
-            "角",
-            "圆",
-            "相切",
-            "截弦",
-            "圆过点"
-        ],
-        "solutions": [
-            {
-                "star": "8L",
-                "file": "levels/c-s-pzls-other/034.vp-tan-inangle/8L.png"
-            },
-            {
-                "star": "12E",
-                "file": "levels/c-s-pzls-other/034.vp-tan-inangle/12E.png"
             }
         ]
     },
@@ -4880,40 +4828,6 @@
             {
                 "star": "2V",
                 "file": "levels/c-s-pzls-other/047.pararetincir/2v.jpg"
-            }
-        ]
-    },
-    {
-        "id": "segcir",
-        "pack": "c-s-pzls-other",
-        "file": "levels/c-s-pzls-other/048.segcir/segcir.gmt",
-        "title": "定长两圆截弦",
-        "subtitle": "构造过交点C的直线，截两圆于点AB，使得AB与给定线段长度相等。",
-        "targetSteps": "4L / 9E",
-        "diagram": "levels/c-s-pzls-other/048.segcir/segcir.png",
-        "note": "",
-        "keywords": [
-            "C-s-Pzls-Other",
-            "多解",
-            "圆",
-            "相等",
-            "交点",
-            "直线过点",
-            "长度相等",
-            "截弦"
-        ],
-        "solutions": [
-            {
-                "star": "4L",
-                "file": "levels/c-s-pzls-other/048.segcir/4l.jpg"
-            },
-            {
-                "star": "9E",
-                "file": "levels/c-s-pzls-other/048.segcir/9e.jpg"
-            },
-            {
-                "star": "2V",
-                "file": "levels/c-s-pzls-other/048.segcir/2v.jpg"
             }
         ]
     },
@@ -6604,7 +6518,7 @@
         "id": "mfp15",
         "pack": "mingjing-forum",
         "file": "levels/mingjing-forum/mfp15/mfp15.gmt",
-        "title": "MFP15",
+        "title": "15 切线长与距离",
         "subtitle": "给定射线、线段AO、圆O，构造AO上一点，使与圆的切线长度相等于与射线的距离。",
         "targetSteps": "3L / 7E",
         "diagram": "levels/mingjing-forum/mfp15/mfp15.jpg",
@@ -6634,7 +6548,7 @@
         "id": "mfp19-1",
         "pack": "mingjing-forum",
         "file": "levels/mingjing-forum/mfp19-1/mfp19.1.gmt",
-        "title": "MFP19.1",
+        "title": "19.1 同心圆中点弦",
         "subtitle": "构造过点A的直线，与两个同心圆O分别交于点B、C，使得长度AB=AC。",
         "targetSteps": "4L / 5E",
         "diagram": "levels/mingjing-forum/mfp19-1/mfp19.1.jpg",
@@ -6680,7 +6594,7 @@
         "id": "mfp19-2",
         "pack": "mingjing-forum",
         "file": "levels/mingjing-forum/mfp19-2/mfp19.2.gmt",
-        "title": "MFP19.2",
+        "title": "19.2 同心圆等角弦",
         "subtitle": "构造过点A的直线，与两个同心圆O分别交于点B、C，使得∠AOB=∠AOC。",
         "targetSteps": "7L / 11E",
         "diagram": "levels/mingjing-forum/mfp19-2/mfp19.2.jpg",
@@ -6726,7 +6640,7 @@
         "id": "mfp26",
         "pack": "mingjing-forum",
         "file": "levels/mingjing-forum/mfp26/mfp26.gmt",
-        "title": "MFP26",
+        "title": "26 垂心两中点复原三角形",
         "subtitle": "由垂心及两边中点还原三角形。",
         "targetSteps": "11L / 13E",
         "diagram": "levels/mingjing-forum/mfp26/mfp26.jpg",
@@ -6753,7 +6667,7 @@
         "id": "mfp38",
         "pack": "mingjing-forum",
         "file": "levels/mingjing-forum/mfp38/mfp38.gmt",
-        "title": "MFP38",
+        "title": "38 相等的望角",
         "subtitle": "给定线段AB及两点CD，构造线段上点P，使得∠ACP=∠BDP。",
         "targetSteps": "7L / 10E",
         "diagram": "levels/mingjing-forum/mfp38/mfp38.jpg",
@@ -6783,7 +6697,7 @@
         "id": "mfp39",
         "pack": "mingjing-forum",
         "file": "levels/mingjing-forum/mfp39/mfp39.gmt",
-        "title": "MFP39",
+        "title": "39 平行线上的等长",
         "subtitle": "给定平行线l1、l2及l1上一点A，任意点B。构造过点B的直线，与平行线l1、l2分别交于点C、D，使得距离AC=AD。",
         "targetSteps": "2L / 4E",
         "diagram": "levels/mingjing-forum/mfp39/mfp39.jpg",
@@ -6811,7 +6725,7 @@
         "id": "mfp42",
         "pack": "mingjing-forum",
         "file": "levels/mingjing-forum/mfp42/mfp42.gmt",
-        "title": "MFP42",
+        "title": "42 同心圆上的梯形",
         "subtitle": "由给定梯形的腰（两顶点）构造梯形，使得另一腰的两个顶点分别位于同心圆中不同圆上。",
         "targetSteps": "7L / 21E",
         "diagram": "levels/mingjing-forum/mfp42/mfp42.jpg",
@@ -6840,7 +6754,7 @@
         "id": "mfp49",
         "pack": "mingjing-forum",
         "file": "levels/mingjing-forum/mfp49/mfp49.gmt",
-        "title": "MFP49",
+        "title": "49 共圆",
         "subtitle": "给点3条直线a、b、c及a上三点D、E、F。构造过点D的直线，使得与直线b、c分别交于点F、G，BCFG共圆。",
         "targetSteps": "7L / 10E",
         "diagram": "levels/mingjing-forum/mfp49/mfp49.jpg",
@@ -6872,7 +6786,7 @@
         "id": "mfp59",
         "pack": "mingjing-forum",
         "file": "levels/mingjing-forum/mfp59/mfp59.gmt",
-        "title": "MFP59",
+        "title": "59 双直角折线上的定长",
         "subtitle": "如图，CO⊥CD，BD⊥CD，BD=CD，过B求作一直线，使得EF等于已知定长。",
         "targetSteps": "6L / 16E",
         "diagram": "levels/mingjing-forum/mfp59/mfp59.jpg",
@@ -6900,7 +6814,7 @@
         "id": "mfp65",
         "pack": "mingjing-forum",
         "file": "levels/mingjing-forum/mfp65/mfp65.gmt",
-        "title": "MFP65",
+        "title": "65 弓形与等长",
         "subtitle": "已知弓形CD，作出点E，DE与圆交于F，满足DF=FE=EC。",
         "targetSteps": "4L / 4E",
         "diagram": "levels/mingjing-forum/mfp65/mfp65.jpg",
@@ -6938,7 +6852,7 @@
         "id": "mfp70",
         "pack": "mingjing-forum",
         "file": "levels/mingjing-forum/mfp70/mfp70.gmt",
-        "title": "MFP70",
+        "title": "70 角上过点直角三角形",
         "subtitle": "给定角O、点D、点E，求作一个以E为直角顶点的直角三角形，使另两个顶点分别在给定角的两边上，且斜边过点D。",
         "targetSteps": "12L / 14E",
         "diagram": "levels/mingjing-forum/mfp70/mfp70.jpg",
@@ -6966,7 +6880,7 @@
         "id": "mfp72",
         "pack": "mingjing-forum",
         "file": "levels/mingjing-forum/mfp72/mfp72.gmt",
-        "title": "MFP72",
+        "title": "72 线间平行等长线",
         "subtitle": "已知直线l、AB、CD，点P，在AB、CD上分别取点Q、R，满足PQ=QR，且QR平行于l。",
         "targetSteps": "7L / 9E",
         "diagram": "levels/mingjing-forum/mfp72/mfp72.jpg",
@@ -6997,7 +6911,7 @@
         "id": "mfp74",
         "pack": "mingjing-forum",
         "file": "levels/mingjing-forum/mfp74/mfp74.gmt",
-        "title": "MFP74",
+        "title": "74 直径弦切圆",
         "subtitle": "已知圆O，其外一点A，过A有直线AC，与圆的另一个交点为B，作出以BC为直径的圆，使得其与直线AO相切。",
         "targetSteps": "5L / 9E",
         "diagram": "levels/mingjing-forum/mfp74/mfp74.jpg",
@@ -7026,14 +6940,14 @@
         "id": "mfp126",
         "pack": "mingjing-forum",
         "file": "levels/mingjing-forum/mfp126/mfp126.gmt",
-        "title": "MFP126",
+        "title": "126 角平分线足还原三角形",
         "subtitle": "已知D、E、F三定点并且DE⊥DF，请问如何作出△ABC，使得角平分线AD、BE、CF与对应边的交点落在图中的D、E、F上。",
         "targetSteps": "7L / 7E",
         "diagram": "levels/mingjing-forum/mfp126/mfp126.jpg",
         "note": "",
         "keywords": [
             "Mingjing-Forum",
-            "三角形",
+            "复原三角形",
             "角平分线",
             "垂直"
         ],
@@ -7045,13 +6959,61 @@
         ]
     },
     {
-        "id": "secpara",
+        "id": "mfp293",
         "pack": "mingjing-forum",
-        "file": "levels/mingjing-forum/mfpp2.secpara/secpara.gmt",
+        "file": "levels/mingjing-forum/mfp293/insctri-squsum-min.gmt",
+        "title": "293 内接三角形最小平方和",
+        "subtitle": "构造三角形的内接三角形，使得该三角形三边的平方和最小。",
+        "targetSteps": "12L / 26E",
+        "diagram": "levels/mingjing-forum/mfp293/insctri-squsum-min.jpg",
+        "note": "",
+        "keywords": [
+            "Mingjing-Forum",
+            "三角形",
+            "内接",
+            "边长度",
+            "平方和",
+            "极小值"
+        ],
+        "solutions": [
+            {
+                "star": "12L 26E",
+                "file": "levels/mingjing-forum/mfp293/12L26E.jpg"
+            }
+        ]
+    },
+    {
+        "id": "mfpp1",
+        "pack": "mingjing-forum",
+        "file": "levels/mingjing-forum/mfpp1/intri-equangle-min.gmt",
+        "title": "三角形内等角最值",
+        "subtitle": "如图，给定△ABC及AC边上一点D，求在BC上找一点E，使直线EA上一点F，满足∠FDE=∠EAD，且BF为最小值。",
+        "targetSteps": "7L / 13E",
+        "diagram": "levels/mingjing-forum/mfpp1/intri-equangle-min.png",
+        "note": "",
+        "keywords": [
+            "Mingjing-Forum",
+            "三角形",
+            "角度相等",
+            "最值",
+            "线上点",
+            "等角"
+        ],
+        "solutions": [
+            {
+                "star": "7L 13E",
+                "file": "levels/mingjing-forum/mfpp1/7L13E.png"
+            }
+        ]
+    },
+    {
+        "id": "mfpp2",
+        "pack": "mingjing-forum",
+        "file": "levels/mingjing-forum/mfpp2/secpara.gmt",
         "title": "圆内接梯形的腰",
         "subtitle": "构造过点的割线，使与圆的两个交点分别与圆上另外两点的连线平行。",
         "targetSteps": "5L / 6E",
-        "diagram": "levels/mingjing-forum/mfpp2.secpara/secpara.jpg",
+        "diagram": "levels/mingjing-forum/mfpp2/secpara.jpg",
         "note": "",
         "keywords": [
             "Mingjing-Forum",
@@ -7064,26 +7026,26 @@
         "solutions": [
             {
                 "star": "5L",
-                "file": "levels/mingjing-forum/mfpp2.secpara/5l.jpg"
+                "file": "levels/mingjing-forum/mfpp2/5l.jpg"
             },
             {
                 "star": "6E",
-                "file": "levels/mingjing-forum/mfpp2.secpara/6e.jpg"
+                "file": "levels/mingjing-forum/mfpp2/6e.jpg"
             },
             {
                 "star": "2V",
-                "file": "levels/mingjing-forum/mfpp2.secpara/2v.jpg"
+                "file": "levels/mingjing-forum/mfpp2/2v.jpg"
             }
         ]
     },
     {
-        "id": "sprfes2024-01",
+        "id": "sf2024-01",
         "pack": "sprfes",
-        "file": "levels/sprfes/sprfes2024-01/sprfes2024-01.gmt",
-        "title": "sprfes2024-01",
+        "file": "levels/sprfes/sf2024-01/sf2024-01.gmt",
+        "title": "24.1 长方形五折线",
         "subtitle": "在适合的长方形上作五折线，每段长度相等。",
         "targetSteps": "9L / 10E",
-        "diagram": "levels/sprfes/sprfes2024-01/sprfes2024-01.png",
+        "diagram": "levels/sprfes/sf2024-01/sf2024-01.png",
         "note": "",
         "keywords": [
             "SprFes",
@@ -7094,18 +7056,18 @@
         "solutions": [
             {
                 "star": "10E",
-                "file": "levels/sprfes/sprfes2024-01/01-10L10E.png"
+                "file": "levels/sprfes/sf2024-01/01-10L10E.png"
             }
         ]
     },
     {
-        "id": "sprfes2024-02",
+        "id": "sf2024-02",
         "pack": "sprfes",
-        "file": "levels/sprfes/sprfes2024-02/sprfes2024-02.gmt",
-        "title": "sprfes2024-02",
+        "file": "levels/sprfes/sf2024-02/sf2024-02.gmt",
+        "title": "24.2 圆内接正十边形",
         "subtitle": "给定一个顶点，构造圆内接正十边形。",
         "targetSteps": "15L / 15E",
-        "diagram": "levels/sprfes/sprfes2024-02/sprfes2024-02.png",
+        "diagram": "levels/sprfes/sf2024-02/sf2024-02.png",
         "note": "",
         "keywords": [
             "SprFes",
@@ -7116,18 +7078,18 @@
         "solutions": [
             {
                 "star": "15L 15E",
-                "file": "levels/sprfes/sprfes2024-02/02-15L15E.png"
+                "file": "levels/sprfes/sf2024-02/02-15L15E.png"
             }
         ]
     },
     {
-        "id": "sprfes2024-03",
+        "id": "sf2024-03",
         "pack": "sprfes",
-        "file": "levels/sprfes/sprfes2024-03/sprfes2024-03.gmt",
-        "title": "sprfes2024-03",
+        "file": "levels/sprfes/sf2024-03/sf2024-03.gmt",
+        "title": "24.3 等积直角三角形",
         "subtitle": "给定一角和角内一点A，作直角三角形ABC，面积和三角形OBC相等。",
         "targetSteps": "8L / 11E",
-        "diagram": "levels/sprfes/sprfes2024-03/sprfes2024-03.png",
+        "diagram": "levels/sprfes/sf2024-03/sf2024-03.png",
         "note": "",
         "keywords": [
             "SprFes",
@@ -7139,26 +7101,26 @@
         "solutions": [
             {
                 "star": "8L",
-                "file": "levels/sprfes/sprfes2024-03/03-8L.png"
+                "file": "levels/sprfes/sf2024-03/03-8L.png"
             },
             {
                 "star": "11E",
-                "file": "levels/sprfes/sprfes2024-03/03-11E.png"
+                "file": "levels/sprfes/sf2024-03/03-11E.png"
             },
             {
                 "star": "2V",
-                "file": "levels/sprfes/sprfes2024-03/03-2V.png"
+                "file": "levels/sprfes/sf2024-03/03-2V.png"
             }
         ]
     },
     {
-        "id": "sprfes2024-04",
+        "id": "sf2024-04",
         "pack": "sprfes",
-        "file": "levels/sprfes/sprfes2024-04/sprfes2024-04.gmt",
-        "title": "sprfes2024-04",
+        "file": "levels/sprfes/sf2024-04/sf2024-04.gmt",
+        "title": "24.4 边线GI复原三角形",
         "subtitle": "由质心、内心及一边所在直线还原三角形。",
         "targetSteps": "12L / 16E",
-        "diagram": "levels/sprfes/sprfes2024-04/sprfes2024-04.png",
+        "diagram": "levels/sprfes/sf2024-04/sf2024-04.png",
         "note": "",
         "keywords": [
             "SprFes",
@@ -7169,18 +7131,18 @@
         "solutions": [
             {
                 "star": "12L 16E",
-                "file": "levels/sprfes/sprfes2024-04/04-12L16E.png"
+                "file": "levels/sprfes/sf2024-04/04-12L16E.png"
             }
         ]
     },
     {
-        "id": "sprfes2024-05",
+        "id": "sf2024-05",
         "pack": "sprfes",
-        "file": "levels/sprfes/sprfes2024-05/sprfes2024-05.gmt",
-        "title": "sprfes2024-05",
+        "file": "levels/sprfes/sf2024-05/sf2024-05.gmt",
+        "title": "24.5 角分线上外切三角形",
         "subtitle": "给定三角形及其外接圆，作圆外切三角形，使每个顶点恰在原三角形一条角平分线上。",
         "targetSteps": "11L / 15E",
-        "diagram": "levels/sprfes/sprfes2024-05/sprfes2024-05.png",
+        "diagram": "levels/sprfes/sf2024-05/sf2024-05.png",
         "note": "",
         "keywords": [
             "SprFes",
@@ -7193,26 +7155,176 @@
         "solutions": [
             {
                 "star": "11L",
-                "file": "levels/sprfes/sprfes2024-05/05-11L.png"
+                "file": "levels/sprfes/sf2024-05/05-11L.png"
             },
             {
                 "star": "15E",
-                "file": "levels/sprfes/sprfes2024-05/05-15E.png"
+                "file": "levels/sprfes/sf2024-05/05-15E.png"
             },
             {
                 "star": "2V",
-                "file": "levels/sprfes/sprfes2024-05/05-2V.png"
+                "file": "levels/sprfes/sf2024-05/05-2V.png"
             }
         ]
     },
     {
-        "id": "sprfes2025-01",
+        "id": "sfp2025-01",
         "pack": "sprfes",
-        "file": "levels/sprfes/sprfes2025-01/sprfes2025-01.gmt",
-        "title": "sprfes2025-01",
+        "file": "levels/sprfes/sfp2025-01/sfp2025-01.gmt",
+        "title": "25p.1 中点",
+        "subtitle": "已知平面直角坐标系的坐标轴和单位圆，A(0，1)，N为圆内AO延长线上一点，请作出AN的中点M。",
+        "targetSteps": "4E",
+        "diagram": "levels/sprfes/sfp2025-01/sfp2025-01.png",
+        "note": "",
+        "tools":"straightedge",
+        "keywords": [
+            "SprFes",
+            "圆",
+            "单尺",
+            "中点",
+            "垂直"
+        ],
+        "solutions": [
+            {
+                "star": "4E",
+                "file": "levels/sprfes/sfp2025-01/4E.jpg"
+            }
+        ]
+    },
+    {
+        "id": "sfp2025-02",
+        "pack": "sprfes",
+        "file": "levels/sprfes/sfp2025-02/sfp2025-02.gmt",
+        "title": "25p.2 线上倍角点",
+        "subtitle": "已知一直线，A、B两点在直线两侧，求直线上一点P，使得AP与直线的夹角是BP的两倍（∠APB是锐角）。",
+        "targetSteps": "4L / 6E",
+        "diagram": "levels/sprfes/sfp2025-02/sfp2025-02.png",
+        "note": "",
+        "keywords": [
+            "SprFes",
+            "二倍角",
+            "线上点",
+            "中垂线",
+            "对称"
+        ],
+        "solutions": [
+            {
+                "star": "6E",
+                "file": "levels/sprfes/sfp2025-02/6E.jpg"
+            }
+        ]
+    },
+    {
+        "id": "sfp2025-03",
+        "pack": "sprfes",
+        "file": "levels/sprfes/sfp2025-03/sfp2025-03.gmt",
+        "title": "25p.3 胡不归",
+        "subtitle": "在每个小正方形的边长为1的网格中，A、B为格点，C、D在格线上，给出A、B、C外接圆，求作一端在BC上的线段PD，使得PC+√2*PD最小。",
+        "targetSteps": "6E",
+        "diagram": "levels/sprfes/sfp2025-03/sfp2025-03.png",
+        "note": "",
+        "tools":"grid",
+        "keywords": [
+            "SprFes",
+            "三角形",
+            "外接圆",
+            "最值",
+            "算式",
+            "胡不归",
+            "网格"
+        ],
+        "solutions": [
+            {
+                "star": "6E",
+                "file": "levels/sprfes/sfp2025-03/6E.jpg"
+            }
+        ]
+    },
+    {
+        "id": "sfp2025-05",
+        "pack": "sprfes",
+        "file": "levels/sprfes/sfp2025-05/sfp2025-05.gmt",
+        "title": "25p.5 线上1.5倍角",
+        "subtitle": "在每个小正方形的边长为1的网格中，O、A为格点，以O为圆心，OA为半径作圆，与格线交于B、C，请作出∠APC，满足点P在线段OB上，且2∠APC=3∠AOC。",
+        "targetSteps": "8E",
+        "diagram": "levels/sprfes/sfp2025-05/sfp2025-05.png",
+        "note": "",
+        "tools":"grid",
+        "keywords": [
+            "SprFes",
+            "比例",
+            "角度比",
+            "圆",
+            "线上点",
+            "网格"
+        ],
+        "solutions": [
+            {
+                "star": "8E",
+                "file": "levels/sprfes/sfp2025-05/8E.jpg"
+            }
+        ]
+    },
+    {
+        "id": "sfp2025-06",
+        "pack": "sprfes",
+        "file": "levels/sprfes/sfp2025-06/sfp2025-06.gmt",
+        "title": "25p.6 旁切圆外接圆交点",
+        "subtitle": "圆O与角A的两边相切，B为圆O上一点，求作一圆经过AB，且与角A两边相交形成的线段与圆O相切。",
+        "targetSteps": "8L / 12E",
+        "diagram": "levels/sprfes/sfp2025-06/sfp2025-06.png",
+        "note": "",
+        "keywords": [
+            "SprFes",
+            "角",
+            "圆",
+            "相切",
+            "截弦",
+            "圆过点"
+        ],
+        "solutions": [
+            {
+                "star": "8L",
+                "file": "levels/sprfes/sfp2025-06/8L.jpg"
+            },
+            {
+                "star": "12E",
+                "file": "levels/sprfes/sfp2025-06/12E.jpg"
+            }
+        ]
+    },
+    {
+        "id": "sfp2025-07",
+        "pack": "sprfes",
+        "file": "levels/sprfes/sfp2025-07/sfp2025-07.gmt",
+        "title": "25p.7 圆心为内心",
+        "subtitle": "已知圆I和圆外一点A，请作出三角形ABC，使得点B、C在圆I上，且内心为I。",
+        "targetSteps": "19E",
+        "diagram": "levels/sprfes/sfp2025-07/sfp2025-07.png",
+        "note": "",
+        "tools":"straightedge",
+        "keywords": [
+            "SprFes",
+            "三角形",
+            "内心",
+            "外接",
+            "角平分线"
+        ],
+        "solutions": [
+            {
+                "star": "20E",
+                "file": "levels/sprfes/sfp2025-07/20E.jpg"
+            }
+        ]
+    },
+    {
+        "id": "sf2025-01",
+        "pack": "sprfes",
+        "file": "levels/sprfes/sf2025-01/sf2025-01.gmt",
+        "title": "25.1 粒子轨迹",
         "subtitle": "空间中圆O外存在垂直于屏幕的匀强磁场，圆O内无磁场。圆外一点A可以发射接收速度不同带电粒子，一粒子发射后经过点O，最终回到点A被接收，求作任意一条满足条件的粒子轨迹。",
         "targetSteps": "11E",
-        "diagram": "levels/sprfes/sprfes2025-01/sprfes2025-01.jpg",
+        "diagram": "levels/sprfes/sf2025-01/sf2025-01.jpg",
         "note": "",
         "keywords": [
             "SprFes",
@@ -7224,18 +7336,18 @@
         "solutions": [
             {
                 "star": "11E",
-                "file": "levels/sprfes/sprfes2025-01/01-11E.png"
+                "file": "levels/sprfes/sf2025-01/01-11E.png"
             }
         ]
     },
     {
-        "id": "sprfes2025-02",
+        "id": "sf2025-02",
         "pack": "sprfes",
-        "file": "levels/sprfes/sprfes2025-02/sprfes2025-02.gmt",
-        "title": "sprfes2025-02",
+        "file": "levels/sprfes/sf2025-02/sf2025-02.gmt",
+        "title": "25.2 三折线",
         "subtitle": "给定圆O内一点A，求作如图等长三折线，首尾为圆O某条直径的两端点。",
         "targetSteps": "9E",
-        "diagram": "levels/sprfes/sprfes2025-02/sprfes2025-02.jpg",
+        "diagram": "levels/sprfes/sf2025-02/sf2025-02.jpg",
         "note": "",
         "keywords": [
             "SprFes",
@@ -7248,22 +7360,22 @@
         "solutions": [
             {
                 "star": "9E",
-                "file": "levels/sprfes/sprfes2025-02/02-9E.png"
+                "file": "levels/sprfes/sf2025-02/02-9E.png"
             },
             {
                 "star": "2V",
-                "file": "levels/sprfes/sprfes2025-02/02-2V.png"
+                "file": "levels/sprfes/sf2025-02/02-2V.png"
             }
         ]
     },
     {
-        "id": "sprfes2025-03",
+        "id": "sf2025-03",
         "pack": "sprfes",
-        "file": "levels/sprfes/sprfes2025-03/sprfes2025-03.gmt",
-        "title": "sprfes2025-03",
+        "file": "levels/sprfes/sf2025-03/sf2025-03.gmt",
+        "title": "25.3 三弦和",
         "subtitle": "给定圆O上一点A和弦BC，求作圆上一点D，使得线段AD交BC于E且CD+ED=BD。",
         "targetSteps": "8E",
-        "diagram": "levels/sprfes/sprfes2025-03/sprfes2025-03.jpg",
+        "diagram": "levels/sprfes/sf2025-03/sf2025-03.jpg",
         "note": "",
         "keywords": [
             "SprFes",
@@ -7276,43 +7388,44 @@
         "solutions": [
             {
                 "star": "8E",
-                "file": "levels/sprfes/sprfes2025-03/03-8E.png"
+                "file": "levels/sprfes/sf2025-03/03-8E.png"
             },
             {
                 "star": "8E",
-                "file": "levels/sprfes/sprfes2025-03/03-8E-2.png"
+                "file": "levels/sprfes/sf2025-03/03-8E-2.png"
             }
         ]
     },
     {
-        "id": "sprfes2025-04",
+        "id": "sf2025-04",
         "pack": "sprfes",
-        "file": "levels/sprfes/sprfes2025-04/sprfes2025-04.gmt",
-        "title": "sprfes2025-04",
+        "file": "levels/sprfes/sf2025-04/sf2025-04.gmt",
+        "title": "25.4 线上的两对等角",
         "subtitle": "直线l两侧分别有A、B和C、D两点，求作l上两点P、Q，使得对应角相等。",
         "targetSteps": "18E",
-        "diagram": "levels/sprfes/sprfes2025-04/sprfes2025-04.jpg",
+        "diagram": "levels/sprfes/sf2025-04/sf2025-04.jpg",
         "note": "",
         "keywords": [
             "SprFes",
             "直线",
-            "角度相等"
+            "角度相等",
+            "根轴"
         ],
         "solutions": [
             {
                 "star": "18E",
-                "file": "levels/sprfes/sprfes2025-04/04-18E.png"
+                "file": "levels/sprfes/sf2025-04/04-18E.png"
             }
         ]
     },
     {
-        "id": "sprfes2025-05",
+        "id": "sf2025-05",
         "pack": "sprfes",
-        "file": "levels/sprfes/sprfes2025-05/sprfes2025-05.gmt",
-        "title": "sprfes2025-05",
+        "file": "levels/sprfes/sf2025-05/sf2025-05.gmt",
+        "title": "25.5 互垂切线",
         "subtitle": "给定相切两圆A、B，求作每个圆的一条切线，使得两切线垂直，且存在一圆与两线两圆相切。",
         "targetSteps": "19E",
-        "diagram": "levels/sprfes/sprfes2025-05/sprfes2025-05.jpg",
+        "diagram": "levels/sprfes/sf2025-05/sf2025-05.jpg",
         "note": "",
         "keywords": [
             "SprFes",
@@ -7325,22 +7438,151 @@
         "solutions": [
             {
                 "star": "19E",
-                "file": "levels/sprfes/sprfes2025-05/05-19E.png"
+                "file": "levels/sprfes/sf2025-05/05-19E.png"
             },
             {
                 "star": "2V",
-                "file": "levels/sprfes/sprfes2025-05/05-2V.png"
+                "file": "levels/sprfes/sf2025-05/05-2V.png"
             }
         ]
     },
     {
-        "id": "sprfes2026-01",
+        "id": "sfp2026-01",
         "pack": "sprfes",
-        "file": "levels/sprfes/sprfes2026-01/sprfes2026-01.gmt",
-        "title": "sprfes2026-01",
+        "file": "levels/sprfes/sfp2026-01/sfp2026-01.gmt",
+        "title": "26p.1 梯形质心",
+        "subtitle": "在每个小正方形的边长为1的网格中，有一质量分布均匀的梯形平板ABCD，顶点均在横格线上，求作梯形平板的面重心G。",
+        "targetSteps": "2E",
+        "diagram": "levels/sprfes/sfp2026-01/sfp2026-01.png",
+        "note": "",
+        "tools":"grid",
+        "keywords": [
+            "SprFes",
+            "梯形",
+            "网格",
+            "面基质心"
+        ],
+        "solutions": [
+            {
+                "star": "2E",
+                "file": "levels/sprfes/sfp2026-01/2E.jpg"
+            }
+        ]
+    },
+    {
+        "id": "sfp2026-02",
+        "pack": "sprfes",
+        "file": "levels/sprfes/sfp2026-02/sfp2026-02.gmt",
+        "title": "26p.2 HM复原三角形",
+        "subtitle": "△ABC中，O为外心，BC中点为M，AH为高，仅给出点H、M以及AO所在直线（不含点AO），还原三角形。",
+        "targetSteps": "7E",
+        "diagram": "levels/sprfes/sfp2026-02/sfp2026-02.png",
+        "note": "",
+        "keywords": [
+            "SprFes",
+            "三角形",
+            "外心",
+            "中点",
+            "垂足",
+            "高",
+            "连心线"
+        ],
+        "solutions": [
+            {
+                "star": "7E",
+                "file": "levels/sprfes/sfp2026-02/7E.jpg"
+            }
+        ]
+    },
+    {
+        "id": "sfp2026-04",
+        "pack": "sprfes",
+        "file": "levels/sprfes/sfp2026-04/sfp2026-04.gmt",
+        "title": "26p.4 外接圆上的垂足",
+        "subtitle": "△ABC中，H为垂心，外接圆上一点D满足AD⊥DH，仅给定外接圆（无圆心）和三点B、C、D，作出点A。",
+        "targetSteps": "5E",
+        "diagram": "levels/sprfes/sfp2026-04/sfp2026-04.png",
+        "note": "",
+        "keywords": [
+            "SprFes",
+            "三角形",
+            "三等分",
+            "等腰三角形"
+        ],
+        "solutions": [
+            {
+                "star": "5E",
+                "file": "levels/sprfes/sfp2026-04/5E.jpg"
+            }
+        ]
+    },
+    {
+        "id": "sfp2026-05",
+        "pack": "sprfes",
+        "file": "levels/sprfes/sfp2026-05/sfp2026-05.gmt",
+        "title": "26p.5 定长两圆截弦",
+        "subtitle": "过相交两圆的一个交点作一条直线，使得直线和两圆的另外两个交点之间的距离为给定长度。",
+        "targetSteps": "4L / 9E",
+        "diagram": "levels/sprfes/sfp2026-05/sfp2026-05.png",
+        "note": "",
+        "keywords": [
+            "SprFes",
+            "多解",
+            "圆",
+            "相等",
+            "交点",
+            "直线过点",
+            "长度相等",
+            "截弦"
+        ],
+        "solutions": [
+            {
+                "star": "4L",
+                "file": "levels/c-s-pzls-other/048.segcir/4l.jpg"
+            },
+            {
+                "star": "9E",
+                "file": "levels/c-s-pzls-other/048.segcir/9e.jpg"
+            },
+            {
+                "star": "2V",
+                "file": "levels/c-s-pzls-other/048.segcir/2v.jpg"
+            }
+        ]
+    },
+    {
+        "id": "sfp2026-06",
+        "pack": "sprfes",
+        "file": "levels/sprfes/sfp2026-06/sfp2026-06.gmt",
+        "title": "26p.6 三角形的三等分",
+        "subtitle": "已知线段AB的中点M，线段AM上一点P，线段MB上存在一点Q，满足BQ=2AP，仅用无刻度的直尺求作点Q。",
+        "targetSteps": "9E",
+        "diagram": "levels/sprfes/sfp2026-06/sfp2026-06.png",
+        "note": "",
+        "tools":"straightedge",
+        "keywords": [
+            "SprFes",
+            "单尺",
+            "线段",
+            "中点",
+            "倍长",
+            "对称"
+        ],
+        "solutions": [
+            {
+                "star": "9E",
+                "file": "levels/sprfes/sfp2026-06/9E.jpg"
+            }
+        ]
+    },
+    {
+        "id": "sf2026-01",
+        "pack": "sprfes",
+        "file": "levels/sprfes/sf2026-01/sf2026-01.gmt",
+        "title": "26.1 三角形等乘线",
         "subtitle": "给定三角形ABC满足b<c<2b，求作线段DE，其中D在线段AB上，E在线段AC上，使得BD=CE且AD·AE=BD·CE.",
         "targetSteps": "9E",
-        "diagram": "levels/sprfes/sprfes2026-01/sprfes2026-01.png",
+        "diagram": "levels/sprfes/sf2026-01/sf2026-01.png",
         "note": "",
         "keywords": [
             "SprFes",
@@ -7351,18 +7593,18 @@
         "solutions": [
             {
                 "star": "9E",
-                "file": "levels/sprfes/sprfes2026-01/01-9E.png"
+                "file": "levels/sprfes/sf2026-01/01-9E.png"
             }
         ]
     },
     {
-        "id": "sprfes2026-02",
+        "id": "sf2026-02",
         "pack": "sprfes",
-        "file": "levels/sprfes/sprfes2026-02/sprfes2026-02.gmt",
-        "title": "sprfes2026-02",
+        "file": "levels/sprfes/sf2026-02/sf2026-02.gmt",
+        "title": "26.2 张直角平行弦",
         "subtitle": "已知圆O和内部一点A，过A作相互垂直的两条直线，分别与圆有交点B、C，使得BC和给定直线平行。",
         "targetSteps": "13E",
-        "diagram": "levels/sprfes/sprfes2026-02/sprfes2026-02.png",
+        "diagram": "levels/sprfes/sf2026-02/sf2026-02.png",
         "note": "",
         "keywords": [
             "SprFes",
@@ -7374,18 +7616,18 @@
         "solutions": [
             {
                 "star": "13E",
-                "file": "levels/sprfes/sprfes2026-02/02-13E.png"
+                "file": "levels/sprfes/sf2026-02/02-13E.png"
             }
         ]
     },
     {
-        "id": "sprfes2026-03",
+        "id": "sf2026-03",
         "pack": "sprfes",
-        "file": "levels/sprfes/sprfes2026-03/sprfes2026-03.gmt",
-        "title": "sprfes2026-03",
+        "file": "levels/sprfes/sf2026-03/sf2026-03.gmt",
+        "title": "26.3 线外的角比",
         "subtitle": "直线上顺次排列有四点A、B、C、D，求作直线外一点P，使得∠APB：∠BPC：∠CPD = 3：1：2.",
         "targetSteps": "10E",
-        "diagram": "levels/sprfes/sprfes2026-03/sprfes2026-03.png",
+        "diagram": "levels/sprfes/sf2026-03/sf2026-03.png",
         "note": "",
         "keywords": [
             "SprFes",
@@ -7394,18 +7636,18 @@
         "solutions": [
             {
                 "star": "10E",
-                "file": "levels/sprfes/sprfes2026-03/03-10E.png"
+                "file": "levels/sprfes/sf2026-03/03-10E.png"
             }
         ]
     },
     {
-        "id": "sprfes2026-04",
+        "id": "sf2026-04",
         "pack": "sprfes",
-        "file": "levels/sprfes/sprfes2026-04/sprfes2026-04.gmt",
-        "title": "sprfes2026-04",
+        "file": "levels/sprfes/sf2026-04/sf2026-04.gmt",
+        "title": "26.4 平行线上的切圆",
         "subtitle": "已知两平行线和两点A、B，过A作直线分别交两平行线于两点C、D，使得圆（BCD）与两平行线中的一条相切。",
         "targetSteps": "11E",
-        "diagram": "levels/sprfes/sprfes2026-04/sprfes2026-04.png",
+        "diagram": "levels/sprfes/sf2026-04/sf2026-04.png",
         "note": "",
         "keywords": [
             "SprFes",
@@ -7416,18 +7658,18 @@
         "solutions": [
             {
                 "star": "11E",
-                "file": "levels/sprfes/sprfes2026-04/04-11E.png"
+                "file": "levels/sprfes/sf2026-04/04-11E.png"
             }
         ]
     },
     {
-        "id": "sprfes2026-05",
+        "id": "sf2026-05",
         "pack": "sprfes",
-        "file": "levels/sprfes/sprfes2026-05/sprfes2026-05.gmt",
-        "title": "sprfes2026-05",
+        "file": "levels/sprfes/sf2026-05/sf2026-05.gmt",
+        "title": "26.5 旁切圆极线复原三角形",
         "subtitle": "三角形ABC中，记点A所对的旁切圆与直线AB、AC的切点连线为l_A，同理定义l_B、l_C，仅给出l_A、l_B、l_C，复原三角形。",
         "targetSteps": "18E",
-        "diagram": "levels/sprfes/sprfes2026-05/sprfes2026-05.png",
+        "diagram": "levels/sprfes/sf2026-05/sf2026-05.png",
         "note": "",
         "keywords": [
             "SprFes",
@@ -7438,7 +7680,7 @@
         "solutions": [
             {
                 "star": "18E",
-                "file": "levels/sprfes/sprfes2026-05/05-18E.png"
+                "file": "levels/sprfes/sf2026-05/05-18E.png"
             }
         ]
     },

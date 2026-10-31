@@ -1150,6 +1150,11 @@ class GeometryElementManager {
             if (!other || other === element) continue;
             if (other.getType() !== type) continue;
             if (!other.getValid() || !other.getVisible()) continue;
+            // 已有的「弧（半圆 / 三点弧）」不能当成整圆来比：它虽是 Circle 实例，但底层是弧，
+            // 否则在已有弧上再作整圆会被误判为「同一个圆」而作不出（与上面针对 element 的排除同一口径）
+            if (other.getInternal?.()) continue;
+            const otherBaseType = other.getBase?.()?.type;
+            if (['semicircle', 'arc', 'arc3'].includes(otherBaseType)) continue;
             if (type === 'line') {
                 if (ToolsFunction.sameLineElement(element, other)) return other;
             }else if (ToolsFunction.sameCircleElement(element, other)) {
@@ -1319,7 +1324,12 @@ class GeometryElementManager {
                 (element, reach) => nearLine(x, y, element, reach));
         }
         if (types.includes("circle")) {
-            collect(all.filter(element => element.getType() === "circle"), () => 1, () => 5,
+            // 弧（半圆 / 三点弧）档位比整圆高：与整圆重合、点击距离一样时优先选到弧，方便选中 / 标记
+            const circleRank = element => {
+                const bt = element.getBase?.()?.type;
+                return ['semicircle', 'arc', 'arc3'].includes(bt) ? 4 : 5;
+            };
+            collect(all.filter(element => element.getType() === "circle"), () => 1, circleRank,
                 (element, reach) => nearCircle(x, y, element, reach));
         }
         // 「一样近」按浮点噪声也认：交点上压着的点与那条线，距离算出来可能是 1e-13 与 0 ——

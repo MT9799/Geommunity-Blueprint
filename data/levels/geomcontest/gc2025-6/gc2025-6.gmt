@@ -1,30 +1,40 @@
-# Geommunity Blueprint custom level
-A=[-96.3330917055,-11.224008014]
-B=[161.1920812761,-9.1220737838]
+#The following generated content is for reference only.
+#The params of the linepoints are random. Please carefully adjust them after converting.
+#The game setting 'rules' is inconvertible. Please complete them if need.
+A=[-72.28571741456675,22.144436209437192]
+B=[88.00400210220643,25.366340119322185]
 c1=Circle[A,B]
 c2=Circle[B,A]
-C=Intersect[c2,c1,1]
-S1=Segment[C,B]
-S2=Segment[B,A]
-S3=Segment[A,C]
-c3=Circle[C,B]
-D=Intersect[c2,c3,-,A]
-s1=Line[A,D]
-E=Intersect[c3,c1,-,B]
-s2=Line[B,E]
-F=Intersect[s1,s2,0]
-G=Linepoint[S2,0.80847852856251]
-s3=Line[G,F]
-H=Intersect[s3,S1,0]
-c4=Circle3[G,A,F]
-c5=Circle[G,H]
-c6=Circle[H,G]
-I=Intersect[c5,c6,0]
-S4=Segment[G,H]
+C=Intersect[c1,c2,0]
+S1=Segment[C,A]
+S2=Segment[A,B]
+S3=Segment[B,C]
+c3=Circle3[C,B,A]
+pt1=CenterPoint[c3]
+D=CenterPoint[c3]
+E=Linepoint[S2,0.26793]
+#Detected unsupported constructions, the parameter is random.
+s1=Line[D,E]
+F=Intersect[s1,S3,0]
+c4=Circle3[D,E,A]
+pt2=CenterPoint[c4]
+c5=Circle[F,E]
+c6=Circle[E,F]
+G=Intersect[c5,c6,1]
 
-initial=c4,S2,S3,S1,S4
-named=A,B,C,F.O,G.D,H.E
-movepoints=
-hidden=
-result=I
-explore=I
+S5=Segment[E,F]
+
+
+initial=A,B,C,S1,S2,S3,D,E,F,c4,S5
+
+#named=
+
+#hidden=pt1,pt2
+
+#movepoints=
+
+result=G
+
+explore=G
+
+#rules=

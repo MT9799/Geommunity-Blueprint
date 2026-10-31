@@ -1,25 +1,37 @@
-# Geommunity Blueprint custom level
-A=[-12.8673761773,-93.0093764282]
-B=[143.1751116625,-47.3331449755]
+#The following generated content is for reference only.
+#The params of the linepoints are random. Please carefully adjust them after converting.
+#The game setting 'rules' is inconvertible. Please complete them if need.
+A=[-4.898826784384564,-16.24567117987992]
+B=[-158.74344863213418,-132.48526419531956]
+C=[-117.08212080384536,-65.33631589058677]
+D=[132.09329282213525,-15.12663933663171]
 c1=Circle[A,B]
-C=[71.4298063762,-43.4709513495]
 c2=Circle[A,C]
-D=[122.5279000512,-102.4419852348]
-s1=Line[B,A]
+s1=Line[D,A]
 E=Intersect[c2,s1,0]
-G=Midpoint[B,E]
+F=Intersect[c1,s1,0]
+G=Midpoint[E,F]
 c3=Circle[A,G]
-c5=Circle[A,D]
-c4=Compass[G,B,D]
-F=Intersect[c4,c3,0]
-H=Intersect[c4,c3,1]
-c6=Circle[F,D]
-c7=Circle[H,D]
+H=Midpoint[D,G]
+c4=Circle[H,E]
+I=Intersect[c4,s1,1]
+c5=Circle[D,I]
+J=Intersect[c3,c5,0]
+c6=Circle[J,D]
+K=Intersect[c3,c5,1]
+c7=Circle[K,D]
 
-initial=A,c2,c1,D
-named=
-movepoints=C,B
-hidden=
-result=H,c7
-result=F,c6
-explore=H,c7
+initial=c1,c2,A,D
+
+#named=
+
+#hidden=
+
+movepoints=B,C
+
+result=c6:J,c6
+result=c7:K,c7
+
+explore=J,c6
+
+#rules=

@@ -1836,6 +1836,14 @@ function fitInitialView() {
             if (item) extraItems.push(item);
         });
     }
+    // 可移动点（movepoints）同样强制纳入画幅：游玩模式下它们默认隐藏（只在移动工具的拖动档才显示蓝色），
+    // 但进入关卡时仍应把它们的初始位置框进视野，否则带可动点关卡一进来会缺失那部分区域
+    if (geometryElementLists && geometryElementLists.movepoints) {
+        geometryElementLists.movepoints.forEach(id => {
+            const item = geometryManagerResult.get(id);
+            if (item) extraItems.push(item);
+        });
+    }
     const view = typeof window.boardGmt?.fitView === 'function' ? window.boardGmt.fitView(extraItems) : null;
     if (!view) return;
     // 记下关卡载入时的视图：这就是「初始视图」，还原画布变化量要回到它，

@@ -1,7 +1,6 @@
 #Forum Puzzle 65
-#为方便作图，改成了整圆
-A=[0,100.0]
-B=[200,100.0]
+A=[0,100]
+B=[200,100]
 c1=Circle[A,B]
 C=Linepoint[c1,-0.701502789187916]
 D=Linepoint[c1,-3.011556781223411]
@@ -17,17 +16,12 @@ c3=Circle[G,C]
 H=Intersect[c1,c3,1]
 s4=Line[H,D]
 I=Intersect[s3,s4,0]
+c4=Circle[A,D]
+#geom=c4:Arc[A,D,C]
 
-initial=A,C,D,S1,c1
-
+initial=S1,c4
 named=C,D
-
-#hidden=
-
-movepoints=B
-
-result=I
-
+movepoints=B,A
+hidden=
+result=I:I
 explore=I
-
-#rules=

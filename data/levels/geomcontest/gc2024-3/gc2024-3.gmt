@@ -11,11 +11,12 @@ s2=PBisect[A,B]
 D=Intersect[S1,s2,0]
 c2=Circle[D,A]
 E=Intersect[s2,c2,0]
-c3=Circle[E,A]
+c3=Circle[E,B]
+#geom=c3:Arc[E,B,A]
 
-initial=S3,S2,S1,c3
+initial=S3,S2,S1,A,B,C,c3
 named=A.B,B.A,C
 movepoints=
 hidden=
-result=E
+result=E:E
 explore=E

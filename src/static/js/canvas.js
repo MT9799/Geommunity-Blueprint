@@ -1404,6 +1404,31 @@ function sortLineLayers(elements) {
     return sorted;
 }
 
+/**
+ * 圆类层序：弧（半圆 / 三点弧）画在整圆之上
+ * 与 sortLineLayers 同构：只在线类对象占用的槽位内重排，不影响线与圆的相对层序。
+ * 这样「在整圆上作弧」时弧会显示在整圆之上，方便后续选中、标记（见 near 的 circleRank）
+ * @param {Array} elements 对象列表
+ * @returns {Array} 调整过层序的列表
+ */
+function sortCircleLayers(elements) {
+    const rankOf = element => {
+        if (!element || element.getType() !== 'circle') return null;
+        // 网格是背景：格圆（若有的话）排在用户画的整圆之下
+        if (typeof window.isGridObjectId === 'function' && window.isGridObjectId(element.getId())) return -1;
+        // 弧（半圆 / 三点弧）画在整圆之上
+        const baseType = element.getBase?.()?.type;
+        if (['semicircle', 'arc', 'arc3'].includes(baseType)) return 1;
+        return 0;
+    };
+    const slots = [];
+    elements.forEach((element, index) => { if (rankOf(element) !== null) slots.push(index); });
+    const sorted = elements.slice();
+    const circleElements = slots.map(index => sorted[index]).sort((a, b) => rankOf(a) - rankOf(b));
+    slots.forEach((index, order) => { sorted[index] = circleElements[order]; });
+    return sorted;
+}
+
 // 样式刷「样式来源」的动态虚线高亮：相位随时间推移，由下面的动画循环驱动
 let sourceHighlightPhase = 0;
 let sourceHighlightFrame = null;
@@ -1462,8 +1487,8 @@ function drawShapes() {
         ? geometryManager.getToolKey(tool, 'source') : null;
     const sourceId = sourceElement ? sourceElement.getId() : null;
     
-    // 除了点的几何对象（线段在射线之上、射线在直线之上）
-    for (const element of sortLineLayers(exceptPoints)) {
+    // 除了点的几何对象（线段在射线之上、射线在直线之上；弧在整圆之上）
+    for (const element of sortCircleLayers(sortLineLayers(exceptPoints))) {
         if (element.getInternal?.()) continue;
         if (!element.getValid()) continue;
         if (!element.getVisible()) continue;
@@ -1473,7 +1498,7 @@ function drawShapes() {
         drawLabel(element);
     }
     // 除了点的目标几何对象
-    for (const element of sortLineLayers(resultexceptPoints)) {
+    for (const element of sortCircleLayers(sortLineLayers(resultexceptPoints))) {
         if (element.getInternal?.()) continue;
         if (!element.getValid()) continue;
         if (!element.getVisible()) continue;
@@ -1483,7 +1508,7 @@ function drawShapes() {
         drawLabel(element);
     }
     // 除了点的缓存几何对象
-    for (const element of exceptPointsCache) {
+    for (const element of sortCircleLayers(exceptPointsCache)) {
         if (element.getInternal?.()) continue;
         if (!element.getValid()) continue;
         if (!element.getVisible()) continue;
