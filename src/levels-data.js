@@ -239,7 +239,7 @@ function levelRowHTML(level, options) {
     // 序号一律按它在包里的位次生成，不从 levels.json 里取（那个字段已去掉）
     const number = String((setting.index || 0) + 1).padStart(3, '0');
     // 缩略图只写 data-src：快滚到跟前时才由 observeLevelThumbs 设上 src（见那边的说明）。
-    // 优先取 data/thumbs 下的压缩图；data-fallback 留给「缩略图还没生成」时退回原图
+    // 缩略图在 data/thumbs/ 下与题图同相对路径（.webp）；data-fallback 留给「还没生成」时退回原图
     const thumbPath = compressedThumbPath(level.diagram);
     const thumb = level.diagram
         ? `<span class="level-thumb" data-src="../data/${thumbPath}" data-fallback="../data/${level.diagram}">◇</span>`
@@ -285,8 +285,8 @@ function levelRowHTML(level, options) {
  * 压缩缩略图路径 过程函数
  * 把相对 data/ 的原图路径换成 data/thumbs/ 下同路径的 .webp
  * （由 scripts/make-thumbs.py / npm run thumbs 生成）
- * @param {string} original 形如 diagrams/ewp/ewp11.png
- * @returns {string} 形如 thumbs/diagrams/ewp/ewp11.webp
+ * @param {string} original 形如 levels/ewp/ewp11/ewp11.png
+ * @returns {string} 形如 thumbs/levels/ewp/ewp11/ewp11.webp
  */
 function compressedThumbPath(original) {
     const clean = String(original || '');

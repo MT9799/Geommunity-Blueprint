@@ -94,14 +94,14 @@ The root `package.json` only carries two convenience scripts: `npm start` (start
 
 | Path | Contents |
 | --- | --- |
-| `data/levels/<pack id>/<3-digit index>.<level id>.gmt` | the GMT figure definition of each level |
-| `data/diagrams/<pack id>/<3-digit index>.<level id>.png / .jpg` | the level diagram (list thumbnail) |
+| `data/levels/<pack id>/<index>.<level id>/…` | **one folder per level**: its gmt, problem diagram, recorded solution images and solution gmt all live here (names as in `levels.json`; some packs prefix the folder with a 3-digit index, e.g. `001.conway-circle/Conway Circle.gmt`) |
+| `data/thumbs/levels/<pack id>/<index>.<level id>/…` | thumbnails of the level diagrams (same name as the diagram, `.webp`; generated) |
 | `data/packcovers/<pack id>.png / .jpg / .webp` | pack covers (the large image on the left of an overview card) |
+| `data/thumbs/packcovers/…` | thumbnails of the pack covers (generated) |
 | `data/levelpacks.json` | the **pack** list (10 packs) |
 | `data/levels.json` | the flat **level** list (345 levels) |
-| `data/answers/<pack id>/<3-digit index>.<level id>/…` | recorded solution diagrams (one folder per level; file names are the star labels such as `5L.png` / `6E.png`) |
 
-**The level id is the short name**: `ewp11`, `xmath2020-1`, `Conway Circle`, `inc-circumc-re-trapezoid` and so on — no more `pack:dir/file.gmt` paths. The file name, diagram and answer folder all use the same id. In the `c-s-pzls-other`, `euc-addit`, `from-baidu-tieba` and `straightedge-only-pzls` packs all three carry a **3-digit index matching the order shown on the site** (`001.xxx.gmt` / `001.xxx.png` / `answers/<pack id>/001.xxx/`), so the directory lines up with the number in the level list; the other packs (`ewp`, `xmath`, `mingjing-forum`, `xeuclidea-puzzle`, `sprfes`, `xewpc`) carry no index. Looking up anything about a level only needs its id. The id derives from the title: strip a trailing `(5,6,2)` L / E / V bracket and a leading `025.` index, turn `_` into `-`, and lowercase the whole string when it has no spaces (`EWP11` → `ewp11`, `XMath2020_1` → `xmath2020-1`); English titles that already read well are kept as they are (`Conway Circle`, `Malfatti's Problem`). For levels with a Chinese title the first gmt line (`#name`, the author's own English short name such as `#double_degrees`) is used; only when that is Chinese too is a fresh short name invented (`重叠大小地图` → `OverlapMaps`). Duplicates inside a pack are told apart by the directory number in the source material (`EWP53` and `EWP289` share a title → `ewp53` / `ewp289`; `SprFes` has an `01`–`05` set in each of two years → `sprfes2024-01` / `sprfes2025-01`; `XEP18` and `XEP18 (2)` → `xep18` / `xep18-2`).
+**The level id is the short name and doubles as the folder name**: `ewp11`, `xmath2020-1`, `Conway Circle`, `inc-circumc-re-trapezoid` and so on — every level lives in `data/levels/<pack id>/<level id>/`. In the `c-s-pzls-other`, `euc-addit`, `from-baidu-tieba` and `straightedge-only-pzls` packs the folder is prefixed with a **3-digit index matching the order shown on the site** (`001.conway-circle/`) while the file names inside carry no index (`Conway Circle.gmt`); the other packs (`ewp`, `xmath`, `mingjing-forum`, `xeuclidea-puzzle`, `sprfes`, `xewpc`) have no index at all. Looking up anything about a level only needs its id. The id derives from the title: strip a trailing `(5,6,2)` L / E / V bracket and a leading `025.` index, turn `_` into `-`, and lowercase the whole string when it has no spaces (`EWP11` → `ewp11`, `XMath2020_1` → `xmath2020-1`); English titles that already read well are kept as they are (`Conway Circle`, `Malfatti's Problem`). For levels with a Chinese title the first gmt line (`#name`, the author's own English short name such as `#double_degrees`) is used; only when that is Chinese too is a fresh short name invented (`重叠大小地图` → `OverlapMaps`). Duplicates inside a pack are told apart by the directory number in the source material (`EWP53` and `EWP289` share a title → `ewp53` / `ewp289`; `SprFes` has an `01`–`05` set in each of two years → `sprfes2024-01` / `sprfes2025-01`; `XEP18` and `XEP18 (2)` → `xep18` / `xep18-2`).
 
 The two JSON files each own one thing and there is no extra override table: one describes packs, one describes levels, and the pages read them directly.
 
@@ -134,7 +134,7 @@ Edit those two files directly — whatever you write there is what the page show
 | `note` | hover hint on the level list row | none |
 | `tools` | tool restriction: `"straightedge"`, `"compass"`, `"grid"` (grid straightedge) or specified (IOCLZTA3, e.g., `"OC3"`) | unrestricted, all tools |
 | `keywords` | keywords used by search | search only looks at title and `subtitle` |
-| `solutions` | recorded solution diagrams: `[{"file": "answers/<pack id>/…", "star": "5L", "gmt": "answers/<pack id>/…/5L.txt"}, …]` (`file` / `gmt` relative to `data/`) | no recorded answers ("View answers" greyed out) |
+| `solutions` | recorded solution diagrams: `[{"file": "levels/<pack id>/<level id>/5L.png", "star": "5L", "gmt": "levels/<pack id>/<level id>/5L.gmt"}, …]` (`file` / `gmt` relative to `data/`, inside that level's folder) | no recorded answers ("View answers" greyed out) |
 
 > The `subtitle` of the `ewp` and `xmath` packs has already been filled in bulk (taken from the problem statements in the source archive); to change one, just edit that level's `subtitle`.
 
@@ -144,41 +144,41 @@ Example (one entry of `data/levels.json`):
 {
     "id": "ewp11",
     "pack": "ewp",
-    "file": "levels/ewp/ewp11.gmt",
+    "file": "levels/ewp/ewp11/ewp11.gmt",
     "title": "EWP11",
     "subtitle": "A point A lies inside the circle; draw a chord through A whose length equals the radius.",
     "targetSteps": "5L / 6E",
-    "diagram": "diagrams/ewp/ewp11.png",
+    "diagram": "levels/ewp/ewp11/ewp11.png",
     "note": "",
     "tools": "",
     "keywords": ["EWP", "chord", "radius", "multi-solution"],
     "solutions": [
-        {"file": "answers/ewp/ewp11/5L.png", "star": "5L"},
-        {"file": "answers/ewp/ewp11/6E.png", "star": "6E"},
-        {"file": "answers/ewp/ewp11/2V.png", "star": "2V"}
+        {"file": "levels/ewp/ewp11/5L.png", "star": "5L"},
+        {"file": "levels/ewp/ewp11/6E.png", "star": "6E"},
+        {"file": "levels/ewp/ewp11/2V.png", "star": "2V"}
     ]
 }
 ```
 
 The field order is the order given in the two tables above; fields that don't apply are written as an empty string / empty array (the page treats them as "not written", i.e. the default) — except switch-like fields such as `tools`, which are simply left out instead of being written as an empty string. File and directory names never contain underscores — always a hyphen `-`.
 
-**Adding a pack / level**: put the `.gmt` and its diagram into `data/levels` and `data/diagrams`, then add a pack to `levelpacks.json` and a level to `levels.json`. If you generate them with a script, keep the display fields (`name` / `description` / `icon` / `title` / `subtitle` / `note`) instead of overwriting them.
+**Adding a pack / level**: create `data/levels/<pack id>/<level id>/` and put that level's `.gmt`, diagram and solution images inside (run `npm run thumbs` once to generate the same-named `.webp` thumbnails under `data/thumbs/levels/…`), then add a pack to `levelpacks.json` and a level to `levels.json` (`file` / `diagram` / `solutions` all use `levels/<pack id>/<level id>/<file name>`). If you generate them with a script, keep the display fields (`name` / `description` / `icon` / `title` / `subtitle` / `note`) instead of overwriting them.
 
 There are currently **47 levels** with a tool restriction (43 straightedge-only and 4 compass-only); the whole `extra-straightedge-only-pzls` pack (36 levels) is straightedge-only.
 
-> `data/diagrams/ewp/` still holds 5 old problem images that were never used (`EWP021--Def.png` / `EWP049--Def.png` / `EWP066--Def.png` / `EWP088--Def.png` / `EWP091--Def.png`; these levels are not in `levels.json`), they are referenced by nothing and their underscores were turned into hyphens as well — delete them if you like.
+> During the migration, files not referenced by `levels.json` (a few `*-Def.png` images, gmt / answers of retired levels) were moved to `data/_unused/`; delete that folder if you don't need them.
 
 ### About the source material
 
 The problems and solution diagrams come from material collected by the "Geommunity Blueprint" authoring project: one folder per level, containing the problem image, the best solution known at the time and the gmt code (solutions of unofficial problems live in a separate `Solutions` folder so players can think first). To use a gmt file, open the game's apk and overwrite the matching level file under `res/raw` as text; install and play.
 
-That material has been organised into `data/` as described above: gmt under `data/levels/`, problem images under `data/diagrams/`, solution diagrams under `data/answers/`, with file and directory names replaced by the level's short id; the `source` field of `levelpacks.json` keeps the original directory name as a reference. Copyright of the material and the solution diagrams belongs to their original authors.
+That material has been organised into `data/` as described above: every level has its own folder `data/levels/<pack id>/<level id>/` holding its gmt, problem diagram and solution images (thumbnails live under `data/thumbs/levels/…`); the `source` field of `levelpacks.json` keeps the original directory name as a reference. Copyright of the material and the solution diagrams belongs to their original authors.
 
-> `solutions` was compiled from the levels' original directories: answer images come from the level folder, a `Solutions` subfolder, or the pack-level `Solutions/<same-named directory>`, sorted by star label (5L / 6E / 2V), and problem images (`Def`) or explanatory images don't count. When imported into `data/answers/` they are reorganised as "one folder per level" (`answers/<pack id>/<level id>/5L.png`), and levels that shared one original answer directory (such as `SprFes`'s `Solutions/`, several XEP groups) each got their own copy — so **every image inside a level folder now belongs to that level**; when one star label shares an image, two `solutions` entries pointing at the same file are kept. Follow the same rule after adding levels.
+> `solutions` was compiled from the levels' original directories: answer images come from the level folder, a `Solutions` subfolder, or the pack-level `Solutions/<same-named directory>`, sorted by star label (5L / 6E / 2V), and problem images (`Def`) or explanatory images don't count. When reorganised as "one folder per level", an answer image that shares a name with the diagram but differs in content is renamed to `answer-<original name>`; levels that shared one original answer directory each got their own copy. Follow the same rule after adding levels.
 
 **"Draw step by step" for a solution (`solutions[].gmt`, optional)**
 
-An answer can carry a `gmt` field pointing at the **record text** for that solution (relative to `data/`, e.g. `answers/ewp/ewp11/5L.txt`). With it, a "Draw step by step" button appears at the bottom-right of the answer image; clicking it opens a stripped-down board **in the same window** (`board.html?mode=stepview&gmt=…`) that loads just that record and keeps only the move tool, undo / redo and back — you can then **peel the figures off one at a time**, exactly like a play-mode record.
+An answer can carry a `gmt` field pointing at the **record text** for that solution (relative to `data/`, in the same level folder, e.g. `levels/ewp/ewp11/5L.gmt`). With it, a "Draw step by step" button appears at the bottom-right of the answer image; clicking it opens a stripped-down board **in the same window** (`board.html?mode=stepview&gmt=…`) that loads just that record and keeps only the move tool, undo / redo and back — you can then **peel the figures off one at a time**, exactly like a play-mode record.
 
 - The file uses the **record export format** (see "Extra information in a record file" below): the gmt object / mark lines, a blank line, then the `key=value` block. `undolist=` (the undoable figures, as object-line numbers of the gmt) and `styles=` (colour / width / label / hidden) are both read; every object listed in `undolist` becomes one history step, so **the record must not contain pre-drawn figures** (anything like `initial=` that drags the given figures in) — otherwise those would end up in the undoable list too. In practice just use the record that was auto-saved after drawing the solution in the solver.
 

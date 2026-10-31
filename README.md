@@ -202,12 +202,12 @@
 
 | 路径 | 内容 |
 | --- | --- |
-| `data/levels/<包id>/<序号>.<关卡id>.gmt` | 每关的 GMT 图形定义（序号见下） |
-| `data/diagrams/<包id>/<序号>.<关卡id>.png / .jpg` | 每关的示意图（关卡缩略图） |
+| `data/levels/<包id>/<序号>.<关卡id>/…` | **关卡文件夹**：该关的 gmt、题图、收录的解法图与解法 gmt 全在这里 |
+| `data/thumbs/levels/<包id>/<序号>.<关卡id>/…` | 该关题图的缩略图（与题图同名、扩展名 `.webp`，脚本生成） |
 | `data/packcovers/<包id>.png / .jpg / .webp` | 关卡包封面（总览卡片左侧大图） |
+| `data/thumbs/packcovers/…` | 关卡包封面的缩略图（脚本生成） |
 | `data/levelpacks.json` | **关卡包**列表（10 个包） |
 | `data/levels.json` | **关卡**扁平列表（345 关） |
-| `data/answers/<包id>/<序号>.<关卡id>/…` | 各关收录的解法图（每关一个文件夹，文件名是 `5L.png` / `6E.png` 这类星标） |
 
 两个 JSON 各管一件事，不再有额外的覆盖表：一个管关卡包，一个管关卡，页面直接读它们。
 
@@ -240,7 +240,7 @@
 | `note` | 关卡列表行的悬停提示 | 无 |
 | `tools` | 工具限制：`"straightedge"` 单尺 / `"compass"` 单规 / `"grid"` 网格直尺 / 特殊工具组（I直线 O圆 C圆规 L垂线 Z平行线 T中垂线 A角平分线 3三点圆）如 `"OC3"` | 不限制，给全部工具 |
 | `keywords` | 搜索用关键词数组 | 搜索时只用标题与 `subtitle` |
-| `solutions` | 该关收录的解法图：`[{"file": "answers/<包id>/…", "star": "5L", "gmt": "answers/<包id>/…/….gmt"}, …]`（`file` / `gmt` 都相对 `data/`） | 该关没有收录答案图（「查看答案」置灰） |
+| `solutions` | 该关收录的解法图：`[{"file": "levels/<包id>/<关卡id>/5L.png", "star": "5L", "gmt": "levels/<包id>/<关卡id>/5L.gmt"}, …]` | 该关没有收录答案图（「查看答案」置灰） |
 
 示例（`data/levels.json` 里的一条）：
 
@@ -248,33 +248,33 @@
 {
     "id": "ewp11",
     "pack": "ewp",
-    "file": "levels/ewp/ewp11.gmt",
+    "file": "levels/ewp/ewp11/ewp11.gmt",
     "title": "EWP11",
     "subtitle": "圆内有一点A，作过A点的弦，弦长等于半径。",
     "targetSteps": "5L / 6E",
-    "diagram": "diagrams/ewp/ewp11.png",
+    "diagram": "levels/ewp/ewp11/ewp11.png",
     "note": "",
     "tools": "",
     "keywords": ["EWP", "弦", "半径", "多解"],
     "solutions": [
-        {"file": "answers/ewp/ewp11/5L.png", "star": "5L", "gmt": "answers/ewp/ewp11/5L.gmt"},
-        {"file": "answers/ewp/ewp11/6E.png", "star": "6E", "gmt": "answers/ewp/ewp11/6E.gmt"},
-        {"file": "answers/ewp/ewp11/2V.png", "star": "2V", "gmt": "answers/ewp/ewp11/2V.gmt"}
+        {"file": "levels/ewp/ewp11/5L.png", "star": "5L", "gmt": "levels/ewp/ewp11/5L.gmt"},
+        {"file": "levels/ewp/ewp11/6E.png", "star": "6E", "gmt": "levels/ewp/ewp11/6E.gmt"},
+        {"file": "levels/ewp/ewp11/2V.png", "star": "2V", "gmt": "levels/ewp/ewp11/2V.gmt"}
     ]
 }
 ```
 
 字段顺序就是上面两个表的顺序；没有的字段写空串 / 空数组（页面按「不写」处理，等同用默认值），`tools` 这类开关型字段不限制时直接不写、不要留空串。文件与目录名里不出现下划线，一律用连字符 `-`。
 
-**新增关卡包 / 关卡**：先把 `.gmt` 与示意图放进 `data/levels`、`data/diagrams`，再在 `levelpacks.json` 加一个包、在 `levels.json` 加一条关卡即可。若是脚本批量生成，记得保留 `name` / `description` / `icon` / `title` / `subtitle` / `note` 这些展示字段，别覆盖掉。
+**新增关卡包 / 关卡**：先建 `data/levels/<包id>/<关卡id>/`，把该关的 `.gmt`、题图、解法图都放进去（跑一次 `npm run thumbs` 在 `data/thumbs/levels/…` 生成同名 `.webp` 缩略图），再在 `levelpacks.json` 加一个包、在 `levels.json` 加一条关卡即可（`file` / `diagram` / `solutions` 都写 `levels/<包id>/<关卡id>/文件名`）。
 
 当前标注了工具限制的关卡共 **47 关**（43 关单尺 + 4 关单规）；`extra-straightedge-only-pzls` 整包 36 关都是单尺。
 
-> `data/diagrams/ewp/` 里还留着 5 张当年没用上的题图（`EWP021--Def.png` / `EWP049--Def.png` / `EWP066--Def.png` / `EWP088--Def.png` / `EWP091--Def.png`，这几关不在 `levels.json` 里），它们没有关卡引用，下划线也一并换成了连字符，需要的话删掉即可。
+> `data/diagrams/ewp/` 里还留着 5 张当年没用上的题图（`EWP021.png` / `EWP049.png` / `EWP066.png` / `EWP088.png` / `EWP091.png`，这几关不在 `levels.json` 里），它们没有关卡引用，下划线也一并换成了连字符，需要的话删掉即可。
 
 ### 答案的「逐步绘制」（可选）
 
-每条答案可以再带一个 `gmt` 字段，指向这份解法对应的**记录文本**（相对 `data/`，如 `answers/ewp/ewp11/6E.gmt`）。配了它，这条答案的编号那一行右端会多一个「逐步绘制」按钮，点开后**在本窗口**进入精简画板（`board.html?mode=stepview&gmt=…`）载入这份记录。
+每条答案可以再带一个 `gmt` 字段，指向这份解法对应的**记录文本**。配了它，这条答案的编号那一行右端会多一个「逐步绘制」按钮，点开后**在本窗口**进入精简画板（`board.html?mode=stepview&gmt=…`）载入这份记录。
 
 为确保撤回与标记等行为的正确，建议文件内容直接用**记录导出格式**。原则上用「在求解器里绘出该解法后自动保存的那条记录」即可。
 
@@ -282,6 +282,5 @@
 
 题目与解法图来自「Geommunity Blueprint」造题计划收集的原始资料：每关一个文件夹，里面有题图、当时的最优解图与 gmt 代码（非官方题目的解法单独放在 `Solutions` 文件夹里，方便玩家先自己思考）。
 
-这些资料已经按上面的表格整理进 `data/`：gmt 在 `data/levels/`、题图在 `data/diagrams/`、解法图在 `data/answers/`；`levelpacks.json` 的 `source` 字段仍保留原始资料里的目录名作为出处备注。资料与解法图版权归原作者所有。
+这些资料已经按上面的表格整理进 `data/`：每关一个文件夹 `data/levels/<包id>/<关卡id>/`，里面放该关的 gmt、题图与解法图；`levelpacks.json` 的 `source` 字段仍保留原始资料里的目录名作为出处备注。资料与解法图版权归原作者所有。
 
-> `solutions` 是按原始资料的关卡目录整理出来的：答案图取关卡目录、`Solutions` 子目录或包级 `Solutions/<同名目录>` 下的图片，按 5L / 6E / 2V 这样的星标排序，题图（`Def`）与说明图不算答案。整理进 `data/answers/` 时改成「每关一个文件夹」（`answers/<包id>/<关卡id>/5L.png`）。

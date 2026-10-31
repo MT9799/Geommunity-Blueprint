@@ -1381,7 +1381,7 @@
   window.boardConfirm = confirmDialog;
   window.boardMessage = messageDialog;
   window.boardInput = inputDialog;
-  // 答案图：写在 data/levels.json 的 solutions 字段里（图片在 data/answers/ 下），首次需要时才加载
+  // 答案图：写在 data/levels.json 的 solutions 字段里（就在该关自己的文件夹下），首次需要时才加载
   let solutionsById = null;
   const loadSolutionsData = () => {
     if (solutionsById) return Promise.resolve(solutionsById);

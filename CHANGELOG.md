@@ -12,6 +12,7 @@
 
 ### 变更
 
+- 关卡数据改为「一关一个文件夹」：`data/levels/<包id>/<序号>.<关卡id>/` 里放该关的 gmt、题图、解法图与解法 gmt，原先的 `data/diagrams`、`data/answers`、`data/thumbs/diagrams` 已合并进来并删除；缩略图仍在 `data/thumbs/` 下按新结构放（`thumbs/levels/<包id>/<序号>.<关卡id>/<题图名>.webp`）。
 - 修改了部分关卡信息。
 - 关系雷达的求交现在也会按线段 / 射线的范围裁剪（此前只在线段延长线上取点）。
 - 在圆规工具和半圆工具之间添加了分隔线。

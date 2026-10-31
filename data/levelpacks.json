@@ -4,7 +4,7 @@
         "name": "EWP",
         "description": "Euclidea Weekly Puzzle 中的作图题。侵删。",
         "cover": "packcovers/ewp.jpg",
-        "icon": "diagrams/ewp/ewp11.png",
+        "icon": "",
         "source": "ref\\Euclidea-EWP"
     },
     {
