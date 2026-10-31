@@ -11092,7 +11092,7 @@
         "file": "levels/weekly-tangent/wt1/weekly-tangent-1.gmt",
         "title": "等腰直角半圆内切圆",
         "subtitle": "Inscribe a circle in the upper part of the vertical semicircle.",
-        "targetSteps": "",
+        "targetSteps": "5L / 5E",
         "diagram": "levels/weekly-tangent/wt1/Weekly Tangent 001.jpg",
         "note": "",
         "keywords": [
@@ -11102,6 +11102,12 @@
             "线段相等",
             "圆",
             "相切"
+        ],
+        "solutions": [
+            {
+                "file": "levels/weekly-tangent/wt1/wt1-5e.png",
+                "star": "5E"
+            }
         ]
     },
     {
@@ -11110,7 +11116,7 @@
         "file": "levels/weekly-tangent/wt2/weekly-tangent-2.gmt",
         "title": "直角三角形伪内切圆",
         "subtitle": "Construct the mixtilinear incircle on the right angle.",
-        "targetSteps": "",
+        "targetSteps": "4L / 6E",
         "diagram": "levels/weekly-tangent/wt2/Weekly Tangent 002.jpg",
         "note": "",
         "keywords": [
@@ -11119,6 +11125,12 @@
             "伪内切圆",
             "圆",
             "相切"
+        ],
+        "solutions": [
+            {
+                "file": "levels/weekly-tangent/wt2/wt2-6e.png",
+                "star": "6E"
+            }
         ]
     },
     {
@@ -11127,7 +11139,7 @@
         "file": "levels/weekly-tangent/wt3/weekly-tangent-3.gmt",
         "title": "双圆相切点",
         "subtitle": "Construct two circles tangent to a given circle. one of which is centered on the other and tangent at the midpoint of the concentric segment of the other two circles.",
-        "targetSteps": "",
+        "targetSteps": "6L / 6E",
         "diagram": "levels/weekly-tangent/wt3/Weekly Tangent 003.jpg",
         "note": "",
         "keywords": [
@@ -11136,6 +11148,12 @@
             "中点",
             "圆心",
             "相切"
+        ],
+        "solutions": [
+            {
+                "file": "levels/weekly-tangent/wt3/wt3-6e.png",
+                "star": "6E"
+            }
         ]
     },
     {
@@ -11144,7 +11162,7 @@
         "file": "levels/weekly-tangent/wt4/weekly-tangent-4.gmt",
         "title": "正三角形三切圆",
         "subtitle": "Inscribe three egual circles in a regular triangle.",
-        "targetSteps": "",
+        "targetSteps": "8L / 10E",
         "diagram": "levels/weekly-tangent/wt4/Weekly Tangent 004.jpg",
         "note": "",
         "keywords": [
@@ -11153,6 +11171,12 @@
             "正三角形",
             "半径相等",
             "相切"
+        ],
+        "solutions": [
+            {
+                "file": "levels/weekly-tangent/wt4/wt4-10e.png",
+                "star": "10E"
+            }
         ]
     },
     {
@@ -11161,13 +11185,19 @@
         "file": "levels/weekly-tangent/wt6/weekly-tangent-6.gmt",
         "title": "索迪圆",
         "subtitle": "Construct a circle tangent to all three circles only by their centers given.",
-        "targetSteps": "",
+        "targetSteps": "15L / 25E",
         "diagram": "levels/weekly-tangent/wt6/Weekly Tangent 006.jpg",
         "note": "",
         "keywords": [
             "Weekly-Tangent",
             "圆",
             "相切"
+        ],
+        "solutions": [
+            {
+                "file": "levels/weekly-tangent/wt6/wt6-15l25e.png",
+                "star": "15L 25E"
+            }
         ]
     },
     {
@@ -11176,7 +11206,7 @@
         "file": "levels/weekly-tangent/wt7/weekly-tangent-7.gmt",
         "title": "直径与半径",
         "subtitle": "Construct a half-radius circle tangent to the given circle and its tangent.",
-        "targetSteps": "",
+        "targetSteps": "6L / 6E",
         "diagram": "levels/weekly-tangent/wt7/Weekly Tangent 007.jpg",
         "note": "",
         "keywords": [
@@ -11187,6 +11217,12 @@
             "长度相等",
             "切线",
             "相切"
+        ],
+        "solutions": [
+            {
+                "file": "levels/weekly-tangent/wt7/wt7-6e.png",
+                "star": "6E"
+            }
         ]
     },
     {
@@ -11195,7 +11231,7 @@
         "file": "levels/weekly-tangent/wt8/weekly-tangent-8.gmt",
         "title": "直角梯形对角切圆",
         "subtitle": "Construct two equal circles that touch each other and touch all four edges of a right trapezoid.",
-        "targetSteps": "",
+        "targetSteps": "13L / 29E",
         "diagram": "levels/weekly-tangent/wt8/Weekly Tangent 008.jpg",
         "note": "",
         "keywords": [
@@ -11204,6 +11240,12 @@
             "直角梯形",
             "半径相等",
             "相切"
+        ],
+        "solutions": [
+            {
+                "file": "levels/weekly-tangent/wt8/wt8-13l29e.png",
+                "star": "13L 29E"
+            }
         ]
     },
     {
@@ -11212,7 +11254,7 @@
         "file": "levels/weekly-tangent/wt9/weekly-tangent-9.gmt",
         "title": "三角形特殊切圆",
         "subtitle": "Triangle ABC is given. Inscribe a circle on A, tangent to BC and the circumcircle.",
-        "targetSteps": "",
+        "targetSteps": "4L / 9E",
         "diagram": "levels/weekly-tangent/wt9/Weekly Tangent 009.jpg",
         "note": "",
         "keywords": [
@@ -11222,6 +11264,16 @@
             "外接圆",
             "切点",
             "相切"
+        ],
+        "solutions": [
+            {
+                "file": "levels/weekly-tangent/wt9/wt9-4l.png",
+                "star": "4L"
+            },
+            {
+                "file": "levels/weekly-tangent/wt9/wt9-9e.png",
+                "star": "9E"
+            }
         ]
     },
     {
@@ -11230,7 +11282,7 @@
         "file": "levels/weekly-tangent/wt10/weekly-tangent-10.gmt",
         "title": "正方形特殊切圆",
         "subtitle": "Inscribe these two circles in the square.",
-        "targetSteps": "",
+        "targetSteps": "10L / 10E",
         "diagram": "levels/weekly-tangent/wt10/Weekly Tangent 010.jpg",
         "note": "",
         "keywords": [
@@ -11241,6 +11293,12 @@
             "垂直",
             "直线过点",
             "相切"
+        ],
+        "solutions": [
+            {
+                "file": "levels/weekly-tangent/wt10/wt10-10e.png",
+                "star": "10E"
+            }
         ]
     },
     {
@@ -11260,6 +11318,20 @@
             "Apollonius-PPC",
             "多解",
             "圆过点"
+        ],
+        "solutions": [
+            {
+                "file": "levels/c-s-pzls-other/010.apollonius-ppc/8L.png",
+                "star": "8L"
+            },
+            {
+                "file": "levels/c-s-pzls-other/010.apollonius-ppc/12E.png",
+                "star": "12E"
+            },
+            {
+                "file": "levels/c-s-pzls-other/010.apollonius-ppc/2V.png",
+                "star": "2V"
+            }
         ]
     },
     {
@@ -11268,7 +11340,7 @@
         "file": "levels/weekly-tangent/wt12/weekly-tangent-12.gmt",
         "title": "三角形分割等内切圆",
         "subtitle": "Inscribe two egual circles in the two parts of the triangle divided from a vertex.",
-        "targetSteps": "",
+        "targetSteps": "8L / 15E",
         "diagram": "levels/weekly-tangent/wt12/Weekly Tangent 012.jpg",
         "note": "",
         "keywords": [
@@ -11278,6 +11350,463 @@
             "直线过点",
             "内切圆",
             "相切"
+        ],
+        "solutions": [
+            {
+                "file": "levels/from-baidu-tieba/014.2equal-insc-c/8L.png",
+                "star": "8L"
+            },
+            {
+                "file": "levels/from-baidu-tieba/014.2equal-insc-c/15E.jpg",
+                "star": "15E"
+            }
+        ]
+    },
+    {
+        "id": "wt13",
+        "pack": "weekly-tangent",
+        "file": "levels/weekly-tangent/wt13/weekly-tangent-13.gmt",
+        "title": "方正圆组",
+        "subtitle": "Inscribe 4 circles in a square as shown.",
+        "targetSteps": "23L / 23E",
+        "diagram": "levels/weekly-tangent/wt13/Weekly Tangent 013.jpg",
+        "note": "",
+        "keywords": [
+            "Weekly-Tangent",
+            "圆",
+            "正方形",
+            "相切"
+        ],
+        "solutions": [
+            {
+                "file": "levels/weekly-tangent/wt13/wt13-23e.png",
+                "star": "23E"
+            },
+            {
+                "file": "levels/weekly-tangent/wt13/wt13-23e-2.png",
+                "star": "23E view2"
+            }
+        ]
+    },
+    {
+        "id": "wt15",
+        "pack": "weekly-tangent",
+        "file": "levels/weekly-tangent/wt15/weekly-tangent-15.gmt",
+        "title": "镜光灯",
+        "subtitle": "Construct a circle tangent to 2 lines starting from the point with an angle of 30° and reflecting at the given line, such that the field angle of the given point is 60°and a tangent line is perpendicular to a reflection line.",
+        "targetSteps": "8L / 10E",
+        "diagram": "levels/weekly-tangent/wt15/Weekly Tangent 015.jpg",
+        "note": "",
+        "keywords": [
+            "Weekly-Tangent",
+            "圆",
+            "切线",
+            "直线反射",
+            "30度",
+            "60度",
+            "垂直",
+            "相切"
+        ],
+        "solutions": [
+            {
+                "file": "levels/weekly-tangent/wt15/wt15-8l10e.png",
+                "star": "8L 10E"
+            }
+        ]
+    },
+    {
+        "id": "wt16",
+        "pack": "weekly-tangent",
+        "file": "levels/weekly-tangent/wt16/weekly-tangent-16.gmt",
+        "title": "五边形三切圆",
+        "subtitle": "Insibe eguall circles in a pentagon as shown.",
+        "targetSteps": "",
+        "diagram": "levels/weekly-tangent/wt16/Weekly Tangent 016.jpg",
+        "note": "",
+        "keywords": [
+            "Weekly-Tangent",
+            "圆",
+            "正五边形",
+            "半径相等",
+            "中点",
+            "相切"
+        ],
+        "solutions": []
+    },
+    {
+        "id": "wt17",
+        "pack": "weekly-tangent",
+        "file": "levels/weekly-tangent/wt17/weekly-tangent-17.gmt",
+        "title": "超级枫叶",
+        "subtitle": "cruciate flower in square",
+        "targetSteps": "9L / 9E",
+        "diagram": "levels/weekly-tangent/wt17/Weekly Tangent 017.jpg",
+        "note": "",
+        "keywords": [
+            "Weekly-Tangent",
+            "圆",
+            "正方形",
+            "半径相等",
+            "相切"
+        ],
+        "solutions": [
+            {
+                "file": "levels/weekly-tangent/wt17/wt17-9e.png",
+                "star": "9E"
+            }
+        ]
+    },
+    {
+        "id": "wt18",
+        "pack": "weekly-tangent",
+        "file": "levels/weekly-tangent/wt18/weekly-tangent-18.gmt",
+        "title": "正三角形转转",
+        "subtitle": "Inscribe a triangle tangent to a circle concentric with the incircle in the given regular triangle.",
+        "targetSteps": "6L / 6E",
+        "diagram": "levels/weekly-tangent/wt18/Weekly Tangent 018.jpg",
+        "note": "",
+        "keywords": [
+            "Weekly-Tangent",
+            "圆",
+            "正三角形",
+            "内心",
+            "内接",
+            "外切",
+            "相切"
+        ],
+        "solutions": [
+            {
+                "file": "levels/weekly-tangent/wt18/wt18-6e.png",
+                "star": "6E"
+            }
+        ]
+    },
+    {
+        "id": "wt19",
+        "pack": "weekly-tangent",
+        "file": "levels/weekly-tangent/wt19/weekly-tangent-19.gmt",
+        "title": "矩形包围盒",
+        "subtitle": "Find the smallest rectangle that can cover the 'regular' three circles.",
+        "targetSteps": "",
+        "diagram": "levels/weekly-tangent/wt19/Weekly Tangent 019.jpg",
+        "note": "",
+        "keywords": [
+            "Weekly-Tangent",
+            "圆",
+            "正三圆形",
+            "矩形",
+            "面积",
+            "极小值",
+            "相切"
+        ],
+        "solutions": []
+    },
+    {
+        "id": "wt20",
+        "pack": "weekly-tangent",
+        "file": "levels/weekly-tangent/wt20/weekly-tangent-20.gmt",
+        "title": "切点相切圆",
+        "subtitle": "Inscribe this circle using a compass only.",
+        "targetSteps": "",
+        "diagram": "levels/weekly-tangent/wt20/Weekly Tangent 020.jpg",
+        "note": "",
+        "tools": "compass",
+        "keywords": [
+            "Weekly-Tangent",
+            "圆",
+            "同心圆",
+            "单规",
+            "切点",
+            "切线",
+            "相切"
+        ],
+        "solutions": []
+    },
+    {
+        "id": "wt21",
+        "pack": "weekly-tangent",
+        "file": "levels/weekly-tangent/wt21/weekly-tangent-21.gmt",
+        "title": "垂线内切圆阿波罗",
+        "subtitle": "Construct the circumscribed circle of the three inscribed circles of the three triangles defined by the orthocenter.",
+        "targetSteps": "",
+        "diagram": "levels/weekly-tangent/wt21/Weekly Tangent 021.jpg",
+        "note": "",
+        "keywords": [
+            "Weekly-Tangent",
+            "圆",
+            "三角形",
+            "垂心",
+            "垂线",
+            "内切圆",
+            "阿波罗尼奥斯问题",
+            "相切"
+        ],
+        "solutions": []
+    },
+    {
+        "id": "wt22",
+        "pack": "weekly-tangent",
+        "file": "levels/weekly-tangent/wt22/weekly-tangent-22.gmt",
+        "title": "伪外接圆",
+        "subtitle": "Construct the mixtilinear curcumcircle opposite point A.",
+        "targetSteps": "",
+        "diagram": "levels/weekly-tangent/wt22/Weekly Tangent 022.jpg",
+        "note": "",
+        "keywords": [
+            "Weekly-Tangent",
+            "圆",
+            "三角形",
+            "伪外接圆",
+            "内切圆",
+            "相切"
+        ],
+        "solutions": []
+    },
+    {
+        "id": "wt23",
+        "pack": "weekly-tangent",
+        "file": "levels/weekly-tangent/wt23/weekly-tangent-23.gmt",
+        "title": "四点切线",
+        "subtitle": "给定共圆的四点，并给出过其中一点的切线，仅用无刻度直尺作出过另一点的切线。",
+        "targetSteps": "6L / 6E",
+        "diagram": "levels/weekly-tangent/wt23/Weekly Tangent 023.jpg",
+        "note": "",
+        "tools": "straightedge",
+        "keywords": [
+            "Weekly-Tangent",
+            "圆",
+            "切线",
+            "四点共圆",
+            "单尺",
+            "相切"
+        ],
+        "solutions": [
+            {
+                "file": "levels/weekly-tangent/wt23/wt23-6e.png",
+                "star": "6E"
+            }
+        ]
+    },
+    {
+        "id": "wt24",
+        "pack": "weekly-tangent",
+        "file": "levels/weekly-tangent/wt24/weekly-tangent-24.gmt",
+        "title": "等伪旁切圆",
+        "subtitle": "Construct two equal circles as shown.",
+        "targetSteps": "",
+        "diagram": "levels/weekly-tangent/wt24/Weekly Tangent 024.jpg",
+        "note": "",
+        "keywords": [
+            "Weekly-Tangent",
+            "圆",
+            "三角形",
+            "直线过点",
+            "半径相等",
+            "外接圆",
+            "相切"
+        ],
+        "solutions": []
+    },
+    {
+        "id": "wt25",
+        "pack": "weekly-tangent",
+        "file": "levels/weekly-tangent/wt25/weekly-tangent-25.gmt",
+        "title": "四边形等对角线圆",
+        "subtitle": "Construct two equal circles in a quadrilateral.",
+        "targetSteps": "",
+        "diagram": "levels/weekly-tangent/wt25/Weekly Tangent 025.jpg",
+        "note": "",
+        "keywords": [
+            "Weekly-Tangent",
+            "圆",
+            "四边形",
+            "半径相等",
+            "相切"
+        ],
+        "solutions": []
+    },
+    {
+        "id": "wt26",
+        "pack": "weekly-tangent",
+        "file": "levels/weekly-tangent/wt26/weekly-tangent-26.gmt",
+        "title": "比例索敌圆",
+        "subtitle": "Construct two circles tangent to the circle and its tangent line and each other, and the ratio of radius is 1: 3.",
+        "targetSteps": "9L / 9E",
+        "diagram": "levels/weekly-tangent/wt26/Weekly Tangent 026.jpg",
+        "note": "",
+        "keywords": [
+            "Weekly-Tangent",
+            "圆",
+            "索迪圆",
+            "比例",
+            "相切"
+        ],
+        "solutions": [
+            {
+                "file": "levels/weekly-tangent/wt26/wt26-9e.png",
+                "star": "9E"
+            }
+        ]
+    },
+    {
+        "id": "wt27",
+        "pack": "weekly-tangent",
+        "file": "levels/weekly-tangent/wt27/weekly-tangent-27.gmt",
+        "title": "比例鞋匠刀",
+        "subtitle": "Construct a circle on the diameter to make the other two 1:2.",
+        "targetSteps": "",
+        "diagram": "levels/weekly-tangent/wt27/Weekly Tangent 027.jpg",
+        "note": "",
+        "keywords": [
+            "Weekly-Tangent",
+            "圆",
+            "直径",
+            "鞋匠刀",
+            "索迪圆",
+            "比例",
+            "相切"
+        ],
+        "solutions": []
+    },
+    {
+        "id": "wt28",
+        "pack": "weekly-tangent",
+        "file": "levels/weekly-tangent/wt28/weekly-tangent-28.gmt",
+        "title": "月牙间隙",
+        "subtitle": "Apollonius' problem CCL, where two coaxial circles are tangent and the line is their coaxis.",
+        "targetSteps": "8L / 12E",
+        "diagram": "levels/weekly-tangent/wt28/Weekly Tangent 028.jpg",
+        "note": "",
+        "keywords": [
+            "Weekly-Tangent",
+            "圆",
+            "直径",
+            "相切"
+        ],
+        "solutions": [
+            {
+                "file": "levels/weekly-tangent/wt28/wt28-8l12e.png",
+                "star": "8L 12E"
+            }
+        ]
+    },
+    {
+        "id": "wt29",
+        "pack": "weekly-tangent",
+        "file": "levels/weekly-tangent/wt29/weekly-tangent-29.gmt",
+        "title": "圆内接正三角形切圆",
+        "subtitle": "Inscirbe a regular triangle in the big circle where one of its sides is tangent to the small circle.",
+        "targetSteps": "",
+        "diagram": "levels/weekly-tangent/wt29/Weekly Tangent 029.jpg",
+        "note": "",
+        "keywords": [
+            "Weekly-Tangent",
+            "圆",
+            "正三角形",
+            "内接",
+            "切线",
+            "相切"
+        ],
+        "solutions": []
+    },
+    {
+        "id": "wt32",
+        "pack": "weekly-tangent",
+        "file": "levels/weekly-tangent/wt32/weekly-tangent-32.gmt",
+        "title": "等圆切弦",
+        "subtitle": "(Apollonius' problem LLC)",
+        "targetSteps": "",
+        "diagram": "levels/weekly-tangent/wt32/Weekly Tangent 032.jpg",
+        "note": "",
+        "keywords": [
+            "Weekly-Tangent",
+            "圆",
+            "弦",
+            "半径相等",
+            "相切"
+        ],
+        "solutions": []
+    },
+    {
+        "id": "wt36",
+        "pack": "weekly-tangent",
+        "file": "levels/weekly-tangent/wt36/weekly-tangent-36.gmt",
+        "title": "切点成切线",
+        "subtitle": "阿波罗尼奥斯CL，且两切点连线还相切于另一给定 圆A。",
+        "targetSteps": "",
+        "diagram": "levels/weekly-tangent/wt36/Weekly Tangent 036.png",
+        "note": "",
+        "keywords": [
+            "Weekly-Tangent",
+            "圆",
+            "切线",
+            "切点",
+            "相切"
+        ],
+        "solutions": []
+    },
+    {
+        "id": "wt37",
+        "pack": "weekly-tangent",
+        "file": "levels/weekly-tangent/wt37/weekly-tangent-37.gmt",
+        "title": "史坦纳圆链",
+        "subtitle": "以给定的点作圆，使其能同时切于互相相切的六个 内切于给定圆的圆。",
+        "targetSteps": "",
+        "diagram": "levels/weekly-tangent/wt37/Weekly Tangent 037.png",
+        "note": "",
+        "keywords": [
+            "Weekly-Tangent",
+            "圆",
+            "圆心",
+            "相切"
+        ],
+        "solutions": []
+    },
+    {
+        "id": "wt38",
+        "pack": "weekly-tangent",
+        "file": "levels/weekly-tangent/wt38/weekly-tangent-38.gmt",
+        "title": "双圆四边形",
+        "subtitle": "给定双心四边形的外接圆和内心I，求作内切圆。",
+        "targetSteps": "",
+        "diagram": "levels/weekly-tangent/wt38/Weekly Tangent 038.png",
+        "note": "",
+        "keywords": [
+            "Weekly-Tangent",
+            "圆",
+            "圆心",
+            "四边形",
+            "外接圆",
+            "内切圆",
+            "内接",
+            "外切",
+            "相切"
+        ],
+        "solutions": []
+    },
+    {
+        "id": "wt39",
+        "pack": "weekly-tangent",
+        "file": "levels/weekly-tangent/wt39/weekly-tangent-39.gmt",
+        "title": "矩形内的最大半圆",
+        "subtitle": "在长宽比4:3的长方形内裁剪出面积最大的半圆。",
+        "targetSteps": "7L / 7E",
+        "diagram": "levels/weekly-tangent/wt39/Weekly Tangent 039.png",
+        "note": "",
+        "keywords": [
+            "Weekly-Tangent",
+            "圆",
+            "矩形",
+            "半圆",
+            "极大值",
+            "内含",
+            "相切"
+        ],
+        "solutions": [
+            {
+                "file": "levels/weekly-tangent/wt39/wt39-7e.png",
+                "star": "7E"
+            }
         ]
     }
 ]

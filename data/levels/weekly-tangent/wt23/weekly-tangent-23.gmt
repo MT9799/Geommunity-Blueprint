@@ -1,0 +1,15 @@
+# Geommunity Blueprint custom level
+A=[-34.8968879864,-12.7382314837]
+B=[97.7918945483,-173.2249332254]
+C=[-178.0018535494,-74.8362975678]
+c1=Circle3[A,B,C]
+D=Linepoint[c1,-2.212325873317985]
+s1=Tangent[C,c1,0]
+s2=Tangent[D,c1,0]
+
+initial=A,B,C,s1
+named=D
+movepoints=
+hidden=
+result=s2:s2
+explore=s2
