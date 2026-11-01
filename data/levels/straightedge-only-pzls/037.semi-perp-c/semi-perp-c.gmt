@@ -1,0 +1,19 @@
+# Semi-Perp-C
+A=[-375.4012806314,-39.2510722376]
+B=[373.3884051321,-45.2896987357]
+med1=Midpoint[A,B]
+#internal=med1
+c1=Circle[med1,A]
+#geom=c1:SemiCircle[A,B]
+S1=Segment[A,B]
+C=Linepoint[c1,-2.242005274875689]
+s1=Perp[C,S1]
+D=Intersect[S1,s1,0]
+S2=Segment[D,C]
+
+initial=C,c1,S1,A,B
+named=
+movepoints=
+hidden=
+result=s1:D,S2,C
+explore=S2,D
