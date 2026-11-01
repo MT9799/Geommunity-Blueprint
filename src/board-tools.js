@@ -1903,6 +1903,59 @@
       minY = Math.min(minY, y);
       maxY = Math.max(maxY, y);
     };
+    // 弧（半圆 / 三点弧 / 弧）的真实画幅：按「圆弧本身扫过的角度区间」取包围盒，
+    // 而不是按底层整圆。这样一段小弧不会把画幅撑到整圆那么大。
+    // 角度口径与 ToolsFunction.pointInArcRange / arcRangeOfCircle 完全一致（顺时针为正）。
+    const arcBounds = (item) => {
+      const coord = typeof item.getCoordinate === 'function' ? item.getCoordinate() : null;
+      if (!coord || !Array.isArray(coord[0]) || !Array.isArray(coord[1])) return null;
+      const center = coord[0];
+      const onCircle = coord[1];
+      const r = Math.hypot(onCircle[0] - center[0], onCircle[1] - center[1]);
+      if (!(r > 0)) return null;
+      const base = item.getBase?.();
+      const figure = (base && base.figure) || [];
+      const angleOf = pt => Array.isArray(pt) ? Math.atan2(pt[1] - center[1], pt[0] - center[0]) : null;
+      let startAngle = null;
+      let delta = 0;
+      if (base && base.type === 'semicircle') {
+        const sp = angleOf(figure[1]?.getCoordinate?.()) ?? angleOf(onCircle);
+        startAngle = sp;
+        delta = Math.PI;
+      } else if (base && base.type === 'arc3') {
+        const sp = angleOf(figure[0]?.getCoordinate?.());
+        const through = angleOf(figure[1]?.getCoordinate?.());
+        const ep = angleOf(figure[2]?.getCoordinate?.());
+        if (sp === null || ep === null) return null;
+        startAngle = sp;
+        delta = (typeof ToolsFunction !== 'undefined' && ToolsFunction.clockwiseDelta)
+          ? ToolsFunction.clockwiseDelta(sp, ep) : (ep - sp);
+        if (typeof ToolsFunction !== 'undefined' && ToolsFunction.clockwiseDelta && through !== null
+            && ToolsFunction.clockwiseDelta(sp, through) > delta) delta -= Math.PI * 2;
+      } else if (base && base.type === 'arc') {
+        const sp = angleOf(figure[1]?.getCoordinate?.()) ?? angleOf(onCircle);
+        const ep = angleOf(figure[2]?.getCoordinate?.());
+        if (ep === null) return null;
+        startAngle = sp;
+        delta = (typeof ToolsFunction !== 'undefined' && ToolsFunction.clockwiseDelta)
+          ? ToolsFunction.clockwiseDelta(sp, ep) : (ep - sp);
+      } else {
+        return null;
+      }
+      if (startAngle === null) return null;
+      let aMinX = Infinity, aMaxX = -Infinity, aMinY = Infinity, aMaxY = -Infinity;
+      const N = 360;
+      for (let i = 0; i <= N; i++) {
+        const a = startAngle + delta * (i / N);
+        const x = center[0] + r * Math.cos(a);
+        const y = center[1] + r * Math.sin(a);
+        if (x < aMinX) aMinX = x;
+        if (x > aMaxX) aMaxX = x;
+        if (y < aMinY) aMinY = y;
+        if (y > aMaxY) aMaxY = y;
+      }
+      return Number.isFinite(aMinX) ? {minX: aMinX, maxX: aMaxX, minY: aMinY, maxY: aMaxY} : null;
+    };
     // 把一个对象的坐标撑进范围：点取坐标，圆取「圆心 ± 半径」，线段取两端。
     // 射线 / 直线不封口（它们的延伸定义点会一路把缩放拽小，但定义点本身已是画布上的点，已在范围内）。
     // force=true 时跳过可见性 / 有效性检查，强制计入（用于关卡「所求」点：普通模式被藏起也要入画幅）
@@ -1925,6 +1978,17 @@
       const [first, second] = coord;
       if (!Array.isArray(first) || !Array.isArray(second)) return;
       if (item.getType() === 'circle') {
+        const baseType = item.getBase?.()?.type;
+        if (baseType === 'semicircle' || baseType === 'arc' || baseType === 'arc3') {
+          // 弧：按真实圆弧取包围盒，而不是整圆（否则一小段弧会把画幅撑到整圆大小）
+          const box = arcBounds(item);
+          if (box) {
+            include(box.minX, box.minY);
+            include(box.maxX, box.maxY);
+            return;
+          }
+          // figure 取不到坐标等退化情形：回退到整圆
+        }
         const radius = Math.hypot(second[0] - first[0], second[1] - first[1]);
         include(first[0] - radius, first[1] - radius);
         include(first[0] + radius, first[1] + radius);
@@ -1961,7 +2025,7 @@
     const centerX = (bounds.minX + bounds.maxX) / 2;
     const centerY = (bounds.minY + bounds.maxY) / 2;
     transform.scale = Math.max(minScale,
-      Math.min(usableWidth / (width * 1.3), usableHeight / (height * 1.3)));
+      Math.min(usableWidth / (width * 1.8), usableHeight / (height * 1.8)));
     transform.x = insets.left + usableWidth / 2 - centerX * transform.scale;
     transform.y = insets.top + usableHeight / 2 - centerY * transform.scale;
     return {centerX: centerX, centerY: centerY, scale: transform.scale};

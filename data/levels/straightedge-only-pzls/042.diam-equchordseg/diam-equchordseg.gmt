@@ -1,0 +1,19 @@
+# Diameter-equal-chord-segment
+A=[-48.7470547458,-156.1895427568]
+B=[-518.3596486633,-153.6505289798]
+c1=Circle[A,B]
+s1=Line[B,A]
+C=Linepoint[c1,-0.9678135704799592]
+S1=Segment[B,C]
+c2=Circle[B,C]
+D=Linepoint[c2,0.8008728814283128]
+S2=Segment[D,B]
+E=Intersect[s1,c1,-,B]
+S3=Segment[B,E]
+
+initial=c1,S3,B,E,S1,C,S2,D
+named=
+movepoints=
+hidden=
+result=A
+explore=A

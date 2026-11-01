@@ -1,0 +1,18 @@
+# semiperpfreepoint2
+#暂时没有rules
+A=[-323.5199264507,-63.1014098031]
+B=[405.6519201626,-67.1078485207]
+med1=Midpoint[A,B]
+#internal=med1
+c1=Circle[med1,A]
+#geom=c1:SemiCircle[A,B]
+S1=Segment[A,B]
+C=[-660.9843879282,292.323340809]
+s1=Perp[C,S1]
+
+initial=C,A,B,S1,c1
+named=
+movepoints=
+hidden=
+result=s1
+explore=s1

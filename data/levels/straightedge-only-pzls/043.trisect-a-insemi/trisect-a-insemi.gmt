@@ -1,0 +1,26 @@
+# Trisect-angle-in-semicircle
+A=[-364.17371063,-44.6534522571]
+B=[378.0658957767,-50.6072458914]
+med1=Midpoint[A,B]
+#internal=med1
+c1=Circle[med1,A]
+#geom=c1:SemiCircle[A,B]
+S1=Segment[A,B]
+C=Linepoint[c1,-2.1025203940537027]
+s1=Parallel[C,S1]
+D=Midpoint[A,B]
+S2=Segment[D,C]
+E=Intersect[s1,c1,-,C]
+S3=Segment[E,A]
+S4=Segment[C,E]
+F=Intersect[S3,S2,0]
+s2=Parallel[F,S1]
+G=Intersect[s2,c1,1]
+s3=ABisect[G,F,D]
+
+initial=S1,D,A,B,c1,S3,E,C,F,S4,S2
+named=
+movepoints=
+hidden=
+result=s3,s2
+explore=s3,s2

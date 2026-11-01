@@ -42,7 +42,7 @@
     {
         "id": "mingjing-forum",
         "name": "明经精选集",
-        "description": "来自明经论坛-几何算法板块的几何作图题。",
+        "description": "来自明经论坛-几何算法板块的几何作图题。带序号的为2024年末整理的《明经300题》中的精选题，不带序号的为论坛上在此之后发布的题。",
         "cover": "packcovers/mingjing-forum.jpg",
         "icon": "",
         "source": "ref/Extra/Mingjing-Forum"

@@ -8593,6 +8593,188 @@
         ]
     },
     {
+        "id": "semi-perp-c",
+        "pack": "straightedge-only-pzls",
+        "file": "levels/straightedge-only-pzls/037.semi-perp-c/semi-perp-c.gmt",
+        "title": "半圆上点作径垂",
+        "subtitle": "给定无心半圆形，过半圆上一点作直径的垂线。",
+        "targetSteps": "8E",
+        "diagram": "levels/straightedge-only-pzls/037.semi-perp-c/semi-perp-c.png",
+        "note": "",
+        "tools": "straightedge",
+        "keywords": [
+            "Straightedge-only-Pzls",
+            "半圆",
+            "直径",
+            "无心圆",
+            "圆上点",
+            "垂线",
+            "单尺"
+        ],
+        "solutions": [
+            {
+                "star": "8E",
+                "file": "levels/straightedge-only-pzls/037.semi-perp-c/8E.png"
+            }
+        ]
+    },
+    {
+        "id": "semi-perp-d",
+        "pack": "straightedge-only-pzls",
+        "file": "levels/straightedge-only-pzls/038.semi-perp-d/semi-perp-d.gmt",
+        "title": "半圆径上点作径垂",
+        "subtitle": "给定无心半圆形，过半圆的直径上一点作直径的垂线。",
+        "targetSteps": "8E",
+        "diagram": "levels/straightedge-only-pzls/038.semi-perp-d/semi-perp-d.png",
+        "note": "",
+        "tools": "straightedge",
+        "keywords": [
+            "Straightedge-only-Pzls",
+            "半圆",
+            "直径",
+            "无心圆",
+            "直径",
+            "垂线",
+            "单尺"
+        ],
+        "solutions": [
+            {
+                "star": "8E",
+                "file": "levels/straightedge-only-pzls/038.semi-perp-d/8E.png"
+            }
+        ]
+    },
+    {
+        "id": "semi-perp-f1",
+        "pack": "straightedge-only-pzls",
+        "file": "levels/straightedge-only-pzls/039.semi-perp-f1/semi-perp-f1.gmt",
+        "title": "半圆外点作径垂-1",
+        "subtitle": "给定无心半圆形，过半圆的顶点的外斜上方一点作直径的垂线。",
+        "targetSteps": "9E",
+        "diagram": "levels/straightedge-only-pzls/039.semi-perp-f1/semi-perp-f1.png",
+        "note": "",
+        "tools": "straightedge",
+        "keywords": [
+            "Straightedge-only-Pzls",
+            "半圆",
+            "直径",
+            "无心圆",
+            "直径",
+            "垂线",
+            "单尺"
+        ],
+        "solutions": [
+            {
+                "star": "9E",
+                "file": "levels/straightedge-only-pzls/039.semi-perp-f1/9E.png"
+            }
+        ]
+    },
+    {
+        "id": "semi-perp-f2",
+        "pack": "straightedge-only-pzls",
+        "file": "levels/straightedge-only-pzls/040.semi-perp-f2/semi-perp-f2.gmt",
+        "title": "半圆外点作径垂-2",
+        "subtitle": "给定无心半圆形，过半圆的顶点的外斜下方一点作直径的垂线。",
+        "targetSteps": "8E",
+        "diagram": "levels/straightedge-only-pzls/040.semi-perp-f2/semi-perp-f2.png",
+        "note": "",
+        "tools": "straightedge",
+        "keywords": [
+            "Straightedge-only-Pzls",
+            "半圆",
+            "直径",
+            "无心圆",
+            "直径",
+            "垂线",
+            "单尺"
+        ],
+        "solutions": [
+            {
+                "star": "8E",
+                "file": "levels/straightedge-only-pzls/040.semi-perp-f2/8E.png"
+            }
+        ]
+    },
+    {
+        "id": "semi-perp-f3",
+        "pack": "straightedge-only-pzls",
+        "file": "levels/straightedge-only-pzls/041.semi-perp-f3/semi-perp-f3.gmt",
+        "title": "半圆外点作径垂-3",
+        "subtitle": "给定无心半圆形，过半圆的正下方一点作直径的垂线。",
+        "targetSteps": "10E",
+        "diagram": "levels/straightedge-only-pzls/041.semi-perp-f3/semi-perp-f3.png",
+        "note": "",
+        "tools": "straightedge",
+        "keywords": [
+            "Straightedge-only-Pzls",
+            "半圆",
+            "直径",
+            "无心圆",
+            "直径",
+            "垂线",
+            "单尺"
+        ],
+        "solutions": [
+            {
+                "star": "10E",
+                "file": "levels/straightedge-only-pzls/041.semi-perp-f3/10E.png"
+            }
+        ]
+    },
+    {
+        "id": "diam-equchordseg",
+        "pack": "straightedge-only-pzls",
+        "file": "levels/straightedge-only-pzls/042.diam-equchordseg/diam-equchordseg.gmt",
+        "title": "等线等弦找心",
+        "subtitle": "AB是直径，C在圆上，AC=AD，单尺作圆心。",
+        "targetSteps": "7E",
+        "diagram": "levels/straightedge-only-pzls/042.diam-equchordseg/diam-equchordseg.jpg",
+        "note": "",
+        "tools": "straightedge",
+        "keywords": [
+            "Straightedge-only-Pzls",
+            "半圆",
+            "直径",
+            "无心圆",
+            "直径",
+            "垂线",
+            "单尺"
+        ],
+        "solutions": [
+            {
+                "star": "7E",
+                "file": "levels/straightedge-only-pzls/042.diam-equchordseg/7E.png"
+            }
+        ]
+    },
+    {
+        "id": "trisect-a-insemi",
+        "pack": "straightedge-only-pzls",
+        "file": "levels/straightedge-only-pzls/043.trisect-a-insemi/trisect-a-insemi.gmt",
+        "title": "半圆中的三等分角",
+        "subtitle": "给定半圆形，圆心为O，直径为AB，弦CD与AB平行，OC交AD于E。求单尺三等分∠AEC。",
+        "targetSteps": "7E",
+        "diagram": "levels/straightedge-only-pzls/043.trisect-a-insemi/trisect-a-insemi.jpg",
+        "note": "",
+        "tools": "straightedge",
+        "keywords": [
+            "Straightedge-only-Pzls",
+            "半圆",
+            "直径",
+            "无心圆",
+            "直径",
+            "垂线",
+            "单尺"
+        ],
+        "solutions": [
+            {
+                "star": "7E",
+                "file": "levels/straightedge-only-pzls/043.trisect-a-insemi/7E.png"
+            }
+        ]
+    },
+    {
         "id": "xewpc1",
         "pack": "xewpc",
         "file": "levels/xewpc/xewpc1/xewpc1.gmt",
