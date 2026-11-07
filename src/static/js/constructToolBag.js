@@ -478,13 +478,13 @@ class PolePolarConstructTool {
             : (second && second.getType() === 'circle' ? second : null);
         if (!line || !circle) {
             geometryManager.deleteTool(this.toolName);
-            return;
+            return false;
         }
         geometryManager.createGeometryElementInputTool('point', this.toolName, 'polarPoint');
         const goal = geometryManager.getToolKey(this.toolName, 'polarPoint');
         if (!goal) {
             geometryManager.deleteTool(this.toolName);
-            return;
+            return false;
         }
         // 点是 modifyBase（点没有 modifyDefine；见 parseGmt / loadStorage 里还原点的那条分支）
         goal.modifyBase('polarPoint', [line, circle], 0);
@@ -494,16 +494,12 @@ class PolePolarConstructTool {
         const coord = typeof goal.getCoordinate === 'function' ? goal.getCoordinate() : null;
         if (!valid || !Array.isArray(coord) || !Number.isFinite(coord[0]) || !Number.isFinite(coord[1])) {
             geometryManager.deleteTool(this.toolName);
-            return;
+            return false;
         }
         geometryManager.loadTool(this.toolName);
-        // 触发存储事件（与模板里各工具一致）
-        const event = new CustomEvent('storage', {
-            detail: {
-                type: this.toolName,
-            },
-        });
-        window.dispatchEvent(event);
+        // 存储事件由 ExceptPointBaseToolTemplate 在 create 之后统一派发：
+        // 这里再发一次会多记一格一模一样的历史，玩家得点两次撤销才撤掉这个点
+        return true;
     }
 }
 
@@ -939,6 +935,17 @@ class CopyAngleConstructTool {
             geometryManager.getToolKey(this.toolName, 'point5'),
             geometryManager.getToolKey(this.toolName, 'point4'),
         ];
+        // 「复制角」第 4、5 个点（目标始边上的点 / 目标顶点）允许复用源角三点（第 1、2、3 个），
+        // 例如 [A,B,C,A,D]：源角的 A 同时作为目标始边上的点（顶点为 D）。
+        // 组内仍不重复：第 5 个点不能与第 4 个点重合，否则始边长度为 0、方向无法确定
+        this.copyAngleMode.repeatPointAllowed = (index, pointId) => {
+            if (index < 4) return false;
+            if (index >= 5 && pointId) {
+                const point4 = geometryManager.getToolKey(this.toolName, 'point4');
+                if (point4 && point4.getId() === pointId) return false;
+            }
+            return true;
+        };
     }
 
     /**

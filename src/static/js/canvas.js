@@ -699,6 +699,8 @@ const previewShapes = {
     // 圆心工具只用光标下那个点预览（落在圆的圆心上，见 board-tools.js 的 drawPreview），不在这里画
     // 复制圆规：先点一个圆，圆心跟着光标走（半径 = 那个圆的半径），图形还是圆
     compassCopy: 'circle',
+    // 复制角：选完源角三点 + 目标始边上的点后，光标处补目标顶点，预览复制出来的射线
+    copyAngle: 'copyAngle',
     // 两直线角平分线：点了第一条线、光标靠近第二条线时才预览
     twoLineAngleBisector: 'twoLineBisector',
     // 点 + 线混合的工具：先点了线之后，光标处的点补上，预览过它的平行线 / 垂线
@@ -1251,6 +1253,19 @@ function drawToolPreview() {
             ct.lineTo(bounds.p2.x, bounds.p2.y);
             ct.stroke();
         }
+    }else if (state.shape === 'copyAngle') {
+        // coords: [A, B, C, D(目标始边上的点), E(目标顶点，光标)]
+        // 与 ToolsFunction.updateLineCoordinate 的 copyAngle 分支同一算法：
+        // 以 E 为顶点、ED 为始边，按 ∠ABC（BA → BC）旋转得到射线方向
+        const [a, b, c, d, e] = state.coords;
+        const source = Math.atan2(a[1] - b[1], a[0] - b[0]) - Math.atan2(c[1] - b[1], c[0] - b[0]);
+        const angle = Math.atan2(d[1] - e[1], d[0] - e[0]) - source;
+        // 射线：从顶点 E 出发朝计算方向画到画布外（先不管长度，画布会裁掉）
+        const far = 10000;
+        ct.beginPath();
+        ct.moveTo(e[0], e[1]);
+        ct.lineTo(e[0] + Math.cos(angle) * far, e[1] + Math.sin(angle) * far);
+        ct.stroke();
     }
     ct.restore();
 }
@@ -1522,8 +1537,12 @@ function drawShapes() {
             drawChoiceCircle(element);
         }
     }
-    // 点
-    for (const point of points) {
+    // 点（可移动点最后画：玩家在同一位置标出的点否则会盖住蓝色可移动点，移动模式下看不清）
+    const movableIds = (typeof geometryElementLists !== 'undefined' && geometryElementLists.movepoints) || null;
+    const orderedPoints = movableIds && typeof movableIds.has === 'function'
+        ? [...points].sort((a, b) => Number(movableIds.has(a.getId())) - Number(movableIds.has(b.getId())))
+        : points;
+    for (const point of orderedPoints) {
         if (point.getInternal?.()) continue;
         if (!point.getValid()) continue;
         if (!point.getVisible()) continue;
@@ -1651,8 +1670,15 @@ const MARKED_LINE_KEY = /^(initial|named|result\d*|resultShown\d*|explore)$/;
  */
 function isMarkedLineElement(id) {
     if (typeof geometryElementLists === 'undefined' || !geometryElementLists) return false;
+    // 多解：只有当前那一组解的判定 / 显示才是画布上的目标。切到别的解后金色已经退掉，
+    // 旧解的线要跟普通两点直线一样，延长段淡下去（游玩页没有多解切换，沿用全部名单）
+    const activeGroup = typeof window.boardActiveResult === 'function' ? window.boardActiveResult() : null;
     for (const [key, value] of Object.entries(geometryElementLists)) {
         if (!MARKED_LINE_KEY.test(key)) continue;
+        if (activeGroup !== null) {
+            const resultKey = /^result(?:Shown)?(\d*)$/.exec(key);
+            if (resultKey && (resultKey[1] ? Number(resultKey[1]) : 1) !== activeGroup) continue;
+        }
         if (value instanceof Set ? value.has(id) : Array.isArray(value) && value.includes(id)) return true;
     }
     return false;

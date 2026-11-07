@@ -372,6 +372,11 @@ function choiceToolMenu(selectTool) {
  */
 function clearPendingToolChoice(previousTool) {
     if (!previousTool || typeof tools === 'undefined' || !tools[previousTool]) return;
+    // 切工具 = 放弃这次作图：先退掉取点时「顺手」作出的交点 / 顺手显示出来的隐藏交点，
+    // 否则它们没有自己的历史格，会留在画布上撤不掉（与 cancelPendingToolDraw 同一口径，
+    // 见 geometryToolBag 的 revertIncidentalDrawEffects）。切工具只在真正换工具时走这里，
+    // 未完成的那一笔就是被放弃的，无条件退回即可
+    if (typeof window.revertIncidentalDrawEffects === 'function') window.revertIncidentalDrawEffects();
     if (typeof tools[previousTool].clear === 'function') tools[previousTool].clear();
     // 工具自己的 clear 只清当前管理器，探索模式那一套也顺手清一次
     [typeof geometryManager === 'undefined' ? null : geometryManager,

@@ -33,7 +33,7 @@ window.addEventListener('resize', updateLayout);
 // 手势变量
 // 按下之后要移够这么多像素才算「拖动」：手抖挪几像素不该被当成拖拽作图
 // （见 mouseMoveEventFunction / mouseUpEventFunction，只用于左键作图；中键平移画布不受限制）
-const dragThreshold = 15;
+const dragThreshold = 6;
 let startX, startY, startTime;
 let isDragging = false;
 // 鼠标是不是正按着：mousemove 里靠它区分「按住拖动」与「纯悬停」
@@ -1108,6 +1108,8 @@ function dataLoad() {
         }else if (type === 'circle') {
             element = new Circle(id);
         }
+        // 归属层随存档走（单画布的页面固定按 result）
+        element.layer = elementDict.layer || 'result';
 
         element.modifyName(name);
         element.modifyVisible(visible);

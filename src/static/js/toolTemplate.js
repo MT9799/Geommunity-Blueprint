@@ -203,7 +203,7 @@ class PointBaseToolTemplate {
         if (pointId) {
             // 已经点过这个点：这个位置不允许重复时按「再点一次＝取消」处理（见 repeatPointAllowed）
             const repeated = geometryManager.ifIdInCache(this.toolName, pointId);
-            if (repeated && !this.repeatPointAllowed(this.status + 1)) {
+            if (repeated && !this.repeatPointAllowed(this.status + 1, pointId)) {
                 geometryManager.deleteToolQuote(this.toolName, pointId)
                 this.status--;
             }else{
@@ -232,11 +232,13 @@ class PointBaseToolTemplate {
     /**
      * 第 index 个点是否允许与前面已选的点重复 过程函数
      * 默认不允许（再点一次同一个点＝把它取消掉）；三点圆规覆写成「第三个点允许重复」——
-     * 它的第三点是圆心，可以与定半径的那两个点重合（以 A 为圆心、AB 为半径作圆）
+     * 它的第三点是圆心，可以与定半径的那两个点重合（以 A 为圆心、AB 为半径作圆）；
+     * 复制角覆写成「第 4、5 个点可以复用源角三点」，见 CopyAngleConstructTool
      * @param {number} index 正在选第几个点（从 1 起）
+     * @param {string} [pointId] 被重复点击的那个点 id（供实现区分「复用哪一组的点」，如复制角）
      * @returns {boolean}
      */
-    repeatPointAllowed(index) {
+    repeatPointAllowed(index, pointId) {
         return false;
     }
 
@@ -542,7 +544,7 @@ class PointBaseToolTemplate {
         if (pointId) {
             // 已经点过的点：默认跳过（不把同一个点引用两次）；
             // 三点圆规的圆心（第三个点）允许重复，那时照常切成引用
-            if (geometryManager.ifIdInCache(this.toolName, pointId) && !this.repeatPointAllowed(this.status)) return;
+            if (geometryManager.ifIdInCache(this.toolName, pointId) && !this.repeatPointAllowed(this.status, pointId)) return;
             // 切换至引用
             geometryManager.modifyToolObject(this.toolName, `point${this.status}`, "quote", pointId);
             if (this.changedVerify !== "choice") {
@@ -847,7 +849,7 @@ class PointBaseDialogToolTemplate {
         if (pointId) {
             // 已经点过这个点：这个位置不允许重复时按「再点一次＝取消」处理（见 repeatPointAllowed）
             const repeated = geometryManager.ifIdInCache(this.toolName, pointId);
-            if (repeated && !this.repeatPointAllowed(this.status + 1)) {
+            if (repeated && !this.repeatPointAllowed(this.status + 1, pointId)) {
                 geometryManager.deleteToolQuote(this.toolName, pointId)
                 this.status--;
             }else{
@@ -867,11 +869,13 @@ class PointBaseDialogToolTemplate {
     /**
      * 第 index 个点是否允许与前面已选的点重复 过程函数
      * 默认不允许（再点一次同一个点＝把它取消掉）；三点圆规覆写成「第三个点允许重复」——
-     * 它的第三点是圆心，可以与定半径的那两个点重合（以 A 为圆心、AB 为半径作圆）
+     * 它的第三点是圆心，可以与定半径的那两个点重合（以 A 为圆心、AB 为半径作圆）；
+     * 复制角覆写成「第 4、5 个点可以复用源角三点」，见 CopyAngleConstructTool
      * @param {number} index 正在选第几个点（从 1 起）
+     * @param {string} [pointId] 被重复点击的那个点 id（供实现区分「复用哪一组的点」，如复制角）
      * @returns {boolean}
      */
-    repeatPointAllowed(index) {
+    repeatPointAllowed(index, pointId) {
         return false;
     }
     
@@ -1130,7 +1134,7 @@ class PointBaseDialogToolTemplate {
         if (pointId) {
             // 已经点过的点：默认跳过（不把同一个点引用两次）；
             // 三点圆规的圆心（第三个点）允许重复，那时照常切成引用
-            if (geometryManager.ifIdInCache(this.toolName, pointId) && !this.repeatPointAllowed(this.status)) return;
+            if (geometryManager.ifIdInCache(this.toolName, pointId) && !this.repeatPointAllowed(this.status, pointId)) return;
             // 切换至引用
             geometryManager.modifyToolObject(this.toolName, `point${this.status}`, "quote", pointId);
             if (this.changedVerify !== "choice") {
@@ -1467,14 +1471,17 @@ class ExceptPointBaseToolTemplate {
         if (this.status >= this.maxStatus) {
             this.status = 0;
             // 点击位置一并传给 create：一般工具用不到，需要「按点击处挑一个」的工具可以取用
-            this.create(x, y);
-            // 触发存储事件
-            const event = new CustomEvent("storage", {
-                detail: {
-                    type: this.toolName,
-                },
-            });
-            window.dispatchEvent(event);
+            // create 返回 false 表示这一笔退化 / 无效（缓存已清），别再记一格空历史
+            const created = this.create(x, y);
+            if (created !== false) {
+                // 触发存储事件
+                const event = new CustomEvent("storage", {
+                    detail: {
+                        type: this.toolName,
+                    },
+                });
+                window.dispatchEvent(event);
+            }
         }
     }
     
@@ -1618,15 +1625,18 @@ class ExceptPointBaseToolTemplate {
             for (let i = 1; i <= this.maxStatus; i++) {
                 geometryManager.deleteToolKey(this.toolName, `choicePoint${i}`);
             }
-            this.create();
+            const created = this.create();
             geometryManager.loadTool(this.toolName);
-            // 触发存储事件
-            const event = new CustomEvent("storage", {
-                detail: {
-                    type: this.toolName,
-                },
-            });
-            window.dispatchEvent(event);
+            // 同 click：create 判定这一笔无效时不要记历史
+            if (created !== false) {
+                // 触发存储事件
+                const event = new CustomEvent("storage", {
+                    detail: {
+                        type: this.toolName,
+                    },
+                });
+                window.dispatchEvent(event);
+            }
         }
     }
     

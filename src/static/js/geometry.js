@@ -27,6 +27,9 @@ class GeometryElement {
         // 线段中央的记号：0 = 无；1/2/3 = 中竖线 1/2/3 道；4/5/6 = 箭头 1/2/3 道（见 canvas.js）
         this.mark = 0;
         this.internal = false;
+        // 归属层：'result' 普通画布 / 'explore' 探索画布 / 'both' 关卡自带（两套共用同一实例）。
+        // 留空 = 还没登记，由 addObject 按所在管理器补上（见 GeometryElementManager.layer）
+        this.layer = null;
     }
     
     /**
@@ -319,6 +322,7 @@ class Point extends GeometryElement {
         dict.color = this.color;
         dict.width = this.width;
         dict.internal = this.internal;
+        dict.layer = this.layer || 'result';
         dict.x = this.x;
         dict.y = this.y;
         dict.base = {type: this.base.type};
@@ -433,6 +437,7 @@ class Line extends GeometryElement {
         // 记号只在有它的对象上写（线段），旧存档里没有这个字段 = 0
         if (this.mark) dict.mark = this.mark;
         dict.internal = this.internal;
+        dict.layer = this.layer || 'result';
         dict.coordinate = this.coordinate;
         dict.base = {type: this.base.type};
         if (this.base.type !== "none") {
@@ -541,6 +546,7 @@ class Circle extends GeometryElement {
         dict.width = this.width;
         dict.dashed = this.dashed;
         dict.internal = this.internal;
+        dict.layer = this.layer || 'result';
         dict.coordinate = this.coordinate;
         dict.base = {type: this.base.type};
         if (this.base.type !== "none") {
@@ -711,11 +717,15 @@ class GeometryElementManager {
         // 画在最上面的一层：所求判定 / 所求显示 / 探索显示的图形。
         // 关卡作出解后，这些金色图形要压在玩家自己画的图形之上，否则会被盖住看不清
         const isOnResultLayer = id => {
-            if (geometryElementLists.result?.has(id) || geometryElementLists.explore?.has(id)) return true;
             for (let index = 1; index <= 20; index++) {
-                const key = index === 1 ? 'resultShown' : `resultShown${index}`;
-                if (geometryElementLists[key]?.has(id)) return true;
+                // 每一组解的「所求判定」都要压在玩家自己画的图形之上：
+                // 只认第 1 组（result）的话，第 2 组起判定的金色图形会掉进普通层，被灰色玩家图形盖住
+                const judgedKey = index === 1 ? 'result' : `result${index}`;
+                if (geometryElementLists[judgedKey]?.has(id)) return true;
+                const shownKey = index === 1 ? 'resultShown' : `resultShown${index}`;
+                if (geometryElementLists[shownKey]?.has(id)) return true;
             }
+            if (geometryElementLists.explore?.has(id)) return true;
             return false;
         };
         // 实有对象
@@ -790,7 +800,7 @@ class GeometryElementManager {
             if (choice === "auto") {
                 if (baseType === "online") {
                     object.modifyColor("#ff0000");
-                }else if (baseType === "intersection" || baseType === "middlePoint" || baseType === "center") {
+                }else if (baseType === "intersection" || baseType === "middlePoint" || baseType === "center" || baseType === "polarPoint") {
                     object.modifyColor("#808080");
                 }
                 // 默认显示标签，可在「配置点样式」中关闭
@@ -802,7 +812,7 @@ class GeometryElementManager {
                     object.modifyColor("#b30000");
                 }else if (baseType === "online") {
                     object.modifyColor("#ff0000");
-                }else if (baseType === "intersection" || baseType === "middlePoint" || baseType === "center") {
+                }else if (baseType === "intersection" || baseType === "middlePoint" || baseType === "center" || baseType === "polarPoint") {
                     object.modifyColor("#808080");
                 }
             }
@@ -826,6 +836,9 @@ class GeometryElementManager {
         // 会把对象改名再插入一份 —— 仓库里出现同 id 的两份，快照也跟着重复，
         // 撤销恢复时第二份又被改名，凭空多出一个点。
         if (Object.values(this.repository).includes(object)) return;
+
+        // 新对象的归属层默认跟随当前管理器；关卡自带的对象随后由 syncElementLayers 改成 'both'
+        if (!object.layer) object.layer = this.layer || 'result';
 
         // id查重（不同对象占了同一个 id 才改名）
         if (Object.keys(this.repository).includes(id)) {
@@ -1300,9 +1313,16 @@ class GeometryElementManager {
                 const reach = isGridElement(element) ? minDistance * gridReach : minDistance;
                 const distance = measure(element, reach);
                 if (distance === null || distance === undefined) return;
+                // 移动模式下可移动点置顶：它常和玩家在同一位置标出的点 / 交点重合，
+                // 按「离光标近 + 档位」比会被那些点抢走，就拖不动关卡给的可移动点了
+                const movableOnTop = typeof tool !== 'undefined' && tool === 'move'
+                    && typeof geometryElementLists !== 'undefined'
+                    && geometryElementLists.movepoints
+                    && typeof geometryElementLists.movepoints.has === 'function'
+                    && geometryElementLists.movepoints.has(id);
                 container.push({
                     id: id,
-                    group: isGridElement(element) ? 2 : groupOf(element),
+                    group: movableOnTop ? -1 : (isGridElement(element) ? 2 : groupOf(element)),
                     distance: distance,
                     rank: rankOf(element),
                     order: order.get(element) || 0,
@@ -1344,12 +1364,17 @@ class GeometryElementManager {
         
         // 三个 nearXxx 返回**命中距离**（命中不到返回 null）：near 按距离排序，得拿到这个数
         function nearPoint(x, y, element, minDistance) {
-            const [pointX, pointY] = element.getCoordinate();
+            // 坐标还没算出来（基底残缺 / 无效对象）时就当没命中：一个坏对象不该让整次 near 抛错
+            const coord = element.getCoordinate?.();
+            if (!Array.isArray(coord) || typeof coord[0] !== 'number' || typeof coord[1] !== 'number') return null;
+            const [pointX, pointY] = coord;
             const distance = Math.hypot(x - pointX, y - pointY);
             return distance < minDistance ? distance : null;
         }
         function nearLine(x, y, element, minDistance) {
-            const coordList = element.getCoordinate();
+            const coordList = element.getCoordinate?.();
+            // 同上：直线坐标缺失（定义点还没算出来等）时跳过，避免 coordList[0] 抛 TypeError
+            if (!Array.isArray(coordList) || !Array.isArray(coordList[0]) || !Array.isArray(coordList[1])) return null;
             const [pointX1, pointY1] = coordList[0];
             const [pointX2, pointY2] = coordList[1];
 
@@ -1379,7 +1404,9 @@ class GeometryElementManager {
             return distance;
         }
         function nearCircle(x, y, element, minDistance) {
-            const coordList = element.getCoordinate();
+            const coordList = element.getCoordinate?.();
+            // 退化 / 无效圆（坐标缺失）当没命中
+            if (!Array.isArray(coordList) || !Array.isArray(coordList[0]) || !Array.isArray(coordList[1])) return null;
             const [centerX, centerY] = coordList[0];
             const [pointX, pointY] = coordList[1];
             
@@ -1660,10 +1687,18 @@ class GeometryElementManager {
                 }
                 if (valid) {
                     currentElement.updateCoordinate();
-                    currentElement.modifyValid(true);
+                    // 定义点都有效，但这一条本身可能算不出来（过圆内点作切线、两平行线求交点等）：
+                    // updateCoordinate 会把坐标置空。坐标为空还标成有效的话，图形既不画出来、
+                    // 判定却仍然按「等价」通过（所求消失后给定里的所求显示还停在金色）
+                    const coord = currentElement.getCoordinate?.();
+                    const hasCoordinate = Array.isArray(coord) && coord.length >= 2
+                        && Array.isArray(coord[0]) && Array.isArray(coord[1])
+                        && Number.isFinite(coord[0][0]) && Number.isFinite(coord[0][1])
+                        && Number.isFinite(coord[1][0]) && Number.isFinite(coord[1][1]);
+                    currentElement.modifyValid(hasCoordinate);
                     // Arc 的终点 C 用 Linepoint[Arc,x] 或 Intersect[Arc,...] 保存参数，
                     // 但不登记 Arc 的反向依赖，否则会形成循环。Arc 更新后在这里主动刷新 C。
-                    if (currentElement.getBase?.().type === 'arc') {
+                    if (hasCoordinate && currentElement.getBase?.().type === 'arc') {
                         const endpoint = currentElement.getBase().figure?.[2];
                         const endpointBase = endpoint?.getBase?.();
                         if ((endpointBase?.type === 'online' || endpointBase?.type === 'intersection')
@@ -1782,6 +1817,8 @@ class GeometryElementManager {
      * @param {dict[]} elements
      */
     appendStorage(elements) {
+        // 归属层默认值：存档里没带 layer 的老数据落到当前管理器这一层
+        const managerLayer = this.layer || 'result';
         // 1.反序列化为元素
         for (const item of elements) {
             const element = deserialization(item);
@@ -1856,6 +1893,8 @@ class GeometryElementManager {
             }else if (type === 'circle') {
                 element = new Circle(id);
             }
+            // 归属层随存档走（老存档没有就按管理器默认）
+            element.layer = elementDict.layer || managerLayer;
 
             element.modifyName(name);
             element.modifyVisible(visible);

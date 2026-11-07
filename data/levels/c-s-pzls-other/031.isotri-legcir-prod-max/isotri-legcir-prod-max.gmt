@@ -1,0 +1,24 @@
+# isosceles-triangle-leg-circle-product-max
+A=[-387.0542957295,25.0035074761]
+B=[279.0391434329,25.0035074761]
+S1=Segment[A,B]
+s1=PBisect[A,B]
+C=Linepoint[s1,-0.4673730830755622]
+S2=Segment[A,C]
+S3=Segment[C,B]
+D=Midpoint[C,B]
+c1=Circle[D,B]
+E=Intersect[s1,c1,1]
+c2=Circle[E,C]
+s2=Line[A,D]
+F=Intersect[c2,c1,-,C]
+G=Intersect[s2,c2,1]
+s3=Line[F,G]
+H=Intersect[s3,c1,-,F]
+
+initial=S2,S3,S1,c1
+named=C.A,A.B,B.C
+movepoints=
+hidden=
+result=H
+explore=H

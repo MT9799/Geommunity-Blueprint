@@ -28,6 +28,9 @@
     document.title = `${levelInfo.title || id}${packInfo ? ' · ' + packInfo.name : ''}${titleSuffix}`;
     return fetch(`../data/${levelInfo.file}`).then(response => response.text());
   }).then(text => {
+    // 关卡原始 gmt 文本留一份：载入旧记录时要用它比对「预绘制部分」是否被版本更新改过
+    // （见 recordPanel.js 的 rebuildRecordGmt）
+    window.__levelGmtText = text;
     // gmt -> 画板几何对象（解析器与画板的「导入 gmt」共用，见 board-tools.js 的 parseGmt）
     const { elements, lists, resultGroups, grid } = parseGmt(text);
     // result 的分组：判定对象 + 判定成功后要显示的图形（试玩/关卡共用）

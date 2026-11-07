@@ -205,9 +205,9 @@
 | `data/levels/<包id>/<序号>.<关卡id>/…` | **关卡文件夹**：该关的 gmt、题图、收录的解法图与解法 gmt 全在这里 |
 | `data/thumbs/levels/<包id>/<序号>.<关卡id>/…` | 该关题图的缩略图（与题图同名、扩展名 `.webp`，脚本生成） |
 | `data/packcovers/<包id>.png / .jpg / .webp` | 关卡包封面（总览卡片左侧大图） |
-| `data/thumbs/packcovers/…` | 关卡包封面的缩略图（脚本生成） |
-| `data/levelpacks.json` | **关卡包**列表（10 个包） |
-| `data/levels.json` | **关卡**扁平列表（345 关） |
+| `data/thumbs/packcovers/…` | 关卡包封面的缩略图 |
+| `data/levelpacks.json` | **关卡包**列表 |
+| `data/levels.json` | **关卡**扁平列表 |
 
 两个 JSON 各管一件事，不再有额外的覆盖表：一个管关卡包，一个管关卡，页面直接读它们。
 
@@ -268,9 +268,7 @@
 
 **新增关卡包 / 关卡**：先建 `data/levels/<包id>/<关卡id>/`，把该关的 `.gmt`、题图、解法图都放进去（跑一次 `npm run thumbs` 在 `data/thumbs/levels/…` 生成同名 `.webp` 缩略图），再在 `levelpacks.json` 加一个包、在 `levels.json` 加一条关卡即可（`file` / `diagram` / `solutions` 都写 `levels/<包id>/<关卡id>/文件名`）。
 
-当前标注了工具限制的关卡共 **47 关**（43 关单尺 + 4 关单规）；`extra-straightedge-only-pzls` 整包 36 关都是单尺。
-
-> `data/diagrams/ewp/` 里还留着 5 张当年没用上的题图（`EWP021.png` / `EWP049.png` / `EWP066.png` / `EWP088.png` / `EWP091.png`，这几关不在 `levels.json` 里），它们没有关卡引用，下划线也一并换成了连字符，需要的话删掉即可。
+> `data/levels/ewp/` 里还留着 5 张当年没用上的题图（`EWP021.png` / `EWP049.png` / `EWP066.png` / `EWP088.png` / `EWP091.png`，这几关不在 `levels.json` 里），它们由于所求是不定的，故暂时没有编写关卡，后续更新可能会加入。
 
 ### 答案的「逐步绘制」（可选）
 

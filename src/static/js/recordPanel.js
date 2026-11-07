@@ -412,7 +412,11 @@
      * @param {Object} dict
      */
     function restoreThumbnail(dict) {
-        const thumbnail = dict.thumbnail;
+        // 老记录里 thumbnail 可能是 JSON 字符串，先统一成对象
+        let thumbnail = dict.thumbnail;
+        if (typeof thumbnail === 'string') {
+            try { thumbnail = JSON.parse(thumbnail); } catch (error) { thumbnail = null; }
+        }
         if (!thumbnail) return;
         const put = (id, value) => {
             const element = document.getElementById(id);
@@ -422,14 +426,21 @@
         put('body_inf', thumbnail.body_input);
         put('bottom_inf', thumbnail.bottom_input);
         if (typeof refreshPageTitle === 'function') refreshPageTitle(thumbnail.title_input);
-        const oldPicture = document.getElementById('thumbnail-picture');
-        if (oldPicture) oldPicture.remove();
+        // 只有确实带了替换图时才换缩略图；而且要**等新图加载成功再换**：
+        //   · 记录里没存图（thumbnailSrc 为空 / 只存了题目文本）→ 保持现在的缩略图不动；
+        //   · 记录里的图打不开（换过主机 / 端口，图已经 404）→ 也保留现在这张，
+        //     否则会先删掉旧图、再放一张加载失败的图，看起来就是「缩略图不显示了」
         if (thumbnail.thumbnailSrc) {
-            const picture = document.createElement('img');
-            picture.id = 'thumbnail-picture';
-            picture.src = thumbnail.thumbnailSrc;
-            picture.alt = t('board.thumbnailAlt');
-            (document.getElementById('thumbnail-middle') || document.body).appendChild(picture);
+            const oldPicture = document.getElementById('thumbnail-picture');
+            const probe = new Image();
+            probe.onload = () => {
+                if (oldPicture && oldPicture.parentNode) oldPicture.remove();
+                probe.id = 'thumbnail-picture';
+                probe.alt = t('board.thumbnailAlt');
+                (document.getElementById('thumbnail-middle') || document.body).appendChild(probe);
+            };
+            probe.onerror = () => { /* 新图打不开：保留原来那张 */ };
+            probe.src = thumbnail.thumbnailSrc;
         }
     }
 
@@ -448,6 +459,71 @@
         return true;
     }
 
+    /** 记录 / 关卡 gmt 里的标记行：这些是题面语义，属于「预绘制部分」 */
+    const RECORD_MARKER_KEY = /^(initial|named|movepoints|hidden|explore|result|resultShown)\d*$/;
+    /** 记录独有的元信息行（不属于预绘制部分） */
+    const RECORD_META_KEY = new Set(['recordname', 'time', 'saved', 'mode', 'pack', 'levelid', 'reached', 'steps', 'undolist', 'styles']);
+
+    /** 记录 / 关卡 gmt 里的对象行（预绘制部分的对象） */
+    function recordObjectLines(gmt) {
+        return String(gmt || '').replace(/\r/g, '').split('\n')
+            .map(line => line.trim())
+            .filter(line => {
+                const key = line.split('=')[0].trim();
+                return !!key && !key.startsWith('#') && !RECORD_META_KEY.has(key) && !RECORD_MARKER_KEY.test(key);
+            });
+    }
+
+    /** 记录 / 关卡 gmt 里的标记行（给定 / 所求 / 探索 / 隐藏） */
+    function recordMarkerLines(gmt) {
+        return String(gmt || '').replace(/\r/g, '').split('\n')
+            .map(line => line.trim())
+            .filter(line => {
+                const key = line.split('=')[0].trim();
+                return !!key && RECORD_MARKER_KEY.test(key);
+            })
+            .sort();
+    }
+
+    /**
+     * 记录的「预绘制部分」是否和当前关卡对不上 过程函数
+     * 预绘制部分 = undolist 之外的对象行 + 所有标记行。版本更新改了关卡 gmt 时，
+     * 旧记录的这部分就会和当前关卡不一致，载入后给定 / 所求会错位。
+     * @param {string} recordGmt
+     * @param {number[]} listed 记录的 undolist（对象行序号，1 起数）
+     * @returns {boolean}
+     */
+    function recordPreDrawnDiffers(recordGmt, listed) {
+        const levelText = global.__levelGmtText;
+        if (!levelText || !recordGmt || !Array.isArray(listed)) return false;
+        const listedSet = new Set(listed);
+        const recordBaseline = recordObjectLines(recordGmt).filter((line, index) => !listedSet.has(index + 1));
+        const sameObjects = recordBaseline.join('\n') === recordObjectLines(levelText).join('\n');
+        const sameMarkers = recordMarkerLines(recordGmt).join('\n') === recordMarkerLines(levelText).join('\n');
+        return !(sameObjects && sameMarkers);
+    }
+
+    /**
+     * 把记录当成这一关 过程函数
+     * 预绘制部分对不上时（关卡在更新里改过），不再拿当前关卡去套旧记录，而是**以记录为准**：
+     * 把关卡名单（`geometryElementLists.level`）与所求分组都换成记录里的，
+     * 于是判定、着色、可删除性全都按记录这一套走 —— 看起来就跟「这一关本来就是这样」一样
+     * @param {string} recordGmt
+     * @param {number[]} listed 记录的 undolist（对象行序号，1 起数）
+     */
+    function adoptRecordAsLevel(recordGmt, listed) {
+        const listedSet = new Set(Array.isArray(listed) ? listed : []);
+        // 关卡自带的对象 = 预绘制部分（undolist 之外的对象行）
+        const levelIds = recordObjectLines(recordGmt)
+            .map(line => line.split('=')[0].trim())
+            .filter((id, index) => !listedSet.has(index + 1));
+        if (typeof geometryElementLists !== 'undefined') geometryElementLists.level = new Set(levelIds);
+        const parsed = typeof global.parseGmt === 'function' ? global.parseGmt(recordGmt) : null;
+        if (parsed) window.gmtResultGroups = parsed.resultGroups || [];
+        // 之后再载入同一条记录时不必重复判定
+        global.__levelGmtText = recordGmt;
+    }
+
     /**
      * 把一条记录的作图放回画布 过程函数
      * @param {Object} dict
@@ -455,8 +531,25 @@
      */
     function loadRecord(dict) {
         if (!dict) return false;
-        if (dict.gmt && global.boardGmt && typeof global.boardGmt.load === 'function') {
-            if (!global.boardGmt.load(dict.gmt)) return false;
+        // 版本更新可能改过关卡 gmt：旧记录的预绘制部分对不上时，先按当前关卡重建
+        // （以当前关卡为底，补回记录里玩家自己画的对象），否则给定 / 所求会错位
+        const recordGmt = dict.gmt;
+        const recordUndolist = dict.undolist;
+        // 只有「明确标明属于本关」的记录才做兼容判定：制题器 / 求解器导出、跨关卡导入的记录
+        // 本来就带着自己的整套图形，不该被当前关卡影响
+        const urlParams = new URLSearchParams(location.search);
+        const recordInfo = store.infoOf(dict) || {};
+        const forThisLevel = mode === 'level'
+            && urlParams.get('pack') && urlParams.get('id')
+            && recordInfo.mode === 'level'
+            && recordInfo.pack === urlParams.get('pack')
+            && recordInfo.levelId === urlParams.get('id');
+        // 关卡更新后预绘制部分可能变了：这时把记录当成这一关（见 adoptRecordAsLevel），
+        // 而不是拿当前关卡去套旧记录 —— 否则给定 / 所求会错位
+        const adoptAsLevel = forThisLevel && Array.isArray(recordUndolist)
+            && recordPreDrawnDiffers(recordGmt, recordUndolist);
+        if (recordGmt && global.boardGmt && typeof global.boardGmt.load === 'function') {
+            if (!global.boardGmt.load(recordGmt)) return false;
         }else if (dict.geometryElement) {
             // v1.1.2 以前的记录：直接还原快照，然后就地转成新格式（下次就不用走这条路）
             if (typeof global.loadStorageSnapshot !== 'function') return false;
@@ -464,6 +557,8 @@
         }else{
             return false;
         }
+        // 预绘制部分对不上：以记录为准当这一关（关卡名单 / 所求分组都换成记录里的）
+        if (adoptAsLevel) adoptRecordAsLevel(recordGmt, recordUndolist);
         applyHiddenList();
         // 样式表要压在隐藏标记与标记着色之后：记录里的颜色 / 粗细就是保存那一刻的样子
         applyStyles(dict.styles);
@@ -490,14 +585,15 @@
         // 而样式表是按**对象名**存的，撤掉的对象名会被新画的图形复用（E / F / s1 …），
         // 再补一次就会把新图形改成旧对象的颜色 / 显隐（现象：撤回后新画的点变灰、线不见了）
         loadedStyles = null;
-        const undolist = dict.undolist || (dict.storage ? {construct: dict.storage.construct, moves: dict.storage.moves} : null);
+        const undolist = recordUndolist || (dict.storage ? {construct: dict.storage.construct, moves: dict.storage.moves} : null);
         if (Array.isArray(undolist)) {
             // 新格式：名单就是「可撤回的图形」那一串对象行序号。
             // 游玩模式与「逐步绘制」的精简画板按名单铺撤销历史（只能逐一撤回名单里的图形，
             // 预绘制的给定图形撤不掉）；其它模式忽略名单 ——
             // 把游玩模式导出的记录导入画板，依然可以逐一撤回所有图形
             const listed = (mode === 'level' || mode === 'stepview') ? undolist : null;
-            if (typeof global.buildStorageHistoryFromList === 'function') global.buildStorageHistoryFromList(listed);
+            // 只铺正式画布的历史：载入记录不改探索画布，探索那边的撤销历史要原样留着
+            if (typeof global.buildStorageHistoryFromList === 'function') global.buildStorageHistoryFromList(listed, 'result');
             if (isPlay && typeof global.rebuildMovesHistoryForRecord === 'function') {
                 global.rebuildMovesHistoryForRecord(listed, store.infoOf(dict).steps);
             }

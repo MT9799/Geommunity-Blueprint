@@ -90,23 +90,22 @@ class ToolsFunction {
             };
         }
         
-        // 计算直线与画布两边的交点
-        const tValues = [];
-        // 与左边（x=0）的交点：t = (0 - startX)/dx
-        tValues.push((left - startX) / dx);
-        // 与右边（x=canvas.width）的交点：t = (canvas.width - startX)/dx
-        tValues.push((right - startX) / dx);
-        
-        const intersections = tValues
-            .map(t => ({
-                x: startX + dx * t,
-                y: startY + dy * t
-                }));
-        
-        return {
-            p1: intersections[0],
-            p2: intersections[1]
-        };
+        // 与画布左右两边的交点
+        const tLeft = (left - startX) / dx;
+        const tRight = (right - startX) / dx;
+        let p1 = {x: startX + dx * tLeft, y: startY + dy * tLeft};
+        let p2 = {x: startX + dx * tRight, y: startY + dy * tRight};
+        // 线很陡（dx 接近 0，也就是斜率「不存在」的那条预览垂线）时，左右交点的 y 会跑到
+        // 1e19 量级：画布画不出这么长的线，预览就一帧有一帧没地闪。这时改取上下两边的
+        // 交点，仍是同一条直线，端点却留在画布附近（够陡时它们的 x 一定在画布内）
+        if (dy !== 0 && (![p1.y, p2.y].every(Number.isFinite)
+                || p1.y < top || p1.y > down || p2.y < top || p2.y > down)) {
+            p1 = {x: startX + dx * (top - startY) / dy, y: top};
+            p2 = {x: startX + dx * (down - startY) / dy, y: down};
+            // 射线预览按 p1 / p2 的左右关系取远端，保持 p1 在左、p2 在右
+            if (p1.x > p2.x) [p1, p2] = [p2, p1];
+        }
+        return {p1, p2};
     }
     
     /**
@@ -775,19 +774,22 @@ class ToolsFunction {
      * @returns {{x: number, y: number} | null} 输出点
      */
     static polarPoint(p1, p2, p3, p4) {
-        const line1 = ToolsFunction.polarLine(p1, p3, p4);
-        if (!line1) return null;
-        const line2 = ToolsFunction.polarLine(p2, p3, p4);
-        if (!line2) return null;
-        const [p5, p6] = line1;
-        const [p7, p8] = line2;
-        const flagValue = ToolsFunction.lineIntersection(p5, p6, p7, p8);
-        
-        if (flagValue.flag) {
-            return flagValue.value;
-        }else{
-            return null;
-        }
+        // 极点只由「圆心到直线的垂足」决定，与直线拿哪两个点来表示无关。
+        // 原先按 p1、p2 各作一条极线再求交，而极线依赖反演点（inversion），反演只在
+        // **点在圆外**时成立：切线 / 极线 / 垂线等工具给出的渲染点常落在圆内或圆上，
+        // 反演点算错，两条极线的交点就跟着错 —— 只有两个定义点都在圆外的普通直线才碰巧正确。
+        const dx = p2.x - p1.x;
+        const dy = p2.y - p1.y;
+        const lengthSquared = dx * dx + dy * dy;
+        if (lengthSquared < 1e-20) return null;
+        const proportion = ((p3.x - p1.x) * dx + (p3.y - p1.y) * dy) / lengthSquared;
+        const footX = p1.x + proportion * dx - p3.x;
+        const footY = p1.y + proportion * dy - p3.y;
+        const distanceSquared = footX * footX + footY * footY;
+        if (distanceSquared < 1e-20) return null;    // 直线过圆心：极点在无穷远
+        const radiusSquared = (p4.x - p3.x) ** 2 + (p4.y - p3.y) ** 2;
+        const factor = radiusSquared / distanceSquared;
+        return {x: p3.x + footX * factor, y: p3.y + footY * factor};
     }
     
     /**

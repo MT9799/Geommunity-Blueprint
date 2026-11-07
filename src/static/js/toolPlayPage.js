@@ -341,6 +341,16 @@ function showMovePoints(bool) {
         const element = geometryManager.get(item);
         if (element) element.modifyVisible(bool);
     });
+    // 两套管理器（正式 / 探索）可能各持一份实例：染色只染当前画布，
+    // 但还原要**两边都还原** —— 否则「探索视图里打开记录面板」这种先染探索、
+    // 再切回正式画布收尾的操作，会把颜色还原到另一套实例上，探索那批永远停在蓝色
+    const managers = [];
+    const push = manager => {
+        if (manager && !managers.includes(manager)) managers.push(manager);
+    };
+    if (typeof geometryManager !== 'undefined') push(geometryManager);
+    if (typeof geometryManagerResult !== 'undefined') push(geometryManagerResult);
+    if (typeof geometryManagerExplore !== 'undefined') push(geometryManagerExplore);
     if (bool) {
         givenFreePointIds().forEach((id) => {
             const element = geometryManager.get(id);
@@ -349,7 +359,9 @@ function showMovePoints(bool) {
             element.modifyColor('#0099ff');
         });
     }else{
-        givenFreePointColors.forEach((color, id) => geometryManager.get(id)?.modifyColor(color));
+        givenFreePointColors.forEach((color, id) => {
+            managers.forEach(manager => manager.get(id)?.modifyColor(color));
+        });
         givenFreePointColors.clear();
     }
 }
@@ -371,6 +383,11 @@ function choiceToolMenu(selectTool) {
  */
 function clearPendingToolChoice(previousTool) {
     if (!previousTool || typeof tools === 'undefined' || !tools[previousTool]) return;
+    // 切工具 = 放弃这次作图：先退掉取点时「顺手」作出的交点 / 顺手显示出来的隐藏交点，
+    // 否则它们没有自己的历史格，会留在画布上撤不掉（与 cancelPendingToolDraw 同一口径，
+    // 见 geometryToolBag 的 revertIncidentalDrawEffects）。切工具只在真正换工具时走这里，
+    // 未完成的那一笔就是被放弃的，无条件退回即可
+    if (typeof window.revertIncidentalDrawEffects === 'function') window.revertIncidentalDrawEffects();
     if (typeof tools[previousTool].clear === 'function') tools[previousTool].clear();
     // 工具自己的 clear 只清当前管理器，关卡页有两套（正式 / 探索），都清一次
     [typeof geometryManager === 'undefined' ? null : geometryManager,

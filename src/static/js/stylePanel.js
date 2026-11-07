@@ -441,6 +441,19 @@ function currentSelectionKey() {
 }
 
 /**
+ * 对象自己的样式（不是标记显示色） 过程函数
+ * 给定 / 可移动点 / 所求在画布上是黑 / 蓝 / 金，那是写死的标记显示色；
+ * 样式调整里的颜色框要显示图形自己的样式色（见 boardGmt.ownStyleOf / markedStyles）
+ * @param {Object} element
+ * @returns {{color: string, showName: boolean}|null} 没被标记时返回 null
+ */
+function ownStyleOfElement(element) {
+    const id = element && typeof element.getId === 'function' ? element.getId() : null;
+    if (!id || typeof window.boardGmt?.ownStyleOf !== 'function') return null;
+    return window.boardGmt.ownStyleOf(id);
+}
+
+/**
  * 调整已选中对象的样式 过程函数
  * @param {Object} [anchor] 弹层定位按钮
  */
@@ -476,7 +489,18 @@ function openObjectStylePopup(anchor) {
         // 选中线段时在「隐藏」右侧多一个「记号」下拉
         showMark: allSegments,
         hideLabel: isGrid,
-        get: () => ({color: element.getColor(), width: element.getWidth(), showName: element.getShowName(), visible: element.getVisible(), dashed: element.getDashed(), mark: element.getMark ? element.getMark() : 0}),
+        // 被标记的对象要显示它自己的样式色 / 标签状态，而不是黑 / 蓝 / 金这套标记显示色
+        get: () => {
+            const own = ownStyleOfElement(element);
+            return {
+                color: own ? own.color : element.getColor(),
+                width: element.getWidth(),
+                showName: own ? own.showName : element.getShowName(),
+                visible: element.getVisible(),
+                dashed: element.getDashed(),
+                mark: element.getMark ? element.getMark() : 0,
+            };
+        },
         apply: (patch, live) => {
             targetsOf().forEach(item => {
                 if (patch.color) item.modifyColor(patch.color);
@@ -616,15 +640,17 @@ function renderInlineStyleControls(container, element, onChange, readOnly) {
             return;
         }
 
-        // 颜色
+        // 颜色：被标记的对象显示它自己的样式色（黑 / 蓝 / 金是写死的标记显示色，不是样式色）
         const colorRow = addRow(styleText('board.styleColor', '颜色'));
         const colorButton = document.createElement('button');
         colorButton.type = 'button';
         colorButton.className = 'style-popup-color';
-        colorButton.style.backgroundColor = target.getColor();
+        const own = ownStyleOfElement(current());
+        colorButton.style.backgroundColor = own ? own.color : target.getColor();
         colorButton.setAttribute('aria-label', styleText('board.stylePickColor', '选择颜色'));
         colorButton.addEventListener('click', () => {
-            let picked = current().getColor();
+            const ownAtClick = ownStyleOfElement(current());
+            let picked = ownAtClick ? ownAtClick.color : current().getColor();
             const applyColor = live => {
                 each(item => item.modifyColor(picked));
                 // 拖动取色时也要立刻反映：预览色块跟着变，画布立即重绘（与弹层那套一致）

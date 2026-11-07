@@ -4119,6 +4119,30 @@
         ]
     },
     {
+        "id": "compli-a-intri",
+        "pack": "c-s-pzls-other",
+        "file": "levels/c-s-pzls-other/018.compli-a-intri/compli-a-intri.gmt",
+        "title": "三角形等距互补点",
+        "subtitle": "给定三角形ABC，在边AB、AC上分别找点D、E，使得AD=AE，且∠BDC+∠BEC=180°。",
+        "targetSteps": "4L / 4E",
+        "diagram": "levels/c-s-pzls-other/018.compli-a-intri/compli-a-intri.png",
+        "note": "",
+        "keywords": [
+            "C-s-Pzls-Other",
+            "三角形",
+            "角度和",
+            "互补",
+            "线段相等",
+            "导角"
+        ],
+        "solutions": [
+            {
+                "star": "12E",
+                "file": "levels/c-s-pzls-other/018.compli-a-intri/4E.png"
+            }
+        ]
+    },
+    {
         "id": "half-perp-chord",
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/019.half-perp-chord/half-perp-chord.gmt",
@@ -4380,6 +4404,33 @@
         ]
     },
     {
+        "id": "abisect-oncir",
+        "pack": "c-s-pzls-other",
+        "file": "levels/c-s-pzls-other/028.abisect-oncir/abisect-oncir.gmt",
+        "title": "圆上的角平分点",
+        "subtitle": "给定圆K及圆上一点L，圆外两点A、B，在圆上找一点I，使得∠AIL=∠BIL。",
+        "targetSteps": "10L / 12E",
+        "diagram": "levels/c-s-pzls-other/028.abisect-oncir/abisect-oncir.png",
+        "note": "",
+        "keywords": [
+            "C-s-Pzls-Other",
+            "角平分线",
+            "clipt",
+            "角度相等",
+            "圆上点"
+        ],
+        "solutions": [
+            {
+                "star": "10L 12E",
+                "file": "levels/c-s-pzls-other/028.abisect-oncir/10L12E.png"
+            },
+            {
+                "star": "10L 12E",
+                "file": "levels/c-s-pzls-other/028.abisect-oncir/10L12E-2.png"
+            }
+        ]
+    },
+    {
         "id": "2angles-diff-45",
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/029.2angles-diff-45/2angles-diff-45.gmt",
@@ -4444,6 +4495,111 @@
             {
                 "star": "Applicability",
                 "file": "levels/c-s-pzls-other/030.oncircle-c-orthoc/Applicability.png"
+            }
+        ]
+    },
+    {
+        "id": "isotri-legcir-prod-max",
+        "pack": "c-s-pzls-other",
+        "file": "levels/c-s-pzls-other/031.isotri-legcir-prod-max/isotri-legcir-prod-max.gmt",
+        "title": "腰径圆上乘积最值",
+        "subtitle": "等腰三角形ABC，A是顶点，以AC为直径作圆（圆心未给定），在圆上找一点P，使得PB*PC取得最大值。",
+        "targetSteps": "4L / 4E",
+        "diagram": "levels/c-s-pzls-other/031.isotri-legcir-prod-max/isotri-legcir-prod-max.png",
+        "note": "",
+        "keywords": [
+            "C-s-Pzls-Other",
+            "等腰三角形",
+            "圆上点",
+            "直径",
+            "乘积",
+            "最值"
+        ],
+        "solutions": [
+            {
+                "star": "4L 4E",
+                "file": "levels/c-s-pzls-other/031.isotri-legcir-prod-max/4L4E.png"
+            }
+        ]
+    },
+    {
+        "id": "equtriintripbisetroupoi",
+        "pack": "c-s-pzls-other",
+        "file": "levels/c-s-pzls-other/032.equtriintripbisetroupoi/equtriintripbisetroupoi.gmt",
+        "title": "内接正三角形中垂线过点",
+        "subtitle": "构造内接等边三角形，使得正三角形其中一边的垂直平分线过给定点。",
+        "targetSteps": "23L / 51E",
+        "diagram": "levels/c-s-pzls-other/032.equtriintripbisetroupoi/equtriintripbisetroupoi.png",
+        "note": "",
+        "keywords": [
+            "C-s-Pzls-Other",
+            "多解",
+            "三角形",
+            "直线过点",
+            "正三角形",
+            "内接",
+            "垂直平分线"
+        ],
+        "solutions": [
+            {
+                "star": "23L 51E",
+                "file": "levels/c-s-pzls-other/032.equtriintripbisetroupoi/23l51e.jpg"
+            },
+            {
+                "star": "6V",
+                "file": "levels/c-s-pzls-other/032.equtriintripbisetroupoi/6v.jpg"
+            }
+        ]
+    },
+    {
+        "id": "ccl-ttt",
+        "pack": "c-s-pzls-other",
+        "file": "levels/c-s-pzls-other/033.ccl-ttt/ccl-ttt.gmt",
+        "title": "切圆与切线LCC",
+        "subtitle": "已知不等大两圆外切，给出它们的外公切线，求作一圆与这两圆以及它们的外公切线相切。",
+        "targetSteps": "6L / 6E",
+        "diagram": "levels/c-s-pzls-other/033.ccl-ttt/ccl-ttt.png",
+        "note": "",
+        "keywords": [
+            "C-s-Pzls-Other",
+            "相切",
+            "多解",
+            "外公切线",
+            "Apollonius-LCC",
+            "阿波罗尼奥斯问题"
+        ],
+        "solutions": [
+            {
+                "star": "6L 6E",
+                "file": "levels/c-s-pzls-other/033.ccl-ttt/6L6E.png"
+            },
+            {
+                "star": "2V",
+                "file": "levels/c-s-pzls-other/033.ccl-ttt/2V.png"
+            }
+        ]
+    },
+    {
+        "id": "double-yolk-egg",
+        "pack": "c-s-pzls-other",
+        "file": "levels/c-s-pzls-other/034.double-yolk-egg/double-yolk-egg.gmt",
+        "title": "双黄蛋",
+        "subtitle": "三角形ABC的BC边上有两点D、E，在AC上找一点F，在AB上找一点G，使得∠FDG=∠FEG=90°。",
+        "targetSteps": "16L / 18E",
+        "diagram": "levels/c-s-pzls-other/034.double-yolk-egg/double-yolk-egg.png",
+        "note": "",
+        "keywords": [
+            "C-s-Pzls-Other",
+            "直角",
+            "四点共圆",
+            "clipt",
+            "三角形上的双直角",
+            "多解"
+        ],
+        "solutions": [
+            {
+                "star": "16L 18E",
+                "file": "levels/c-s-pzls-other/034.double-yolk-egg/16L18E.png"
             }
         ]
     },
@@ -4715,102 +4871,13 @@
         ]
     },
     {
-        "id": "pararetcir",
+        "id": "pararetcir-t",
         "pack": "c-s-pzls-other",
-        "file": "levels/c-s-pzls-other/044.pararetcir/pararetcir.gmt",
-        "title": "两圆内接直角三角形",
-        "subtitle": "构造平行线，与两圆靠外侧的两交点与两圆的其中一个（给定的）交点组成直角三角形，且该给定点为直角顶点。",
-        "targetSteps": "19L / 35E",
-        "diagram": "levels/c-s-pzls-other/044.pararetcir/pararetcir.png",
-        "note": "",
-        "keywords": [
-            "C-s-Pzls-Other",
-            "平行线",
-            "直角三角形",
-            "多解",
-            "交点"
-        ],
-        "solutions": [
-            {
-                "star": "19L 35E",
-                "file": "levels/c-s-pzls-other/044.pararetcir/19l35e (2).jpg"
-            },
-            {
-                "star": "19L 35E",
-                "file": "levels/c-s-pzls-other/044.pararetcir/19l35e.jpg"
-            },
-            {
-                "star": "2V",
-                "file": "levels/c-s-pzls-other/044.pararetcir/2v.jpg"
-            }
-        ]
-    },
-    {
-        "id": "rhorectwi",
-        "pack": "c-s-pzls-other",
-        "file": "levels/c-s-pzls-other/045.rhorectwi/rhorectwi.gmt",
-        "title": "矩形的外接菱形",
-        "subtitle": "作矩形ABCD（AB为短边）的外接菱形EFGH，使顶点A、B、C、D分别在边EF、FG、GH、HE上，矩形的边与菱形的对角线不平行，且EF=2AB。",
-        "targetSteps": "12E",
-        "diagram": "levels/c-s-pzls-other/045.rhorectwi/rhorectwi.png",
-        "note": "",
-        "keywords": [
-            "C-s-Pzls-Other",
-            "菱形",
-            "矩形",
-            "多解",
-            "外接",
-            "长度",
-            "比例"
-        ],
-        "solutions": [
-            {
-                "star": "12E",
-                "file": "levels/c-s-pzls-other/045.rhorectwi/12e.jpg"
-            },
-            {
-                "star": "2V",
-                "file": "levels/c-s-pzls-other/045.rhorectwi/2v.jpg"
-            }
-        ]
-    },
-    {
-        "id": "equtriintripbisetroupoi",
-        "pack": "c-s-pzls-other",
-        "file": "levels/c-s-pzls-other/046.equtriintripbisetroupoi/equtriintripbisetroupoi.gmt",
-        "title": "内接正三角形中垂线过点",
-        "subtitle": "构造内接等边三角形，使得正三角形其中一边的垂直平分线过给定点。",
-        "targetSteps": "23L / 51E",
-        "diagram": "levels/c-s-pzls-other/046.equtriintripbisetroupoi/equtriintripbisetroupoi.png",
-        "note": "",
-        "keywords": [
-            "C-s-Pzls-Other",
-            "多解",
-            "三角形",
-            "直线过点",
-            "正三角形",
-            "内接",
-            "垂直平分线"
-        ],
-        "solutions": [
-            {
-                "star": "23L 51E",
-                "file": "levels/c-s-pzls-other/046.equtriintripbisetroupoi/23l51e.jpg"
-            },
-            {
-                "star": "6V",
-                "file": "levels/c-s-pzls-other/046.equtriintripbisetroupoi/6v.jpg"
-            }
-        ]
-    },
-    {
-        "id": "pararetincir",
-        "pack": "c-s-pzls-other",
-        "file": "levels/c-s-pzls-other/047.pararetincir/pararetincir.gmt",
+        "file": "levels/c-s-pzls-other/044.pararetcir-t/pararetcir-t.gmt",
         "title": "两圆内接直角三角形（切）",
         "subtitle": "给定两圆的公切线和交点B，构造平行于切线的直线，与两圆交于C、D，使得三角形BCD为以B为直角直角的三角形。",
         "targetSteps": "9L / 11E",
-        "diagram": "levels/c-s-pzls-other/047.pararetincir/pararetincir.png",
+        "diagram": "levels/c-s-pzls-other/044.pararetcir-t/pararetcir-t.png",
         "note": "",
         "keywords": [
             "C-s-Pzls-Other",
@@ -4818,48 +4885,100 @@
             "直角三角形",
             "多解",
             "交点",
-            "公切线"
+            "公切线",
+            "clipt"
         ],
         "solutions": [
             {
                 "star": "9L 11E",
-                "file": "levels/c-s-pzls-other/047.pararetincir/9l11e.jpg"
+                "file": "levels/c-s-pzls-other/044.pararetcir-t/9l11e.jpg"
             },
             {
                 "star": "2V",
-                "file": "levels/c-s-pzls-other/047.pararetincir/2v.jpg"
+                "file": "levels/c-s-pzls-other/044.pararetcir-t/2v.jpg"
             }
         ]
     },
     {
-        "id": "squsym",
+        "id": "pararetcir",
         "pack": "c-s-pzls-other",
-        "file": "levels/c-s-pzls-other/049.squsym/squsym.gmt",
-        "title": "角上的正方形",
-        "subtitle": "角AOB，角上一点C，构造正方形CDEF，使得EF过O，DE与OB交于点G，且∠FCO=∠GCO。",
-        "targetSteps": "10L / 17E",
-        "diagram": "levels/c-s-pzls-other/049.squsym/squsym.png",
+        "file": "levels/c-s-pzls-other/045.pararetcir/pararetcir.gmt",
+        "title": "两圆内接直角三角形",
+        "subtitle": "构造平行线，与两圆靠外侧的两交点与两圆的其中一个（给定的）交点组成直角三角形，且该给定点为直角顶点。",
+        "targetSteps": "19L / 35E",
+        "diagram": "levels/c-s-pzls-other/045.pararetcir/pararetcir.png",
         "note": "",
         "keywords": [
             "C-s-Pzls-Other",
+            "平行线",
+            "直角三角形",
             "多解",
-            "角正方形",
-            "直线过点",
             "交点",
-            "角度相等"
+            "clipt"
         ],
         "solutions": [
             {
-                "star": "10L",
-                "file": "levels/c-s-pzls-other/049.squsym/10l.jpg"
+                "star": "19L 35E",
+                "file": "levels/c-s-pzls-other/045.pararetcir/19l35e (2).jpg"
             },
             {
-                "star": "17E",
-                "file": "levels/c-s-pzls-other/049.squsym/17e.jpg"
+                "star": "19L 35E",
+                "file": "levels/c-s-pzls-other/045.pararetcir/19l35e.jpg"
             },
             {
                 "star": "2V",
-                "file": "levels/c-s-pzls-other/049.squsym/2v.jpg"
+                "file": "levels/c-s-pzls-other/045.pararetcir/2v.jpg"
+            }
+        ]
+    },
+    {
+        "id": "para-2c-circ4",
+        "pack": "c-s-pzls-other",
+        "file": "levels/c-s-pzls-other/046.para-2c-circ4/para-2c-circ4.gmt",
+        "title": "两圆四点共圆平行弦",
+        "subtitle": "给定两圆，圆上各有一点，再给定一直线，作一过两给定点的圆，与给定两圆交于另外两点，使得这两点连线平行于给定直线。",
+        "targetSteps": "23L / 41E",
+        "diagram": "levels/c-s-pzls-other/046.para-2c-circ4/para-2c-circ4.jpg",
+        "note": "",
+        "keywords": [
+            "C-s-Pzls-Other",
+            "平行线",
+            "四点共圆",
+            "多解",
+            "交点",
+            "clipt"
+        ],
+        "solutions": [
+            {
+                "star": "23L",
+                "file": "levels/c-s-pzls-other/046.para-2c-circ4/23L.png"
+            },
+            {
+                "star": "2V",
+                "file": "levels/c-s-pzls-other/046.para-2c-circ4/2V.png"
+            }
+        ]
+    },
+    {
+        "id": "para-2c-simpara",
+        "pack": "c-s-pzls-other",
+        "file": "levels/c-s-pzls-other/047.para-2c-simpara/para-2c-simpara.gmt",
+        "title": "两圆交点位似平行",
+        "subtitle": "给定相交两圆c1、c2及它们的一个交点A，过A作两直线l1、12，l1分别与圆c1、c2交于C、B，l2分别与圆c1、c2交于D、E，满足BD∥CE。",
+        "targetSteps": "13L / 25E",
+        "diagram": "levels/c-s-pzls-other/047.para-2c-simpara/para-2c-simpara.png",
+        "note": "",
+        "keywords": [
+            "C-s-Pzls-Other",
+            "平行线",
+            "位似",
+            "交点",
+            "clipt"
+        ],
+        "solutions": [
+            {
+                "star": "13L 25E",
+                "file": "levels/c-s-pzls-other/047.para-2c-simpara/13L25E.png"
             }
         ]
     },
@@ -4920,31 +5039,35 @@
         ]
     },
     {
-        "id": "cirsegequ",
+        "id": "3para-5equseg",
         "pack": "c-s-pzls-other",
-        "file": "levels/c-s-pzls-other/052.cirsegequ/cirsegequ.gmt",
-        "title": "定长两圆截弦",
-        "subtitle": "构造过交点的截弦，与给定线段长度相等。",
-        "targetSteps": "7L / 18E",
-        "diagram": "levels/c-s-pzls-other/052.cirsegequ/cirsegequ.png",
+        "file": "levels/c-s-pzls-other/052.3para-5equseg/3para-5equseg.gmt",
+        "title": "三平行五等线",
+        "subtitle": "给定三条平行线l、m、n，l上给定一点A，作一个过给定点的圆，与l再交于F，与m交于B、E，与n交于C、D，在圆上顺次为B、C、D、E、F，使得AB=BC=CD=DE=EF。",
+        "targetSteps": "9L / 14E",
+        "diagram": "levels/c-s-pzls-other/052.3para-5equseg/3para-5equseg.png",
         "note": "",
         "keywords": [
             "C-s-Pzls-Other",
-            "多解",
+            "平行线",
             "圆",
-            "线段",
+            "线段相等",
             "交点",
-            "长度相等",
-            "截弦"
+            "长度",
+            "对称"
         ],
         "solutions": [
             {
-                "star": "7L 18E",
-                "file": "levels/c-s-pzls-other/052.cirsegequ/7l18e.jpg"
+                "star": "9L",
+                "file": "levels/c-s-pzls-other/052.3para-5equseg/9l.png"
+            },
+            {
+                "star": "14E",
+                "file": "levels/c-s-pzls-other/052.3para-5equseg/14e.png"
             },
             {
                 "star": "2V",
-                "file": "levels/c-s-pzls-other/052.cirsegequ/2v.jpg"
+                "file": "levels/c-s-pzls-other/052.3para-5equseg/2v.png"
             }
         ]
     },
@@ -4953,7 +5076,7 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/053.concirtan/concirtan.gmt",
         "title": "圆双曲公切线",
-        "subtitle": "给定角内切圆，角平分线上一点P，构造圆的切线，与以角的两边为渐近线、点P为焦点的双曲线相切。",
+        "subtitle": "给定角内切圆，角平分线上一点P，构造圆的切线，与以角的两边为渐近线、点P为焦点的双曲线（未画出）相切。",
         "targetSteps": "9L / 13E",
         "diagram": "levels/c-s-pzls-other/053.concirtan/concirtan.png",
         "note": "",
@@ -5029,33 +5152,34 @@
         ]
     },
     {
-        "id": "paracirrit",
+        "id": "squsym",
         "pack": "c-s-pzls-other",
-        "file": "levels/c-s-pzls-other/056.paracirrit/paracirrit.gmt",
-        "title": "两圆内接直角三角形",
-        "subtitle": "构造给定直线的平行线，交两圆交点与两圆的一个交点C形成以C为直角顶点的直角三角形。",
-        "targetSteps": "18L / 34E",
-        "diagram": "levels/c-s-pzls-other/056.paracirrit/paracirrit.png",
+        "file": "levels/c-s-pzls-other/056.squsym/squsym.gmt",
+        "title": "角上的正方形",
+        "subtitle": "角AOB，角上一点C，构造正方形CDEF，使得EF过O，DE与OB交于点G，且∠FCO=∠GCO。",
+        "targetSteps": "10L / 17E",
+        "diagram": "levels/c-s-pzls-other/056.squsym/squsym.png",
         "note": "",
         "keywords": [
             "C-s-Pzls-Other",
-            "平行线",
-            "直角三角形",
             "多解",
-            "交点"
+            "角正方形",
+            "直线过点",
+            "交点",
+            "角度相等"
         ],
         "solutions": [
             {
-                "star": "18L 34E",
-                "file": "levels/c-s-pzls-other/056.paracirrit/18l34e.jpg"
+                "star": "10L",
+                "file": "levels/c-s-pzls-other/056.squsym/10l.jpg"
             },
             {
-                "star": "18L 34E",
-                "file": "levels/c-s-pzls-other/056.paracirrit/18l34e2.jpg"
+                "star": "17E",
+                "file": "levels/c-s-pzls-other/056.squsym/17e.jpg"
             },
             {
                 "star": "2V",
-                "file": "levels/c-s-pzls-other/056.paracirrit/2v.jpg"
+                "file": "levels/c-s-pzls-other/056.squsym/2v.jpg"
             }
         ]
     },
@@ -5144,6 +5268,34 @@
             {
                 "star": "2V",
                 "file": "levels/c-s-pzls-other/059.paraangle/2v.jpg"
+            }
+        ]
+    },
+    {
+        "id": "inverse-sim-center",
+        "pack": "c-s-pzls-other",
+        "file": "levels/c-s-pzls-other/060.inverse-sim-center/inverse-sim-center.gmt",
+        "title": "逆相似中心",
+        "subtitle": "给定A、B、C、D四点，求作一点E，使得△ABE和△CDE相似，且∠AEB=∠CED，且两三角形可以通过位似、旋转及一次对称变换重合。",
+        "targetSteps": "10L / 22E",
+        "diagram": "levels/c-s-pzls-other/060.inverse-sim-center/inverse-sim-center.png",
+        "note": "",
+        "keywords": [
+            "C-s-Pzls-Other",
+            "多解",
+            "相似中心",
+            "逆相似",
+            "镜像",
+            "角度相等"
+        ],
+        "solutions": [
+            {
+                "star": "10L 22E",
+                "file": "levels/c-s-pzls-other/060.inverse-sim-center/10L22E.png"
+            },
+            {
+                "star": "2V",
+                "file": "levels/c-s-pzls-other/060.inverse-sim-center/2V.png"
             }
         ]
     },
@@ -5345,7 +5497,7 @@
         "pack": "euc-addit",
         "file": "levels/euc-addit/007.4pointcircle/4pointcircle.gmt",
         "title": "知四求四",
-        "subtitle": "以4点为圆心构造4个圆，交出4个交点，且这4个交点分别位于3个构造圆上。",
+        "subtitle": "以4点为圆心构造4个圆，交出4个交点，且这4个交点中的每一个都有3个构造的圆经过。",
         "targetSteps": "9L / 13E",
         "diagram": "levels/euc-addit/007.4pointcircle/4pointcircle.png",
         "note": "",
@@ -5369,10 +5521,6 @@
                 "file": "levels/euc-addit/007.4pointcircle/4 Point Circle.png"
             },
             {
-                "star": "Euc",
-                "file": "levels/euc-addit/007.4pointcircle/Euc.jpg"
-            },
-            {
                 "star": "4 Point Circle Hint",
                 "file": "levels/euc-addit/007.4pointcircle/4 Point Circle Hint.png"
             },
@@ -5389,7 +5537,7 @@
         "title": "等垂交错",
         "subtitle": "求作M、N两点，使得MA⊥NB，MA=NB，MC⊥ND，MC=ND。",
         "targetSteps": "9L / 15E",
-        "diagram": "levels/euc-addit/008.4linkagemechanism/4linkagemechanism.png",
+        "diagram": "levels/euc-addit/008.4linkagemechanism/4 Linkage Mechanism.png",
         "note": "",
         "keywords": [
             "Euc-Addit",
@@ -5408,15 +5556,7 @@
                 "file": "levels/euc-addit/008.4linkagemechanism/4V.jpg"
             },
             {
-                "star": "4 Linkage Mechanism Hint",
-                "file": "levels/euc-addit/008.4linkagemechanism/4 Linkage Mechanism Hint.png"
-            },
-            {
-                "star": "4 Linkage Mechanism",
-                "file": "levels/euc-addit/008.4linkagemechanism/4 Linkage Mechanism.png"
-            },
-            {
-                "star": "4 Linkage Mechanism Hint",
+                "star": "Hint",
                 "file": "levels/euc-addit/008.4linkagemechanism/4 Linkage Mechanism Hint.png"
             }
         ]
@@ -5447,10 +5587,6 @@
             {
                 "star": "2V",
                 "file": "levels/euc-addit/009.perpequsegoncircle/2v.jpg"
-            },
-            {
-                "star": "euc",
-                "file": "levels/euc-addit/009.perpequsegoncircle/euc.jpg"
             }
         ]
     },
@@ -5481,10 +5617,65 @@
             {
                 "star": "15E",
                 "file": "levels/euc-addit/010.unnper/15e.jpg"
+            }
+        ]
+    },
+    {
+        "id": "double-rt-pipe",
+        "pack": "euc-addit",
+        "file": "levels/euc-addit/011.double-rt-pipe/double-rt-pipe.gmt",
+        "title": "双直角管道",
+        "subtitle": "已知圆A和圆B，在圆A和圆B上分别有点C和点D，试作出折线ADCB，使得∠ADC和∠BCD均为直角。",
+        "targetSteps": "10L / 14E",
+        "diagram": "levels/euc-addit/011.double-rt-pipe/double-rt-pipe.png",
+        "note": "",
+        "keywords": [
+            "Euc-Addit",
+            "两圆",
+            "双圆",
+            "直角",
+            "90度",
+            "折线",
+            "角度相等"
+        ],
+        "solutions": [
+            {
+                "star": "10L 14E",
+                "file": "levels/euc-addit/011.double-rt-pipe/10L14E.png"
             },
             {
-                "star": "euc",
-                "file": "levels/euc-addit/010.unnper/euc.jpg"
+                "star": "2V",
+                "file": "levels/euc-addit/011.double-rt-pipe/2V.png"
+            }
+        ]
+    },
+    {
+        "id": "3zongropes",
+        "pack": "euc-addit",
+        "file": "levels/euc-addit/012.3zongropes/3zongropes.gmt",
+        "title": "三段棕绳",
+        "subtitle": "给定一边（包含两顶点），补全三角形，使得其重心G和垂心H，分别在给定的红色直线和蓝色直线上。",
+        "targetSteps": "16L / 29E",
+        "diagram": "levels/euc-addit/012.3zongropes/3zongropes.jpg",
+        "note": "",
+        "keywords": [
+            "Euc-Addit",
+            "三直线",
+            "复原三角形",
+            "还原三角形",
+            "重心",
+            "垂心",
+            "clipt",
+            "三角形"
+        ],
+        "solutions": [
+            {
+                "star": "16L 29E",
+                "file": "levels/euc-addit/012.3zongropes/16L29E.png"
+            },
+            {
+                "star": "2V",
+                "file": "levels/euc-addit/012.3zongropes/2V.png"
             }
         ]
     },
@@ -6015,7 +6206,7 @@
         "file": "levels/from-baidu-tieba/019.segmentsum-on3ray/segmentsum-on3ray.gmt",
         "title": "角上三截长和",
         "subtitle": "从顶点A出发的三射线，1上给定P点，过P作一直线交射线2于Q，射线3于R，使得AP+AQ=AR。",
-        "targetSteps": "9L / 14E",
+        "targetSteps": "8L / 11E",
         "diagram": "levels/from-baidu-tieba/019.segmentsum-on3ray/segmentsum-on3ray.png",
         "note": "",
         "keywords": [
@@ -6047,29 +6238,29 @@
         ]
     },
     {
-        "id": "equitri-v-inangle",
+        "id": "tri-area-bisect",
         "pack": "from-baidu-tieba",
-        "file": "levels/from-baidu-tieba/020.equitri-v-inangle/equitri-v-inangle.gmt",
-        "title": "角内接三角形",
-        "subtitle": "角内给出一顶点，以此作出正三角形，且另两顶点分别在角的两边上。",
-        "targetSteps": "8L / 8E",
-        "diagram": "levels/from-baidu-tieba/020.equitri-v-inangle/equitri-v-inangle.png",
+        "file": "levels/from-baidu-tieba/020.tri-area-bisect/tri-area-bisect.gmt",
+        "title": "过点平分三角形",
+        "subtitle": "给定三角形ABC及三角形外一点P，过P作一直线，与线段AB、AC分别交于D、E，满足2S△ADE=S△ABC。",
+        "targetSteps": "10L / 18E",
+        "diagram": "levels/from-baidu-tieba/020.tri-area-bisect/tri-area-bisect.png",
         "note": "",
         "keywords": [
             "From-Baidu-Tieba",
-            "多解",
-            "角",
-            "正三角形",
-            "顶点"
+            "平分面积",
+            "面积平分线",
+            "三角形",
+            "clipt"
         ],
         "solutions": [
             {
-                "star": "8L 8E",
-                "file": "levels/from-baidu-tieba/020.equitri-v-inangle/8L8E.png"
+                "star": "10L",
+                "file": "levels/from-baidu-tieba/020.tri-area-bisect/10L.png"
             },
             {
-                "star": "2V",
-                "file": "levels/from-baidu-tieba/020.equitri-v-inangle/2V.png"
+                "star": "18E",
+                "file": "levels/from-baidu-tieba/020.tri-area-bisect/18E.png"
             }
         ]
     },
@@ -6511,6 +6702,63 @@
             {
                 "star": "2V",
                 "file": "levels/from-baidu-tieba/034.equ2incir/2v.jpg"
+            }
+        ]
+    },
+    {
+        "id": "rhorectwi",
+        "pack": "from-baidu-tieba",
+        "file": "levels/from-baidu-tieba/035.rhorectwi/rhorectwi.gmt",
+        "title": "矩形的外接菱形",
+        "subtitle": "作矩形ABCD（AB为短边）的外接菱形EFGH，使顶点A、B、C、D分别在边EF、FG、GH、HE上，矩形的边与菱形的对角线不平行，且EF=2AB。",
+        "targetSteps": "12E",
+        "diagram": "levels/from-baidu-tieba/035.rhorectwi/rhorectwi.png",
+        "note": "",
+        "keywords": [
+            "From-Baidu-Tieba",
+            "菱形",
+            "矩形",
+            "多解",
+            "外接",
+            "长度",
+            "比例"
+        ],
+        "solutions": [
+            {
+                "star": "12E",
+                "file": "levels/from-baidu-tieba/035.rhorectwi/12E.jpg"
+            },
+            {
+                "star": "2V",
+                "file": "levels/from-baidu-tieba/035.rhorectwi/2V.jpg"
+            }
+        ]
+    },
+    {
+        "id": "rect-insc-quad",
+        "pack": "from-baidu-tieba",
+        "file": "levels/from-baidu-tieba/036.rect-insc-quad/rect-insc-quad.gmt",
+        "title": "三线内接矩形",
+        "subtitle": "给定三直线l、m、n，点A，作矩形ABCD，其中点B、C、D分别在l、m、n上。",
+        "targetSteps": "27L / 54E",
+        "diagram": "levels/from-baidu-tieba/036.rect-insc-quad/rect-insc-quad.png",
+        "note": "",
+        "keywords": [
+            "From-Baidu-Tieba",
+            "内接矩形",
+            "四边形",
+            "多解",
+            "直角",
+            "clipt"
+        ],
+        "solutions": [
+            {
+                "star": "27L 54E",
+                "file": "levels/from-baidu-tieba/036.rect-insc-quad/27L54E.png"
+            },
+            {
+                "star": "2V",
+                "file": "levels/from-baidu-tieba/036.rect-insc-quad/2V.png"
             }
         ]
     },
@@ -12053,7 +12301,7 @@
         "id": "wt26",
         "pack": "weekly-tangent",
         "file": "levels/weekly-tangent/wt26/weekly-tangent-26.gmt",
-        "title": "比例索敌圆",
+        "title": "比例索迪圆",
         "subtitle": "Construct two circles tangent to the circle and its tangent line and each other, and the ratio of radius is 1: 3.",
         "targetSteps": "9L / 9E",
         "diagram": "levels/weekly-tangent/wt26/Weekly Tangent 026.jpg",

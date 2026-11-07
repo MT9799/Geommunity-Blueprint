@@ -1,0 +1,22 @@
+# complimentary-angles-in-triangle
+A=[-325.2510919318,57.0440376619]
+B=[207.1599262458,-319.2464563884]
+S1=Segment[A,B]
+C=[317.2449112073,77.0594894731]
+S2=Segment[B,C]
+S3=Segment[C,A]
+c1=Circle[B,C]
+D=Intersect[S1,c1,0]
+c2=Circle[C,D]
+E=Intersect[c2,c1,-,D]
+s1=Line[A,E]
+F=Intersect[S2,s1,0]
+c3=Circle[B,F]
+G=Intersect[S1,c3,0]
+
+initial=S3,A,C,S2,S1
+named=B.A
+movepoints=
+hidden=
+result=G,F
+explore=G,F

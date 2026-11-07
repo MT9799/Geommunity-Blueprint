@@ -3,6 +3,7 @@
 
 - 关卡题图：读 data/levels.json 的 diagram 字段，缩略图生成到 data/thumbs/ 下**同相对路径**
   （levels/<包>/<关卡>/xxx.webp），与题图同名、只换扩展名；
+- 题图改过名时（levels.json 的 diagram 已指向新文件），同一关卡目录里旧名字的 .webp 会被删掉；
 - 关卡包封面：扫描 data/packcovers，输出到 data/thumbs/packcovers/ 下同相对路径的 .webp；
 - 按最长边缩放到 360（小图同样会放大），质量 80。
 - 生成前先和已存在的缩略图按**感知哈希**比较（对「同图、不同 libwebp 版本重编码」鲁棒），哈希一致就**跳过**，
@@ -139,6 +140,35 @@ def write_thumb(
     return "write"
 
 
+def stale_level_thumbs(out_dir: Path, levels: list[dict]) -> list[Path]:
+    """列出关卡目录里名字与 levels.json 的 diagram 不符的旧 .webp（只读，不删）。
+
+    清晰题图改名后 levels.json 的 diagram 指向新引用，脚本会按新名字生成缩略图，
+    但旧名字的 .webp 还留在同一个关卡目录下：页面不会再引用它，却一直跟着仓库走。
+    只检查「有 diagram 的关卡目录」里的同层 .webp；包封面、其它目录与子目录都不动。
+    同一目录被多关共用时，把所有关卡的期望文件名合起来再比。
+    """
+    expected: dict[Path, set[str]] = {}
+    for level in levels:
+        diagram = level.get("diagram")
+        if not diagram:
+            continue
+        relative = Path(diagram).with_suffix(".webp")
+        # 只认 data 下的相对路径，别让异常配置把清理带出输出目录
+        if relative.is_absolute() or ".." in relative.parts:
+            continue
+        expected.setdefault(out_dir / relative.parent, set()).add(relative.name)
+
+    stale: list[Path] = []
+    for directory, names in sorted(expected.items(), key=lambda item: str(item[0])):
+        if not directory.is_dir():
+            continue
+        for thumb in sorted(directory.iterdir()):
+            if thumb.is_file() and thumb.suffix.lower() == ".webp" and thumb.name not in names:
+                stale.append(thumb)
+    return stale
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="生成关卡题图与关卡包封面的 WebP 缩略图")
     parser.add_argument("--out", default=str(DATA_DIR / "thumbs"), help="关卡包封面缩略图目录（默认 data/thumbs）")
@@ -150,9 +180,15 @@ def main() -> None:
 
     compare = not args.no_compare
     out_dir = Path(args.out)
-    written = skipped = 0
+    written = skipped = removed = 0
+    levels = load_levels()
+    # 题图改名后先删掉旧名字的缩略图：否则新名字生成完，旧文件还留在同一关卡目录里
+    for stale in stale_level_thumbs(out_dir, levels):
+        print(f"  [prune] 删掉旧题图缩略图：{stale.relative_to(out_dir)}")
+        stale.unlink()
+        removed += 1
     # 关卡题图：缩略图放在 data/thumbs/ 下与题图同相对路径（扩展名换成 .webp）
-    for level in load_levels():
+    for level in levels:
         diagram = level.get("diagram")
         if not diagram:
             continue
@@ -182,7 +218,7 @@ def main() -> None:
                 skipped += 1
 
     total = sum(p.stat().st_size for p in out_dir.rglob("*") if p.suffix.lower() == ".webp")
-    print(f"缩略图：新写 {written} 张、跳过 {skipped} 张（与现有逐像素一致），共 {total / 1024 / 1024:.1f} MB")
+    print(f"缩略图：新写 {written} 张、跳过 {skipped} 张（与现有逐像素一致）、删掉旧名 {removed} 张，共 {total / 1024 / 1024:.1f} MB")
     print(f"输出目录：{out_dir}")
 
 

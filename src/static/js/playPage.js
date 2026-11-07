@@ -23,7 +23,7 @@ window.addEventListener('resize', updateLayout);
 // 手势变量
 // 按下之后要移够这么多像素才算「拖动」：手抖挪几像素不该被当成拖拽作图
 // （见 mouseMoveEventFunction / mouseUpEventFunction，只用于左键作图；中键平移画布不受限制）
-const dragThreshold = 15;
+const dragThreshold = 6;
 let startX, startY, startTime;
 let isDragging = false;
 // 鼠标是不是正按着：mousemove 里靠它区分「按住拖动」与「纯悬停」
@@ -62,6 +62,69 @@ geometryManagerResult.transform = transform;
 geometryManagerResult.geometryStyle = geometryStyle;
 geometryManagerExplore.transform = transform;
 geometryManagerExplore.geometryStyle = geometryStyle;
+// 两套管理器各自的归属层：新建对象默认落在哪一层（见 GeometryElement.layer）
+geometryManagerResult.layer = 'result';
+geometryManagerExplore.layer = 'explore';
+/**
+ * 同步每个对象的归属层 过程函数
+ * result：普通画布上自己画的；explore：探索画布上自己画的；both：关卡自带（两套画布都要有的题面对象）。
+ * 按 **id 与关卡名单** 判定，不比较实例 —— 载入记录 / 撤销重做重建实例之后归属依然正确，
+ * 于是「哪些是探索画布专属图形」不再依赖两套管理器是否持有同一个对象
+ */
+function syncElementLayers() {
+    const levelIds = (typeof geometryElementLists !== 'undefined' && geometryElementLists.level) || new Set();
+    if (!levelIds.size) return;
+    // 只把「关卡自带」的对象升级成 both（它们两套画布共用）；其余对象的归属由创建 / 反序列化时确定，
+    // 不能在这里按 id 猜 —— 两套画布各自命名的对象常会同名
+    const fix = item => { if (levelIds.has(item.getId())) item.layer = 'both'; };
+    geometryManagerResult.getAllByOrder().forEach(fix);
+    geometryManagerExplore.getAllByOrder().forEach(fix);
+    // 快照 / 记录可能刚重建过当前画布的对象：两套实例分离后，把关卡自带点的位置补到另一套
+    // 画布上，别让探索视图停在拖动之前的旧位置（见 syncLevelGeometry）
+    syncLevelGeometry();
+}
+window.syncElementLayers = syncElementLayers;
+
+/**
+ * 把关卡自带点（layer=both）的几何状态同步到另一套画布 过程函数
+ *
+ * 载入题目时，关卡自带对象是两套管理器共用的同一批实例（见 loadGeometryElementsStorage），
+ * 在任意一边拖动给定点，另一边立刻跟着动，连依赖它的图形也一起重算。
+ * 但撤销 / 重做 / 载入记录会走 loadStorageSnapshot → geometryManager.loadStorage，
+ * 它只重建**当前**那一套的对象，另一套仍指着旧实例，共用关系就此断开；
+ * 之后在普通模式移动给定点，探索画布就停在旧位置了。
+ *
+ * 这里不把内容整体镜像进另一套画布（两套各有自己的撤销历史，镜像会让历史对不上，
+ * 见 board-tools.js 里 loadStorageSnapshot 上方的说明），也不替换实例重新共用
+ * （旧实例还被另一套画布上的作图当作基底引用，改引用容易漏接上层建筑）。
+ * 只针对「关卡自带、能移动的点」把坐标 / 线上点参数重放一遍，让目标画布沿它自己的
+ * 依赖链重算：对象集合、显隐、标记与撤销历史一概不动。
+ * @param {Object} [fromManager] 以哪一套画布为准（默认当前画布）
+ */
+function syncLevelGeometry(fromManager = null) {
+    const source = fromManager || (typeof geometryManager !== 'undefined' ? geometryManager : null);
+    if (!source || (source !== geometryManagerResult && source !== geometryManagerExplore)) return;
+    const target = source === geometryManagerResult ? geometryManagerExplore : geometryManagerResult;
+    const levelIds = geometryElementLists.level;
+    if (!levelIds || !levelIds.size) return;
+    source.getAllByOrder().forEach((item) => {
+        const id = item.getId();
+        if (!levelIds.has(id) || item.getType() !== 'point') return;
+        const base = item.getBase?.();
+        // 交点 / 中点 / 圆心等派生点由下面这条依赖链自己重算，不在这里逐个搬
+        if (!base || (base.type !== 'none' && base.type !== 'online')) return;
+        const other = target.get(id);
+        // 两套还共用同一实例时本来就是同一个对象，不必再改
+        if (!other || other === item) return;
+        const coordinate = item.getCoordinate();
+        if (!Array.isArray(coordinate) || !Number.isFinite(coordinate[0]) || !Number.isFinite(coordinate[1])) return;
+        // 走「移动点」而不是直接写坐标：线上点要按目标画布里的基底重算参数，
+        // 且目标画布自己的上层建筑（含玩家在那一套画布上作的图）要整体跟着重算
+        target.modifyPointCoordinate(id, coordinate[0], coordinate[1]);
+        other.modifyValid(item.getValid());
+    });
+}
+window.syncLevelGeometry = syncLevelGeometry;
 const storageManagerResult = new StorageManager();
 const movesStorageManagerResult = new MovesStorageManager();
 const storageManagerExplore = new StorageManager();
@@ -942,7 +1005,8 @@ function switchPanel(panel) {
         tool = "move";
         drawContent();
         loadGeometryElements();
-        if (exploreFlag) exploreMode();
+        // 探索视图里打开元素一览不要再踢回普通模式：面板列的就是探索画布上的对象，
+        // 退出探索会把整块画布与工具状态换掉（看起来就是「跳到了普通模式的移动工具」）
     }else if (panel === "toolbarPanel") {
         choiceToolMenu("standard");
         refreshToolFloating();
@@ -981,13 +1045,15 @@ function morebarChoice(e) {
     if (action === "restore") {
         restoreStorage();
         // 探索视图里撤销 / 重做：快照里的可见性可能来自普通视图（探索集合是隐藏的），
-        // 按探索视图再刷一次，否则撤销后探索图形会消失
-        if (exploreFlag) setExploreVisibility(true);
+        // 按探索视图再刷一次，否则撤销后探索图形会消失。
+        // remember=false：这只是重刷显示，不能覆盖「进探索前可见名单」，否则退出探索时
+        // 会把探索里才显示的对象（S1/H/G）放到正式画布上
+        if (exploreFlag) setExploreVisibility(true, false);
         drawContent();
         resultVerify();
     }else if (action === "redo") {
         redoStorage();
-        if (exploreFlag) setExploreVisibility(true);
+        if (exploreFlag) setExploreVisibility(true, false);
         drawContent();
         resultVerify();
     }
@@ -1041,7 +1107,7 @@ function menuChoice(action) {
 
 let exploreFlag = false;
 let exploreShowIds = [];
-// 进探索视图时被临时藏起来的图形（两套管理器共用同一批对象，退出时要原样放回来）
+// 进探索视图时被临时藏起来的图形（两套画布可能各有自己的实例，退出时要按名单分别放回来）
 let exploreRestoreIds = [];
 // 载入题目时探索管理器里已有的对象：之后多出来的都是玩家自己在探索画布上画的
 let exploreBaseIds = new Set();
@@ -1119,20 +1185,25 @@ function refreshToolLimit() {
  * 只切换 explore 集合的可见性；result 集合由 success / unsuccess 控制（判定与非探索模式的显示），两者互不干扰
  * @param {boolean} explore 是否处于探索视图
  */
-function setExploreVisibility(explore) {
+function setExploreVisibility(explore, remember = true) {
     if (explore) {
         // 进探索视图前先记下当时可见的图形：探索视图会把它们临时藏起来
-        // （两套管理器共用同一批对象，藏了就是全局藏），退出时按这份名单放回来。
-        // 本来就处于隐藏状态的（预绘制解法等）不记，免得退出后反而冒出来
-        exploreRestoreIds = geometryManagerExplore.getAllByOrder()
-            .filter((item) => item.getVisible() && !isGivenObject(item.getId()))
-            .map((item) => item.getId());
+        // 两套画布在撤销 / 载入快照重建过对象后可能不共用实例，退出时按名单分别放回来。
+        // 本来就处于隐藏状态的（预绘制解法等）不记，免得退出后反而冒出来。
+        // 只有**真正进入探索视图**时记 —— 撤销 / 重做后重刷可见性时传 remember=false，
+        // 否则会拿探索视图里的可见状态覆盖它，退出时把 S1/H/G 这类探索图形放到正式画布上
+        if (remember) {
+            exploreRestoreIds = geometryManagerExplore.getAllByOrder()
+                .filter((item) => item.getVisible() && !isGivenObject(item.getId()))
+                .map((item) => item.getId());
+        }
         // 给定图形（initial 与带标签的 named）在探索视图里也要显示
         showInitialOnly();
-        // 探索模式里自己画的图形（载入题目时不存在、之后才画上的对象）保留显示：
-        // 探索画布上的图形一直留在探索管理器里，退出再进来不该消失
+        // 探索模式里自己画的图形（归属层 explore）保留显示：探索画布上的图形一直留在
+        // 探索管理器里，退出再进来不该消失。按归属层判断，不按 id ——
+        // 两套画布各自命名，探索里画的 s7 可能和正式画布里的 s7 同 id（按 id 会把它当成「载入时就存在」而藏起来）
         geometryManagerExplore.getAllByOrder().forEach((item) => {
-            if (!exploreBaseIds.has(item.getId())) item.modifyVisible(true);
+            if (item.layer === 'explore') item.modifyVisible(true);
         });
         exploreShowIds = [...geometryElementLists.explore].filter((id) => !isGivenObject(id));
         exploreShowIds.forEach((id) => geometryManagerExplore.get(id)?.modifyVisible(true));
@@ -1164,6 +1235,8 @@ function exploreMode() {
         geometryManager = geometryManagerResult;
         storageManager = storageManagerResult;
         movesStorageManager = movesStorageManagerResult;
+        // 在探索画布上动过的给定点要带回普通画布（两套实例分离时各记各的位置）
+        syncLevelGeometry(geometryManagerExplore);
         // 按钮变色
         refreshExploreButton();
         // 几何对象隐藏
@@ -1185,12 +1258,22 @@ function exploreMode() {
         geometryManager = geometryManagerExplore;
         storageManager = storageManagerExplore;
         movesStorageManager = movesStorageManagerExplore;
+        // 普通画布上移动过的给定点要带进探索画布：撤销 / 载入记录会重建对象、两套不再
+        // 共用实例，只靠共享实例联动会让探索视图停在拖动之前的位置
+        syncLevelGeometry(geometryManagerResult);
         // 按钮变色
         refreshExploreButton();
         // 几何对象显示
         setExploreVisibility(true);
         // 探索模式不限制工具：工具栏给全
         if (typeof refreshToolLimit === 'function') refreshToolLimit();
+        // 探索视图是研究用画布：移动工具下「给定自由点临时染蓝」的显示不该带进来，
+        // 否则一进探索，题目里的给定点就不是黑色了。要放在 refreshToolLimit 之后 ——
+        // 它内部的 choiceTool('move') 会把蓝色重新染上；退出探索时再按当前工具补染回来
+        if (typeof showMovePoints === 'function') showMovePoints(false);
+        // 再按标记刷一次：万一上面那套颜色映射已经被清掉（例如在探索里开过记录面板、染色落在另一套实例上），
+        // 这一步能把给定点重新刷回黑色
+        if (typeof refreshElementListColors === 'function') refreshElementListColors();
         drawContent();
         refreshStorageButton();
         refreshMovesCounter();
@@ -1208,10 +1291,24 @@ function savePlayBackup() {
     // 步数也取「普通（result）管理器」的终值，而不是当前显示的 movesCounter：
     // 探索模式下它显示的是探索的步数，拿它当返回值会让普通模式回来时步数错成探索的
     const resultMoves = (typeof movesStorageManagerResult.get === 'function' ? movesStorageManagerResult.get() : null) || {};
+    // 永远取「普通（result）管理器」的内容，而不是当前活动的 geometryManager：
+    // 探索模式下活动的是 explore，直接用会把探索图形当成普通模式的图形带回去。
+    // 但两套画布在没撤销过时共用同一实例：探索视图把 explore 名单的对象临时显示、把其余
+    // 非给定对象临时藏起，这份可见性会顺着 toStorage 写进备份，从制题器 / 求解器 / 逐步绘制
+    // 返回后就冒出本该隐藏的金色点（如 pararetcir-t 的 D2/E2/F2/G2），玩家在普通模式画的
+    // 图形反而消失。按 setExploreVisibility(false) 的口径把备份修正成「退出探索视图后」的
+    // 普通画布状态；只改备份，不动实时画布（跳转前不该闪一下）。
+    const elements = geometryManagerResult.toStorage();
+    if (exploreFlag) {
+        const restore = new Set(exploreRestoreIds);
+        const hide = new Set(exploreShowIds);
+        elements.forEach(item => {
+            if (restore.has(item.id)) item.visible = true;
+            else if (hide.has(item.id)) item.visible = false;
+        });
+    }
     const backup = {
-        // 永远取「普通（result）管理器」的内容，而不是当前活动的 geometryManager：
-        // 探索模式下活动的是 explore，直接用会把探索图形当成普通模式的图形带回去
-        elements: geometryManagerResult.toStorage(),
+        elements: elements,
         lists: lists,
         moves: {l: resultMoves.l || 0, e: resultMoves.e || 0},
         // 已达成的 L / E 勾也一起带走：返回是一次整页重载，这些标记只活在内存里，
@@ -1234,13 +1331,12 @@ function savePlayBackup() {
         // 探索视图里玩家自己画的图形（只在探索管理器、且不是结果管理器里的同一个对象）
         // 另存一份：回来时才知道哪些该只放回探索视图、哪些（普通模式画的）该被隐藏。
         // 按对象身份判断，不能按 id —— 两套管理器各自命名，常会同名
-        exploreElements: typeof geometryManagerExplore !== 'undefined' && typeof geometryManagerResult !== 'undefined'
-            ? (() => {
-                const resultObjects = new Set(geometryManagerResult.getAllByOrder());
-                return geometryManagerExplore.getAllByOrder()
-                    .filter(item => !resultObjects.has(item))
-                    .map(item => item.getDict());
-            })()
+        // 探索画布专属图形 = 归属层为 explore 的对象（见 syncElementLayers）：
+        // 按归属判定，不比较实例 —— 载入 / 撤销重做重建实例后也不会把整份关卡图形误判成探索作图
+        exploreElements: typeof geometryManagerExplore !== 'undefined'
+            ? geometryManagerExplore.getAllByOrder()
+                .filter(item => item.layer === 'explore')
+                .map(item => item.getDict())
             : [],
     };
     try {
@@ -1503,6 +1599,9 @@ function restoreStorage() {
     refreshMovePointColors();
     const moves = movesStorageManager.restore();
     refreshMovesCounterByRestore(moves, 'restore');
+    // 重算一次「已作出的解」：撤销可能把解撤掉（那一组「所求显示」里的给定要收回黑色），
+    // 也可能解还在（保持金色）。不重算的话 satisfiedResultGroups 是旧的，刷颜色会染错
+    refreshSatisfiedGroups();
 }
 
 /**
@@ -1526,6 +1625,8 @@ function redoStorage() {
     refreshMovePointColors();
     const moves = movesStorageManager.redo();
     refreshMovesCounterByRestore(moves, 'redo');
+    // 同 restoreStorage：重做会改变「解还在不在」，所求要跟着重算
+    refreshSatisfiedGroups();
 }
 
 window.addEventListener("storage", (event) => {
@@ -1970,7 +2071,7 @@ function loadGeometryElementsStorage() {
 
         // 2b.探索视图独有的图形：只加进探索管理器，并在那边单独接一次基底
         exploreOnly.forEach((item) => {
-            geometryManagerExplore.addObject(deserialization(item));
+            geometryManagerExplore.addObject(deserialization(item, 'explore'));
         });
         exploreOnly.forEach((item) => {
             const bases = item.base;
@@ -1996,6 +2097,8 @@ function loadGeometryElementsStorage() {
         // 只把 level 当基线的话，玩家在普通模式画的图形会被当成探索视图的图形，
         // 切到探索视图后它们仍然显示（探索视图本该只剩题目与探索图形）
         exploreBaseIds = new Set(elements.map(item => item.id).filter(id => !exploreOwnIds.has(id)));
+        // 归属层：关卡自带 → both，其余按各自画布（见 syncElementLayers）
+        syncElementLayers();
 
         drawContent();
 
@@ -2012,7 +2115,7 @@ function loadGeometryElementsStorage() {
         }
     }
     
-    function deserialization(elementDict) {
+    function deserialization(elementDict, defaultLayer = 'result') {
         const type = elementDict.type;
         const id = elementDict.id;
         const name = elementDict.name;
@@ -2030,12 +2133,17 @@ function loadGeometryElementsStorage() {
         }else if (type === 'circle') {
             element = new Circle(id);
         }
+        // 归属层随存档走：老存档没有这个字段时按调用方给的默认层（关卡自带随后由 syncElementLayers 改成 both）
+        element.layer = elementDict.layer || defaultLayer;
 
         // 显示规则由 gmt 解析给出（initial、named 显示，hidden 与预绘制出的解隐藏），
         // 可移动点由 showMovePoints 在移动工具下临时显示
         const isVisible = elementDict.visible !== false && !geometryElementLists.hidden.has(id);
         element.modifyVisible(isVisible);
-        element.modifyShowName(geometryElementLists.name.has(id));
+        // 标签：gmt 关卡由解析给出 name 名单；制题器试玩（maker-play）只有 named、
+        // 不会填 name，带标签给定的对象要按 named 显示标签，否则试玩时标签全没了
+        element.modifyShowName(geometryElementLists.name.has(id)
+            || (geometryElementLists.named && geometryElementLists.named.has(id)));
         // 关卡 gmt 不写粗细：按当前模式（游玩 / 试玩）的默认补上，不再是写死的 1
         element.modifyWidth(typeof elementDict.width === 'number'
             ? elementDict.width : defaultElementWidth(type));
@@ -2055,6 +2163,21 @@ function loadGeometryElementsStorage() {
 function isResultProduced(id) {
     const resultElement = geometryManager.get(id);
     if (!resultElement) return false;
+    // 失效的判定对象不算「作出了」：移动动点 / 图形失效时，交点类对象的坐标会保留原位
+    // （见 updateSuperstructureChain 的 modifyValid(false)），只比坐标的话仍然「等价」，
+    // 于是解已经不存在、判定却还在通过 —— 给定里混着的所求显示也会一直停在金色
+    if (typeof resultElement.getValid === 'function' && !resultElement.getValid()) return false;
+    // 坐标为空 / 非数值的（如过圆内点作切线、两平行线求交点）：同样不算作出
+    const hasCoordinate = element => {
+        const coord = typeof element.getCoordinate === 'function' ? element.getCoordinate() : null;
+        if (!Array.isArray(coord)) return false;
+        if (element.getType() === 'point') return Number.isFinite(coord[0]) && Number.isFinite(coord[1]);
+        const [first, second] = coord;
+        return Array.isArray(first) && Array.isArray(second)
+            && Number.isFinite(first[0]) && Number.isFinite(first[1])
+            && Number.isFinite(second[0]) && Number.isFinite(second[1]);
+    };
+    if (!hasCoordinate(resultElement)) return false;
     const type = resultElement.getType();
     const equative = type === 'point' ? ToolsFunction.pointEquative
         : type === 'line' ? ToolsFunction.lineEquative
@@ -2066,6 +2189,9 @@ function isResultProduced(id) {
         if (id2 === id) continue;
         // 关卡文件里预绘制的对象不算玩家的作图结果
         if (geometryElementLists.level?.has(id2)) continue;
+        // 同样跳过失效的候选（画布上看不到它了）
+        if (typeof element.getValid === 'function' && !element.getValid()) continue;
+        if (!hasCoordinate(element)) continue;
         if (equative(resultElement, element)) {
             // 线段还要两个端点都真的作出来了：只比「所在直线」的话，画出所在直线就会被误判成作出（见 segmentEndpointsProduced）
             if (!segmentEndpointsProduced(resultElement)) continue;
@@ -2210,9 +2336,16 @@ function setResultGroupsVisible(groups, visible) {
         const element = geometryManager.get(id);
         if (!element) return;
         if (visible) {
-            // 给定对象保持自己的黑色：所求显示里可能混着给定（如 ewp14 的 X 既是带标签给定，
-            // 又列在所求显示的冒号后），一并染金会让题目条件变成金色
-            if (!isGivenObject(id)) GeometryElement.prototype.modifyColor.call(element, '#ffd700');
+            // 所求显示里可能混着给定（如 ewp14 的 X 既是带标签给定，又列在所求显示的冒号后）：
+            // 一组解作出来之后它要和这一组其余所求图形一起变金 —— 未作出时它仍是给定的黑色
+            // （未作出的走 else 分支只藏非给定对象，颜色由 refreshElementListColors 按名单刷回黑）
+            // 移动工具下给定自由点正显示临时蓝：不要直接把金色盖上去（会顶掉临时蓝、而还原缓存
+            // 里还留着旧色），改成更新它退出移动工具时该还原的本色
+            if (typeof givenFreePointColors !== 'undefined' && givenFreePointColors.has(id)) {
+                givenFreePointColors.set(id, '#ffd700');
+            }else{
+                GeometryElement.prototype.modifyColor.call(element, '#ffd700');
+            }
             element.modifyVisible(true);
         }else if (!isGivenObject(id)) {
             element.modifyVisible(false);
@@ -2451,6 +2584,23 @@ async function resultVerify() {
         const event = new CustomEvent("unsuccess");
         window.dispatchEvent(event);
     }
+}
+
+/**
+ * 只重算「哪几组解已作出」并刷新标记色 过程函数
+ * 撤销 / 重做会改变「解还在不在」，但不该触发 success / unsuccess ——
+ * 那会把通关界面重新弹出、还会重新自动存记录。这里只更新 satisfiedResultGroups 与颜色
+ * （「所求显示」里混着的给定对象靠它决定是黑还是金，见 refreshElementListColors）
+ */
+function refreshSatisfiedGroups() {
+    // 探索视图里撤销 / 重做改的是探索画布，不该动「正式画布哪几组解已作出」这个状态：
+    // isResultProduced 读的是当前管理器，在探索里重算会把 satisfied 算成探索画布的结果
+    if (typeof exploreFlag !== 'undefined' && exploreFlag) return;
+    resultVerifyFunction().then(groups => {
+        satisfiedResultGroups = groups || [];
+        if (typeof refreshElementListColors === 'function') refreshElementListColors();
+        if (typeof drawContent === 'function') drawContent();
+    });
 }
 
 window.addEventListener("success", success);

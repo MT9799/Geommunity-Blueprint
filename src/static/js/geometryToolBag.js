@@ -1191,7 +1191,14 @@ function revealHiddenIntersection(x, y, ownStep = false) {
     if (existing) {
         // 这个位置上已经有点（多半是隐藏的定义点）：能显示出来才算这一下有用
         // （游玩模式里不翻隐藏点，这里就会返回 false，工具照常自己作点）
-        return revealHiddenPoint(existing, ownStep);
+        const visible = typeof existing.getVisible === 'function' && existing.getVisible();
+        // 已经可见的点：直接引用它，不再叠一个（返回 false 让工具按普通取点走）
+        if (visible) return revealHiddenPoint(existing, ownStep);
+        // 隐藏点但翻不出来（游玩模式）：别让它挡住「在交点处作点」——
+        // 否则这一下既不显示它、也不新建，工具会按 15px 吸附到旁边别的可见点上
+        //（现象：预览吸在交点上，按下去却吸到了附近那个点）
+        if (isPlayMode()) { /* 继续往下：在交点位置作一个可见的新点 */ }
+        else return revealHiddenPoint(existing, ownStep);
     }
     // 光标处已经有一个**别的点**时不要再造 —— 玩家这一下就是想选 / 用那个点，而不是在它旁边
     // 多插一个交点。nearestIntersection 找的是「离光标最近的任意两条图形的交点」，不限于点中的
@@ -1301,6 +1308,23 @@ function knownIntersectionPoint(candidates, element1, element2) {
 function applyIntersectionBase(point, snap) {
     const candidates = ToolsFunction.intersectionCandidates(snap.element1, snap.element2);
     const known = knownIntersectionPoint(candidates, snap.element1, snap.element2);
+    // 光标本来就落在那个「已知交点」（图形的定义点）上：玩家要标的就是它，不能把它
+    // 当成要排除的已知点去重编号 —— 否则新建的点会落到同一对图形的**另一个交点**上。
+    // 游玩模式的可移动点常扮演这个角色（double-rt-pipe 的 B 就是 c1 / c2 的公共定义点）。
+    const knownCoord = known && typeof known.getCoordinate === 'function' ? known.getCoordinate() : null;
+    const knownAtSnap = Array.isArray(knownCoord)
+        && Math.hypot(knownCoord[0] - snap.x, knownCoord[1] - snap.y) < 1e-6;
+    if (knownAtSnap) {
+        // 先不重算：pickIntersectionCandidate 的「第一个交点取非定义点」规则会在这一步
+        // 把点拨到另一个候选上。记住身份后再算，坐标才是光标下这个交点，拖动时也守着它
+        point.modifyBase("intersection", [snap.element1, snap.element2],
+            candidateIndexOf(candidates, snap, snap.index), null, false);
+        const base = point.getBase();
+        base.candidateIdentity = 'defining';
+        delete base.rawIndex;
+        if (typeof point.updateCoordinate === 'function') point.updateCoordinate();
+        return;
+    }
     const numbering = candidatesWithoutKnown(candidates, known);
     point.modifyBase("intersection", [snap.element1, snap.element2], candidateIndexOf(numbering, snap, snap.index), known);
 }

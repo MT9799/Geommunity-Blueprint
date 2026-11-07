@@ -98,6 +98,9 @@
    * 当前往哪一组写标记、画布上点亮哪一组，分别由 resultActive 与 highlightedResult() 决定
    */
   let resultActive = 1;
+  // 制题器 / 求解器才有多解切换：把当前解编号交给绘制层。切到别的解后，
+  // 旧解的目标线已经退回自身样式色，不该再被当成「题面目标」整条画实色
+  if (mode === 'maker' || mode === 'solver') window.boardActiveResult = () => resultActive;
   const resultJudgeKey = index => (index <= 1 ? 'result' : `result${index}`);
   const resultShownKey = index => (index <= 1 ? 'resultShown' : `resultShown${index}`);
   const resultSetOf = (index, kind) => {
@@ -318,8 +321,29 @@
   window.collectStorageSnapshot = () => {
     const lists = {};
     for (const [key, value] of Object.entries(geometryElementLists)) lists[key] = [...value];
+    const elements = geometryManager.toStorage();
+    // 快照里存「图形自己的样式色」，不存标记显示色：给定黑 / 可移动点蓝 / 所求金都是写死的标记色，
+    // 还原时按标记名单重新上（loadStorageSnapshot 末尾的 refreshElementListColors），
+    // 这样比把某一刻的显示色当成样式色稳定得多 —— 否则换解、取消标记、撤销重做都会把黑 / 金
+    // 当成图形自己的颜色留下来。只覆盖「颜色能由名单唯一决定」的类别；
+    // 所求显示（resultShown / resultShownN）在被点亮前是隐藏的，金色取决于「这一组解作没作出来」，
+    // 不是名单能定，仍按快照里的显示色还原
+    if (typeof window.boardGmt?.ownStyleOf === 'function') {
+      const byList = new Set([
+        ...markSetOf('initial'), ...markSetOf('named'), ...markSetOf('movepoints'),
+        ...markSetOf('result'), ...markSetOf('explore'),
+      ]);
+      for (let index = 2; index <= 20; index++) {
+        markSetOf(`result${index}`).forEach(id => byList.add(id));
+      }
+      elements.forEach(dict => {
+        if (!byList.has(dict.id)) return;
+        const own = window.boardGmt.ownStyleOf(dict.id);
+        if (own) dict.color = own.color;
+      });
+    }
     // 网格信息随快照一起走：撤销 / 重做要能连同网格一起还原（网格当作一整块）
-    return {elements: geometryManager.toStorage(), lists: lists, grid: gridMetaSnapshot()};
+    return {elements: elements, lists: lists, grid: gridMetaSnapshot()};
   };
   /**
    * 一个对象能不能被玩家隐藏 / 显示 过程函数（画板 / 制题器 / 求解器 / 试玩）
@@ -415,11 +439,19 @@
     // 只认关卡模式：制题器 / 求解器里若残留了 level 集合（从游玩页带过来的记录），
     // 会把不在这份名单里的对象全部跳过，标记色静默失效
     const levelIds = mode === 'level' ? geometryElementLists.level : null;
-    // 关卡游玩：「所求」判定（多解就是每一组解）统统金；「所求显示」不在这里上色 ——
-    // 它们多数是隐藏的，作出解之后由 setResultGroupsVisible 点亮（这里也染的话，
-    // 像 ewp14 的 X 那种既在 result 冒号后又本身可见的对象会一开场就是金色）
+    // 关卡游玩：「所求」判定（多解就是每一组解）统统金
     const levelJudged = mode === 'level' ? new Set() : null;
     if (levelJudged) resultMarkSets().forEach(({kind, set}) => { if (kind === 'judged') set.forEach(id => levelJudged.add(id)); });
+    // 已经作出的那些解：它们「所求显示」里的对象要一直保持金色（含混在里面的给定，如 ewp14 的 X）。
+    // 没作出的解里那些对象仍按各自类别上色（给定黑），所以按「当前已作出的组」判断，
+    // 而不是一见 resultShown 就染金 —— 否则 X 这种本身可见的给定会一开场就是金色
+    const litShown = levelJudged && typeof satisfiedResultGroups !== 'undefined' ? new Set() : null;
+    if (litShown) {
+      (satisfiedResultGroups || []).forEach(group => {
+        const list = group && group.shown && group.shown.length ? group.shown : ((group && group.judged) || []);
+        list.forEach(id => litShown.add(id));
+      });
+    }
     // 精简画板（答案的「逐步绘制」）：与游玩模式载入记录后的判定同一口径 ——
     // 作出来的那一组解，其「所求显示」显示出来（并点亮金色，见 markDisplayColor）；
     // 没作出来的那一组（解法被撤回了）跟着隐藏。给定对象一直显示（同 setResultGroupsVisible）
@@ -437,20 +469,37 @@
     geometryManager.getAllByOrder().forEach(item => {
       const id = item.getId();
       if (levelIds?.size && !levelIds.has(id)) return;
-      // 移动工具下给定的自由点被临时染蓝（toolPlayPage 的 showMovePoints），
-      // 这里刷回选定栏色的话，退出探索模式 / 撤销时这些蓝点会莫名变回黑色
-      if (typeof givenFreePointColors !== 'undefined' && givenFreePointColors.has(id)) return;
+      // 移动工具下给定的自由点正显示临时蓝（toolPlayPage 的 showMovePoints）：
+      // 显示色不能在这里刷，否则蓝点会莫名变回黑；但「退出移动工具要还原成什么颜色」
+      // 必须跟着这次刷新一起更新（见循环末尾）
+      const pendingMoveColor = typeof givenFreePointColors !== 'undefined' && givenFreePointColors.has(id);
       let color;
       if (levelJudged) {
-        if (markSetOf('initial').has(id) || markSetOf('named').has(id)) color = markColors.initial;
+        if (litShown && litShown.has(id)) color = markColors.result;
+        else if (markSetOf('initial').has(id) || markSetOf('named').has(id)) color = markColors.initial;
         else if (markSetOf('movepoints').has(id)) color = markColors.movepoints;
         else if (levelJudged.has(id)) color = markColors.result;
         else if (markSetOf('explore').has(id)) color = markColors.explore;
       }else{
         // 制题器 / 求解器：由 markDisplayColor 统一决定（含多解的点亮规则）
         color = markDisplayColor(id);
+        // 标记过、但当前不属于「点亮的解」（或不属于当前查看的类别）的对象，要恢复自身样式色。
+        // 撤销 / 重做的快照里存的是标记时的显示色（金色），不重置的话，换解 / 撤回重做后
+        // 两个解的所求判定会同时显金（一个属于当前解，另一个是旧状态残留的金）。
+        // 与 refreshMarkHighlight / applyMarkToElement（releaseMarkStyle）同一口径
+        if (!color && (mode === 'maker' || mode === 'solver') && allMarkIds().has(id)) {
+          const sealed = markedStyles.get(id);
+          color = sealed ? sealed.color : autoPlayModeColor(item);
+        }
       }
       // 直接改显示色：标记中的对象其 modifyColor 已被改写为记录样式色，这里不经过它
+      if (pendingMoveColor) {
+        // 缓存里记的是「本色」，不是某一刻的显示色：作出所求时它是金色，所求消失后
+        // 就变成给定黑。不跟着刷新的话，退出移动工具会把过期的金色写回来 ——
+        // 既是给定又列在「所求显示」里的点，解已经没了却一直是金色
+        if (color) givenFreePointColors.set(id, color);
+        return;
+      }
       if (color) GeometryElement.prototype.modifyColor.call(item, color);
     });
   };
@@ -472,6 +521,14 @@
     });
     return map;
   };
+  /**
+   * 说明：正式画布的撤销 / 重做**不再**把内容镜像进探索画布
+   * 探索画布有自己的对象与自己的撤销历史（两个 storageManager 从一开始就分开）。
+   * 以前这里会「把结果管理器的内容同步进探索管理器」，结果两边的对象与历史对不上：
+   * 在正式画布撤销一步，探索画布的内容被换掉、但探索历史没变，之后在探索里重做
+   * 就会还原出一个跟当前画布无关的状态。归属层（layer）已经能区分对象属于哪块画布，
+   * 内容同步不再需要，直接去掉。
+   */
   /**
    * 载入快照 过程函数
    * @param {any} snapshot
@@ -534,6 +591,10 @@
         if (!markedIds.has(id)) markedStyles.delete(id);
       });
     }
+    // 重算归属层（关卡自带 → both），并把这些关卡自带点的几何状态重放到另一套画布
+    // （撤销会重建对象，两套实例就此分开；见 playPage.js 的 syncLevelGeometry）。
+    // 不复制整份画布的内容：两套画布各有自己的对象与历史，镜像会让两边的历史对不上
+    if (typeof window.syncElementLayers === 'function') window.syncElementLayers();
     refreshElementListColors();
     // 快照里的标记对象补上样式色记录，取消标记时才能恢复成红 / 灰
     seedMarkedStyles();
@@ -552,14 +613,47 @@
     clearSolverOutputs();
   };
   /**
+   * 本次要重置哪些撤销历史 过程函数
+   * 'all'：正式 + 探索两套都重置 —— 用于两套画布一起换的场景（关卡载入、重开、清空画布）
+   * 'result'：只重置正式画布 —— 载入记录 / 导入 gmt 只换正式画布，
+   *           探索画布和它自己的历史要原样留着；否则探索历史会被灌进记录的步骤，
+   *           在探索里一撤回就把刚载入的记录内容还原到探索画布上
+   * @param {'all'|'result'} [scope]
+   * @returns {Array}
+   */
+  const historyStorageManagers = (scope = 'all') => {
+    if (scope === 'result') {
+      return [typeof storageManagerResult !== 'undefined' ? storageManagerResult : storageManager].filter(Boolean);
+    }
+    return [...new Set([
+      storageManager,
+      typeof storageManagerResult !== 'undefined' ? storageManagerResult : null,
+      typeof storageManagerExplore !== 'undefined' ? storageManagerExplore : null,
+    ].filter(Boolean))];
+  };
+  /**
+   * 本次要重置哪些步数历史 过程函数（范围与 historyStorageManagers 一致）
+   * @param {'all'|'result'} [scope]
+   * @returns {Array}
+   */
+  const historyMovesManagers = (scope = 'all') => {
+    if (scope === 'result') {
+      return [typeof movesStorageManagerResult !== 'undefined' ? movesStorageManagerResult : movesStorageManager].filter(Boolean);
+    }
+    return [...new Set([
+      typeof movesStorageManager !== 'undefined' ? movesStorageManager : null,
+      typeof movesStorageManagerResult !== 'undefined' ? movesStorageManagerResult : null,
+      typeof movesStorageManagerExplore !== 'undefined' ? movesStorageManagerExplore : null,
+    ].filter(Boolean))];
+  };
+  /**
    * 重置撤销/重做历史 过程函数
    * 以当前状态作为新的历史起点，用于载入关卡/导入 gmt 等「外部基线」之后，
    * 避免撤销把初始图形一并撤掉
    */
-  window.resetStorageHistory = (keepMoves = false) => {
+  window.resetStorageHistory = (keepMoves = false, scope = 'all') => {
     // 普通 / 所求 / 探索三套存储都以当前状态为起点
-    [storageManager, typeof storageManagerResult !== 'undefined' ? storageManagerResult : null, typeof storageManagerExplore !== 'undefined' ? storageManagerExplore : null].forEach(manager => {
-      if (!manager) return;
+    historyStorageManagers(scope).forEach(manager => {
       manager.clear();
       // 记历史前一定把「开闸」打开：没开闸时 append 是空操作（见 StorageManager.append），
       // 历史会静静变成空的 —— 之后作图就再也记不进撤销，撤回当然不正常
@@ -568,9 +662,8 @@
     });
     // keepMoves：从制题器 / 求解器返回游玩页时用 —— 图形重建后撤销起点要归零，
     // 但已经用掉的 L / E 是玩家挣来的，跟着清零的话勾就白点了
-    if (!keepMoves && typeof movesStorageManager !== 'undefined') {
-      [movesStorageManager, typeof movesStorageManagerResult !== 'undefined' ? movesStorageManagerResult : null, typeof movesStorageManagerExplore !== 'undefined' ? movesStorageManagerExplore : null].forEach(manager => {
-        if (!manager) return;
+    if (!keepMoves) {
+      historyMovesManagers(scope).forEach(manager => {
         manager.clear();
         manager.append({e: 0, l: 0});
       });
@@ -583,7 +676,7 @@
    * 以「第一个对象」到「完整图形」的每一步作为历史，于是载入之后可以一步步撤回，
    * 而不是只能整体撤到载入前 —— 带进来的图形本身就是一步一步作出来的
    */
-  window.resetStorageHistoryInSteps = () => {
+  window.resetStorageHistoryInSteps = (scope = 'all') => {
     const full = collectStorageSnapshot();
     // 第一档是空画布：否则最后一个对象会撤不掉（它成了历史的起点）
     const emptyLists = {};
@@ -622,9 +715,8 @@
         if ([...gridMeta.ids].every(id => ids.has(id))) step.grid = gridOfFull;
       });
     }
-    // 普通 / 所求 / 探索三套存储都以这些步骤为历史
-    [storageManager, typeof storageManagerResult !== 'undefined' ? storageManagerResult : null, typeof storageManagerExplore !== 'undefined' ? storageManagerExplore : null].forEach(manager => {
-      if (!manager) return;
+    // 普通 / 所求 / 探索三套存储都以这些步骤为历史（载入记录时只动正式画布）
+    historyStorageManagers(scope).forEach(manager => {
       manager.clear();
       // 记历史前一定把「开闸」打开：没开闸时 append 是空操作（见 StorageManager.append），
       // 历史会静静变成空的 —— 那之后作图就再也记不进撤销，撤回当然不正常
@@ -633,14 +725,11 @@
     });
     // 残留的 duplicatedFlag 会让下一次 storage 事件被当成「这次作图作废」而不记历史（见 index.js）
     if (typeof geometryManager !== 'undefined' && geometryManager) geometryManager.duplicatedFlag = false;
-    if (typeof movesStorageManager !== 'undefined') {
-      [movesStorageManager, typeof movesStorageManagerResult !== 'undefined' ? movesStorageManagerResult : null, typeof movesStorageManagerExplore !== 'undefined' ? movesStorageManagerExplore : null].forEach(manager => {
-        if (!manager) return;
-        manager.clear();
-        manager.setStatus(true);
-        manager.append({e: 0, l: 0});
-      });
-    }
+    historyMovesManagers(scope).forEach(manager => {
+      manager.clear();
+      manager.setStatus(true);
+      manager.append({e: 0, l: 0});
+    });
     refreshStorageButton();
     };
     /**
@@ -652,7 +741,7 @@
     * @param {number[]|null} listed 对象行序号（1 起数，只数对象行）
     * @returns {number} 铺出来的格数
     */
-    window.buildStorageHistoryFromList = listed => {
+    window.buildStorageHistoryFromList = (listed, scope = 'all') => {
     const full = collectStorageSnapshot();
     const nodes = full.elements;
     const order = nodes.map((item, at) => at + 1);
@@ -692,8 +781,7 @@
       accumulated = accumulated.concat(Array.isArray(batch) ? batch : [batch]);
       steps.push(snapshotOf(accumulated));
     });
-    [storageManager, typeof storageManagerResult !== 'undefined' ? storageManagerResult : null, typeof storageManagerExplore !== 'undefined' ? storageManagerExplore : null].forEach(manager => {
-      if (!manager) return;
+    historyStorageManagers(scope).forEach(manager => {
       manager.clear();
       // 同 resetStorageHistory：先开闸，否则 append 会被 StorageManager 静默丢掉
       manager.setStatus(true);
@@ -1959,6 +2047,9 @@
     // 把一个对象的坐标撑进范围：点取坐标，圆取「圆心 ± 半径」，线段取两端。
     // 射线 / 直线不封口（它们的延伸定义点会一路把缩放拽小，但定义点本身已是画布上的点，已在范围内）。
     // force=true 时跳过可见性 / 有效性检查，强制计入（用于关卡「所求」点：普通模式被藏起也要入画幅）
+    // 非游玩模式（画板 / 制题器 / 求解器 / 逐步绘制）只按**点**算画幅：
+    // 大圆、长线段会把范围撑得很大，框出来全是空白 —— 图形的形状由点决定，点够了就够
+    const pointsOnly = typeof mode === 'string' && mode !== 'level' && mode !== 'maker-play';
     const collect = (item, force) => {
       if (!item || typeof item.getType !== 'function') return;
       if (isGridId(item.getId())) return;
@@ -1973,6 +2064,7 @@
         include(x, y);
         return;
       }
+      if (pointsOnly) return;
       const coord = typeof item.getCoordinate === 'function' ? item.getCoordinate() : null;
       if (!Array.isArray(coord) || coord.length < 2) return;
       const [first, second] = coord;
@@ -2621,10 +2713,19 @@
   const loadGmt = text => {
     const { elements, lists, grid } = parseGmt(text);
     if (!elements.length) return false;
+    // 在探索视图里载入记录 / 导入 gmt：先退回普通视图，再整套换掉图形。
+    // 否则新图形会落进探索管理器 —— 探索视图只显示题面对象，看起来「载入了却什么都没变」，
+    // 退出探索才看见；而且撤销 / 重做历史会建在探索管理器上，回普通视图后撤销是错乱的
+    if (typeof exploreFlag !== 'undefined' && exploreFlag && typeof exploreMode === 'function') {
+      exploreMode();
+    }
     // 画板里所有对象都要可见：关卡中「预绘制出的解」在制作时也要能看到
     // 无穷远点（EdgePoint）除外：它是假想的点、坐标在很远处，画出来会让画布糊掉一大片
     elements.forEach(item => { item.visible = item.base?.type !== 'edgePoint' && !item.internal; });
     geometryManager.loadStorage(elements);
+    // 探索画布保持原样：载入记录只换「正式」画布，探索里的图形是玩家自己的草稿，不该被清掉
+    // （归属层 layer 随存档走，探索管理器里留着的旧对象仍标着 both / explore，不会被误判成探索专属图形）
+    if (typeof window.syncElementLayers === 'function') window.syncElementLayers();
     // 换了一整套图形：画到一半的工具状态（工具缓存 + 管理器里的 choice 缓存）要一并扔掉，
     // 否则它们还指着刚被换掉的旧对象 —— 之后再作图会取到 null（报错、点一下没反应），
     // 而且整段作图都记不进撤销历史（表现为「载入记录后撤回变得极不正常」）
@@ -2645,9 +2746,11 @@
     drawContent();
     if (typeof loadGeometryElements === 'function') loadGeometryElements();
     refreshMarks();
-    // 导入的关卡按 gmt 顺序成为历史：可以一步步撤回
-    if (typeof resetStorageHistoryInSteps === 'function') resetStorageHistoryInSteps();
-    else resetStorageHistory();
+    // 导入的关卡按 gmt 顺序成为历史：可以一步步撤回。
+    // 只重置正式画布的历史 —— 探索画布没被这次载入改动，它的历史要保持原样
+    // （否则载入的步骤会灌进探索历史，在探索里撤回就把刚载入的记录还原出来）
+    if (typeof resetStorageHistoryInSteps === 'function') resetStorageHistoryInSteps('result');
+    else resetStorageHistory(false, 'result');
     // 导入 gmt 换掉了整套图形，求解 / 探测的结果一并清空
     clearSolverOutputs();
     return true;
@@ -5640,6 +5743,11 @@
    */
   const pruneMarks = () => {
     if (typeof geometryManager === 'undefined') return false;
+    // 画布上还没有任何对象时不清标记：载入 / 还原过程中可能「先恢复了标记名单、对象随后才加进来」，
+    // 这时按「对象不存在」去清会把整份标记（给定 / 带标签给定 / 所求 / 探索 / 隐藏）误清空 ——
+    // 现象就是返回后所求全部显示、探索里没有金色、带标签给定的标签丢失（见 playPage 的 storage 处理：
+    // pruneMarks 在落快照之前调用，清空了还会把空名单记进下一格历史）
+    if (!geometryManager.getAllByOrder().length) return false;
     let changed = false;
     allMarkSets().forEach(({set}) => {
       [...set].forEach(id => {
@@ -5697,8 +5805,12 @@
     // 不在任何标记里（或属于没点亮的解）就恢复对象自身的样式色
     const color = markDisplayColor(id);
     if (!color) { releaseMarkStyle(item); return; }
-    // 只有「带标签给定」显示标签
-    applyMarkStyle(item, color, markSetOf('named').has(id));
+    // 标签：带标签给定（named）显示标签；但求解器里 named 被并进 initial、名单被清空，
+    // 这类对象的标签要沿用它们自己（标记前）的标签设置 —— 否则刷新面板后标签就没了
+    const sealed = markedStyles.get(id);
+    const showLabel = markSetOf('named').has(id)
+      || (sealed ? sealed.showName : item.getShowName());
+    applyMarkStyle(item, color, showLabel);
   };
   /**
    * 刷新标记高亮 过程函数
@@ -5724,6 +5836,10 @@
       const label = String(text || '').trim();
       return label === '' || /^[A-Za-z0-9]$/.test(label);
     };
+    // 改名要并进「标记带标签给定」这一格历史（否则这次改名会落进**下一个动作**的快照里，
+    // 撤回下一个动作时把改名一起撤掉 —— 见 markFromCanvas 里对 named 的延迟通知）。
+    // 确定 / 取消都收尾一次：取消时标记仍然保留（标签沿用原名），也要记一格历史
+    const finish = () => { if (typeof notifyStorageChange === 'function') notifyStorageChange('mark'); };
     const ask = value => inputDialog(t('board.markNamed'), t('board.markLabelPrompt', {id: id}), value, raw => {
       const label = String(raw || '').trim();
       // 校验与「确定」按钮的置灰规则保持一致（非法输入根本进不到这里）
@@ -5731,7 +5847,8 @@
       item.modifyName(label || id);
       drawContent();
       if (typeof loadGeometryElements === 'function') loadGeometryElements();
-    }, {valid: isValidLabel});
+      finish();
+    }, {valid: isValidLabel, onCancel: finish});
     ask('');
   };
   // 标记手势状态：手指按在图形上时置位，松手复位（见下面的 swallowMarkingGesture）
@@ -5784,6 +5901,9 @@
       : marking === 'resultShown' ? resultSetOf(resultActive, 'shown')
       : markSetOf(marking);
     if (!geometryElementLists[marking]) geometryElementLists[marking] = set;
+    // 「带标签给定」新增时要把改名并进同一格历史：改由 promptMarkLabel 的对话框收尾时再记；
+    // 取消标记那一路没有对话框，照常立即记
+    let deferHistory = false;
     if (set.has(id)) {
       set.delete(id);
       // 同分类的其他集合还在标记就保持标记色，都不在就恢复对象自身的样式
@@ -5793,14 +5913,16 @@
       // （所求判定与所求显示之间可以共存，见 markExclusive）
       markExclusive(id, marking);
       set.add(id);
-      if (marking === 'named') promptMarkLabel(item);
+      if (marking === 'named') { deferHistory = true; promptMarkLabel(item); }
       applyMarkToElement(id);
     }
     drawContent();
     if (typeof loadGeometryElements === 'function') loadGeometryElements();
     refreshMarks();
-    // 标记改动记一步历史
-    notifyStorageChange('mark');
+    // 标记改动记一步历史。
+    // 「带标签给定」要等改名对话框收尾后再记（promptMarkLabel 的 finish），
+    // 否则记下的是改名前的快照，改名会被并进下一个动作的历史格（见 promptMarkLabel）
+    if (!deferHistory) notifyStorageChange('mark');
   };
   // 手机端标记手势的后续事件（touchmove 等）用 capture 全部吃掉：
   // 手指按在图形上拖动时，既不移动图形也不平移画布，只是标记它
