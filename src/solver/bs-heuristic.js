@@ -2849,6 +2849,9 @@ class HeuristicSolver {
      */
     run() {
         try {
+            // 各前置阶段之间都查一次全局时限：探针 / 地标 / 会合各自跑一段同步计算，
+            // 只在 beam 的 restart 循环里 checkNow() 的话，这些阶段可能把时间上限整个吃掉
+            this.checkNow();
             // 先跑探针族（直径 / 镜像 / 切线 / 等半径）：对着题面里的几何结构做定向搜索，
             // 与 C++ 一样排在 beam 之前、只用剩余时间的一小片。
             // 顺序按 C++ 的 Run：目标只有一个圆时先前置探针再等半径，其余相反
@@ -2857,11 +2860,14 @@ class HeuristicSolver {
                 this.baseGraph.goalElements[0].type === TYPE_CIRCLE;
             if (singleCircleGoal) {
                 this.prerequisiteCompletion();
+                this.checkNow();
                 this.equalRadiusCompletion();
             } else {
                 this.equalRadiusCompletion();
+                this.checkNow();
                 this.prerequisiteCompletion();
             }
+            this.checkNow();
             // 反向地标：在初始图上 Build 一次（纯加分特征，之后只读；C++ Run 里紧跟探针之后）
             if (this.options.landmarks || (this.options.adaptive && this.baseGraph.goalElements.length)) {
                 this.landmarks.build(this.baseGraph, this.toolType);
@@ -2869,6 +2875,7 @@ class HeuristicSolver {
                 this.metrics.landmarkGuides = this.landmarks.guides.length;
                 this.metrics.landmarkProbes = this.landmarks.probes;
             }
+            this.checkNow();
             // 会合（C++ Run 里排在探针之后、beam 之前）：自适应风格且 limit ≥ 4 时跑，
             // 最多拿剩余时间的 25%（且不超过 12 秒）。它是纯粹的**找解**手段，失败不代表任何结论
             if (this.options.adaptive && this.limit >= 4 && !this.control.stop) {
@@ -2879,6 +2886,7 @@ class HeuristicSolver {
                     this.rendezvousSearch(HEURISTIC_NOW() + seconds * 1000);
                 }
             }
+            this.checkNow();
             for (let restart = 0; ; restart++) {
                 this.checkNow();
                 // 覆盖线程（C++ coverageThreads == 0）：多 worker 时留**一个**继续跑普通 DFS 兜底，

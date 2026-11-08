@@ -401,6 +401,8 @@ function openStylePopup(options) {
     const above = rect.top - box.height - 8;
     popup.style.top = `${above >= 8 ? above : Math.min(rect.bottom + 8, Math.max(8, window.innerHeight - box.height - 8))}px`;
     popup.style.visibility = 'visible';
+    // 返回重画函数：调用方（「调整对象样式」）存起来，别处改了同一批对象的样式后刷新弹层
+    return draw;
 }
 
 /**
@@ -428,6 +430,9 @@ function openStyleConfigPopup(type, anchor) {
 
 /** 「调整对象样式」弹层当前所对着的选中集合签名（换选对象时据此把弹层收起） */
 let objectStyleSelectionKey = null;
+// 「调整对象样式」弹层的重画函数（openStylePopup 返回的 draw）：别处改完同一批对象的
+// 样式后（例如移动工具的右键菜单），用它把弹层里的色块 / 档位 / 开关刷新成最新值
+let objectStyleRedraw = null;
 /** 撤销 / 重做 / 清空画布等换了一批图形：把「调整对象样式」弹层收掉 */
 window.resetObjectStylePopup = () => {
     closeObjectStylePopup();
@@ -479,7 +484,7 @@ function openObjectStylePopup(anchor) {
     // 选中的全是线段时才给「记号」（直线 / 射线 / 圆没有中央记号）
     const allSegments = !isGrid && targetsOf().every(item => item.getType?.() === 'line'
         && item.getDrawType?.() === 'lineSegment');
-    openStylePopup({
+    objectStyleRedraw = openStylePopup({
         anchor: button,
         key: 'object',
         // 全是点时才是「点」的界面（混选时按线 / 圆那套，能调虚线与标签）
@@ -522,6 +527,19 @@ function openObjectStylePopup(anchor) {
     // 记下这份弹层对着的是哪一组选中：换选对象时（见 setObjectStyleAble）据此把弹层收起来
     objectStyleSelectionKey = currentSelectionKey();
 }
+/**
+ * 刷新正开着的「调整对象样式」弹层 过程函数
+ * 移动工具的右键菜单改完样式后调用：弹层内容是打开时画的一次性快照，
+ * 不重画就会一直显示旧的颜色 / 粗细 / 开关状态
+ */
+window.refreshOpenObjectStylePopup = () => {
+    if (!objectStyleRedraw) return;
+    if (!document.querySelector('.style-popup.open[data-key="object"]')) {
+        objectStyleRedraw = null;
+        return;
+    }
+    objectStyleRedraw();
+};
 
 /**
  * 显示 / 隐藏一个对象 过程函数
@@ -746,8 +764,65 @@ function setObjectStyleAble(item) {
  * @param {Object} style {color, width, showName, dashed}
  * @returns {Object} SVG元素
  */
-function createStyleSample(type, style) {
+/**
+ * 把线段记号画进样式样例 过程函数
+ * 样例里的线是 45° 斜线，记号要沿线摆在中间：先把坐标系转到线方向，
+ * 再按记号类型画竖线（1–3 道）或箭头（1–3 个）。线上本来就有横线，不用再画
+ * @param {Object} svg 样例 svg
+ * @param {number} mark 1–6
+ * @param {number} width 粗细档位
+ * @param {string} color 颜色
+ */
+function appendStyleSampleMark(svg, mark, width, color) {
+    if (!mark) return;
+    const NS = 'http://www.w3.org/2000/svg';
+    const group = document.createElementNS(NS, 'g');
+    group.setAttribute('transform', 'translate(50,50) rotate(-45)');
+    const thickness = Math.max(2.2, 4.4 * width);
+    const addLine = (x1, y1, x2, y2) => {
+        const node = document.createElementNS(NS, 'line');
+        node.setAttribute('x1', x1);
+        node.setAttribute('y1', y1);
+        node.setAttribute('x2', x2);
+        node.setAttribute('y2', y2);
+        node.setAttribute('stroke', color);
+        node.setAttribute('stroke-width', thickness);
+        node.setAttribute('stroke-linecap', 'round');
+        group.appendChild(node);
+    };
+    if (mark >= 1 && mark <= 3) {
+        for (let i = 0; i < mark; i++) {
+            const x = (i - (mark - 1) / 2) * 9;
+            addLine(x, -9, x, 9);
+        }
+    }else{
+        const count = mark - 3;
+        for (let i = 0; i < count; i++) {
+            const x = (i - (count - 1) / 2) * 11;
+            const node = document.createElementNS(NS, 'polyline');
+            node.setAttribute('points', `${x - 5},-6 ${x + 1},0 ${x - 5},6`);
+            node.setAttribute('fill', 'none');
+            node.setAttribute('stroke', color);
+            node.setAttribute('stroke-width', thickness);
+            node.setAttribute('stroke-linecap', 'round');
+            node.setAttribute('stroke-linejoin', 'round');
+            group.appendChild(node);
+        }
+    }
+    svg.appendChild(group);
+}
+
+/**
+ * 样式样例 过程函数
+ * @param {string} type 'point' | 'line' | 'circle'
+ * @param {Object} style 样式预设（geometryStyle[type]）
+ * @param {{showMark?: boolean}} [options] showMark=false 时不画线段记号（直线 / 射线用）
+ * @returns {Object} SVG 元素
+ */
+function createStyleSample(type, style, options = {}) {
     const svgNS = "http://www.w3.org/2000/svg";
+    // 记号只有线段有：直线 / 射线与线段共用 geometryStyle.line，但它们的按钮预览不该画记号
+    const showMark = options.showMark !== false;
     const width = style.width || 1;
     const svg = document.createElementNS(svgNS, "svg");
     svg.setAttribute("viewBox", "0 0 100 100");
@@ -787,6 +862,8 @@ function createStyleSample(type, style) {
         // 虚线样例：段长也按「实线段 + 空白」那样断开，与画布上的虚线一致
         if (style.dashed) line.setAttribute("stroke-dasharray", `${18 * width} ${13 * width}`);
         svg.appendChild(line);
+        // 线段记号：原来样例只画了线本身，预设里选了记号也看不出来
+        if (showMark && style.mark) appendStyleSampleMark(svg, style.mark, width, style.color);
         if (style.showName) svg.appendChild(createStyleSampleLabel('a', 60, 80, style.color));
     }else if (type === 'circle') {
         const circle = document.createElementNS(svgNS, "circle");

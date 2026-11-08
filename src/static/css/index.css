@@ -537,6 +537,231 @@ textarea {
     transition: background-color 0.5s ease;
 }
 
+/* 移动工具选中图形后的上下文菜单：桌面圆角矩形竖排，手机两端半圆横排图标条 */
+.selection-context-menu {
+    position: fixed;
+    z-index: 15;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    max-width: calc(100vw - 16px);
+    padding: 6px;
+    border-radius: 12px;
+    background-color: rgb(238, 238, 242);
+    box-shadow: 0 10px 26px rgba(25, 25, 25, 0.22);
+    color: #191919;
+    font: inherit;
+    font-size: 13px;
+    /* 出现 / 消失的淡入缩放（selectionMenu.js 切 entering / closing class） */
+    opacity: 1;
+    transform: scale(1);
+    transition: opacity 0.14s ease-out, transform 0.14s ease-out;
+}
+.selection-context-menu.entering {
+    opacity: 0;
+    transform: scale(0.9);
+}
+.selection-context-menu.closing {
+    opacity: 0;
+    transform: scale(0.94);
+    pointer-events: none;
+}
+.selection-context-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 30px;
+    padding: 0 8px;
+    border: none;
+    border-radius: 7px;
+    background-color: rgb(248, 248, 250);
+    color: inherit;
+    font: inherit;
+    font-size: 13px;
+    white-space: nowrap;
+    text-align: left;
+    cursor: pointer;
+}
+.selection-context-item:hover {
+    background-color: #fef7e5;
+}
+.selection-context-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 17px;
+    height: 17px;
+    flex: none;
+}
+.selection-context-icon svg {
+    width: 17px;
+    height: 17px;
+}
+.selection-context-sub {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 148px;
+    padding: 4px 2px 2px;
+    /* 一级 ↔ 二级切换会重建 DOM，动画自然重放 */
+    animation: selection-context-sub-in 0.12s ease-out;
+}
+@keyframes selection-context-sub-in {
+    from { opacity: 0; transform: translateY(-2px); }
+    to { opacity: 1; transform: none; }
+}
+.selection-context-swatches {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+.selection-context-swatch {
+    width: 22px;
+    height: 22px;
+    border: 1px solid rgba(25, 25, 25, 0.2);
+    border-radius: 5px;
+    cursor: pointer;
+}
+.selection-context-swatch.active {
+    outline: 2px solid #277f96;
+    outline-offset: 1px;
+}
+.selection-context-wide {
+    min-height: 28px;
+    border: none;
+    border-radius: 7px;
+    background-color: rgb(248, 248, 250);
+    color: inherit;
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+}
+.selection-context-wide:hover {
+    background-color: #fef7e5;
+}
+.selection-context-width-row .style-width-bar {
+    width: 148px;
+    padding: 2px 4px;
+}
+.selection-context-width-row .style-width-seg {
+    height: 22px;
+}
+.selection-context-switch-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 26px;
+}
+.selection-context-switch-label {
+    flex: 1;
+    min-width: 48px;
+    font-size: 12px;
+}
+.selection-context-back {
+    font-size: 12px;
+}
+/* 复用 stylePanel 的开关 / 档位条：它们原本按浅灰弹层配色，放在本菜单里底色太接近，
+   滑块会看不出边界，这里单独压深一点（active 仍是青色），尺寸也按菜单缩一号 */
+.selection-context-menu .style-popup-switch {
+    min-width: 42px;
+    height: 22px;
+    background-color: rgb(198, 201, 212);
+}
+.selection-context-menu .style-popup-switch-knob {
+    width: 16px;
+    height: 16px;
+    background-color: rgb(250, 250, 252);
+}
+.selection-context-menu .style-popup-switch.active {
+    background-color: #cfe3e7;
+}
+.selection-context-menu .style-popup-switch.active .style-popup-switch-knob {
+    left: calc(100% - 20px);
+    background-color: #277f96;
+}
+.selection-context-menu .style-width-bar {
+    background-color: rgb(212, 214, 223);
+}
+/* 记号下拉别被菜单边框裁掉：菜单本身 overflow 可见，这里只让它右对齐，
+   手机上半宽列里也不会横着溢出 */
+.selection-context-menu .style-mark-select {
+    max-width: none;
+}
+.selection-context-menu .style-mark-menu {
+    right: 0;
+    left: auto;
+}
+.selection-context-menu[data-mode='mobile'] {
+    flex-direction: row;
+    align-items: center;
+    gap: 2px;
+    padding: 4px 8px;
+    border-radius: 999px;
+}
+.selection-context-menu[data-mode='mobile'] .selection-context-item {
+    width: 32px;
+    height: 32px;
+    min-height: 0;
+    padding: 0;
+    justify-content: center;
+    border-radius: 50%;
+    background-color: transparent;
+}
+.selection-context-menu[data-mode='mobile'] .selection-context-label {
+    display: none;
+}
+.selection-context-menu[data-mode='mobile'].has-sub {
+    flex-wrap: wrap;
+    /* 固定宽度：展开二级时内容换行会让测量值漂移，定位夹边就留不出右边距 */
+    width: min(240px, calc(100vw - 16px));
+    max-width: calc(100vw - 16px);
+    padding: 6px;
+    border-radius: 14px;
+}
+/* 手机合并面板：自定义颜色按钮跟在推荐色块后面，不单独换行 */
+.selection-context-menu[data-mode='mobile'].has-sub .selection-context-color-block {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: nowrap;
+}
+.selection-context-menu[data-mode='mobile'].has-sub .selection-context-color-block
+    .selection-context-wide {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 22px;
+    padding: 0 6px;
+    font-size: 11px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.selection-context-menu[data-mode='mobile'].has-sub .selection-context-back {
+    width: 32px;
+    height: 32px;
+    min-height: 0;
+    padding: 0;
+    justify-content: center;
+    border-radius: 50%;
+}
+.selection-context-menu[data-mode='mobile'].has-sub .selection-context-sub {
+    flex-basis: 100%;
+    min-width: 0;
+}
+/* 手机上颜色 / 大小 / 开关合成一页：开关排两列，竖着别拉太长 */
+.selection-context-menu[data-mode='mobile'].has-sub .selection-context-switch-block {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 16px;
+}
+.selection-context-menu[data-mode='mobile'].has-sub .selection-context-switch-block
+    .selection-context-switch-row {
+    min-width: 0;
+}
+.selection-context-menu[data-mode='mobile'].has-sub .selection-context-width-row .style-width-bar {
+    width: 100%;
+}
+
 .popup-item:hover {
     background-color: #fef7e5;
 }

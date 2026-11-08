@@ -343,6 +343,14 @@ function touchmoveEventFunction(e) {
  */
 function mouseDownEventFunction(e) {
     e.preventDefault();
+    // 右键留给上下文菜单（见 selectionMenu.js）：不启动作图 / 选中，
+    // 否则非移动工具会留下一个半成品起点。
+    // 但必须把 mouseType 记成右键 —— 否则它会停在上一次的左键值，
+    // mouseup 时又按「左键点击」走一遍工具，顺手点出一个点
+    if (e.button === 2) {
+        mouseType = 2;
+        return;
+    }
     // 页面滚动 / 布局变化不会触发 window resize：按下前重量一次画布位置，点击才不会整体偏掉
     if (typeof refreshCanvasRect === 'function') refreshCanvasRect();
     const x = e.clientX - canvasLeft;

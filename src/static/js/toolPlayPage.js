@@ -773,7 +773,9 @@ function drawStyle(type) {
     const buttonDE = document.getElementById(`button-${tool}-${type}Style`);
     if (!buttonDE) return;
     buttonDE.innerHTML = "";
-    buttonDE.appendChild(createStyleSample(type, geometryStyle[type]));
+    // 记号只有线段有：直线 / 射线共用 line 那份预设，但按钮预览不该跟着画记号
+    const showMark = type !== 'line' || tool === 'lineSegment' || subTool === 'lineSegment';
+    buttonDE.appendChild(createStyleSample(type, geometryStyle[type], {showMark}));
 }
 
 /**

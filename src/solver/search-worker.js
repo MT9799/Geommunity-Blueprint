@@ -458,8 +458,20 @@ function runSearch(request, id) {
     if (request.heuristic) {
         // 启发式先跑（高级选项「启发式搜索（测试）」，默认关）：只**找**解、不证明穷尽。
         // 它是加速器，不是替代品 —— 拿掉一部分预算，没找到就把剩下的交给兜底 DFS
+        // stop 用 getter：启发式里大量局部循环只判断 `this.control.stop || 已到局部 deadline`，
+        // 未必会走到 checkNow()。让它每次被读时都顺带比一次全局时限，这些循环就会在超时后
+        // 立刻收手，不会因某个阶段卡住而把「时间上限」拖穿。8ms 节流避免热循环里反复取时钟
+        let stopRequested = false;
+        let stopCheckedAt = 0;
         const control = {
-            stop: false,
+            get stop() {
+                if (stopRequested) return true;
+                const now = WORKER_NOW();
+                if (now - stopCheckedAt < 8) return false;
+                stopCheckedAt = now;
+                return now >= control.deadline || now >= deadline;
+            },
+            set stop(value) { stopRequested = value; },
             found: false,
             timedOut: false,
             deadline: startedAt + settings.timeLimitSeconds * 1000 * HEURISTIC_BUDGET_SHARE,

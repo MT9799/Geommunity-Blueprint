@@ -533,8 +533,10 @@
    * 载入快照 过程函数
    * @param {any} snapshot
    * @param {Map<string, number[]>} [keepPoints] 撤 / 重做时要保持在当前位置的点（见 capturePointCoordinates）
+   * @param {{preserveSolver?: boolean}} [options] preserveSolver：只是把画布复位到同一批对象
+   *        （求解器切换解法），求解 / 探测结果仍指着这批对象，不能清
    */
-  window.loadStorageSnapshot = (snapshot, keepPoints = null) => {
+  window.loadStorageSnapshot = (snapshot, keepPoints = null, options = {}) => {
     const isList = Array.isArray(snapshot);
     const elements = (isList ? snapshot : snapshot?.elements) || [];
     geometryManager.loadStorage(elements);
@@ -609,8 +611,9 @@
     // 撤销 / 重做 / 载入记录换了一整套图形：「调整对象样式」弹层要连同「想开着」的意图一起清掉
     if (typeof window.resetObjectStylePopup === 'function') window.resetObjectStylePopup();
     if (typeof refreshToolFloating === 'function') refreshToolFloating();
-    // 几何被整套替换（载入记录 / 撤销重做 / 从游玩返回），求解与探测结果一并清空
-    clearSolverOutputs();
+    // 几何被整套替换（载入记录 / 撤销重做 / 从游玩返回），求解与探测结果一并清空。
+    // 求解器切换解法时只是复位到同一批对象，解表与构造计划仍有效，必须保留
+    if (!options.preserveSolver) clearSolverOutputs();
   };
   /**
    * 本次要重置哪些撤销历史 过程函数
@@ -638,7 +641,10 @@
    */
   const historyMovesManagers = (scope = 'all') => {
     if (scope === 'result') {
-      return [typeof movesStorageManagerResult !== 'undefined' ? movesStorageManagerResult : movesStorageManager].filter(Boolean);
+      // 制题器 / 求解器没有 movesStorageManager（只有游玩页有）：不判断就抛
+      // ReferenceError，载入记录会在这里断掉，后面的样式恢复（applyStyles）根本走不到
+      return [typeof movesStorageManagerResult !== 'undefined' ? movesStorageManagerResult
+        : (typeof movesStorageManager !== 'undefined' ? movesStorageManager : null)].filter(Boolean);
     }
     return [...new Set([
       typeof movesStorageManager !== 'undefined' ? movesStorageManager : null,
@@ -3508,10 +3514,14 @@
    */
   /**
    * 求解器给的构造计划能不能可靠地对上画布对象 过程函数
-   * 请求是照 Worker 装图的顺序发的（点 → 直线 → 射线 → 线段 → 圆），
-   * 但 Worker 会丢掉重复的给定对象；一旦数量或坐标对不上，映射就会整体错位 —— 那种情况不启用计划
+   *
+   * 绑定口径：解法通过 solverLastRequest 的 pointIds / elementIds **按 id 绑到画布对象**，
+   * 坐标由 canvas.js 的 evaluateSolverSolutionPlan 每次重绘时按当前对象现算。所以坐标不是
+   * 有效性的判据 —— 拖过图形、换解法、逐步播放时都该继续用同一份可动计划，品红才会跟着变形。
+   * 唯一会破坏映射的是「内核丢掉了重复的给定对象」：那会让 id 表与解里的下标整体错位，
+   * 用**数量是否对得上**来挡；再逐个确认 id 还在、类型没错。
    */
-  const solverPlanMatchesCanvas = (solution, result) => {
+  const solverPlanMatchesCanvas = result => {
     if (!solverLastRequest) return false;
     // 网格模式：内核自己会铺 (m+1)+(n+1) 条网格线、并把全部格点当已知点，
     // 所以「已知点 / 初始元素」的数目都要把网格那份算上；只核对请求里发出去的那些已知点
@@ -3519,13 +3529,18 @@
     // 那种情况不启用计划，退回一次性覆盖层（画得对，只是拖动时解法不跟着变形）
     const grid = solverLastRequest.gridM !== undefined;
     const gridLines = grid ? (solverLastRequest.gridM + 1) + (solverLastRequest.gridN + 1) : 0;
-    if (!grid && solverLastRequest.pointIds.length < result.initialPointCount) return false;
+    if (!grid && solverLastRequest.pointIds.length !== result.initialPointCount) return false;
     const checkCount = grid ? solverLastRequest.pointIds.length : result.initialPointCount;
     for (let i = 0; i < checkCount; i++) {
       const item = geometryManager.get(solverLastRequest.pointIds[i]);
-      const recorded = solution.points[i];
       if (!item || item.getType() !== 'point') return false;
-      if (Math.abs(item.x - recorded.x) > 1e-9 || Math.abs(item.y - recorded.y) > 1e-9) return false;
+    }
+    const elementIds = (solverLastRequest.gridUnit ? gridSegmentIdsInKernelOrder() : [])
+      .concat(solverLastRequest.lineIds.concat(solverLastRequest.rayIds || [],
+        solverLastRequest.segmentIds || [], solverLastRequest.circleIds, solverLastRequest.arcIds || []));
+    for (let i = 0; i < elementIds.length; i++) {
+      const item = geometryManager.get(elementIds[i]);
+      if (!item || (item.getType() !== 'line' && item.getType() !== 'circle')) return false;
     }
     const sentElements = solverLastRequest.lines.length / 3
       + solverLastRequest.rays.length / 4 + solverLastRequest.segments.length / 4
@@ -3542,7 +3557,7 @@
    * @returns {Object|null} null 表示这条解没有可动计划（对不上画布，只能一次性画覆盖层）
    */
   const solverPlanJobOf = (solution, result, step) => {
-    if (!solution || !solution.plan || !solverPlanMatchesCanvas(solution, result)) return null;
+    if (!solution || !solution.plan || !solverPlanMatchesCanvas(result)) return null;
     return {
       solution: solution,
       result: result,
@@ -3723,12 +3738,14 @@
   /**
    * 把画布复位到「开始求解那一刻」 过程函数
    * 求解期间可能拖过点 / 画过东西，切换解法时这些不属于解法的改动要收回去 ——
-   * 只有指纹变了才重建（重建会清掉选中与工具缓存，代价不小）
+   * 只有指纹变了才重建（重建会清掉选中与工具缓存，代价不小）。
+   * 注意这里复位的是**同一批对象**：解法按 id 绑在这批对象上，解表、构造计划、
+   * 搜索进度都还有效，不能走 loadStorageSnapshot 默认那套 clearSolverOutputs
    */
   const resetSolverCanvas = () => {
     if (!solverCanvasSnapshot || typeof loadStorageSnapshot !== 'function') return;
     if (solverCanvasFingerprint() === solverCanvasSignature) return;
-    loadStorageSnapshot(solverCanvasSnapshot);
+    loadStorageSnapshot(solverCanvasSnapshot, null, {preserveSolver: true});
     solverCanvasSignature = solverCanvasFingerprint();
   };
 
@@ -5740,6 +5757,9 @@
       currentStep = 0;
       stepInfo.textContent = '—';
       solverSolutionOverlay = null;
+      // 画布优先画可动构造计划（见 canvas.js 的 drawSolverSolutionOverlay）：
+      // 只清静态覆盖层的话，上一轮的解法会一直挂着，直到新一轮出解才被换掉
+      solverSolutionPlan = null;
       solverSuppressAutoPlay = false;   // 新一轮搜索：恢复「收尾自动点亮第一个解」
       list.innerHTML = '';
       syncStepRow();
@@ -5808,6 +5828,22 @@
         if (token !== searchToken) return;
         status.textContent = t('board.solverLoadFailed');
       };
+      // 引擎内部的超时检查可能被某个长阶段卡住（尤其启发式的探针 / 地标）：
+      // 主线程按总时限 + 宽限兜底掐断，保证「过了时间上限还在搜」不会发生。
+      // 边搜边收到的解已经在列表里、latest 也指着 liveResult，掐断后照样能点开看
+      setTimeout(() => {
+        // 正常收尾时 onmessage 已经把 activeWorker 清空；stopSearch 则会换掉 token
+        if (token !== searchToken || activeWorker !== worker) return;
+        worker.terminate();
+        activeWorker = null;
+        setSearching(false);
+        if (typeof markSearchProgressFinished === 'function') markSearchProgressFinished();
+        status.textContent = liveResult.solutions.length
+          ? t('board.solverTimeoutPartial', {
+              seconds: timeLimitSeconds, found: liveResult.solutions.length, requested: solutions,
+            })
+          : t('board.solverTimeoutNoSolution', {seconds: timeLimitSeconds});
+      }, timeLimitSeconds * 1000 + 1500);
       worker.postMessage({type: 'search', id: Date.now(), data: workerPayload(settings, request, advanced)});
     });
 
