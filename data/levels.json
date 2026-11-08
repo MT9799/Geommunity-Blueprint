@@ -12072,6 +12072,32 @@
         ]
     },
     {
+        "id": "wt14",
+        "pack": "weekly-tangent",
+        "file": "levels/weekly-tangent/wt14/weekly-tangent-14.gmt",
+        "title": "聚光灯",
+        "subtitle": "Construct a circle in the three points, so that the field angles are 30°, 60° and 90°.",
+        "targetSteps": "16L / 18E",
+        "diagram": "levels/weekly-tangent/wt14/Weekly Tangent 014.jpg",
+        "note": "",
+        "keywords": [
+            "Weekly-Tangent",
+            "圆",
+            "切线",
+            "夹角",
+            "30度",
+            "60度",
+            "90度",
+            "相切"
+        ],
+        "solutions": [
+            {
+                "file": "levels/weekly-tangent/wt14/wt14-16l18e.png",
+                "star": "16L 18E"
+            }
+        ]
+    },
+    {
         "id": "wt15",
         "pack": "weekly-tangent",
         "file": "levels/weekly-tangent/wt15/weekly-tangent-15.gmt",
@@ -12103,7 +12129,7 @@
         "file": "levels/weekly-tangent/wt16/weekly-tangent-16.gmt",
         "title": "五边形三切圆",
         "subtitle": "Insibe eguall circles in a pentagon as shown.",
-        "targetSteps": "",
+        "targetSteps": "14L / 24E",
         "diagram": "levels/weekly-tangent/wt16/Weekly Tangent 016.jpg",
         "note": "",
         "keywords": [
@@ -12114,7 +12140,12 @@
             "中点",
             "相切"
         ],
-        "solutions": []
+        "solutions": [
+            {
+                "file": "levels/weekly-tangent/wt16/wt16-14l24e.png",
+                "star": "14L 24E"
+            }
+        ]
     },
     {
         "id": "wt17",
@@ -12170,7 +12201,7 @@
         "file": "levels/weekly-tangent/wt19/weekly-tangent-19.gmt",
         "title": "矩形包围盒",
         "subtitle": "Find the smallest rectangle that can cover the 'regular' three circles.",
-        "targetSteps": "",
+        "targetSteps": "7L / 8E",
         "diagram": "levels/weekly-tangent/wt19/Weekly Tangent 019.jpg",
         "note": "",
         "keywords": [
@@ -12182,7 +12213,16 @@
             "极小值",
             "相切"
         ],
-        "solutions": []
+        "solutions": [
+            {
+                "file": "levels/weekly-tangent/wt19/wt19-7l.png",
+                "star": "7L"
+            },
+            {
+                "file": "levels/weekly-tangent/wt19/wt19-8e.png",
+                "star": "8E"
+            }
+        ]
     },
     {
         "id": "wt20",
@@ -12190,7 +12230,7 @@
         "file": "levels/weekly-tangent/wt20/weekly-tangent-20.gmt",
         "title": "切点相切圆",
         "subtitle": "Inscribe this circle using a compass only.",
-        "targetSteps": "",
+        "targetSteps": "18E",
         "diagram": "levels/weekly-tangent/wt20/Weekly Tangent 020.jpg",
         "note": "",
         "tools": "compass",
@@ -12203,7 +12243,12 @@
             "切线",
             "相切"
         ],
-        "solutions": []
+        "solutions": [
+            {
+                "file": "levels/weekly-tangent/wt20/wt20-18e.png",
+                "star": "18E"
+            }
+        ]
     },
     {
         "id": "wt21",
@@ -12211,7 +12256,7 @@
         "file": "levels/weekly-tangent/wt21/weekly-tangent-21.gmt",
         "title": "垂线内切圆阿波罗",
         "subtitle": "Construct the circumscribed circle of the three inscribed circles of the three triangles defined by the orthocenter.",
-        "targetSteps": "",
+        "targetSteps": "4L / 10E",
         "diagram": "levels/weekly-tangent/wt21/Weekly Tangent 021.jpg",
         "note": "",
         "keywords": [
@@ -12224,7 +12269,12 @@
             "阿波罗尼奥斯问题",
             "相切"
         ],
-        "solutions": []
+        "solutions": [
+            {
+                "file": "levels/weekly-tangent/wt21/wt21-4l10e.png",
+                "star": "4L 10E"
+            }
+        ]
     },
     {
         "id": "wt22",
@@ -12232,7 +12282,7 @@
         "file": "levels/weekly-tangent/wt22/weekly-tangent-22.gmt",
         "title": "伪外接圆",
         "subtitle": "Construct the mixtilinear curcumcircle opposite point A.",
-        "targetSteps": "",
+        "targetSteps": "14E",
         "diagram": "levels/weekly-tangent/wt22/Weekly Tangent 022.jpg",
         "note": "",
         "keywords": [
@@ -12243,7 +12293,12 @@
             "内切圆",
             "相切"
         ],
-        "solutions": []
+        "solutions": [
+            {
+                "file": "levels/weekly-tangent/wt22/wt22-14e.png",
+                "star": "14E"
+            }
+        ]
     },
     {
         "id": "wt23",
@@ -12276,7 +12331,7 @@
         "file": "levels/weekly-tangent/wt24/weekly-tangent-24.gmt",
         "title": "等伪旁切圆",
         "subtitle": "Construct two equal circles as shown.",
-        "targetSteps": "",
+        "targetSteps": "9L / 20E",
         "diagram": "levels/weekly-tangent/wt24/Weekly Tangent 024.jpg",
         "note": "",
         "keywords": [
@@ -12288,7 +12343,12 @@
             "外接圆",
             "相切"
         ],
-        "solutions": []
+        "solutions": [
+            {
+                "file": "levels/weekly-tangent/wt24/wt24-9l20e.png",
+                "star": "9L 20E"
+            }
+        ]
     },
     {
         "id": "wt25",
@@ -12296,7 +12356,7 @@
         "file": "levels/weekly-tangent/wt25/weekly-tangent-25.gmt",
         "title": "四边形等对角线圆",
         "subtitle": "Construct two equal circles in a quadrilateral.",
-        "targetSteps": "",
+        "targetSteps": "16L / 38E",
         "diagram": "levels/weekly-tangent/wt25/Weekly Tangent 025.jpg",
         "note": "",
         "keywords": [
@@ -12306,7 +12366,12 @@
             "半径相等",
             "相切"
         ],
-        "solutions": []
+        "solutions": [
+            {
+                "file": "levels/weekly-tangent/wt25/wt25-16l38e.png",
+                "star": "16L 38E"
+            }
+        ]
     },
     {
         "id": "wt26",
@@ -12337,7 +12402,7 @@
         "file": "levels/weekly-tangent/wt27/weekly-tangent-27.gmt",
         "title": "比例鞋匠刀",
         "subtitle": "Construct a circle on the diameter to make the other two 1:2.",
-        "targetSteps": "",
+        "targetSteps": "4E",
         "diagram": "levels/weekly-tangent/wt27/Weekly Tangent 027.jpg",
         "note": "",
         "keywords": [
@@ -12349,7 +12414,12 @@
             "比例",
             "相切"
         ],
-        "solutions": []
+        "solutions": [
+            {
+                "file": "levels/weekly-tangent/wt27/wt27-4e.png",
+                "star": "4E"
+            }
+        ]
     },
     {
         "id": "wt28",
@@ -12357,7 +12427,7 @@
         "file": "levels/weekly-tangent/wt28/weekly-tangent-28.gmt",
         "title": "月牙间隙",
         "subtitle": "Apollonius' problem CCL, where two coaxial circles are tangent and the line is their coaxis.",
-        "targetSteps": "8L / 12E",
+        "targetSteps": "8L / 10E",
         "diagram": "levels/weekly-tangent/wt28/Weekly Tangent 028.jpg",
         "note": "",
         "keywords": [
@@ -12369,7 +12439,11 @@
         "solutions": [
             {
                 "file": "levels/weekly-tangent/wt28/wt28-8l12e.png",
-                "star": "8L 12E"
+                "star": "8L"
+            },
+            {
+                "file": "levels/weekly-tangent/wt28/wt28-10e.png",
+                "star": "10E"
             }
         ]
     },
@@ -12379,7 +12453,7 @@
         "file": "levels/weekly-tangent/wt29/weekly-tangent-29.gmt",
         "title": "圆内接正三角形切圆",
         "subtitle": "Inscirbe a regular triangle in the big circle where one of its sides is tangent to the small circle.",
-        "targetSteps": "",
+        "targetSteps": "14E",
         "diagram": "levels/weekly-tangent/wt29/Weekly Tangent 029.jpg",
         "note": "",
         "keywords": [
@@ -12390,7 +12464,64 @@
             "切线",
             "相切"
         ],
-        "solutions": []
+        "solutions": [
+            {
+                "file": "levels/weekly-tangent/wt29/wt29-14e.png",
+                "star": "14E"
+            }
+        ]
+    },
+    {
+        "id": "wt30",
+        "pack": "weekly-tangent",
+        "file": "levels/weekly-tangent/wt30/weekly-tangent-30.gmt",
+        "title": "Soddy圆及切点",
+        "subtitle": "Inscribe 3 circles from the 3 points.",
+        "targetSteps": "16L / 22E",
+        "diagram": "levels/weekly-tangent/wt30/Weekly Tangent 030.jpg",
+        "note": "",
+        "keywords": [
+            "Weekly-Tangent",
+            "圆",
+            "Soddy圆",
+            "切点",
+            "相切"
+        ],
+        "solutions": [
+            {
+                "file": "levels/weekly-tangent/wt30/wt30-16l.png",
+                "star": "16L"
+            },
+            {
+                "file": "levels/weekly-tangent/wt30/wt30-22e.png",
+                "star": "22E"
+            }
+        ]
+    },
+    {
+        "id": "wt31",
+        "pack": "weekly-tangent",
+        "file": "levels/weekly-tangent/wt31/weekly-tangent-31.gmt",
+        "title": "Malfatti PXX",
+        "subtitle": "Construct a C-C circle and a pair of outer tangents parallel to each other.",
+        "targetSteps": "30L / 54E",
+        "diagram": "levels/weekly-tangent/wt31/Weekly Tangent 031.jpg",
+        "note": "",
+        "keywords": [
+            "Weekly-Tangent",
+            "圆",
+            "Malfatti圆",
+            "反演",
+            "公切线",
+            "平行",
+            "相切"
+        ],
+        "solutions": [
+            {
+                "file": "levels/weekly-tangent/wt31/wt31-30l54e.png",
+                "star": "30L 54E"
+            }
+        ]
     },
     {
         "id": "wt32",
@@ -12398,7 +12529,7 @@
         "file": "levels/weekly-tangent/wt32/weekly-tangent-32.gmt",
         "title": "等圆切弦",
         "subtitle": "(Apollonius' problem LLC)",
-        "targetSteps": "",
+        "targetSteps": "6L / 10E",
         "diagram": "levels/weekly-tangent/wt32/Weekly Tangent 032.jpg",
         "note": "",
         "keywords": [
@@ -12408,7 +12539,12 @@
             "半径相等",
             "相切"
         ],
-        "solutions": []
+        "solutions": [
+            {
+                "file": "levels/weekly-tangent/wt32/wt32-6l10e.png",
+                "star": "6L 10E"
+            }
+        ]
     },
     {
         "id": "wt36",
@@ -12416,7 +12552,7 @@
         "file": "levels/weekly-tangent/wt36/weekly-tangent-36.gmt",
         "title": "切点成切线",
         "subtitle": "阿波罗尼奥斯CL，且两切点连线还相切于另一给定 圆A。",
-        "targetSteps": "",
+        "targetSteps": "8L / 14E",
         "diagram": "levels/weekly-tangent/wt36/Weekly Tangent 036.png",
         "note": "",
         "keywords": [
@@ -12426,7 +12562,12 @@
             "切点",
             "相切"
         ],
-        "solutions": []
+        "solutions": [
+            {
+                "file": "levels/weekly-tangent/wt36/wt36-8l14e.png",
+                "star": "8L 14E"
+            }
+        ]
     },
     {
         "id": "wt37",
@@ -12434,7 +12575,7 @@
         "file": "levels/weekly-tangent/wt37/weekly-tangent-37.gmt",
         "title": "史坦纳圆链",
         "subtitle": "以给定的点作圆，使其能同时切于互相相切的六个 内切于给定圆的圆。",
-        "targetSteps": "",
+        "targetSteps": "8L / 10E",
         "diagram": "levels/weekly-tangent/wt37/Weekly Tangent 037.png",
         "note": "",
         "keywords": [
@@ -12443,7 +12584,12 @@
             "圆心",
             "相切"
         ],
-        "solutions": []
+        "solutions": [
+            {
+                "file": "levels/weekly-tangent/wt37/wt37-8l10e.png",
+                "star": "8L 10E"
+            }
+        ]
     },
     {
         "id": "wt38",
@@ -12451,7 +12597,7 @@
         "file": "levels/weekly-tangent/wt38/weekly-tangent-38.gmt",
         "title": "双圆四边形",
         "subtitle": "给定双心四边形的外接圆和内心I，求作内切圆。",
-        "targetSteps": "",
+        "targetSteps": "6L / 10E",
         "diagram": "levels/weekly-tangent/wt38/Weekly Tangent 038.png",
         "note": "",
         "keywords": [
@@ -12465,7 +12611,12 @@
             "外切",
             "相切"
         ],
-        "solutions": []
+        "solutions": [
+            {
+                "file": "levels/weekly-tangent/wt38/wt38-6l10e.png",
+                "star": "6L 10E"
+            }
+        ]
     },
     {
         "id": "wt39",
