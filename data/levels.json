@@ -3752,7 +3752,7 @@
         "file": "levels/c-s-pzls-other/004.inccircmc-retriangle/IncCircmc ReTriangle.gmt",
         "title": "边线和OI复原三角形",
         "subtitle": "给定一三角形的内心、外心和一边所在直线，复原这个三角形。",
-        "targetSteps": "8L / 14E",
+        "targetSteps": "8L / 13E",
         "diagram": "levels/c-s-pzls-other/004.inccircmc-retriangle/IncCircmc ReTriangle.png",
         "note": "",
         "keywords": [
@@ -3762,6 +3762,10 @@
             "外心"
         ],
         "solutions": [
+            {
+                "star": "13E",
+                "file": "levels/c-s-pzls-other/004.inccircmc-retriangle/inccircmc-retriangle-11l13e.png"
+            },
             {
                 "star": "8L",
                 "file": "levels/c-s-pzls-other/004.inccircmc-retriangle/8L.png"
@@ -4059,7 +4063,7 @@
         "file": "levels/c-s-pzls-other/015.penta-trans-squ/penta-trans-squ.gmt",
         "title": "正五边形转正方形",
         "subtitle": "作一正方形与给定正五边形等面积，其中一端点与A重合，一边在AB所在直线上，且和正五边形同侧。",
-        "targetSteps": "19L / 19E",
+        "targetSteps": "13E",
         "diagram": "levels/c-s-pzls-other/015.penta-trans-squ/penta-trans-squ.jpg",
         "note": "",
         "keywords": [
@@ -4073,6 +4077,10 @@
             {
                 "star": "19E",
                 "file": "levels/c-s-pzls-other/015.penta-trans-squ/19E.jpg"
+            },
+            {
+                "star": "13E",
+                "file": "levels/c-s-pzls-other/015.penta-trans-squ/penta-trans-squ-13e.png"
             }
         ]
     },
@@ -4738,6 +4746,10 @@
                 "file": "levels/c-s-pzls-other/038.paral-3equalr/10E.jpg"
             },
             {
+                "star": "6E (special)",
+                "file": "levels/c-s-pzls-other/038.paral-3equalr/paral-3equalr-6e.png"
+            },
+            {
                 "star": "2V",
                 "file": "levels/c-s-pzls-other/038.paral-3equalr/2V.jpg"
             }
@@ -5117,7 +5129,7 @@
         "file": "levels/c-s-pzls-other/054.isotricir/isotricir.gmt",
         "title": "两圆上的等腰三角形",
         "subtitle": "构造等腰三角形ABC，使点A、B在圆上，且各边各过一圆上给定点（底边过点F）。",
-        "targetSteps": "8E",
+        "targetSteps": "7E",
         "diagram": "levels/c-s-pzls-other/054.isotricir/isotricir.png",
         "note": "",
         "keywords": [
@@ -5131,6 +5143,10 @@
             {
                 "star": "8E",
                 "file": "levels/c-s-pzls-other/054.isotricir/8e.jpg"
+            },
+            {
+                "star": "7E",
+                "file": "levels/c-s-pzls-other/054.isotricir/isotricir-7e.png"
             }
         ]
     },
@@ -5168,7 +5184,7 @@
         "file": "levels/c-s-pzls-other/056.squsym/squsym.gmt",
         "title": "角上的正方形",
         "subtitle": "角AOB，角上一点C，构造正方形CDEF，使得EF过O，DE与OB交于点G，且∠FCO=∠GCO。",
-        "targetSteps": "10L / 17E",
+        "targetSteps": "10L / 14E",
         "diagram": "levels/c-s-pzls-other/056.squsym/squsym.png",
         "note": "",
         "keywords": [
@@ -5189,6 +5205,10 @@
                 "file": "levels/c-s-pzls-other/056.squsym/17e.jpg"
             },
             {
+                "star": "14E",
+                "file": "levels/c-s-pzls-other/056.squsym/squsym-14e.png"
+            },
+            {
                 "star": "2V",
                 "file": "levels/c-s-pzls-other/056.squsym/2v.jpg"
             }
@@ -5200,7 +5220,7 @@
         "file": "levels/c-s-pzls-other/057.equalanglepoint/equalanglepoint.gmt",
         "title": "线上圆等角点",
         "subtitle": "构造一点P，使得对于所有的圆心在直线上且与圆相切的圆，与直线两边交点为A、B，∠APB恒为定值。",
-        "targetSteps": "6L / 8E",
+        "targetSteps": "6E",
         "diagram": "levels/c-s-pzls-other/057.equalanglepoint/equalanglepoint.png",
         "note": "",
         "keywords": [
@@ -5214,6 +5234,10 @@
             "恒定"
         ],
         "solutions": [
+            {
+                "star": "6E",
+                "file": "levels/c-s-pzls-other/057.equalanglepoint/equalanglepoint-6e.png"
+            },
             {
                 "star": "6L 8E 2V",
                 "file": "levels/c-s-pzls-other/057.equalanglepoint/6l8e2v.jpg"
@@ -5230,7 +5254,7 @@
         "file": "levels/c-s-pzls-other/058.incen2polarprestorebicenqua/incen2polarprestorebicenqua.gmt",
         "title": "还原双心四边形",
         "subtitle": "双心四边形ABCD的内心为I，A、C对外接圆切线交于E，B、D对外接圆切线交于F。给定E、F、I三点还原ABCD。",
-        "targetSteps": "13L / 15E",
+        "targetSteps": "12E",
         "diagram": "levels/c-s-pzls-other/058.incen2polarprestorebicenqua/incen2polarprestorebicenqua.png",
         "note": "",
         "keywords": [
@@ -5246,6 +5270,10 @@
             {
                 "star": "13L 15E",
                 "file": "levels/c-s-pzls-other/058.incen2polarprestorebicenqua/13l15e.jpg"
+            },
+            {
+                "star": "13L 15E",
+                "file": "levels/c-s-pzls-other/058.incen2polarprestorebicenqua/incen2polarprestorebicenqua-12e.png"
             }
         ]
     },
@@ -5289,7 +5317,7 @@
         "file": "levels/c-s-pzls-other/060.inverse-sim-center/inverse-sim-center.gmt",
         "title": "逆相似中心",
         "subtitle": "给定A、B、C、D四点，求作一点E，使得△ABE和△CDE相似，且∠AEB=∠CED，且两三角形可以通过位似、旋转及一次对称变换重合。",
-        "targetSteps": "10L / 22E",
+        "targetSteps": "5L / 12E",
         "diagram": "levels/c-s-pzls-other/060.inverse-sim-center/inverse-sim-center.png",
         "note": "",
         "keywords": [
@@ -5302,6 +5330,18 @@
             "clipt"
         ],
         "solutions": [
+            {
+                "star": "5L (used 3circle)",
+                "file": "levels/c-s-pzls-other/060.inverse-sim-center/inverse-sim-center-5l.png"
+            },
+            {
+                "star": "8L 12E",
+                "file": "levels/c-s-pzls-other/060.inverse-sim-center/inverse-sim-center-8l12e.png"
+            },
+            {
+                "star": "16E",
+                "file": "levels/c-s-pzls-other/060.inverse-sim-center/inverse-sim-center-16e.png"
+            },
             {
                 "star": "10L 22E",
                 "file": "levels/c-s-pzls-other/060.inverse-sim-center/10L22E.png"
@@ -5480,7 +5520,7 @@
         "file": "levels/euc-addit/006.tripleangle/TripleAngle.gmt",
         "title": "三倍角",
         "subtitle": "有一条直线垂直于A、B两点的连线，在该直线上找一点C，使得∠CAB=3∠CBA。",
-        "targetSteps": "7L / 8E",
+        "targetSteps": "6E",
         "diagram": "levels/euc-addit/006.tripleangle/TripleAngle.jpg",
         "note": "",
         "keywords": [
@@ -5499,6 +5539,10 @@
             {
                 "star": "8E",
                 "file": "levels/euc-addit/006.tripleangle/06.8E.jpg"
+            },
+            {
+                "star": "6E",
+                "file": "levels/euc-addit/006.tripleangle/TripleAngle-6e.png"
             },
             {
                 "star": "2V",
@@ -7546,7 +7590,7 @@
         "file": "levels/sprfes/sfp2025-06/sfp2025-06.gmt",
         "title": "25p.6 旁切圆外接圆交点",
         "subtitle": "圆O与角A的两边相切，B为圆O上一点，求作一圆经过AB，且与角A两边相交形成的线段与圆O相切。",
-        "targetSteps": "8L / 12E",
+        "targetSteps": "8L / 11E",
         "diagram": "levels/sprfes/sfp2025-06/sfp2025-06.png",
         "note": "",
         "keywords": [
@@ -7561,6 +7605,10 @@
             {
                 "star": "8L",
                 "file": "levels/sprfes/sfp2025-06/8L.jpg"
+            },
+            {
+                "star": "11E",
+                "file": "levels/sprfes/sfp2025-06/sfp2025-06-9l11e.png"
             },
             {
                 "star": "12E",
@@ -9212,7 +9260,7 @@
         "file": "levels/xeuclidea-puzzle/xep2/xep2.gmt",
         "title": "XEP2",
         "subtitle": "已知平行于给定直线的两点A和B，求作等长三折线ACDB，使得点C和D都在给定直线上。",
-        "targetSteps": "6L / 9E",
+        "targetSteps": "6L / 8E",
         "diagram": "levels/xeuclidea-puzzle/xep2/xep2.jpg",
         "note": "",
         "keywords": [
@@ -9227,48 +9275,12 @@
                 "file": "levels/xeuclidea-puzzle/xep2/6L.jpg"
             },
             {
+                "star": "8E",
+                "file": "levels/xeuclidea-puzzle/xep2/xep2-8e.png"
+            },
+            {
                 "star": "9E",
                 "file": "levels/xeuclidea-puzzle/xep2/9E.jpg"
-            },
-            {
-                "star": "2V",
-                "file": "levels/xeuclidea-puzzle/xep2/2V.jpg"
-            },
-            {
-                "star": "2V",
-                "file": "levels/xeuclidea-puzzle/xep2/2V.jpg"
-            },
-            {
-                "star": "2V",
-                "file": "levels/xeuclidea-puzzle/xep2/2V.jpg"
-            },
-            {
-                "star": "2V",
-                "file": "levels/xeuclidea-puzzle/xep2/2V.jpg"
-            },
-            {
-                "star": "2V",
-                "file": "levels/xeuclidea-puzzle/xep2/2V.jpg"
-            },
-            {
-                "star": "2V",
-                "file": "levels/xeuclidea-puzzle/xep2/2V.jpg"
-            },
-            {
-                "star": "2V",
-                "file": "levels/xeuclidea-puzzle/xep2/2V.jpg"
-            },
-            {
-                "star": "2V",
-                "file": "levels/xeuclidea-puzzle/xep2/2V.jpg"
-            },
-            {
-                "star": "2V",
-                "file": "levels/xeuclidea-puzzle/xep2/2V-view1.jpg"
-            },
-            {
-                "star": "2V",
-                "file": "levels/xeuclidea-puzzle/xep2/2V-view2.jpg"
             },
             {
                 "star": "2V",
@@ -9341,7 +9353,7 @@
         "file": "levels/xeuclidea-puzzle/xep5/xep5.gmt",
         "title": "XEP5",
         "subtitle": "已知平行线l1和l2，点A，求作等长三折线BCDE，点B和E在l1上，点C和D在l2上，使得BC过点A，DE过点A。",
-        "targetSteps": "5L / 9E",
+        "targetSteps": "5L / 7E",
         "diagram": "levels/xeuclidea-puzzle/xep5/xep5.jpg",
         "note": "",
         "keywords": [
@@ -9362,6 +9374,14 @@
             {
                 "star": "9E",
                 "file": "levels/xeuclidea-puzzle/xep5/9E.jpg"
+            },
+            {
+                "star": "7E",
+                "file": "levels/xeuclidea-puzzle/xep5/xep5-7e.png"
+            },
+            {
+                "star": "7E 2",
+                "file": "levels/xeuclidea-puzzle/xep5/xep5-7e-2.png"
             }
         ]
     },
@@ -9371,7 +9391,7 @@
         "file": "levels/xeuclidea-puzzle/xep6/xep6.gmt",
         "title": "XEP6",
         "subtitle": "已知平行线l1和l2截圆弦等长，在这4点中取直径上两点A和B，点A在l1上，求作等长三折线ACDB，点C和D分别在l1和l2上。",
-        "targetSteps": "4L / 6E",
+        "targetSteps": "4L / 5E",
         "diagram": "levels/xeuclidea-puzzle/xep6/xep6.jpg",
         "note": "",
         "keywords": [
@@ -9386,16 +9406,12 @@
         ],
         "solutions": [
             {
+                "star": "5E",
+                "file": "levels/xeuclidea-puzzle/xep6/xep6-5e.png"
+            },
+            {
                 "star": "4L 6E",
                 "file": "levels/xeuclidea-puzzle/xep6/4L6E.jpg"
-            },
-            {
-                "star": "6L",
-                "file": "levels/xeuclidea-puzzle/xep6/6L.jpg"
-            },
-            {
-                "star": "6L",
-                "file": "levels/xeuclidea-puzzle/xep6/6L.jpg"
             },
             {
                 "star": "6L",
@@ -9431,14 +9447,6 @@
             {
                 "star": "9L",
                 "file": "levels/xeuclidea-puzzle/xep7/9L.jpg"
-            },
-            {
-                "star": "7E",
-                "file": "levels/xeuclidea-puzzle/xep7/7E.jpg"
-            },
-            {
-                "star": "7E",
-                "file": "levels/xeuclidea-puzzle/xep7/7E.jpg"
             },
             {
                 "star": "7E",
@@ -9489,10 +9497,6 @@
             {
                 "star": "10E",
                 "file": "levels/xeuclidea-puzzle/xep8/10E.jpg"
-            },
-            {
-                "star": "XEP8",
-                "file": "levels/xeuclidea-puzzle/xep8/XEP8.jpg"
             }
         ]
     },
@@ -9518,23 +9522,7 @@
             },
             {
                 "star": "9L",
-                "file": "levels/xeuclidea-puzzle/xep9/9L.jpg"
-            },
-            {
-                "star": "9L",
                 "file": "levels/xeuclidea-puzzle/xep9/9L2.jpg"
-            },
-            {
-                "star": "9L",
-                "file": "levels/xeuclidea-puzzle/xep9/9L.jpg"
-            },
-            {
-                "star": "9L",
-                "file": "levels/xeuclidea-puzzle/xep9/9L.jpg"
-            },
-            {
-                "star": "9E",
-                "file": "levels/xeuclidea-puzzle/xep9/9E.jpg"
             },
             {
                 "star": "9E",
@@ -9551,10 +9539,6 @@
             {
                 "star": "2V",
                 "file": "levels/xeuclidea-puzzle/xep9/2V.jpg"
-            },
-            {
-                "star": "XEP9",
-                "file": "levels/xeuclidea-puzzle/xep9/XEP9.jpg"
             }
         ]
     },
@@ -9586,20 +9570,8 @@
                 "file": "levels/xeuclidea-puzzle/xep10/10E.jpg"
             },
             {
-                "star": "10E",
-                "file": "levels/xeuclidea-puzzle/xep10/10E.jpg"
-            },
-            {
-                "star": "10E",
-                "file": "levels/xeuclidea-puzzle/xep10/10E.png"
-            },
-            {
                 "star": "2V",
                 "file": "levels/xeuclidea-puzzle/xep10/2V.jpg"
-            },
-            {
-                "star": "XEP10",
-                "file": "levels/xeuclidea-puzzle/xep10/XEP10.jpg"
             }
         ]
     },
@@ -9644,7 +9616,7 @@
         "file": "levels/xeuclidea-puzzle/xep12/xep12.gmt",
         "title": "XEP12",
         "subtitle": "已知正方形ABCD，求作等边五边形AEFGH，使得点E在AB上，点F在BC上，点G在CD上，点H在AD上。",
-        "targetSteps": "11L / 11E",
+        "targetSteps": "8E",
         "diagram": "levels/xeuclidea-puzzle/xep12/xep12.jpg",
         "note": "",
         "keywords": [
@@ -9654,6 +9626,10 @@
             "内接"
         ],
         "solutions": [
+            {
+                "star": "8E",
+                "file": "levels/xeuclidea-puzzle/xep12/xep12-8e.png"
+            },
             {
                 "star": "11L 11E",
                 "file": "levels/xeuclidea-puzzle/xep12/11L11E.jpg"
@@ -9670,7 +9646,7 @@
         "file": "levels/xeuclidea-puzzle/xep13/xep13.gmt",
         "title": "XEP13",
         "subtitle": "已知4平行线，从上到下依次为l1,l2,l3,l4，l1与l2的间距等于l3与l4的间距，l1和l4上各有一点A和B，直线AB垂直于给定的平行线。求作等长三折线ACDB，点C和D分别在l2和l3上。",
-        "targetSteps": "10L / 10E",
+        "targetSteps": "9E",
         "diagram": "levels/xeuclidea-puzzle/xep13/xep13.jpg",
         "note": "",
         "keywords": [
@@ -9682,6 +9658,10 @@
             "等长折线"
         ],
         "solutions": [
+            {
+                "star": "9E",
+                "file": "levels/xeuclidea-puzzle/xep13/xep13-9e.png"
+            },
             {
                 "star": "10L 10E",
                 "file": "levels/xeuclidea-puzzle/xep13/10L10E.png"
@@ -9702,7 +9682,7 @@
         "file": "levels/xeuclidea-puzzle/xep14/xep14.gmt",
         "title": "XEP14",
         "subtitle": "已知4平行线，从上到下依次为l1,l2,l3,l4，l1和l4上各有一点A和B，直线AB垂直于给定的平行线。求作等长三折线ACDB，点C和D分别在l2和l3上。",
-        "targetSteps": "22L / 14E",
+        "targetSteps": "14L / 22E",
         "diagram": "levels/xeuclidea-puzzle/xep14/xep14.png",
         "note": "",
         "keywords": [
@@ -9737,7 +9717,7 @@
         "file": "levels/xeuclidea-puzzle/xep15/xep15.gmt",
         "title": "XEP15",
         "subtitle": "已知角A的平分线上一点B，求作过点B的直线，交角的两边分别为点C和D，使得2CD=AC+AD。",
-        "targetSteps": "5L / 7E",
+        "targetSteps": "5L / 6E",
         "diagram": "levels/xeuclidea-puzzle/xep15/xep15.png",
         "note": "",
         "keywords": [
@@ -9755,16 +9735,16 @@
                 "file": "levels/xeuclidea-puzzle/xep15/5L.jpg"
             },
             {
+                "star": "6E",
+                "file": "levels/xeuclidea-puzzle/xep15/xep15-6e.png"
+            },
+            {
                 "star": "7E",
                 "file": "levels/xeuclidea-puzzle/xep15/7E.jpg"
             },
             {
                 "star": "2V",
                 "file": "levels/xeuclidea-puzzle/xep15/2V.jpg"
-            },
-            {
-                "star": "XEP15",
-                "file": "levels/xeuclidea-puzzle/xep15/XEP15.jpg"
             }
         ]
     },
@@ -9774,7 +9754,7 @@
         "file": "levels/xeuclidea-puzzle/xep16/xep16.gmt",
         "title": "XEP16",
         "subtitle": "已知角A的平分线上一点B，求作等长三折线CDEF，分别位于角的两边，使得折线交叉处为给定点B。",
-        "targetSteps": "16L / 43E",
+        "targetSteps": "6L / 7E",
         "diagram": "levels/xeuclidea-puzzle/xep16/xep16.png",
         "note": "",
         "keywords": [
@@ -9787,16 +9767,12 @@
         ],
         "solutions": [
             {
-                "star": "6L 8E",
+                "star": "6L 7E",
                 "file": "levels/xeuclidea-puzzle/xep16/6L8E.jpg"
             },
             {
                 "star": "16L 43E",
                 "file": "levels/xeuclidea-puzzle/xep16/16L43E.png"
-            },
-            {
-                "star": "XEP16",
-                "file": "levels/xeuclidea-puzzle/xep16/XEP16.jpg"
             }
         ]
     },
@@ -9861,10 +9837,6 @@
             {
                 "star": "12V",
                 "file": "levels/xeuclidea-puzzle/xep18/12V2.jpg"
-            },
-            {
-                "star": "XEP18",
-                "file": "levels/xeuclidea-puzzle/xep18/XEP18.jpg"
             }
         ]
     },
@@ -9893,10 +9865,6 @@
             {
                 "star": "4V",
                 "file": "levels/xeuclidea-puzzle/xep19/4V.jpg"
-            },
-            {
-                "star": "XEP19",
-                "file": "levels/xeuclidea-puzzle/xep19/XEP19.jpg"
             }
         ]
     },
@@ -9925,10 +9893,6 @@
             {
                 "star": "4V",
                 "file": "levels/xeuclidea-puzzle/xep20/4V.jpg"
-            },
-            {
-                "star": "XEP20",
-                "file": "levels/xeuclidea-puzzle/xep20/XEP20.jpg"
             }
         ]
     },
@@ -9953,10 +9917,6 @@
             {
                 "star": "8L 28E",
                 "file": "levels/xeuclidea-puzzle/xep21/8L28E.jpg"
-            },
-            {
-                "star": "XEP21",
-                "file": "levels/xeuclidea-puzzle/xep21/XEP21.jpg"
             }
         ]
     },
@@ -9988,10 +9948,6 @@
             {
                 "star": "2V",
                 "file": "levels/xeuclidea-puzzle/xep22/2V.jpg"
-            },
-            {
-                "star": "XEP22",
-                "file": "levels/xeuclidea-puzzle/xep22/XEP22.jpg"
             }
         ]
     },
@@ -10021,10 +9977,6 @@
             {
                 "star": "2V",
                 "file": "levels/xeuclidea-puzzle/xep23/2V.jpg"
-            },
-            {
-                "star": "XEP23",
-                "file": "levels/xeuclidea-puzzle/xep23/XEP23.jpg"
             }
         ]
     },
@@ -10049,10 +10001,6 @@
             {
                 "star": "6L 6E",
                 "file": "levels/xeuclidea-puzzle/xep24/6L6E.jpg"
-            },
-            {
-                "star": "XEP24",
-                "file": "levels/xeuclidea-puzzle/xep24/XEP24.jpg"
             }
         ]
     },
@@ -10076,10 +10024,6 @@
             {
                 "star": "5L 11E",
                 "file": "levels/xeuclidea-puzzle/xep25/5L11E.jpg"
-            },
-            {
-                "star": "XEP25",
-                "file": "levels/xeuclidea-puzzle/xep25/XEP25.jpg"
             }
         ]
     },
@@ -10117,10 +10061,6 @@
             {
                 "star": "12V",
                 "file": "levels/xeuclidea-puzzle/xep26/12V3.png"
-            },
-            {
-                "star": "XEP26",
-                "file": "levels/xeuclidea-puzzle/xep26/answer-XEP26.png"
             }
         ]
     },
@@ -10150,10 +10090,6 @@
             {
                 "star": "2V",
                 "file": "levels/xeuclidea-puzzle/xep27/2V.jpg"
-            },
-            {
-                "star": "XEP27",
-                "file": "levels/xeuclidea-puzzle/xep27/XEP27.jpg"
             }
         ]
     },
@@ -10187,10 +10123,6 @@
             {
                 "star": "4V",
                 "file": "levels/xeuclidea-puzzle/xep28/4V.jpg"
-            },
-            {
-                "star": "XEP28",
-                "file": "levels/xeuclidea-puzzle/xep28/XEP28.jpg"
             }
         ]
     },
@@ -10226,10 +10158,6 @@
             {
                 "star": "12V",
                 "file": "levels/xeuclidea-puzzle/xep29/12V2.jpg"
-            },
-            {
-                "star": "XEP29",
-                "file": "levels/xeuclidea-puzzle/xep29/XEP29.jpg"
             }
         ]
     },
@@ -10272,10 +10200,6 @@
             {
                 "star": "4V",
                 "file": "levels/xeuclidea-puzzle/xep30/4V2.jpg"
-            },
-            {
-                "star": "XEP30",
-                "file": "levels/xeuclidea-puzzle/xep30/XEP30.jpg"
             }
         ]
     },
@@ -10312,10 +10236,6 @@
             {
                 "star": "2V",
                 "file": "levels/xeuclidea-puzzle/xep31/2V.jpg"
-            },
-            {
-                "star": "XEP31",
-                "file": "levels/xeuclidea-puzzle/xep31/XEP31.jpg"
             }
         ]
     },
@@ -10357,10 +10277,6 @@
             {
                 "star": "2V",
                 "file": "levels/xeuclidea-puzzle/xep32/2V.jpg"
-            },
-            {
-                "star": "XEP32",
-                "file": "levels/xeuclidea-puzzle/xep32/XEP32.jpg"
             }
         ]
     },
@@ -10391,10 +10307,6 @@
             {
                 "star": "2V",
                 "file": "levels/xeuclidea-puzzle/xep33/2V.jpg"
-            },
-            {
-                "star": "XEP33",
-                "file": "levels/xeuclidea-puzzle/xep33/XEP33.jpg"
             }
         ]
     },
@@ -10565,10 +10477,6 @@
             {
                 "star": "130L 182E",
                 "file": "levels/xeuclidea-puzzle/xep38/130L182E2.jpg"
-            },
-            {
-                "star": "XEP38",
-                "file": "levels/xeuclidea-puzzle/xep38/XEP38.jpg"
             }
         ]
     },
@@ -10620,10 +10528,6 @@
             {
                 "star": "2V",
                 "file": "levels/xeuclidea-puzzle/xep39/2V.jpg"
-            },
-            {
-                "star": "XEP39",
-                "file": "levels/xeuclidea-puzzle/xep39/XEP39.jpg"
             }
         ]
     },
@@ -10898,7 +10802,7 @@
         "file": "levels/xeuclidea-puzzle/xep48/xep48.gmt",
         "title": "xep48",
         "subtitle": "对于一个任意的三角形，存在一个反演把三角形的3个顶点变成一个正三角形的3个顶点，构造这样的反演中心。",
-        "targetSteps": "8L / 18E",
+        "targetSteps": "7E",
         "diagram": "levels/xeuclidea-puzzle/xep48/xep48.png",
         "note": "",
         "keywords": [
@@ -10910,6 +10814,10 @@
             "多解"
         ],
         "solutions": [
+            {
+                "star": "7E",
+                "file": "levels/xeuclidea-puzzle/xep48/xep48-7e.png"
+            },
             {
                 "star": "8L 18E",
                 "file": "levels/xeuclidea-puzzle/xep48/8L18E.jpg"
