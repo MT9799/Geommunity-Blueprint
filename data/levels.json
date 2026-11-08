@@ -4914,8 +4914,8 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/045.pararetcir/pararetcir.gmt",
         "title": "两圆内接直角三角形",
-        "subtitle": "构造平行线，与两圆靠外侧的两交点与两圆的其中一个（给定的）交点组成直角三角形，且该给定点为直角顶点。",
-        "targetSteps": "19L / 35E",
+        "subtitle": "给定相交两圆及一个交点，再给定一直线，过给定交点作两条互相垂直的直线，分别交两圆于两点并连接，使得该连接线与给定直线平行。",
+        "targetSteps": "21L / 37E",
         "diagram": "levels/c-s-pzls-other/045.pararetcir/pararetcir.png",
         "note": "",
         "keywords": [
@@ -4928,12 +4928,12 @@
         ],
         "solutions": [
             {
-                "star": "19L 35E",
-                "file": "levels/c-s-pzls-other/045.pararetcir/19l35e (2).jpg"
+                "star": "21L 37E",
+                "file": "levels/c-s-pzls-other/045.pararetcir/(21-2)l-2.jpg"
             },
             {
-                "star": "19L 35E",
-                "file": "levels/c-s-pzls-other/045.pararetcir/19l35e.jpg"
+                "star": "21L 37E",
+                "file": "levels/c-s-pzls-other/045.pararetcir/(21-2)l.jpg"
             },
             {
                 "star": "2V",
