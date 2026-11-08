@@ -776,6 +776,19 @@ function previewCursor() {
  * @returns {{shape: string, coords: number[][]}|null}
  */
 function toolPreviewState() {
+    // 交点工具拖拽作图：这一笔会一次标出这一对图形的全部交点，预览也得把全部候选画出来，
+    // 而不是只画工具缓存里那个吸附到最近交点的「跟随点」（缓存点已由 drawShapes 跳过）。
+    // 放在 isDragging 的通用拦截之前：其它工具拖拽时的草稿由真对象绘制，交点工具没有草稿图形
+    if (tool === 'intersection' && typeof isDragging !== 'undefined' && isDragging && !previewSuppressed) {
+        const first = geometryManager.getToolKey('intersection', 'choice1');
+        const second = geometryManager.getToolKey('intersection', 'choice2');
+        if (!first || !second || first === second) return null;
+        const coords = ToolsFunction.intersectionCandidates(first, second)
+            .filter(item => ToolsFunction.pointInElementRange(item.x, item.y, first)
+                && ToolsFunction.pointInElementRange(item.x, item.y, second))
+            .map(item => [item.x, item.y]);
+        return coords.length ? {shape: 'intersections', coords} : null;
+    }
     if (typeof isDragging === 'undefined' || isDragging) return null;
     // 双指缩放进行中：先不画预览（否则会跟着缩放反复跳）
     if (previewSuppressed) return null;
@@ -1102,7 +1115,10 @@ function drawToolPreview() {
     ct.lineWidth = (LINE_WIDTH_BASE * previewWidthOf(state.shape === 'circle' ? 'circle' : 'line'))
         / transform.scale;
 
-    if (state.shape === 'lineSegment') {
+    if (state.shape === 'intersections') {
+        // 交点工具拖拽中：这一对图形的全部候选交点，画法与光标下的点预览一致
+        state.coords.forEach(coord => drawPreviewPoint(coord));
+    }else if (state.shape === 'lineSegment') {
         ct.beginPath();
         ct.moveTo(first[0], first[1]);
         ct.lineTo(second[0], second[1]);
@@ -1558,6 +1574,9 @@ function drawShapes() {
     }
     // 缓存点
     for (const point of pointsCache) {
+        // 交点工具拖拽时不画「跟着光标的那个点」：它只吸附到最近的一个交点，
+        // 而这一笔会一次标出这一对图形的全部交点。改由 drawToolPreview 画候选交点集合
+        if (tool === 'intersection') continue;
         if (!point.getValid()) continue;
         if (!point.getVisible()) continue;
         drawPoint(point);

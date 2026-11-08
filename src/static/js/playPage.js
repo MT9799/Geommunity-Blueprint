@@ -1482,8 +1482,13 @@ function thumbnailPictureZoom(event) {
     zoomImage.src = image.src;
     zoomImage.alt = image.alt || t('board.zoomImageAlt');
     mask.appendChild(zoomImage);
-    mask.addEventListener("click", () => mask.remove());
     document.body.appendChild(mask);
+    // 与答案大图共用一套缩放 / 平移控制器（board-tools.js 的 boardEnableImageZoom）
+    if (typeof window.boardEnableImageZoom === 'function') {
+        window.boardEnableImageZoom(mask, zoomImage, () => mask.remove());
+    }else{
+        mask.addEventListener("click", () => mask.remove());
+    }
 }
 
 document.getElementById("masks").addEventListener("click", thumbnailClose);

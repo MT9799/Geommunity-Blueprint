@@ -3923,7 +3923,8 @@
             "相切",
             "Apollonius-PPC",
             "多解",
-            "圆过点"
+            "圆过点",
+            "clipt"
         ],
         "solutions": [
             {
@@ -3954,7 +3955,8 @@
             "阿波罗尼奥斯问题",
             "相切",
             "Apollonius-LLC",
-            "多解"
+            "多解",
+            "clipt"
         ],
         "solutions": [
             {
@@ -4266,7 +4268,8 @@
             "多解",
             "4节棍",
             "等长",
-            "线段"
+            "线段",
+            "clipt"
         ],
         "solutions": [
             {
@@ -4417,7 +4420,8 @@
             "角平分线",
             "clipt",
             "角度相等",
-            "圆上点"
+            "圆上点",
+            "clipt"
         ],
         "solutions": [
             {
@@ -4445,7 +4449,8 @@
             "45度",
             "角度",
             "等式",
-            "角度差"
+            "角度差",
+            "clipt"
         ],
         "solutions": [
             {
@@ -4513,7 +4518,8 @@
             "圆上点",
             "直径",
             "乘积",
-            "最值"
+            "最值",
+            "clipt"
         ],
         "solutions": [
             {
@@ -4538,7 +4544,8 @@
             "直线过点",
             "正三角形",
             "内接",
-            "垂直平分线"
+            "垂直平分线",
+            "clipt"
         ],
         "solutions": [
             {
@@ -4566,7 +4573,8 @@
             "多解",
             "外公切线",
             "Apollonius-LCC",
-            "阿波罗尼奥斯问题"
+            "阿波罗尼奥斯问题",
+            "clipt"
         ],
         "solutions": [
             {
@@ -4650,7 +4658,8 @@
             "多解",
             "直线过点",
             "截线",
-            "长度相等"
+            "长度相等",
+            "clipt"
         ],
         "solutions": [
             {
@@ -4808,7 +4817,8 @@
             "菱形",
             "多解",
             "三角形",
-            "内接"
+            "内接",
+            "clipt"
         ],
         "solutions": [
             {
@@ -4875,7 +4885,7 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/044.pararetcir-t/pararetcir-t.gmt",
         "title": "两圆内接直角三角形（切）",
-        "subtitle": "给定两圆的公切线和交点B，构造平行于切线的直线，与两圆交于C、D，使得三角形BCD为以B为直角直角的三角形。",
+        "subtitle": "给定相交两圆及其一条公切线和一个交点，过该交点作两条互相垂直的直线，分别交两圆于两点并连接，使得该连接线与切线平行。",
         "targetSteps": "9L / 11E",
         "diagram": "levels/c-s-pzls-other/044.pararetcir-t/pararetcir-t.png",
         "note": "",
@@ -5087,7 +5097,8 @@
             "圆",
             "相切",
             "双曲线",
-            "切线"
+            "切线",
+            "clipt"
         ],
         "solutions": [
             {
@@ -5254,7 +5265,8 @@
             "角",
             "交点",
             "角度",
-            "30度"
+            "30度",
+            "clipt"
         ],
         "solutions": [
             {
@@ -5286,7 +5298,8 @@
             "相似中心",
             "逆相似",
             "镜像",
-            "角度相等"
+            "角度相等",
+            "clipt"
         ],
         "solutions": [
             {
@@ -5435,7 +5448,8 @@
             "直线过点",
             "面积",
             "面积相等",
-            "交点"
+            "交点",
+            "clipt"
         ],
         "solutions": [
             {
@@ -5936,7 +5950,8 @@
             "多解",
             "角",
             "直线过点",
-            "交点"
+            "交点",
+            "clipt"
         ],
         "solutions": [
             {
@@ -5970,7 +5985,8 @@
             "相切",
             "圆心",
             "圆过点",
-            "PCC"
+            "PCC",
+            "clipt"
         ],
         "solutions": [
             {
@@ -6000,7 +6016,8 @@
             "直线过点",
             "交点",
             "角度",
-            "90度"
+            "90度",
+            "clipt"
         ],
         "solutions": [
             {
@@ -6143,7 +6160,8 @@
             "面积",
             "垂线",
             "平分面积",
-            "三角形"
+            "三角形",
+            "clipt"
         ],
         "solutions": [
             {
@@ -6175,7 +6193,8 @@
             "角",
             "直线过点",
             "交点",
-            "长度相等"
+            "长度相等",
+            "clipt"
         ],
         "solutions": [
             {
@@ -6216,7 +6235,8 @@
             "直线过点",
             "交点",
             "长度",
-            "等式"
+            "等式",
+            "clipt"
         ],
         "solutions": [
             {
@@ -6416,7 +6436,8 @@
             "多解",
             "三角形",
             "直线过点",
-            "平分周长"
+            "平分周长",
+            "clipt"
         ],
         "solutions": [
             {
@@ -6584,7 +6605,8 @@
             "直线",
             "相切",
             "圆心",
-            "PCC"
+            "PCC",
+            "clipt"
         ],
         "solutions": [
             {
@@ -6642,7 +6664,8 @@
             "圆",
             "圆过点",
             "直径",
-            "交点"
+            "交点",
+            "clipt"
         ],
         "solutions": [
             {
@@ -6692,7 +6715,8 @@
             "三角形",
             "内切圆",
             "长度相等",
-            "直线过点"
+            "直线过点",
+            "clipt"
         ],
         "solutions": [
             {
@@ -6924,7 +6948,8 @@
             "Mingjing-Forum",
             "多解",
             "线段",
-            "角度相等"
+            "角度相等",
+            "clipt"
         ],
         "solutions": [
             {
@@ -7111,7 +7136,8 @@
             "角",
             "直线过点",
             "角度相等",
-            "交点"
+            "交点",
+            "clipt"
         ],
         "solutions": [
             {
@@ -7138,7 +7164,8 @@
             "多解",
             "直线",
             "平行",
-            "长度相等"
+            "长度相等",
+            "clipt"
         ],
         "solutions": [
             {
@@ -7836,7 +7863,8 @@
             "SprFes",
             "长度",
             "线段相等",
-            "等式"
+            "等式",
+            "clipt"
         ],
         "solutions": [
             {
@@ -7859,7 +7887,8 @@
             "平行线",
             "垂直",
             "圆",
-            "弦"
+            "弦",
+            "clipt"
         ],
         "solutions": [
             {
@@ -7901,7 +7930,8 @@
             "SprFes",
             "平行线",
             "相切",
-            "圆"
+            "圆",
+            "clipt"
         ],
         "solutions": [
             {
@@ -9158,7 +9188,8 @@
             "XEuclidea-Puzzle",
             "多解",
             "角",
-            "等长折线"
+            "等长折线",
+            "clipt"
         ],
         "solutions": [
             {
@@ -9797,46 +9828,6 @@
         ]
     },
     {
-        "id": "xep18-2",
-        "pack": "xeuclidea-puzzle",
-        "file": "levels/xeuclidea-puzzle/xep18-2/xep18-2.gmt",
-        "title": "XEP18-2",
-        "subtitle": "已知三角形及任意一点，求作内接正三角形，使得其一边过给定点。",
-        "targetSteps": "13L / 25E",
-        "diagram": "levels/xeuclidea-puzzle/xep18-2/xep18-2.jpg",
-        "note": "",
-        "keywords": [
-            "XEuclidea-Puzzle",
-            "正三角形",
-            "三角形",
-            "多解",
-            "直线过点",
-            "内接"
-        ],
-        "solutions": [
-            {
-                "star": "13L 25E",
-                "file": "levels/xeuclidea-puzzle/xep18-2/13L25E.jpg"
-            },
-            {
-                "star": "13L 25E",
-                "file": "levels/xeuclidea-puzzle/xep18-2/13L25E2.jpg"
-            },
-            {
-                "star": "12V",
-                "file": "levels/xeuclidea-puzzle/xep18-2/12V.jpg"
-            },
-            {
-                "star": "12V",
-                "file": "levels/xeuclidea-puzzle/xep18-2/12V2.jpg"
-            },
-            {
-                "star": "XEP18",
-                "file": "levels/xeuclidea-puzzle/xep18-2/XEP18.jpg"
-            }
-        ]
-    },
-    {
         "id": "xep18",
         "pack": "xeuclidea-puzzle",
         "file": "levels/xeuclidea-puzzle/xep18/xep18.gmt",
@@ -9851,7 +9842,8 @@
             "三角形",
             "多解",
             "直线过点",
-            "内接"
+            "内接",
+            "clipt"
         ],
         "solutions": [
             {
@@ -10106,7 +10098,8 @@
             "多解",
             "直线",
             "交点",
-            "长度相等"
+            "长度相等",
+            "clipt"
         ],
         "solutions": [
             {
@@ -10387,7 +10380,8 @@
             "角",
             "夹角",
             "120度",
-            "90度"
+            "90度",
+            "clipt"
         ],
         "solutions": [
             {
@@ -10421,7 +10415,9 @@
             "多解",
             "相切",
             "圆",
-            "截弦"
+            "截弦",
+            "clipt",
+            "CCC"
         ],
         "solutions": [
             {
@@ -10459,7 +10455,9 @@
             "夹角",
             "30度",
             "60度",
-            "90度"
+            "90度",
+            "clipt",
+            "CCC"
         ],
         "solutions": [
             {
@@ -10497,7 +10495,8 @@
             "多解",
             "60度",
             "120度",
-            "夹角"
+            "夹角",
+            "clipt"
         ],
         "solutions": [
             {
@@ -11109,7 +11108,8 @@
             "弦",
             "长度相等",
             "直线过点",
-            "割线"
+            "割线",
+            "clipt"
         ],
         "solutions": [
             {
@@ -11144,7 +11144,8 @@
             "公切线",
             "切点",
             "圆",
-            "圆过点"
+            "圆过点",
+            "clipt"
         ],
         "solutions": [
             {
@@ -11353,7 +11354,9 @@
             "圆",
             "同心圆",
             "相切",
-            "圆过点"
+            "圆过点",
+            "Apollonius-PCC",
+            "clipt"
         ],
         "solutions": [
             {
@@ -11452,7 +11455,8 @@
             "四边形",
             "内接",
             "直线反射",
-            "三线共点"
+            "三线共点",
+            "clipt"
         ],
         "solutions": [
             {
@@ -11466,7 +11470,7 @@
         "pack": "geomcontest",
         "file": "levels/geomcontest/gc2026-1/gc2026-1.gmt",
         "title": "26.1 弦上倍角",
-        "subtitle": "在每个小正方形的边长为 1的网格中，点 A，B 均在格点上，点 C 在竖直网格线上，△ABC 内接于圆. 点 P 为线段 BC 上一点，请用无刻度的直尺，在如图所示的网格中，画出点 P，使得 2∠APC = 3∠ABC.",
+        "subtitle": "在每个小正方形的边长为1的网格中，点A、B均在格点上，点C在竖直网格线上，△ABC内接于圆。点P为线段BC上一点，请用无刻度的直尺，在如图所示的网格中，画出点P，使得2∠APC=3∠ABC。",
         "targetSteps": "6E",
         "diagram": "levels/geomcontest/gc2026-1/gc2026-1.png",
         "note": "",
@@ -11490,7 +11494,7 @@
         "pack": "geomcontest",
         "file": "levels/geomcontest/gc2026-2/gc2026-2.gmt",
         "title": "26.2 反射共线",
-        "subtitle": "在每个小正方形的边长为 的网格中，△ABC的顶点A在格点上，过点A，B，C作圆，经过点A 作圆的切线，与 BC的延长线相交于点P.点D为线段BC中点，AD的 延长线与圆相交于点E.点M在线段AB上,线段 MP与线段AC相交于 点N，请用无刻度的直尺，在如图所示的网格中，画出点M,N，使得 EA平分△MEN.",
+        "subtitle": "在每个小正方形的边长为1的网格中，△ABC的顶点A在格点上，过点A、B、C作圆，经过点A作圆的切线，与BC的延长线相交于点P。点D为线段BC中点，AD的延长线与圆相交于点E。点M在线段AB上，线段MP与线段AC相交于点N，请用无刻度的直尺，在如图所示的网格中，画出点M、N，使得EA平分∠MEN。",
         "targetSteps": "4E",
         "diagram": "levels/geomcontest/gc2026-2/gc2026-2.png",
         "note": "",
@@ -11517,7 +11521,7 @@
         "pack": "geomcontest",
         "file": "levels/geomcontest/gc2026-3/gc2026-3.gmt",
         "title": "26.3 中点等距",
-        "subtitle": "在每个小正方形的边长为1 的网格中，点A，B，C在竖直网格线上，满足AB=BC，过点A,B,C 作圆，圆上有一点D满足△BAD=90°，连接四边形 ABCD.点P为圆 上一点（不与D重合），CP的中点为M，AD的中点为N，请用无刻度 的直尺，在如图所示的网格中，画出点P，使得DM=PN.",
+        "subtitle": "在每个小正方形的边长为1的网格中，点A、B、C在竖直网格线上，满足AB=BC，过点A、B、C作圆，圆上有一点D满足∠BAD=90°，连接四边形ABCD。点P为圆上一点（不与D重合），CP的中点为M，AD的中点为N，请用无刻度的直尺，在如图所示的网格中，画出点P，使得DM=PN。",
         "targetSteps": "4E",
         "diagram": "levels/geomcontest/gc2026-3/gc2026-3.png",
         "note": "",
@@ -11543,7 +11547,7 @@
         "pack": "geomcontest",
         "file": "levels/geomcontest/gc2026-4/gc2026-4.gmt",
         "title": "26.4 中点西姆松",
-        "subtitle": "在每个小正方形的边长为1 的网格中，点A，C在格点上，点B在竖直网格线上，点D在直线 AC 上，连接直线 BA，BD，过点A，B，D作圆.请用无刻度的直尺，在如 图所示的网格中，画出点R，点R在直线 AB，AC上分别投影，两投影 的中点N恰在直线BD上，且RNLBD.",
+        "subtitle": "在每个小正方形的边长为1的网格中，点A、C在格点上，点B在竖直网格线上，点D在直线AC上，连接直线BA、BD，过点A、B、D作圆。请用无刻度的直尺，在如图所示的网格中，画出点R，点R在直线AB、AC上分别投影，两投影的中点N恰在直线BD上，且RN⊥BD。",
         "targetSteps": "3E",
         "diagram": "levels/geomcontest/gc2026-4/gc2026-4.png",
         "note": "",
@@ -11568,7 +11572,7 @@
         "pack": "geomcontest",
         "file": "levels/geomcontest/gc2026-5/gc2026-5.gmt",
         "title": "26.5 切割黄金角",
-        "subtitle": "在等腰三角形ABC中，AB=AC, 角C=36°.有一个圆经过点B，且与边AC相切于点A.请仅用无刻度的 直尺，找出该圆的圆心O.",
+        "subtitle": "在等腰三角形ABC中，AB=AC，∠C=36°。有一个圆经过点B，且与边AC相切于点A。请仅用无刻度的直尺，找出该圆的圆心O。",
         "targetSteps": "9E",
         "diagram": "levels/geomcontest/gc2026-5/gc2026-5.png",
         "note": "",
@@ -11596,7 +11600,7 @@
         "pack": "geomcontest",
         "file": "levels/geomcontest/gc2026-6/gc2026-6.gmt",
         "title": "26.6 边角矩形与60度",
-        "subtitle": "给定一矩形OACB并延长 OA和OB(30°< LBOC<60°)，LAOB内还有一与OB夹60°角的射 线.请仅用无刻度的直尺，作一个顶角C为120°的等腰三角形CPQ，使 得 P，Q分别在射线 OA与射线OB上.",
+        "subtitle": "给定一矩形OACB并延长OA和OB（30°<∠BOC<60°），∠AOB内还有一与OB夹60°角的射线。请仅用无刻度的直尺，作一个顶角C为120°的等腰三角形CPQ，使得P、Q分别在射线OA与射线OB上。",
         "targetSteps": "11E",
         "diagram": "levels/geomcontest/gc2026-6/gc2026-6.png",
         "note": "",
@@ -11622,7 +11626,7 @@
         "pack": "geomcontest",
         "file": "levels/geomcontest/gc2026-7/gc2026-7.gmt",
         "title": "26.7 角平分线平行",
-        "subtitle": "给定一圆O及其内接△ABC，求 作一内接△DEF，记其内心为I,满足 DI// BC,EI// AC,FI// AB. ",
+        "subtitle": "给定一圆O及其内接△ABC，求作一内接△DEF，记其内心为I，满足DI∥BC，EI∥AC，FI∥AB。",
         "targetSteps": "9E",
         "diagram": "levels/geomcontest/gc2026-7/gc2026-7.png",
         "note": "",
@@ -11646,7 +11650,7 @@
         "pack": "geomcontest",
         "file": "levels/geomcontest/gc2026-8/gc2026-8.gmt",
         "title": "26.8 内接极大面积矩形",
-        "subtitle": "已知圆O内有一点M，过点M作 一条直线，交圆于 E，F两点，且M为EF的中点.在圆上另有一条弦 PQ平行于直线EF，分别过P，Q向直线EF作垂线，垂足为S,R.当 矩形 PQRS的面积取得最大值时，作出弦PQ.",
+        "subtitle": "已知圆O内有一点M，过点M作一条直线，交圆于E、F两点，且M为EF的中点。在圆上另有一条弦PQ平行于直线EF，分别过P、Q向直线EF作垂线，垂足为S、R。当矩形PQRS的面积取得最大值时，作出弦PQ。",
         "targetSteps": "7E",
         "diagram": "levels/geomcontest/gc2026-8/gc2026-8.png",
         "note": "",
@@ -11672,7 +11676,7 @@
         "pack": "geomcontest",
         "file": "levels/geomcontest/gc2026-9/gc2026-9.gmt",
         "title": "26.9 角和关系点",
-        "subtitle": "给定△ABC及其外接圆O，在 △ABC 内作一点D,满足角BAD+角BCD=角CAD+角CBD=45°",
+        "subtitle": "给定△ABC及其外接圆O，在△ABC内作一点D，满足∠BAD+∠BCD=∠CAD+∠CBD=45°。",
         "targetSteps": "7E",
         "diagram": "levels/geomcontest/gc2026-9/gc2026-9.png",
         "note": "",
@@ -11697,7 +11701,7 @@
         "pack": "geomcontest",
         "file": "levels/geomcontest/gc2026-10/gc2026-10.gmt",
         "title": "26.10 内接调和三角形",
-        "subtitle": "给定△ABC的各边所在直线 以及在△ABC外的两点D，E.作△ABC的一个内接△POR，其中P在 AB上，Q在AC上，R在BC上，且满足 D,P,R三点共线，E，Q,R 三点共线，以及 CP，BQ，AR三线共点。",
+        "subtitle": "给定△ABC的各边所在直线以及在△ABC外的两点D、E。作△ABC的一个内接△POR，其中P在AB上，Q在AC上，R在BC上，且满足D、P、R三点共线，E、Q、R三点共线，以及CP、BQ、AR三线共点。",
         "targetSteps": "7E",
         "diagram": "levels/geomcontest/gc2026-10/gc2026-10.png",
         "note": "",
@@ -11721,14 +11725,17 @@
         "pack": "geomcontest",
         "file": "levels/geomcontest/gc2026-11-1/gc2026-11-1.gmt",
         "title": "26.11.1 合引力方向",
-        "subtitle": "今日，歌者将巡查一个双星系统，他需 要建立一个局部引力场模型来辅助导航，如图所示.假设两天体质量相 同，分别位于点A和点B处.当他的飞船位于点P时，试作出其所受到 的引力合力方向所在的直线.(注：引力大小F ∝ 1/d²)",
+        "subtitle": "今日，歌者将巡查一个双星系统，他需要建立一个局部引力场模型来辅助导航，如图所示。假设两天体质量相 同，分别位于点A和点B处。当他的飞船位于点P时，试作出其所受到的引力合力方向所在的直线。（注：引力大小F∝1/d²）",
         "targetSteps": "8E",
         "diagram": "levels/geomcontest/gc2026-11-1/gc2026-11-1.png",
         "note": "",
         "keywords": [
             "群赛",
             "群赛2026",
-            "物理"
+            "物理",
+            "平方反比",
+            "合力",
+            "平行四边形法则"
         ],
         "solutions": [
             {
@@ -11742,14 +11749,18 @@
         "pack": "geomcontest",
         "file": "levels/geomcontest/gc2026-11-2/gc2026-11-2.gmt",
         "title": "26.11.2 变轨巡航",
-        "subtitle": "次日例行巡逻，歌者的飞船在以O为圆心的圆轨道上运行，如图所示.他接到指令，需要清理位于点A和 点B的两处太空垃圾.他必须自行选择变轨位置，在保持原有运行方向 的前提下，切入一条椭圆轨道，使其恰好经过这两个垃圾点.现在，他 需要找到圆O上的那个变轨位置T.",
+        "subtitle": "次日例行巡逻，歌者的飞船在以O为圆心的圆轨道上运行，如图所示。他接到指令，需要清理位于点A和点B的两处太空垃圾。他必须自行选择变轨位置，在保持原有运行方向的前提下，切入一条椭圆轨道，使其恰好经过这两个垃圾点。现在，他需要找到圆O上的那个变轨位置T。",
         "targetSteps": "8E",
         "diagram": "levels/geomcontest/gc2026-11-2/gc2026-11-2.png",
         "note": "",
         "keywords": [
             "群赛",
             "群赛2026",
-            "物理"
+            "物理",
+            "椭圆",
+            "相切",
+            "clipt",
+            "共焦点"
         ],
         "solutions": [
             {

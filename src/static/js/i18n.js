@@ -169,7 +169,11 @@ const I18N_DICT = {
         'board.answerAsk': '确定要查看答案吗？',
         'board.answerWarn': '看答案会少一点自己作图的乐趣。',
         'board.answerEmpty': '这一关暂时没有收录答案图。',
-        'board.answerHint': '图片名是该解法对应的星标步数，点击图片可以放大。',
+        'board.answerHint': '图片名是该解法对应的星标步数，点开后可缩放。',
+        'board.zoomIn': '放大',
+        'board.zoomOut': '缩小',
+        'board.zoomReset': '复位',
+        'board.zoomHint': '滚轮 / 双指 / 双击缩放 · 点空白处或 × 关闭',
         'board.answerStepDraw': '逐步绘制',
         'board.gmtImportFailed': '未能识别 gmt 内容，请检查格式',
         'board.solverNeedSolution': '先作出至少一个解，才能把图形交给求解器。',
@@ -495,6 +499,7 @@ const I18N_DICT = {
         'search.chipIsosceles': '等腰三角形',
         'search.chipSemicircle': '半圆',
         'search.chipConcyclic': '共圆',
+        'search.chipClipt': 'clipt'
     },
     en: {
         // Home
@@ -657,7 +662,11 @@ const I18N_DICT = {
         'board.answerAsk': 'Show the answer?',
         'board.answerWarn': 'It is less fun to see the answer first.',
         'board.answerEmpty': 'No answer image is archived for this level.',
-        'board.answerHint': 'The file name is the star target, click an image to enlarge.',
+        'board.answerHint': 'The file name is the star target; scroll or pinch to zoom after opening.',
+        'board.zoomIn': 'Zoom in',
+        'board.zoomOut': 'Zoom out',
+        'board.zoomReset': 'Reset',
+        'board.zoomHint': 'Scroll / pinch to zoom · double click to zoom or reset · drag to pan · click backdrop or × to close',
         'board.answerStepDraw': 'Draw step by step',
         'board.gmtImportFailed': 'Could not recognise the gmt content; please check the format.',
         'board.solverNeedSolution': 'Solve at least one goal before sending the figure to the solver.',
@@ -985,6 +994,7 @@ const I18N_DICT = {
         'search.chipIsosceles': 'Isosceles triangle',
         'search.chipSemicircle': 'Semicircle',
         'search.chipConcyclic': 'Concyclic',
+        'search.chipClipt': 'clipt'
     },
 };
 

@@ -1535,8 +1535,16 @@ class ExceptPointBaseToolTemplate {
      */
     movePoint(x, y) {
         let goalX = x, goalY = y;
-        
-        const exceptPoints = geometryManager.near([x, y], ["line", "circle"]);
+        // 已经选过的图形要先排除：拖拽终点常被吸附到两个图形的交点上，那里两个图形离光标
+        // 一样近，near() 等距时按「后作出的优先」返回 —— 不排除就会把 choice1 再选一次，
+        // check() 判为重复把整笔清掉（表现为「从后作出的图形拖到先作出的图形作不出交点，
+        // 反过来却可以」）。与 click() 的 pickedIds 是同一套口径，那边修的是点击路径
+        const pickedIds = [];
+        for (let index = 1; index < this.status; index++) {
+            const picked = geometryManager.getToolKey(this.toolName, `choice${index}`);
+            if (picked) pickedIds.push(picked.getId());
+        }
+        const exceptPoints = geometryManager.near([x, y], ["line", "circle"], 1, pickedIds);
         if (exceptPoints.length === 1) {
             const item = geometryManager.get(exceptPoints[0]);
             if (item.getType() === "line") {

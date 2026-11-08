@@ -232,6 +232,89 @@ body.tools-pending .floating-bar {
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
 }
 
+/* 全屏大图的缩放：变换只作用在 <img> 上，工具条与提示浮在遮罩里 */
+.thumbnail-zoom,
+.image-zoom {
+    touch-action: none;
+}
+.thumbnail-zoom img,
+.image-zoom img {
+    transform-origin: center center;
+    user-select: none;
+    -webkit-user-drag: none;
+    cursor: zoom-in;
+}
+.thumbnail-zoom.zoomed img,
+.image-zoom.zoomed img {
+    cursor: grab;
+}
+.thumbnail-zoom.dragging.zoomed img,
+.image-zoom.dragging.zoomed img {
+    cursor: grabbing;
+}
+.image-zoom-toolbar {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px;
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.6);
+    cursor: default;
+}
+.image-zoom-button {
+    width: 34px;
+    height: 34px;
+    border: 0;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.14);
+    color: #fff;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+}
+.image-zoom-button:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.28);
+}
+.image-zoom-button:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+.image-zoom-level {
+    min-width: 52px;
+    text-align: center;
+    color: #fff;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+}
+.image-zoom-hint {
+    position: absolute;
+    bottom: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: 92vw;
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    pointer-events: none;
+}
+@media (max-width: 640px) {
+    .image-zoom-hint {
+        white-space: normal;
+        text-align: center;
+        line-height: 1.5;
+        border-radius: 12px;
+    }
+}
+
 .thumbnail.open {
     top: 50%;
     left: 50%;

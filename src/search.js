@@ -20,6 +20,7 @@ const RECOMMENDED_SEARCHES = [
     {q: '中点', labelKey: 'search.chipMidpoint'},
     {q: '内接', labelKey: 'search.chipInscribed'},
     {q: '平分', labelKey: 'search.chipBisect'},
+    {q: 'clipt', labelKey: 'search.chipClipt'},
     {q: '直角三角形', labelKey: 'search.chipRightTriangle'},
     {q: '正三角形', labelKey: 'search.chipEquilateral'},
     {q: '垂直', labelKey: 'search.chipPerpendicular'},

@@ -1245,9 +1245,14 @@ function revealHiddenIntersectionAtClick(oriX, oriY) {
     // 前两次点击（圆心 / 边上点）仍照常允许取交点，所以只在第三点（已选两点、status === 2）时跳过。
     if (tool === 'arc' && typeof tools !== 'undefined' && tools && tools[tool]
         && tools[tool].mode && tools[tool].mode.status === 2) return false;
-    // 点工具 / 交点工具这一下本来就是「在这儿放个点」：显示 / 作出的点自己占一格历史。
+    // 交点工具自己完整处理交点：点交叉处由 createIntersectionAtCursor 就地作点，
+    // 选完两个图形由 createIntersection 一次标出全部候选。这里若抢先造一个交点，
+    // 它先占一格历史、又把 createIntersection 本来要作的那个点顶掉，
+    // 结果圆 × 线 / 圆 × 圆的两个交点要撤销两次才能全部撤回
+    if (tool === 'intersection') return false;
+    // 点工具这一下本来就是「在这儿放个点」：显示 / 作出的点自己占一格历史。
     // 其它工具（直线、圆、构造类…）随后会完成自己那一步，那个点跟着那一步一起撤回
-    const ownStep = tool === 'point' || tool === 'intersection';
+    const ownStep = tool === 'point';
     return revealHiddenIntersection((oriX - transform.x) / transform.scale,
         (oriY - transform.y) / transform.scale, ownStep);
 }
@@ -1404,6 +1409,13 @@ class IntersectionTool {
         // 判定半径取落点吸附那一档（见 board-tools.js 的 landingPickOf）：光标处（＝吸附到的
         // 交点处）那个点才算「已经有了」，直接用它；明显更远的点是另一个对象，交点照旧作出，
         // 免得想标这个交点时被远处某个点挡住
+        // 非游玩模式里这个位置上可能已经有隐藏的定义点 / 预绘制点：原来由
+        // revealHiddenIntersectionAtClick 顺手显示，现在交点工具自己接管这一步
+        // （revealHiddenPoint 会自己记一格历史），显示出来就够了，不要再叠一个新点
+        const existing = typeof pointAtPosition === 'function' ? pointAtPosition(snap.x, snap.y) : null;
+        if (existing && typeof isPlayMode === 'function' && !isPlayMode()
+            && typeof existing.getVisible === 'function' && !existing.getVisible()
+            && typeof revealHiddenPoint === 'function' && revealHiddenPoint(existing, true)) return true;
         if (hasPointAtPosition(snap.x, snap.y, 3 / transform.scale)) return true;
         const point = geometryManager.createPoint(snap.x, snap.y);
         // 基底走统一入口：另一个候选上已经有点时（如圆上已有 C、直线过 C）自动记成已知交点，

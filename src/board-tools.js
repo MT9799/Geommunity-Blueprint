@@ -1496,8 +1496,173 @@
     return solutionsById.has(params.get('id') || '');
   };
   /**
+   * 给全屏大图加缩放 / 平移 过程函数
+   * 关卡示意图（.thumbnail-zoom）与答案大图（.image-zoom）共用：滚轮、工具条按钮、键盘、
+   * 双指都能缩放，放大后可拖动平移，双击放大或复位。变换只写在这一个 <img> 的 transform 上，
+   * 不动 DOM，也不碰画板 canvas 自己的缩放手势
+   * @param {HTMLElement} mask 全屏遮罩
+   * @param {HTMLImageElement} picture 遮罩里的图
+   * @param {Function} dismissOverlay 关闭回调（题图直接移除，答案图带淡出退场）
+   */
+  const enableImageZoom = (mask, picture, dismissOverlay) => {
+    const MIN_SCALE = 1, MAX_SCALE = 8, STEP = 1.25;
+    let scale = 1, offsetX = 0, offsetY = 0, moved = false, lastPinch = null;
+    const pointers = new Map();
+    const parts = {};
+
+    const applyTransform = () => {
+      picture.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+      mask.classList.toggle('zoomed', scale > MIN_SCALE);
+      parts.level.textContent = `${Math.round(scale * 100)}%`;
+      parts.zoomOut.disabled = scale <= MIN_SCALE + 1e-6;
+      parts.zoomIn.disabled = scale >= MAX_SCALE - 1e-6;
+    };
+    // 平移别把图整块推出视口：始终留一条边在屏幕里，光标在角落连续滚轮也不会「放大后图没了」
+    const clampOffset = (scaledWidth, scaledHeight) => {
+      const view = mask.getBoundingClientRect();
+      const maxX = Math.max(0, scaledWidth / 2 + view.width / 2 - 48);
+      const maxY = Math.max(0, scaledHeight / 2 + view.height / 2 - 48);
+      offsetX = Math.min(maxX, Math.max(-maxX, offsetX));
+      offsetY = Math.min(maxY, Math.max(-maxY, offsetY));
+    };
+    // 以某个屏幕点为锚缩放：那个点下的图像内容保持不动
+    const zoomAt = (next, clientX, clientY) => {
+      const target = Math.min(MAX_SCALE, Math.max(MIN_SCALE, next));
+      if (Math.abs(target - scale) < 1e-6) return;
+      const rect = picture.getBoundingClientRect();
+      // getBoundingClientRect 含 transform，减掉平移才是图片未变换时的中心
+      const baseX = rect.left + rect.width / 2 - offsetX;
+      const baseY = rect.top + rect.height / 2 - offsetY;
+      const baseWidth = rect.width / scale, baseHeight = rect.height / scale;
+      const ratio = target / scale;
+      offsetX = (clientX - baseX) - ratio * (clientX - baseX - offsetX);
+      offsetY = (clientY - baseY) - ratio * (clientY - baseY - offsetY);
+      scale = target;
+      if (scale === MIN_SCALE) { offsetX = 0; offsetY = 0; }
+      else clampOffset(baseWidth * scale, baseHeight * scale);
+      applyTransform();
+    };
+    const zoomBy = factor => {
+      const rect = picture.getBoundingClientRect();
+      zoomAt(scale * factor, rect.left + rect.width / 2 - offsetX, rect.top + rect.height / 2 - offsetY);
+    };
+    const resetZoom = () => { scale = 1; offsetX = 0; offsetY = 0; applyTransform(); };
+
+    const onKey = event => {
+      if (event.key === 'Escape') { dismiss(); return; }
+      if (event.key === '+' || event.key === '=') zoomBy(STEP);
+      else if (event.key === '-' || event.key === '_') zoomBy(1 / STEP);
+      else if (event.key === '0') resetZoom();
+      else return;
+      event.preventDefault();
+    };
+    const dismiss = () => {
+      window.removeEventListener('keydown', onKey);
+      dismissOverlay();
+    };
+    window.addEventListener('keydown', onKey);
+
+    const toolbar = document.createElement('div');
+    toolbar.className = 'image-zoom-toolbar';
+    const addButton = (text, key, label, action) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'image-zoom-button';
+      button.textContent = text;
+      button.title = label;
+      button.setAttribute('aria-label', label);
+      button.addEventListener('click', event => { event.stopPropagation(); action(); });
+      toolbar.appendChild(button);
+      parts[key] = button;
+    };
+    addButton('−', 'zoomOut', t('board.zoomOut'), () => zoomBy(1 / STEP));
+    parts.level = document.createElement('span');
+    parts.level.className = 'image-zoom-level';
+    toolbar.appendChild(parts.level);
+    addButton('+', 'zoomIn', t('board.zoomIn'), () => zoomBy(STEP));
+    addButton('↺', 'reset', t('board.zoomReset'), resetZoom);
+    addButton('×', 'close', t('common.close'), dismiss);
+    mask.appendChild(toolbar);
+    const hint = document.createElement('div');
+    hint.className = 'image-zoom-hint';
+    hint.textContent = t('board.zoomHint');
+    mask.appendChild(hint);
+    picture.draggable = false;
+    applyTransform();
+
+    mask.addEventListener('wheel', event => {
+      event.preventDefault();
+      zoomAt(scale * (event.deltaY < 0 ? STEP : 1 / STEP), event.clientX, event.clientY);
+    }, {passive: false});
+    picture.addEventListener('dblclick', event => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (scale > MIN_SCALE + 1e-6) resetZoom();
+      else zoomAt(2, event.clientX, event.clientY);
+    });
+
+    const twoPointerState = () => {
+      const [a, b] = [...pointers.values()];
+      return {distance: Math.hypot(a.x - b.x, a.y - b.y), x: (a.x + b.x) / 2, y: (a.y + b.y) / 2};
+    };
+    // 拖动过程挂在 window 上：指针移出遮罩也不断。不用 setPointerCapture ——
+    // 它会把 click / dblclick 的目标一起改到遮罩上，图片上的双击放大就收不到了
+    const onPointerMove = event => {
+      const previous = pointers.get(event.pointerId);
+      if (!previous) return;
+      pointers.set(event.pointerId, {x: event.clientX, y: event.clientY});
+      if (pointers.size >= 2) {
+        const next = twoPointerState();
+        if (lastPinch && lastPinch.distance > 0) {
+          // 双指中心也在移动：先把整个图跟着平移，再以新中心为锚缩放
+          offsetX += next.x - lastPinch.x;
+          offsetY += next.y - lastPinch.y;
+          zoomAt(scale * next.distance / lastPinch.distance, next.x, next.y);
+        }
+        lastPinch = next;
+      }else if (scale > MIN_SCALE + 1e-6) {
+        offsetX += event.clientX - previous.x;
+        offsetY += event.clientY - previous.y;
+        const rect = picture.getBoundingClientRect();
+        clampOffset(rect.width, rect.height);
+        applyTransform();
+      }else{
+        return;
+      }
+      moved = true;
+    };
+    const onPointerUp = event => {
+      pointers.delete(event.pointerId);
+      if (pointers.size < 2) lastPinch = null;
+      if (!pointers.size) {
+        mask.classList.remove('dragging');
+        window.removeEventListener('pointermove', onPointerMove);
+        window.removeEventListener('pointerup', onPointerUp);
+        window.removeEventListener('pointercancel', onPointerUp);
+      }
+    };
+    mask.addEventListener('pointerdown', event => {
+      if (event.target.closest?.('.image-zoom-toolbar')) return;
+      pointers.set(event.pointerId, {x: event.clientX, y: event.clientY});
+      moved = false;
+      if (pointers.size === 2) lastPinch = twoPointerState();
+      mask.classList.add('dragging');
+      window.addEventListener('pointermove', onPointerMove);
+      window.addEventListener('pointerup', onPointerUp);
+      window.addEventListener('pointercancel', onPointerUp);
+    });
+    // 只留「点黑底关闭」：点在图上要留给双击 / 拖动，拖动过也不关
+    mask.addEventListener('click', event => {
+      const dragged = moved;
+      moved = false;
+      if (!dragged && event.target === mask) dismiss();
+    });
+  };
+  window.boardEnableImageZoom = enableImageZoom;
+
+  /**
    * 全屏看一张图 过程函数
-   * 与关卡示意图（缩略图那个 .thumbnail-zoom）同一套观感：黑底铺满、点哪儿都关掉。
+   * 与关卡示意图（缩略图那个 .thumbnail-zoom）同一套观感：黑底铺满，点黑底关掉。
    * 答案图原来是在弹层里原地放大（.answer-figure.zoom），手机上会把整排在图上撑开，
    * 所以改成和示意图一样点开全屏看
    * @param {string} src 图片地址
@@ -1511,8 +1676,8 @@
     picture.src = src;
     picture.alt = alt || '';
     mask.appendChild(picture);
-    mask.addEventListener('click', () => dismissMask(mask));
     document.body.appendChild(mask);
+    enableImageZoom(mask, picture, () => dismissMask(mask));
     return mask;
   };
 
