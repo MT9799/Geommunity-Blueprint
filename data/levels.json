@@ -3007,6 +3007,34 @@
         ]
     },
     {
+        "id": "ewp294",
+        "pack": "ewp",
+        "file": "levels/ewp/ewp294/ewp294.gmt",
+        "title": "EWP294",
+        "subtitle": "给定正三角形，构造三个角上的共中心三菱形。",
+        "targetSteps": "5L / 8E",
+        "diagram": "levels/ewp/ewp294/ewp294.jpg",
+        "note": "",
+        "keywords": [
+            "EWP",
+            "构造",
+            "蓝三角",
+            "正三角形",
+            "菱形",
+            "对称"
+        ],
+        "solutions": [
+            {
+                "star": "5L",
+                "file": "levels/ewp/ewp294/5L.png"
+            },
+            {
+                "star": "8E",
+                "file": "levels/ewp/ewp294/8E.png"
+            }
+        ]
+    },
+    {
         "id": "xmath2020-1",
         "pack": "xmath",
         "file": "levels/xmath/xmath2020-1/xmath2020-1.gmt",
