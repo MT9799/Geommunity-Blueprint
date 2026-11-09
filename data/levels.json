@@ -5057,6 +5057,57 @@
         ]
     },
     {
+        "id": "pcc-ct-on-c",
+        "pack": "c-s-pzls-other",
+        "file": "levels/c-s-pzls-other/048.pcc-ct-on-c/pcc-ct-on-c.gmt",
+        "title": "Ander's PCC",
+        "subtitle": "给定共线两圆心及一点，求作圆心在圆上的圆，过给定点且与另一个圆相切。",
+        "targetSteps": "45L / 69E",
+        "diagram": "levels/c-s-pzls-other/048.pcc-ct-on-c/pcc-ct-on-c.png",
+        "note": "",
+        "keywords": [
+            "C-s-Pzls-Other",
+            "多解",
+            "相切",
+            "圆",
+            "圆心",
+            "共线",
+            "Apollonius-PCC",
+            "clipt"
+        ],
+        "solutions": [
+            {
+                "star": "45L 69E",
+                "file": "levels/c-s-pzls-other/048.pcc-ct-on-c/45l69e.png"
+            }
+        ]
+    },
+        {
+        "id": "double-circle-trapezoid",
+        "pack": "c-s-pzls-other",
+        "file": "levels/c-s-pzls-other/049.double-circle-trapezoid/double-circle-trapezoid.gmt",
+        "title": "双圆上的梯形",
+        "subtitle": "给定共线两圆心及两点，求作线段连接两圆，使得线段与给定两点形成梯形，线段为梯形的腰。",
+        "targetSteps": "32L / 44E",
+        "diagram": "levels/c-s-pzls-other/049.double-circle-trapezoid/double-circle-trapezoid.png",
+        "note": "",
+        "keywords": [
+            "C-s-Pzls-Other",
+            "多解",
+            "梯形",
+            "圆",
+            "圆心",
+            "共线",
+            "clipt"
+        ],
+        "solutions": [
+            {
+                "star": "32L 44E",
+                "file": "levels/c-s-pzls-other/049.double-circle-trapezoid/double-circle-trapezoid-32l44e.png"
+            }
+        ]
+    },
+    {
         "id": "rettwiang",
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/050.rettwiang/rettwiang.gmt",
@@ -5155,8 +5206,8 @@
         "file": "levels/c-s-pzls-other/053.concirtan/concirtan.gmt",
         "title": "圆双曲公切线",
         "subtitle": "给定角内切圆，角平分线上一点P，构造圆的切线，与以角的两边为渐近线、点P为焦点的双曲线（未画出）相切。",
-        "targetSteps": "8L / 10E",
-        "diagram": "levels/c-s-pzls-other/053.concirtan/concirtan.png",
+        "targetSteps": "9L / 13E",
+        "diagram": "levels/c-s-pzls-other/053.concirtan/concirtan.jpg",
         "note": "",
         "keywords": [
             "C-s-Pzls-Other",
@@ -5413,73 +5464,26 @@
         ]
     },
     {
-        "id": "circle-center-on-circle-and-through-point-tangent-circle",
-        "pack": "c-s-pzls-other",
-        "file": "levels/c-s-pzls-other/061.circle-center-on-circle-and-through-point-tangent-circle/circle-center-on-circle-and-through-point-tangent-circle.gmt",
-        "title": "Ander PCC",
-        "subtitle": "给定共线两圆心及一点，求作圆心在圆上的圆，过给定点且与另一个圆相切。",
-        "targetSteps": "45L / 69E",
-        "diagram": "levels/c-s-pzls-other/061.circle-center-on-circle-and-through-point-tangent-circle/circle-center-on-circle-and-through-point-tangent-circle.png",
-        "note": "",
-        "keywords": [
-            "C-s-Pzls-Other",
-            "多解",
-            "相切",
-            "圆",
-            "圆心",
-            "共线"
-        ],
-        "solutions": [
-            {
-                "star": "45L 69E",
-                "file": "levels/c-s-pzls-other/061.circle-center-on-circle-and-through-point-tangent-circle/circle-center-on-circle-and-through-point-tangent-circle-45l69e.png"
-            }
-        ]
-    },
-    {
-        "id": "double-circle-trapezoid",
-        "pack": "c-s-pzls-other",
-        "file": "levels/c-s-pzls-other/062.double-circle-trapezoid/double-circle-trapezoid.gmt",
-        "title": "双圆梯形",
-        "subtitle": "给定共线两圆心及两点，求作线段连接两圆，使得线段与给定两点形成梯形，线段为梯形的腰。",
-        "targetSteps": "32L / 44E",
-        "diagram": "levels/c-s-pzls-other/062.double-circle-trapezoid/double-circle-trapezoid.png",
-        "note": "",
-        "keywords": [
-            "C-s-Pzls-Other",
-            "多解",
-            "梯形",
-            "圆",
-            "圆心",
-            "共线"
-        ],
-        "solutions": [
-            {
-                "star": "32L 44E",
-                "file": "levels/c-s-pzls-other/062.double-circle-trapezoid/double-circle-trapezoid-32l44e.png"
-            }
-        ]
-    },
-    {
         "id": "inscribed-rhombus",
         "pack": "c-s-pzls-other",
-        "file": "levels/c-s-pzls-other/063.inscribed-rhombus/inscribed-rhombus.gmt",
+        "file": "levels/c-s-pzls-other/061.inscribed-rhombus/inscribed-rhombus.gmt",
         "title": "四边形内接菱形",
         "subtitle": "构造四边形的内接菱形，其中一个顶点已经给定。",
         "targetSteps": "15L / 29E",
-        "diagram": "levels/c-s-pzls-other/063.inscribed-rhombus/inscribed-rhombus.png",
+        "diagram": "levels/c-s-pzls-other/061.inscribed-rhombus/inscribed-rhombus.png",
         "note": "",
         "keywords": [
             "C-s-Pzls-Other",
             "多解",
             "四边形",
             "内接",
-            "菱形"
+            "菱形",
+            "clipt"
         ],
         "solutions": [
             {
                 "star": "15L 29E",
-                "file": "levels/c-s-pzls-other/063.inscribed-rhombus/inscribed-rhombus-15l29e.png"
+                "file": "levels/c-s-pzls-other/061.inscribed-rhombus/inscribed-rhombus-15l29e.png"
             }
         ]
     },
@@ -7008,7 +7012,8 @@
             "线段",
             "圆",
             "共线",
-            "长度相等"
+            "长度相等",
+            "双圆"
         ],
         "solutions": [
             {
