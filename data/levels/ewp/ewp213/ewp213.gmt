@@ -1,4 +1,4 @@
-#EWP213
+# Geommunity Blueprint custom level
 A=[-70,100]
 B=[170,100]
 c1=Circle[A,B]
@@ -21,9 +21,12 @@ S3=Segment[B,E]
 S4=Segment[E,G]
 S5=Segment[F,G]
 S6=Segment[B,F]
+c4=Circle[A,C]
+#geom=c4:Arc[A,C,B]
 
-initial=c1,A,B,C,S1,S2
-
+initial=A,B,C,S1,S2,c4
+named=
+movepoints=
+hidden=
 result=s4,s5,s6:B,E,F,G,S3,S4,S5,S6
-
 explore=E,F,G,S4,S5,S6

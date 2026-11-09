@@ -865,7 +865,7 @@
         "file": "levels/ewp/ewp117/ewp117.gmt",
         "title": "EWP117",
         "subtitle": "构造一个正方形，使相邻的两个顶点在直线上，另两个在圆上。",
-        "targetSteps": "7L / 12E",
+        "targetSteps": "7L / 11E",
         "diagram": "levels/ewp/ewp117/ewp117.png",
         "note": "",
         "keywords": [
@@ -884,6 +884,10 @@
             {
                 "star": "12E",
                 "file": "levels/ewp/ewp117/12E.png"
+            },
+            {
+                "star": "11E",
+                "file": "levels/ewp/ewp117/ewp117-11e.png"
             },
             {
                 "star": "2V",
@@ -3221,7 +3225,7 @@
         "file": "levels/xmath/xmath2021-4/xmath2021-4.gmt",
         "title": "XMath2021-4",
         "subtitle": "在一个风筝形状（筝形）的公园里建造五条相同长度的小巷（线段），使其中四条与两侧平行。",
-        "targetSteps": "15L / 15E",
+        "targetSteps": "14E",
         "diagram": "levels/xmath/xmath2021-4/xmath2021-4.png",
         "note": "",
         "keywords": [
@@ -3230,6 +3234,10 @@
             "多解"
         ],
         "solutions": [
+            {
+                "star": "14E",
+                "file": "levels/xmath/xmath2021-4/xmath2021-4-14e.png"
+            },
             {
                 "star": "15L 15E",
                 "file": "levels/xmath/xmath2021-4/15L15E.png"
@@ -4035,7 +4043,7 @@
         "file": "levels/c-s-pzls-other/014.mixtilinear-hexagon/mixtilinear-hexagon.gmt",
         "title": "圆接切正六边形",
         "subtitle": "给定圆上点A，构造正六边形ABCDEF，使得点C在圆上，边DE与圆相切。",
-        "targetSteps": "15L / 15E",
+        "targetSteps": "12E",
         "diagram": "levels/c-s-pzls-other/014.mixtilinear-hexagon/mixtilinear-hexagon.jpg",
         "note": "",
         "keywords": [
@@ -4047,6 +4055,10 @@
             "多解"
         ],
         "solutions": [
+            {
+                "star": "12E",
+                "file": "levels/c-s-pzls-other/014.mixtilinear-hexagon/mixtilinear-hexagon-12e.png"
+            },
             {
                 "star": "15E",
                 "file": "levels/c-s-pzls-other/014.mixtilinear-hexagon/15E.jpg"
@@ -4364,7 +4376,7 @@
         "file": "levels/c-s-pzls-other/026.tri-3distsum-seg/tri-3distsum-seg.gmt",
         "title": "边距和恒等线",
         "subtitle": "过A作一线段，使得对于线段上的任一点，到三角形三边距离和恒等。",
-        "targetSteps": "5L / 8E",
+        "targetSteps": "5E",
         "diagram": "levels/c-s-pzls-other/026.tri-3distsum-seg/tri-3distsum-seg.jpg",
         "note": "",
         "keywords": [
@@ -4380,6 +4392,10 @@
             {
                 "star": "5L",
                 "file": "levels/c-s-pzls-other/026.tri-3distsum-seg/5L.jpg"
+            },
+            {
+                "star": "5E",
+                "file": "levels/c-s-pzls-other/026.tri-3distsum-seg/tri-3distsum-seg-5e.png"
             },
             {
                 "star": "8E",
@@ -4420,7 +4436,7 @@
         "file": "levels/c-s-pzls-other/028.abisect-oncir/abisect-oncir.gmt",
         "title": "圆上的角平分点",
         "subtitle": "给定圆K及圆上一点L，圆外两点A、B，在圆上找一点I，使得∠AIL=∠BIL。",
-        "targetSteps": "10L / 12E",
+        "targetSteps": "9L / 11E",
         "diagram": "levels/c-s-pzls-other/028.abisect-oncir/abisect-oncir.png",
         "note": "",
         "keywords": [
@@ -4432,6 +4448,10 @@
             "clipt"
         ],
         "solutions": [
+            {
+                "star": "9L 11E",
+                "file": "levels/c-s-pzls-other/028.abisect-oncir/abisect-oncir-9l11e.png"
+            },
             {
                 "star": "10L 12E",
                 "file": "levels/c-s-pzls-other/028.abisect-oncir/10L12E.png"
@@ -4625,7 +4645,7 @@
         "file": "levels/c-s-pzls-other/035.side-1-2-onangle/side-1-2-onangle.gmt",
         "title": "过点截角1:2",
         "subtitle": "过点作一直线交角的两边于A、B两点，使得AB:(OA+OB)=1:2。",
-        "targetSteps": "5L / 10E",
+        "targetSteps": "5L / 7E",
         "diagram": "levels/c-s-pzls-other/035.side-1-2-onangle/side-1-2-onangle.png",
         "note": "",
         "keywords": [
@@ -4641,6 +4661,10 @@
             {
                 "star": "5L",
                 "file": "levels/c-s-pzls-other/035.side-1-2-onangle/5L.jpg"
+            },
+            {
+                "star": "7E",
+                "file": "levels/c-s-pzls-other/035.side-1-2-onangle/side-1-2-onangle-7e.png"
             },
             {
                 "star": "10E",
@@ -5066,7 +5090,7 @@
         "file": "levels/c-s-pzls-other/052.3para-5equseg/3para-5equseg.gmt",
         "title": "三平行五等线",
         "subtitle": "给定三条平行线l、m、n，l上给定一点A，作一个过给定点的圆，与l再交于F，与m交于B、E，与n交于C、D，在圆上顺次为B、C、D、E、F，使得AB=BC=CD=DE=EF。",
-        "targetSteps": "9L / 14E",
+        "targetSteps": "9L / 12E",
         "diagram": "levels/c-s-pzls-other/052.3para-5equseg/3para-5equseg.png",
         "note": "",
         "keywords": [
@@ -5088,6 +5112,10 @@
                 "file": "levels/c-s-pzls-other/052.3para-5equseg/14E.png"
             },
             {
+                "star": "12E",
+                "file": "levels/c-s-pzls-other/052.3para-5equseg/3para-5equseg-12e.png"
+            },
+            {
                 "star": "2V",
                 "file": "levels/c-s-pzls-other/052.3para-5equseg/2V.png"
             }
@@ -5099,7 +5127,7 @@
         "file": "levels/c-s-pzls-other/053.concirtan/concirtan.gmt",
         "title": "圆双曲公切线",
         "subtitle": "给定角内切圆，角平分线上一点P，构造圆的切线，与以角的两边为渐近线、点P为焦点的双曲线（未画出）相切。",
-        "targetSteps": "9L / 13E",
+        "targetSteps": "8L / 10E",
         "diagram": "levels/c-s-pzls-other/053.concirtan/concirtan.png",
         "note": "",
         "keywords": [
@@ -5113,6 +5141,10 @@
             "clipt"
         ],
         "solutions": [
+            {
+                "star": "8L 10E",
+                "file": "levels/c-s-pzls-other/053.concirtan/concirtan-8l10e.png"
+            },
             {
                 "star": "9L 13E",
                 "file": "levels/c-s-pzls-other/053.concirtan/9l13e.jpg"
@@ -5349,6 +5381,77 @@
             {
                 "star": "2V",
                 "file": "levels/c-s-pzls-other/060.inverse-sim-center/2V.png"
+            }
+        ]
+    },
+    {
+        "id": "circle-center-on-circle-and-through-point-tangent-circle",
+        "pack": "c-s-pzls-other",
+        "file": "levels/c-s-pzls-other/061.circle-center-on-circle-and-through-point-tangent-circle/circle-center-on-circle-and-through-point-tangent-circle.gmt",
+        "title": "Ander PCC",
+        "subtitle": "给定共线两圆心及一点，求作圆心在圆上的圆，过给定点且与另一个圆相切。",
+        "targetSteps": "45L / 69E",
+        "diagram": "levels/c-s-pzls-other/061.circle-center-on-circle-and-through-point-tangent-circle/circle-center-on-circle-and-through-point-tangent-circle.png",
+        "note": "",
+        "keywords": [
+            "C-s-Pzls-Other",
+            "多解",
+            "相切",
+            "圆",
+            "圆心",
+            "共线"
+        ],
+        "solutions": [
+            {
+                "star": "45L 69E",
+                "file": "levels/c-s-pzls-other/061.circle-center-on-circle-and-through-point-tangent-circle/circle-center-on-circle-and-through-point-tangent-circle-45l69e.png"
+            }
+        ]
+    },
+    {
+        "id": "double-circle-trapezoid",
+        "pack": "c-s-pzls-other",
+        "file": "levels/c-s-pzls-other/062.double-circle-trapezoid/double-circle-trapezoid.gmt",
+        "title": "双圆梯形",
+        "subtitle": "给定共线两圆心及两点，求作线段连接两圆，使得线段与给定两点形成梯形，线段为梯形的腰。",
+        "targetSteps": "32L / 44E",
+        "diagram": "levels/c-s-pzls-other/062.double-circle-trapezoid/double-circle-trapezoid.png",
+        "note": "",
+        "keywords": [
+            "C-s-Pzls-Other",
+            "多解",
+            "梯形",
+            "圆",
+            "圆心",
+            "共线"
+        ],
+        "solutions": [
+            {
+                "star": "32L 44E",
+                "file": "levels/c-s-pzls-other/062.double-circle-trapezoid/double-circle-trapezoid-32l44e.png"
+            }
+        ]
+    },
+    {
+        "id": "inscribed-rhombus",
+        "pack": "c-s-pzls-other",
+        "file": "levels/c-s-pzls-other/063.inscribed-rhombus/inscribed-rhombus.gmt",
+        "title": "四边形内接菱形",
+        "subtitle": "构造四边形的内接菱形，其中一个顶点已经给定。",
+        "targetSteps": "15L / 29E",
+        "diagram": "levels/c-s-pzls-other/063.inscribed-rhombus/inscribed-rhombus.png",
+        "note": "",
+        "keywords": [
+            "C-s-Pzls-Other",
+            "多解",
+            "四边形",
+            "内接",
+            "菱形"
+        ],
+        "solutions": [
+            {
+                "star": "15L 29E",
+                "file": "levels/c-s-pzls-other/063.inscribed-rhombus/inscribed-rhombus-15l29e.png"
             }
         ]
     },
@@ -5822,7 +5925,7 @@
         "file": "levels/from-baidu-tieba/004.p-c-root-axis/p-c-root-axis.gmt",
         "title": "点圆根轴",
         "subtitle": "作出圆外点和圆的根轴。",
-        "targetSteps": "4L / 6E",
+        "targetSteps": "4L / 5E",
         "diagram": "levels/from-baidu-tieba/004.p-c-root-axis/p-c-root-axis.png",
         "note": "",
         "keywords": [
@@ -5832,8 +5935,12 @@
         ],
         "solutions": [
             {
-                "star": "4L 6E",
+                "star": "4L",
                 "file": "levels/from-baidu-tieba/004.p-c-root-axis/4L6E.png"
+            },
+            {
+                "star": "5E",
+                "file": "levels/from-baidu-tieba/004.p-c-root-axis/p-c-root-axis-5e.png"
             }
         ]
     },
@@ -6673,7 +6780,7 @@
         "file": "levels/from-baidu-tieba/031.insc-pedal-tri/insc-pedal-tri.gmt",
         "title": "伪垂足三角形",
         "subtitle": "构造内接三角形，使每一边都与给定三角形的边分别垂直。",
-        "targetSteps": "7L / 17E",
+        "targetSteps": "7L / 12E",
         "diagram": "levels/from-baidu-tieba/031.insc-pedal-tri/insc-pedal-tri.jpg",
         "note": "",
         "keywords": [
@@ -6685,8 +6792,12 @@
         ],
         "solutions": [
             {
-                "star": "7L 17E",
+                "star": "7L",
                 "file": "levels/from-baidu-tieba/031.insc-pedal-tri/7L17E.png"
+            },
+            {
+                "star": "12E",
+                "file": "levels/from-baidu-tieba/031.insc-pedal-tri/insc-pedal-tri-12e.png"
             },
             {
                 "star": "2V",
@@ -6831,6 +6942,54 @@
         ]
     },
     {
+        "id": "quadrangle-equal-ratio-secant",
+        "pack": "from-baidu-tieba",
+        "file": "levels/from-baidu-tieba/037.quadrangle-equal-ratio-secant/quadrangle-equal-ratio-secant.gmt",
+        "title": "四边形等边比线",
+        "subtitle": "构造过四边形内一点的两条直线，分别分割四边形对边为相同的比例。",
+        "targetSteps": "8L / 24E",
+        "diagram": "levels/from-baidu-tieba/037.quadrangle-equal-ratio-secant/quadrangle-equal-ratio-secant.png",
+        "note": "",
+        "keywords": [
+            "From-Baidu-Tieba",
+            "四边形",
+            "比例",
+            "相同",
+            "clipt"
+        ],
+        "solutions": [
+            {
+                "star": "8L 24E",
+                "file": "levels/from-baidu-tieba/037.quadrangle-equal-ratio-secant/quadrangle-equal-ratio-secant-8l24e.png"
+            }
+        ]
+    },
+    {
+        "id": "mfp13",
+        "pack": "mingjing-forum",
+        "file": "levels/mingjing-forum/mfp13/mfp13.gmt",
+        "title": "13 共线圆定长",
+        "subtitle": "给定两圆ab及圆心连线，点C为圆与直线的交点，还有一条线段；构造过点的直线割两圆，使得与圆a交异于点C的交点D，与圆b交点E，DE与线段长度相等。",
+        "targetSteps": "30L / 54E",
+        "diagram": "levels/mingjing-forum/mfp13/mfp13.png",
+        "note": "",
+        "keywords": [
+            "Mingjing-Forum",
+            "多解",
+            "射线",
+            "线段",
+            "圆",
+            "共线",
+            "长度相等"
+        ],
+        "solutions": [
+            {
+                "star": "30L 54E",
+                "file": "levels/mingjing-forum/mfp13/mfp13-30l54e.png"
+            }
+        ]
+    },
+    {
         "id": "mfp15",
         "pack": "mingjing-forum",
         "file": "levels/mingjing-forum/mfp15/mfp15.gmt",
@@ -6885,24 +7044,12 @@
                 "file": "levels/mingjing-forum/mfp19-1/4L1.jpg"
             },
             {
-                "star": "7L",
-                "file": "levels/mingjing-forum/mfp19-1/7L2.jpg"
-            },
-            {
                 "star": "5E",
                 "file": "levels/mingjing-forum/mfp19-1/5E1.jpg"
             },
             {
-                "star": "11E",
-                "file": "levels/mingjing-forum/mfp19-1/11E2.jpg"
-            },
-            {
                 "star": "2V",
                 "file": "levels/mingjing-forum/mfp19-1/2V1.jpg"
-            },
-            {
-                "star": "2V",
-                "file": "levels/mingjing-forum/mfp19-1/2V2.jpg"
             }
         ]
     },
@@ -6912,7 +7059,7 @@
         "file": "levels/mingjing-forum/mfp19-2/mfp19.2.gmt",
         "title": "19.2 同心圆等角弦",
         "subtitle": "构造过点A的直线，与两个同心圆O分别交于点B、C，使得∠AOB=∠AOC。",
-        "targetSteps": "7L / 11E",
+        "targetSteps": "6E",
         "diagram": "levels/mingjing-forum/mfp19-2/mfp19.2.jpg",
         "note": "",
         "keywords": [
@@ -6927,24 +7074,16 @@
         ],
         "solutions": [
             {
-                "star": "4L",
-                "file": "levels/mingjing-forum/mfp19-2/4L1.jpg"
-            },
-            {
                 "star": "7L",
                 "file": "levels/mingjing-forum/mfp19-2/7L2.jpg"
             },
             {
-                "star": "5E",
-                "file": "levels/mingjing-forum/mfp19-2/5E1.jpg"
+                "star": "6E",
+                "file": "levels/mingjing-forum/mfp19-2/mfp19.2-6e.png"
             },
             {
                 "star": "11E",
                 "file": "levels/mingjing-forum/mfp19-2/11E2.jpg"
-            },
-            {
-                "star": "2V",
-                "file": "levels/mingjing-forum/mfp19-2/2V1.jpg"
             },
             {
                 "star": "2V",
@@ -9106,7 +9245,7 @@
         "file": "levels/xewpc/xewpc1/xewpc1.gmt",
         "title": "XEWPC1",
         "subtitle": "正三角形ABC，构造与ABC全等的正三角形LKH，使得正方形NJMO，点J在BC上，O在LH上，LNKO共线，OMAB共线，HAKC共线。",
-        "targetSteps": "10E",
+        "targetSteps": "7E",
         "diagram": "levels/xewpc/xewpc1/xewpc1.png",
         "note": "",
         "keywords": [
@@ -9124,7 +9263,7 @@
         "file": "levels/xewpc/xewpc2/xewpc2.gmt",
         "title": "XEWPC2",
         "subtitle": "正八边形ABCDEFGH，构造点M，使得三点圆HAM和CMB全等且在点M处相切。",
-        "targetSteps": "4E",
+        "targetSteps": "5E",
         "diagram": "levels/xewpc/xewpc2/xewpc2.png",
         "note": "",
         "keywords": [
@@ -9160,7 +9299,7 @@
         "file": "levels/xewpc/xewpc4/xewpc4.gmt",
         "title": "XEWPC4",
         "subtitle": "给定半圆BC及圆心A，构造两个全等的半圆IC和LK，使得I在BC上，半圆IC和LK圆弧相切，LK在弧BC上。",
-        "targetSteps": "10E",
+        "targetSteps": "9E",
         "diagram": "levels/xewpc/xewpc4/xewpc4.png",
         "note": "",
         "keywords": [
@@ -9169,6 +9308,12 @@
             "半圆",
             "相切",
             "全等"
+        ],
+        "solutions": [
+            {
+                "star": "9E",
+                "file": "levels/xewpc/xewpc4/xewpc4-9e.png"
+            }
         ]
     },
     {
@@ -10988,7 +11133,7 @@
                 "file": "levels/geomcontest/gc2024-6/12E.jpg"
             },
             {
-                "star": "12E",
+                "star": "12E by Ander",
                 "file": "levels/geomcontest/gc2024-6/12E-by-Ander.jpg"
             },
             {

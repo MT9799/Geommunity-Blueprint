@@ -1,4 +1,4 @@
-#EWP203
+# Geommunity Blueprint custom level
 A=[70,100]
 B=[-170,100]
 s1=Line[A,B]
@@ -18,9 +18,16 @@ F=Intersect[c3,s4,0]
 s6=Perp[F,s2]
 G=Intersect[s2,s6,0]
 c4=Circle[F,G]
+med1=Midpoint[B,A]
+#internal=med1
+c5=Circle[med1,B]
+#geom=c5:SemiCircle[B,A]
+c6=Circle[A,B]
+#geom=c6:Arc[A,B,C]
 
-initial=A,B,S1,S2,C,c1,c2
-
+initial=A,B,S1,S2,C,c5,c6
+named=
+movepoints=
+hidden=
 result=c4:c4,F
-
 explore=c4,F

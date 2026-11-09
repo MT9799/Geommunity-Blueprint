@@ -1,4 +1,4 @@
-#EWP114
+# Geommunity Blueprint custom level
 A=[-220,50]
 B=[220,50]
 s1=PBisect[A,B]
@@ -20,12 +20,14 @@ G=Intersect[c2,s3,0]
 H=Intersect[c2,s4,0]
 s7=Line[G,H]
 S4=Segment[G,H]
+med1=Midpoint[H,G]
+#internal=med1
+c3=Circle[med1,H]
+#geom=c3:SemiCircle[H,G]
 
-initial=A,B,D,E,S1,S2,S3
-
-result=c2,s7:c2,S4,G,H
-
-explore=c2,S4,G,H
-
-rules=s7#S2,s7#S3
-
+initial=S3,B,S2,A,D,S1,E
+named=
+movepoints=
+hidden=
+result=s7,c2:c3,S4,H,G
+explore=c3,S4,H,G
