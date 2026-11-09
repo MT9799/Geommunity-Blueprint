@@ -315,9 +315,11 @@
         return String(gmt || '')
             .split(/\r?\n/)
             .map(line => line.trim())
-            // 网格那两行不是普通注释：它决定网格的大小与单位，得参与「是不是同一条作图」的比较
-            // （否则同一张网格改成不同大小时会被当成重复记录挡住）
-            .filter(line => line && (!line.startsWith('#') || /^#grid(?:style)?=/.test(line)))
+            // #grid= / #gridstyle= 决定网格大小与单位，#geom= 决定圆是整圆还是半圆 / 圆弧，
+            // #internal= 决定对象是不是内部构造：这些都不是普通注释，必须参与「是不是同一条作图」的比较
+            // （否则把整圆改成三点圆弧后会和原来的整圆记录判为重复，弧那条根本存不进去）
+            .filter(line => line && (!line.startsWith('#')
+                || /^#(?:grid|gridstyle|geom|internal)=/.test(line)))
             .map(line => line
                 // 自由点：只留 id
                 .replace(/^([A-Za-z_]\w*)\s*=\s*\[[^\]]*\]\s*$/, '$1=[*]')

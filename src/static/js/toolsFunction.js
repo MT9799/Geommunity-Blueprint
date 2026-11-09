@@ -1936,6 +1936,8 @@ class ToolsFunction {
 
     /**
      * 圆同一判定
+     * 只比圆心与半径，即「所在整圆」：不读 base.type / 弧起止点，所以半圆 / 圆弧
+     * 与同圆心同半径的整圆等价 —— 与 lineEquative 的「所在直线」口径一致
      * @param {Object} circle1 
      * @param {Object} circle2 
      * @returns {boolean}

@@ -252,10 +252,29 @@ body.tools-pending .floating-bar {
 .image-zoom.dragging.zoomed img {
     cursor: grabbing;
 }
-.image-zoom-toolbar {
+.image-zoom-close {
     position: absolute;
     top: 16px;
     right: 16px;
+    z-index: 1;
+    width: 34px;
+    height: 34px;
+    border: 0;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+}
+.image-zoom-close:hover {
+    background: rgba(0, 0, 0, 0.8);
+}
+.image-zoom-toolbar {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
     z-index: 1;
     display: flex;
     align-items: center;
@@ -289,30 +308,6 @@ body.tools-pending .floating-bar {
     color: #fff;
     font-size: 13px;
     font-variant-numeric: tabular-nums;
-}
-.image-zoom-hint {
-    position: absolute;
-    bottom: 14px;
-    left: 50%;
-    transform: translateX(-50%);
-    max-width: 92vw;
-    padding: 6px 14px;
-    border-radius: 999px;
-    background: rgba(0, 0, 0, 0.6);
-    color: #fff;
-    font-size: 12px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    pointer-events: none;
-}
-@media (max-width: 640px) {
-    .image-zoom-hint {
-        white-space: normal;
-        text-align: center;
-        line-height: 1.5;
-        border-radius: 12px;
-    }
 }
 
 .thumbnail.open {
@@ -639,6 +634,12 @@ textarea {
 .selection-context-wide:hover {
     background-color: #fef7e5;
 }
+/* 颜色面板的容器：桌面端色块行在上、自定义按钮在下（纵向）；手机端由下面的规则改成横排同行 */
+.selection-context-color-block {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
 .selection-context-width-row .style-width-bar {
     width: 148px;
     padding: 2px 4px;
@@ -718,20 +719,31 @@ textarea {
     padding: 6px;
     border-radius: 14px;
 }
-/* 手机合并面板：自定义颜色按钮跟在推荐色块后面，不单独换行 */
+/* 手机合并面板：推荐色块与「自定义…」排在同一行（色块紧凑、按钮占右侧剩余），整行不换行；
+   按钮文字 nowrap + 省略号兜底，避免被挤压截断 */
 .selection-context-menu[data-mode='mobile'].has-sub .selection-context-color-block {
-    display: flex;
+    flex-direction: row;
     align-items: center;
     gap: 6px;
     flex-wrap: nowrap;
 }
 .selection-context-menu[data-mode='mobile'].has-sub .selection-context-color-block
+    .selection-context-swatches {
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
+}
+.selection-context-menu[data-mode='mobile'].has-sub .selection-context-color-block
+    .selection-context-swatch {
+    width: 20px;
+    height: 20px;
+}
+.selection-context-menu[data-mode='mobile'].has-sub .selection-context-color-block
     .selection-context-wide {
     flex: 1 1 auto;
     min-width: 0;
-    min-height: 22px;
+    min-height: 24px;
     padding: 0 6px;
-    font-size: 11px;
+    font-size: 12px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;

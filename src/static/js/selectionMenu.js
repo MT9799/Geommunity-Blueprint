@@ -251,6 +251,8 @@
     };
 
     const buildColor = body => {
+        const block = document.createElement('div');
+        block.className = 'selection-context-color-block';
         const row = document.createElement('div');
         row.className = 'selection-context-swatches';
         const style = styleOf();
@@ -264,7 +266,7 @@
             swatch.addEventListener('click', () => { apply({color}); close(); });
             row.appendChild(swatch);
         });
-        body.appendChild(row);
+        block.appendChild(row);
         const custom = document.createElement('button');
         custom.type = 'button';
         custom.className = 'selection-context-wide';
@@ -277,7 +279,8 @@
                 value => { picked = value; apply({color: value}, true); },
                 () => { apply({color: picked}); close(); });
         });
-        body.appendChild(custom);
+        block.appendChild(custom);
+        body.appendChild(block);
     };
 
     const buildSize = (body, kind) => {

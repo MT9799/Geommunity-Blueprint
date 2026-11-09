@@ -2192,6 +2192,10 @@ function isResultProduced(id) {
     };
     if (!hasCoordinate(resultElement)) return false;
     const type = resultElement.getType();
+    // 等价口径：点比坐标；直线 / 线段比「所在直线」（lineEquative 只验共线）；
+    // 圆与弧比「所在整圆」（circleEquative 只验圆心 + 半径，不读 base.type / 弧起止点）。
+    // 因此所求判定里出现半圆 / 圆弧时，玩家画出同圆心同半径的整圆即算作出，
+    // 与线段按所在直线判同理；弧的范围与端点都不做额外约束（segmentEndpointsProduced 只管线段）
     const equative = type === 'point' ? ToolsFunction.pointEquative
         : type === 'line' ? ToolsFunction.lineEquative
         : type === 'circle' ? ToolsFunction.circleEquative : null;

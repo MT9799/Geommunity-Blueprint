@@ -315,18 +315,30 @@ function loadGeometryElements() {
                 const angle = Math.atan2(dy, dx);
                 
                 const radius = size * 0.4;
+                // 半圆 / 圆弧不是整圆：按主画布的起止角画一段弧，别画满一圈
+                const arcInfo = typeof window.thumbnailArcPathOf === 'function'
+                    ? window.thumbnailArcPathOf(element, centerX, centerY, radius) : null;
                 const radian = angle;
-                const endX = centerX - radius * Math.cos(radian);
-                const endY = centerY - radius * Math.sin(radian);
+                const endX = arcInfo ? arcInfo.endX : centerX - radius * Math.cos(radian);
+                const endY = arcInfo ? arcInfo.endY : centerY - radius * Math.sin(radian);
                 
-                const centerCircle = document.createElementNS(svgNS, "circle");
-                centerCircle.setAttribute("cx", centerX);
-                centerCircle.setAttribute("cy", centerY);
-                centerCircle.setAttribute("r", radius);
-                centerCircle.setAttribute("stroke", color);
-                centerCircle.setAttribute("stroke-width", '10');
-                centerCircle.setAttribute("fill", 'transparent');
-                svg.appendChild(centerCircle);
+                if (arcInfo) {
+                    const arcShape = document.createElementNS(svgNS, "path");
+                    arcShape.setAttribute("d", arcInfo.d);
+                    arcShape.setAttribute("stroke", color);
+                    arcShape.setAttribute("stroke-width", '10');
+                    arcShape.setAttribute("fill", 'transparent');
+                    svg.appendChild(arcShape);
+                } else {
+                    const centerCircle = document.createElementNS(svgNS, "circle");
+                    centerCircle.setAttribute("cx", centerX);
+                    centerCircle.setAttribute("cy", centerY);
+                    centerCircle.setAttribute("r", radius);
+                    centerCircle.setAttribute("stroke", color);
+                    centerCircle.setAttribute("stroke-width", '10');
+                    centerCircle.setAttribute("fill", 'transparent');
+                    svg.appendChild(centerCircle);
+                }
 
                 // 点点
                 const point1 = document.createElementNS(svgNS, "circle");
@@ -337,6 +349,18 @@ function loadGeometryElements() {
                 point1.setAttribute("stroke-width", '10');
                 point1.setAttribute("fill", 'white');
                 svg.appendChild(point1);
+
+                // 弧的起点也要标出来（终点由下面的 point2 画在 endX / endY）
+                if (arcInfo) {
+                    const startPoint = document.createElementNS(svgNS, "circle");
+                    startPoint.setAttribute("cx", arcInfo.startX);
+                    startPoint.setAttribute("cy", arcInfo.startY);
+                    startPoint.setAttribute("r", "15");
+                    startPoint.setAttribute("stroke", color);
+                    startPoint.setAttribute("stroke-width", '10');
+                    startPoint.setAttribute("fill", 'white');
+                    svg.appendChild(startPoint);
+                }
 
                 const point2 = document.createElementNS(svgNS, "circle");
                 point2.setAttribute("cx", endX);

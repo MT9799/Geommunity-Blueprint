@@ -149,6 +149,8 @@
     const target = geometryManager.get(id);
     if (!target) return false;
     const type = target.getType();
+    // 同 playPage 的 isResultProduced：直线 / 线段按「所在直线」、圆与弧按「所在整圆」判，
+    // 所求判定里出现半圆 / 圆弧时，玩家画出同圆心同半径的整圆即算作出（弧的端点 / 范围不约束）
     const equative = type === 'point' ? ToolsFunction.pointEquative
       : type === 'line' ? ToolsFunction.lineEquative
       : type === 'circle' ? ToolsFunction.circleEquative : null;
@@ -996,6 +998,7 @@
     const target = geometryManager.get(id);
     if (!target) return [];
     const type = target.getType();
+    // 同样按 circleEquative 的「所在整圆」口径：弧目标与同圆心同半径的整圆视为等价
     const equative = type === 'point' ? ToolsFunction.pointEquative
       : type === 'line' ? ToolsFunction.lineEquative
       : type === 'circle' ? ToolsFunction.circleEquative : null;
@@ -1512,12 +1515,13 @@
    */
   const enableImageZoom = (mask, picture, dismissOverlay) => {
     const MIN_SCALE = 1, MAX_SCALE = 8, STEP = 1.25;
-    let scale = 1, offsetX = 0, offsetY = 0, moved = false, lastPinch = null;
+    let scale = 1, offsetX = 0, offsetY = 0, rotation = 0, moved = false, lastPinch = null;
     const pointers = new Map();
     const parts = {};
 
     const applyTransform = () => {
-      picture.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+      const rotate = rotation ? ` rotate(${rotation}deg)` : '';
+      picture.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})${rotate}`;
       mask.classList.toggle('zoomed', scale > MIN_SCALE);
       parts.level.textContent = `${Math.round(scale * 100)}%`;
       parts.zoomOut.disabled = scale <= MIN_SCALE + 1e-6;
@@ -1553,12 +1557,14 @@
       zoomAt(scale * factor, rect.left + rect.width / 2 - offsetX, rect.top + rect.height / 2 - offsetY);
     };
     const resetZoom = () => { scale = 1; offsetX = 0; offsetY = 0; applyTransform(); };
+    const rotateImage = () => { rotation = (rotation + 90) % 360; applyTransform(); };
 
     const onKey = event => {
       if (event.key === 'Escape') { dismiss(); return; }
       if (event.key === '+' || event.key === '=') zoomBy(STEP);
       else if (event.key === '-' || event.key === '_') zoomBy(1 / STEP);
-      else if (event.key === '0') resetZoom();
+      else       if (event.key === '0') resetZoom();
+      else if (event.key === 'r' || event.key === 'R') rotateImage();
       else return;
       event.preventDefault();
     };
@@ -1568,6 +1574,16 @@
     };
     window.addEventListener('keydown', onKey);
 
+    // 右上角只留一个关闭按钮
+    const closeButton = document.createElement('button');
+    closeButton.type = 'button';
+    closeButton.className = 'image-zoom-close';
+    closeButton.textContent = '×';
+    closeButton.title = t('common.close');
+    closeButton.setAttribute('aria-label', t('common.close'));
+    closeButton.addEventListener('click', event => { event.stopPropagation(); dismiss(); });
+    mask.appendChild(closeButton);
+    // 底部工具栏：缩小 / 百分比 / 放大 / 旋转，取代原来那行的操作提示
     const toolbar = document.createElement('div');
     toolbar.className = 'image-zoom-toolbar';
     const addButton = (text, key, label, action) => {
@@ -1586,13 +1602,8 @@
     parts.level.className = 'image-zoom-level';
     toolbar.appendChild(parts.level);
     addButton('+', 'zoomIn', t('board.zoomIn'), () => zoomBy(STEP));
-    addButton('↺', 'reset', t('board.zoomReset'), resetZoom);
-    addButton('×', 'close', t('common.close'), dismiss);
+    addButton('↻', 'rotate', t('board.zoomRotate'), rotateImage);
     mask.appendChild(toolbar);
-    const hint = document.createElement('div');
-    hint.className = 'image-zoom-hint';
-    hint.textContent = t('board.zoomHint');
-    mask.appendChild(hint);
     picture.draggable = false;
     applyTransform();
 
@@ -1648,7 +1659,7 @@
       }
     };
     mask.addEventListener('pointerdown', event => {
-      if (event.target.closest?.('.image-zoom-toolbar')) return;
+      if (event.target.closest?.('.image-zoom-toolbar, .image-zoom-close')) return;
       pointers.set(event.pointerId, {x: event.clientX, y: event.clientY});
       moved = false;
       if (pointers.size === 2) lastPinch = twoPointerState();
@@ -1665,6 +1676,67 @@
     });
   };
   window.boardEnableImageZoom = enableImageZoom;
+
+  /**
+   * 元素一览 / 浮动栏 SVG 缩略图里的圆弧路径 过程函数
+   * 四个 createThumbnailSVG 原来对 type === 'circle' 一律画 <circle>（整圆），
+   * 于是所求显示里的半圆 / 圆弧（base.type = semicircle / arc / arc3）会被错画成整圆。
+   * 这里按主画布 drawCircle 的口径从 base.figure 取起止角，返回一段 SVG <path> 的 d 与弧终点；
+   * 非弧 / 端点取不到 / 退化成整圈时返回 null，调用方照旧画整圆
+   * @param {Object} element 圆 / 弧对象
+   * @param {number} centerX 缩略图圆心 X
+   * @param {number} centerY 缩略图圆心 Y
+   * @param {number} radius 缩略图半径
+   * @returns {{d: string, startX: number, startY: number, endX: number, endY: number}|null}
+   */
+  const thumbnailArcPathOf = (element, centerX, centerY, radius) => {
+    const base = element.getBase?.();
+    if (!base || !['semicircle', 'arc', 'arc3'].includes(base.type)) return null;
+    const coord = element.getCoordinate?.();
+    if (!Array.isArray(coord) || !Array.isArray(coord[0]) || !Array.isArray(coord[1])) return null;
+    const figure = Array.isArray(base.figure) ? base.figure : [];
+    const [cx, cy] = coord[0];
+    const angleOf = pt => {
+      const c = pt?.getCoordinate?.();
+      return Array.isArray(c) ? Math.atan2(c[1] - cy, c[0] - cx) : null;
+    };
+    const onCircle = Math.atan2(coord[1][1] - cy, coord[1][0] - cx);
+    const clockwise = (from, to) => (to - from + 2 * Math.PI) % (2 * Math.PI);
+    let from = null, to = null;
+    if (base.type === 'semicircle') {
+      // figure = [圆心, 起点, 终点]，半圆固定走 180°
+      from = angleOf(figure[1]) ?? onCircle;
+      if (from !== null) to = from + Math.PI;
+    } else if (base.type === 'arc') {
+      from = angleOf(figure[1]) ?? onCircle;
+      const end = angleOf(figure[2]);
+      if (end !== null) to = from + clockwise(from, end);
+    } else {
+      // arc3：figure = [起点, 过点, 终点]，过点不在顺时针弧上时改走反向
+      from = angleOf(figure[0]);
+      const through = angleOf(figure[1]);
+      const end = angleOf(figure[2]);
+      if (from !== null && end !== null) {
+        const delta = clockwise(from, end);
+        to = through !== null && clockwise(from, through) > delta
+          ? from - (2 * Math.PI - delta) : from + delta;
+      }
+    }
+    if (from === null || to === null) return null;
+    const delta = to - from;
+    // 零长度 / 退化成整圈：SVG 的 A 画不出重合端点，交回调用方画整圆
+    if (!Number.isFinite(delta) || Math.abs(delta) < 1e-6
+        || Math.abs(Math.abs(delta) - 2 * Math.PI) < 1e-6) return null;
+    const startX = centerX + radius * Math.cos(from);
+    const startY = centerY + radius * Math.sin(from);
+    const endX = centerX + radius * Math.cos(to);
+    const endY = centerY + radius * Math.sin(to);
+    const large = Math.abs(delta) > Math.PI ? 1 : 0;
+    const sweep = delta > 0 ? 1 : 0;
+    return {d: `M ${startX} ${startY} A ${radius} ${radius} 0 ${large} ${sweep} ${endX} ${endY}`,
+      startX, startY, endX, endY};
+  };
+  window.thumbnailArcPathOf = thumbnailArcPathOf;
 
   /**
    * 全屏看一张图 过程函数
@@ -2649,7 +2721,9 @@
       if (!dict) return null;
       const extension = shapeExtensions.get(id);
       if (dict && extension) {
-        const match = extension.match(/^([A-Za-z]+)\s*\[(.*)\]$/);
+        // 扩展名可以带数字（Arc3）：只认纯字母会让三点圆弧整段匹配失败，
+        // 载入后保持 Circle3 的 threePointCircle，弧就被画成整圆
+        const match = extension.match(/^([A-Za-z]\w*)\s*\[(.*)\]$/);
         const args = match ? match[2].split(',').map(item => item.trim()) : [];
         const name = match ? match[1].toLowerCase() : '';
         if (dict.type === 'circle' && ['semicircle', 'arc', 'arc3'].includes(name)) {
