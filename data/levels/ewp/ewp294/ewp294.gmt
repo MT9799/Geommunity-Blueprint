@@ -33,5 +33,5 @@ initial=S1,S2,S3,C,A,B
 named=
 movepoints=
 hidden=
-result=s3,s5,s4C,S7,I,S6,S5,S8,G,S4,F,S9,B,S10,J,S11,H,A,S12,E,D
+result=s3,s5,s4:C,S7,I,S6,S5,S8,G,S4,F,S9,B,S10,J,S11,H,A,S12,E,D
 explore=G,S5,S6,S4,D,F,I,E,H,J
