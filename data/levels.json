@@ -6042,7 +6042,7 @@
         "file": "levels/from-baidu-tieba/007.2sider-eulerl-retri/2sider-eulerl-retri.gmt",
         "title": "欧拉线与两边",
         "subtitle": "给定一角和一定直线，作出一三角形，两边为角的两边，且其欧拉线为给定直线。",
-        "targetSteps": "5L / 9E",
+        "targetSteps": "5L / 7E",
         "diagram": "levels/from-baidu-tieba/007.2sider-eulerl-retri/2sider-eulerl-retri.png",
         "note": "",
         "keywords": [
@@ -6056,6 +6056,10 @@
             {
                 "star": "5L 9E",
                 "file": "levels/from-baidu-tieba/007.2sider-eulerl-retri/5L9E.png"
+            },
+            {
+                "star": "7E",
+                "file": "levels/from-baidu-tieba/007.2sider-eulerl-retri/7e.png"
             }
         ]
     },
@@ -6093,7 +6097,7 @@
         "file": "levels/from-baidu-tieba/009.bicentric-quad-by-3v/bicentric-quad-by-3v.gmt",
         "title": "双心四边形的第四点",
         "subtitle": "已知一双心四边形（既有外接圆又有内切圆的四边形）的三个顶点，求作第四个顶点。",
-        "targetSteps": "8L / 11E",
+        "targetSteps": "6L / 10E",
         "diagram": "levels/from-baidu-tieba/009.bicentric-quad-by-3v/bicentric-quad-by-3v.png",
         "note": "",
         "keywords": [
@@ -6113,6 +6117,10 @@
                 "file": "levels/from-baidu-tieba/009.bicentric-quad-by-3v/11E.jpg"
             },
             {
+                "star": "6L 10E",
+                "file": "levels/from-baidu-tieba/009.bicentric-quad-by-3v/6l10e.png"
+            },
+            {
                 "star": "3V",
                 "file": "levels/from-baidu-tieba/009.bicentric-quad-by-3v/3V.jpg"
             }
@@ -6124,7 +6132,7 @@
         "file": "levels/from-baidu-tieba/010.inangle-collinear-concyclic/inangle-collinear-concyclic.gmt",
         "title": "角内过点弦共圆",
         "subtitle": "已知角内两点D、E，过E作一条直线，使其与角两边的两交点、角的顶点和点D四点共圆。",
-        "targetSteps": "6L / 13E",
+        "targetSteps": "6L / 8E",
         "diagram": "levels/from-baidu-tieba/010.inangle-collinear-concyclic/inangle-collinear-concyclic.png",
         "note": "",
         "keywords": [
@@ -6335,7 +6343,7 @@
         "file": "levels/from-baidu-tieba/017.sperp-tri-area-bisect/sperp-tri-area-bisect.gmt",
         "title": "垂直面积平分线",
         "subtitle": "作一与三角形的AB边垂直的直线，等分三角形的面积。",
-        "targetSteps": "5L / 10E",
+        "targetSteps": "5L / 9E",
         "diagram": "levels/from-baidu-tieba/017.sperp-tri-area-bisect/sperp-tri-area-bisect.png",
         "note": "",
         "keywords": [
@@ -6358,6 +6366,10 @@
             {
                 "star": "10E",
                 "file": "levels/from-baidu-tieba/017.sperp-tri-area-bisect/10E.png"
+            },
+            {
+                "star": "9E",
+                "file": "levels/from-baidu-tieba/017.sperp-tri-area-bisect/9e.png"
             }
         ]
     },
@@ -9607,7 +9619,7 @@
         "file": "levels/xeuclidea-puzzle/xep7/xep7.gmt",
         "title": "XEP7",
         "subtitle": "已知正方形内一点，求作内接正方形，使得其中一边过给定点。",
-        "targetSteps": "8L / 7E",
+        "targetSteps": "8L / 12E",
         "diagram": "levels/xeuclidea-puzzle/xep7/xep7.jpg",
         "note": "",
         "keywords": [
@@ -9625,10 +9637,6 @@
             {
                 "star": "9L",
                 "file": "levels/xeuclidea-puzzle/xep7/9L.jpg"
-            },
-            {
-                "star": "7E",
-                "file": "levels/xeuclidea-puzzle/xep7/7E.jpg"
             },
             {
                 "star": "12E",
@@ -9650,7 +9658,7 @@
         "file": "levels/xeuclidea-puzzle/xep8/xep8.gmt",
         "title": "XEP8",
         "subtitle": "已知圆上一点，求作正五角星，使得其中一顶点为给定点。",
-        "targetSteps": "8L / 10E",
+        "targetSteps": "9L / 10E",
         "diagram": "levels/xeuclidea-puzzle/xep8/xep8.png",
         "note": "",
         "keywords": [
@@ -9660,10 +9668,6 @@
             "内接"
         ],
         "solutions": [
-            {
-                "star": "8L",
-                "file": "levels/xeuclidea-puzzle/xep8/8L.jpg"
-            },
             {
                 "star": "9L",
                 "file": "levels/xeuclidea-puzzle/xep8/9L.jpg"
@@ -9684,7 +9688,7 @@
         "file": "levels/xeuclidea-puzzle/xep9/xep9.gmt",
         "title": "XEP9",
         "subtitle": "已知一条线段，求作正五边形，使得其中一边为给定线段。",
-        "targetSteps": "11E",
+        "targetSteps": "9L/10E",
         "diagram": "levels/xeuclidea-puzzle/xep9/xep9.png",
         "note": "",
         "keywords": [
@@ -9696,15 +9700,7 @@
         "solutions": [
             {
                 "star": "9L",
-                "file": "levels/xeuclidea-puzzle/xep9/9L.jpg"
-            },
-            {
-                "star": "9L",
-                "file": "levels/xeuclidea-puzzle/xep9/9L2.jpg"
-            },
-            {
-                "star": "9E",
-                "file": "levels/xeuclidea-puzzle/xep9/9E.jpg"
+                "file": "levels/xeuclidea-puzzle/xep9/9l.png"
             },
             {
                 "star": "10E",
@@ -9726,7 +9722,7 @@
         "file": "levels/xeuclidea-puzzle/xep10/xep10.gmt",
         "title": "XEP10",
         "subtitle": "已知一条线段，求作正五角星，使得其中一边为给定线段。",
-        "targetSteps": "10L / 10E",
+        "targetSteps": "9L / 10E",
         "diagram": "levels/xeuclidea-puzzle/xep10/xep10.png",
         "note": "",
         "keywords": [
@@ -9738,14 +9734,6 @@
             {
                 "star": "9L",
                 "file": "levels/xeuclidea-puzzle/xep10/9L.jpg"
-            },
-            {
-                "star": "10L 10E",
-                "file": "levels/xeuclidea-puzzle/xep10/10L10E.png"
-            },
-            {
-                "star": "10E",
-                "file": "levels/xeuclidea-puzzle/xep10/10E.jpg"
             },
             {
                 "star": "2V",
@@ -12683,7 +12671,7 @@
         "file": "levels/weekly-tangent/wt38/weekly-tangent-38.gmt",
         "title": "双圆四边形",
         "subtitle": "给定双心四边形的外接圆和内心I，求作内切圆。",
-        "targetSteps": "6L / 10E",
+        "targetSteps": "6L / 8E",
         "diagram": "levels/weekly-tangent/wt38/Weekly Tangent 038.png",
         "note": "",
         "keywords": [
@@ -12700,7 +12688,11 @@
         "solutions": [
             {
                 "file": "levels/weekly-tangent/wt38/wt38-6l10e.png",
-                "star": "6L 10E"
+                "star": "6L"
+            },
+            {
+                "file": "levels/weekly-tangent/wt38/8e.png",
+                "star": "8E"
             }
         ]
     },
