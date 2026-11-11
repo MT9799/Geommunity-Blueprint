@@ -3450,10 +3450,6 @@ html.vt-reveal #container_more {
     from { opacity: 0; transform: translateY(6px); }
     to { opacity: 1; transform: none; }
 }
-@keyframes view-panel-in {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: none; }
-}
 @keyframes view-dialog-in {
     from { opacity: 0; transform: translateY(10px) scale(.985); }
     to { opacity: 1; transform: none; }
@@ -3486,11 +3482,14 @@ html.nav-pending #container_more {
     }
 }
 
-/* 三块主面板：display 切换时从下方轻轻滑入。
+/* 三块主面板：display 切换时淡入。
+   这里不能用带 transform 的入场动画：带 transform 的祖先会成为 position:fixed 后代的
+   containing block。手机端 .mark-toolbar 在 #toolbarPanel 里且是 fixed，动画播放期间会
+   相对这个贴底的面板定位（右下角），等 transform 归零才跳回视口右上角，看起来就是闪一下。
    求解 / 雷达面板不在这里加基础动画 —— 它们由页签切换的左右平移动画负责，
    否则切换时基础动画会和页签动画先后各播一次，看起来闪两下 */
 .panel {
-    animation: view-panel-in .22s cubic-bezier(.2, .8, .2, 1);
+    animation: view-fade-in .22s ease-out;
 }
 
 /* 更多菜单 / 样式弹层：支持 display 离散过渡的浏览器里带淡入（退场由 allow-discrete 负责） */

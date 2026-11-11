@@ -73,9 +73,36 @@
         return only ? [only] : [];
     };
 
-    /** 被标记的对象要读它自己的样式色 / 标签状态，而不是标记显示色 */
-    const styleOf = () => {
-        const element = currentId && geometryManager.get(currentId);
+    /** 线段（记号只属于线段：直线 / 射线 / 圆 / 点都没有） */
+    const isSegment = item => item.getType?.() === 'line'
+        && item.getDrawType?.() === 'lineSegment';
+
+    /**
+     * 某个样式项能不能作用到这个对象 过程函数
+     * 菜单按「选中里存在适用对象就显示」（最大化覆盖），应用时只改适用的那些对象：
+     * 点没有虚线，记号只属于线段；颜色 / 粗细 / 标签 / 隐藏对所有对象都适用
+     * @param {Object} item
+     * @param {string} key color | width | showName | visible | dashed | mark
+     * @returns {boolean}
+     */
+    const supportsStyle = (item, key) => {
+        if (key === 'dashed') return item.getType?.() !== 'point';
+        if (key === 'mark') return isSegment(item);
+        return true;
+    };
+
+    /**
+     * 当前样式 过程函数
+     * 默认读右键 / 点开的那个对象；传 onlyIf 时优先读「该样式实际能作用到的」第一个选中对象，
+     * 这样混选时虚线 / 记号开关显示的是会被改动的那些对象的状态，而不是右键那个点的
+     * 被标记的对象要读它自己的样式色 / 标签状态，而不是标记显示色
+     * @param {Function} [onlyIf] 筛选适用对象
+     */
+    const styleOf = onlyIf => {
+        const list = targetsOf();
+        const element = (typeof onlyIf === 'function' ? list.find(onlyIf) : null)
+            || (currentId && geometryManager.get(currentId))
+            || list[0];
         if (!element) return null;
         const own = typeof ownStyleOfElement === 'function' ? ownStyleOfElement(element) : null;
         return {
@@ -91,31 +118,22 @@
     /** 改样式：多选一起改，与「调整对象样式」弹层同一套收尾 */
     const apply = (patch, live) => {
         targetsOf().forEach(item => {
-            if (patch.color) item.modifyColor(patch.color);
-            if (patch.width) item.modifyWidth(patch.width);
-            if (patch.dashed !== undefined) item.modifyDashed(patch.dashed);
-            if (patch.mark !== undefined && typeof item.modifyMark === 'function') item.modifyMark(patch.mark);
-            if (patch.showName !== undefined) item.modifyShowName(patch.showName);
-            if (patch.visible !== undefined && typeof setElementVisible === 'function') {
-                setElementVisible(item, patch.visible);
-            }
+            if (patch.color && supportsStyle(item, 'color')) item.modifyColor(patch.color);
+            if (patch.width && supportsStyle(item, 'width')) item.modifyWidth(patch.width);
+            if (patch.showName !== undefined && supportsStyle(item, 'showName')) item.modifyShowName(patch.showName);
+            if (patch.visible !== undefined && supportsStyle(item, 'visible')
+                && typeof setElementVisible === 'function') setElementVisible(item, patch.visible);
+            // 虚线 / 记号只对支持的对象生效：菜单是「最大化覆盖」，混选时这两项也会出现
+            if (patch.dashed !== undefined && supportsStyle(item, 'dashed')) item.modifyDashed(patch.dashed);
+            if (patch.mark !== undefined && supportsStyle(item, 'mark')
+                && typeof item.modifyMark === 'function') item.modifyMark(patch.mark);
         });
         if (typeof refreshToolFloating === 'function') refreshToolFloating();
         if (typeof drawContent === 'function') drawContent();
-        // 工具栏的点 / 线 / 圆样式按钮画的是 geometryStyle 预设（createStyleSample）：
-        // 只改对象、不追平预设，切回作图工具时「样式菜单栏」还停在原来的颜色 / 粗细
-        if (typeof geometryStyle !== 'undefined') {
-            const types = new Set(targetsOf().map(item => item.getType?.()));
-            types.forEach(type => {
-                const preset = geometryStyle[type];
-                if (!preset) return;
-                if (patch.color) preset.color = patch.color;
-                if (patch.width) preset.width = patch.width;
-                if (patch.showName !== undefined) preset.showName = patch.showName;
-                if (patch.dashed !== undefined) preset.dashed = patch.dashed;
-                if (typeof drawStyle === 'function') drawStyle(type);
-            });
-        }
+        // 这里只改选中的对象，绝不回写 geometryStyle：点 / 线 / 圆样式按钮是「配置后续绘制样式」
+        // 的入口，画的就是预设。以前为了让按钮预览跟着选中对象变而「追平预设」，结果把
+        // 对象样式灌进了类型预设，之后画的同类图形也跟着变（且预设弹层显示被污染）。
+        // 预设的唯一写入点是 stylePanel 的 openStyleConfigPopup.apply。
         if (typeof window.refreshElementListColors === 'function') window.refreshElementListColors();
         if (typeof refreshOpenedGeometryItem === 'function') refreshOpenedGeometryItem();
         // 「调整对象样式」弹层若正开着，内容还是打开时的快照，一并重画
@@ -300,9 +318,13 @@
     const buildSwitches = (body, kind) => {
         const style = styleOf();
         const list = targetsOf();
-        const isPoint = list.every(item => item.getType?.() === 'point');
-        const allSegments = list.length && list.every(item => item.getType?.() === 'line'
-            && item.getDrawType?.() === 'lineSegment');
+        // 「最大化覆盖」：只要选中里存在能用这项的对象就显示，不要求全部都能用。
+        // 状态则读「实际会被改动」的那些对象（styleOf 的 onlyIf），否则右键一个点、
+        // 选中有虚线段时，开关会显示点的状态，点一下反而是错的
+        const dashedOf = () => styleOf(item => supportsStyle(item, 'dashed'));
+        const markOf = () => styleOf(item => supportsStyle(item, 'mark'));
+        const hasDashed = list.some(item => supportsStyle(item, 'dashed'));
+        const hasSegments = list.some(item => supportsStyle(item, 'mark'));
         const addSwitch = (labelKey, active, onToggle) => {
             const row = document.createElement('div');
             row.className = 'selection-context-switch-row';
@@ -315,21 +337,23 @@
         };
         addSwitch('board.styleLabel', !!(style && style.showName),
             () => { apply({showName: !(style && style.showName)}); renderSub(kind); });
-        if (!isPoint) {
-            addSwitch('board.styleDashed', !!(style && style.dashed),
-                () => { apply({dashed: !(style && style.dashed)}); renderSub(kind); });
+        if (hasDashed) {
+            const dashedStyle = dashedOf();
+            addSwitch('board.styleDashed', !!(dashedStyle && dashedStyle.dashed),
+                () => { apply({dashed: !(dashedStyle && dashedStyle.dashed)}); renderSub(kind); });
         }
         addSwitch('board.styleHide', !!(style && !style.visible),
             // 开关的「开」表示已隐藏：点一下要把 visible 取反，写成当前值等于没改
             () => { apply({visible: !(style && style.visible)}); close(); });
-        if (allSegments && typeof createMarkSelect === 'function') {
+        if (hasSegments && typeof createMarkSelect === 'function') {
+            const markStyle = markOf();
             const row = document.createElement('div');
             row.className = 'selection-context-switch-row';
             const label = document.createElement('span');
             label.className = 'selection-context-switch-label';
             label.textContent = text('board.styleMark', '记号');
             row.appendChild(label);
-            row.appendChild(createMarkSelect(style ? style.mark : 0, value => {
+            row.appendChild(createMarkSelect(markStyle ? markStyle.mark : 0, value => {
                 apply({mark: value});
                 renderSub(kind);
             }));
@@ -419,13 +443,24 @@
         if (typeof drawContent === 'function') drawContent();
     };
 
+    /** 当前移动工具选中栏里的全部 id（不掺入 currentId 兜底） */
+    const selectedIdsOf = () => {
+        const list = (typeof tools !== 'undefined' && tools.move
+            && typeof tools.move.selectedElements === 'function') ? tools.move.selectedElements() : [];
+        return list.map(item => item.getId?.()).filter(Boolean);
+    };
+
     // 桌面 / 作图工具：右键图形。右键的 mousedown 已在 index.js / playPage.js 里被忽略，
     // 这里自己按光标选中（写入移动工具的选中栏），样式 / 删除 / 属性都按它取目标
     canvas.addEventListener('contextmenu', event => {
         const id = pickAt(event.clientX, event.clientY);
         if (!id) { close(); return; }
         event.preventDefault();
-        selectOnly(id);
+        // 右键已经选中的图形：保留整批多选。selectOnly 会清掉整个选中栏再只加这一个，
+        // 于是「多选里随便右键一个」就退化成单选，之后改样式 / 删除只作用在它身上
+        const keepSelection = typeof tool === 'string' && tool === 'move'
+            && selectedIdsOf().includes(id);
+        if (!keepSelection) selectOnly(id);
         open(event.clientX, event.clientY, id);
     });
 
@@ -442,13 +477,14 @@
         if (Math.hypot(event.clientX - start.x, event.clientY - start.y) > 8) return;
         if (typeof tool !== 'string' || tool !== 'move' || !isMobileLayout()) return;
         const selected = geometryManager.getToolKey?.('move', 'choice');
-        const id = selected?.getId?.();
-        if (!id) return;
-        // 点空白处不该把刚收起的菜单又弹回来：以光标下确实有图形为准
-        if (!pickAt(event.clientX, event.clientY)) return;
+        if (!selected?.getId?.()) return;
+        // 点空白处不该把刚收起的菜单又弹回来：以光标下确实有图形为准。
+        // 菜单作用于整批选中，但当前值读「点到的那个」，多选时也一致
+        const hitId = pickAt(event.clientX, event.clientY);
+        if (!hitId) return;
         const at = {x: event.clientX, y: event.clientY};
         setTimeout(() => {
-            if (typeof tool === 'string' && tool === 'move' && geometryManager.get(id)) open(at.x, at.y, id);
+            if (typeof tool === 'string' && tool === 'move' && geometryManager.get(hitId)) open(at.x, at.y, hitId);
         }, 0);
     });
 

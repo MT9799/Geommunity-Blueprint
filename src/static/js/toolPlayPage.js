@@ -575,14 +575,21 @@ function refreshToolFloating() {
             svg.classList.add('disable');
         }
     }
-    // 删除选中对象：只有移动工具选中了「可以删的对象」时才亮（关卡自带的图形不给删）
+    // 删除选中对象：整批选中里只要有一个「可以删的对象」就亮（关卡自带的图形不给删）。
+    // 只看 choice 单键时，Ctrl 加选后又点掉第一个、只剩 choice2 会把按钮误判成没选中
     function setDeleteObjectAble(item) {
         const buttonDE = document.getElementById(`button-${tool}-${item}`);
         if (!buttonDE) return;
         const svg = buttonDE.querySelector('svg');
-        const choice = geometryManager.getToolKey(tool, 'choice');
-        const protectedElement = choice && typeof isProtectedElement === 'function' && isProtectedElement(choice.getId());
-        const able = !!choice && !protectedElement;
+        const selected = typeof tools[tool]?.selectedElements === 'function'
+            ? tools[tool].selectedElements() : [];
+        let ids = selected.map(element => element.getId());
+        if (!ids.length) {
+            const fallback = geometryManager.getToolKey(tool, 'choice');
+            if (fallback) ids = [fallback.getId()];
+        }
+        const able = ids.some(id => !(typeof isProtectedElement === 'function'
+            && isProtectedElement(id)));
         buttonDE.classList.toggle('disable', !able);
         if (svg) svg.classList.toggle('disable', !able);
     }
@@ -822,19 +829,43 @@ function clickToolFloatingButton(action, event) {
         openObjectStylePopup();
     }else if (action === 'deleteObject') {
         // 删除移动工具选中的对象：连同它的所有子对象（依赖它作出来的图形）一起删，可撤销。
-        // 关卡自带的图形（给定 / 关卡预绘制）是题目的一部分，不允许删掉
-        const choice = geometryManager.getToolKey(tool, 'choice');
-        if (choice && typeof isProtectedElement === 'function' && isProtectedElement(choice.getId())) {
-            if (typeof boardToast === 'function') boardToast(t('board.toastGivenNoDelete'));
-        }else if (choice) {
+        // 关卡自带的图形（给定 / 关卡预绘制）是题目的一部分，不允许删掉。
+        // 多选时一次删掉整批（一次点击 = 一步历史 + 一次步数扣减）：原来只取 choice 单键，
+        // 于是「全选 / Ctrl 加选」后点删除只有第一个消失，选中栏还被一并清空
+        const selected = typeof tools[tool]?.selectedElements === 'function'
+            ? tools[tool].selectedElements() : [];
+        let ids = selected.map(item => item.getId());
+        if (!ids.length) {
+            const fallback = geometryManager.getToolKey(tool, 'choice');
+            if (fallback) ids = [fallback.getId()];
+        }
+        const deletable = ids.filter(id => !(typeof isProtectedElement === 'function'
+            && isProtectedElement(id)));
+        const blocked = ids.length - deletable.length;
+        if (!deletable.length) {
+            if (blocked && typeof boardToast === 'function') boardToast(t('board.toastGivenNoDelete'));
+        }else{
             // 删掉这一笔就该把它当初记的步数与消耗退回来：先算出退回量（删除会连带删掉子对象，
-            // 所以要在删之前把仓库里的对象记下来，删完比对差异），再连着 storage 事件一起发出去，
-            // 计数器就能跟着更新
-            const refund = typeof constructionRefundOfDelete === 'function'
-                ? constructionRefundOfDelete(choice.getId())
-                : null;
+            // 所以要在删之前把仓库里的对象记下来，删完比对差异），再连着 storage 事件一起发出去。
+            // 整批只发一次 storage：多发会记成多步历史、步数扣多次、通关判定跑多遍
+            const refund = {e: 0, l: 0, count: 0};
+            deletable.forEach(id => {
+                // 先删的可能是后一个的父图形（子对象跟着一起没了）：删之前再确认一次还在不在
+                if (!geometryManager.get(id)) return;
+                const one = typeof constructionRefundOfDelete === 'function'
+                    ? constructionRefundOfDelete(id) : null;
+                if (one) {
+                    // constructionRefundOfDelete 内部已经执行删除，这里只累加退回量
+                    refund.e += one.e || 0;
+                    refund.l += one.l || 0;
+                    refund.count += one.count || 0;
+                }else{
+                    geometryManager.deleteObject(id);
+                }
+            });
             geometryManager.deleteTool(tool);
             window.dispatchEvent(new CustomEvent('storage', {detail: {type: 'delete', refund: refund}}));
+            if (blocked && typeof boardToast === 'function') boardToast(t('board.toastGivenNoDelete'));
         }
     }else if (action === 'hideToggle') {
         // 选中了图形：隐藏 / 显示它；没选中：开关「隐藏刷」模式

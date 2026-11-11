@@ -558,12 +558,15 @@ function refreshToolFloating() {
             svg.classList.add('disable');
         }
     }
-    // 删除选中对象：只有移动工具真的选中了某个对象时才亮
+    // 删除选中对象：整批选中里任意一个就亮（Ctrl 加选后点掉第一个、只剩 choice2 也别误灰）
     function setDeleteObjectAble(item) {
         const buttonDE = document.getElementById(`button-${tool}-${item}`);
         if (!buttonDE) return;
         const svg = buttonDE.querySelector('svg');
-        const able = !!geometryManager.getToolKey(tool, 'choice');
+        const selected = typeof tools[tool]?.selectedElements === 'function'
+            ? tools[tool].selectedElements() : [];
+        let able = selected.length > 0;
+        if (!able) able = !!geometryManager.getToolKey(tool, 'choice');
         buttonDE.classList.toggle('disable', !able);
         if (svg) svg.classList.toggle('disable', !able);
     }
