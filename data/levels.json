@@ -6258,9 +6258,9 @@
         "id": "2equal-insc-c",
         "pack": "from-baidu-tieba",
         "file": "levels/from-baidu-tieba/014.2equal-insc-c/2equal-insc-c.gmt",
-        "title": "相等的内切圆",
-        "subtitle": "三角形ABC，边BC上有一点D，使三角形ABD和三角形ACD的内切圆大小相等。作出满足条件的两内切圆。",
-        "targetSteps": "8L / 15E",
+        "title": "等内切圆点",
+        "subtitle": "给定三角形ABC，在BC边上找一点P，使得三角形ABP和ACP的内切圆大小相等。",
+        "targetSteps": "6L / 8E",
         "diagram": "levels/from-baidu-tieba/014.2equal-insc-c/2equal-insc-c.png",
         "note": "",
         "keywords": [
@@ -6272,12 +6272,8 @@
         ],
         "solutions": [
             {
-                "star": "8L",
-                "file": "levels/from-baidu-tieba/014.2equal-insc-c/8L.png"
-            },
-            {
-                "star": "15E",
-                "file": "levels/from-baidu-tieba/014.2equal-insc-c/15E.jpg"
+                "star": "6L 8E",
+                "file": "levels/from-baidu-tieba/014.2equal-insc-c/6L8E.png"
             }
         ]
     },
