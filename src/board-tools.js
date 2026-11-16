@@ -6863,14 +6863,16 @@
     const helpIndex = menuItems.findIndex(item => item.actionKey === 'help');
     menuItems.splice(helpIndex < 0 ? menuItems.length : helpIndex, 0,
       {
-        label: t('board.importGmt'), templateId: 'importGmt', actionKey: 'import-gmt',
+        label: t('board.menuImport'), templateId: 'importGmt', actionKey: 'import-gmt',
         action: () => optionDialog(t('board.importGmt'), [
           { label: t('board.menuImportGmtCode'), templateId: 'gmtPaste', actionKey: 'gmt-paste', action: () => codeDialog(t('board.menuImportGmtCode'), '', loadGmt) },
           { label: t('board.menuImportGmtFile'), templateId: 'gmtRead', actionKey: 'gmt-read', action: readGmtFile },
+          { label: t('board.menuImportGgbFile'), templateId: 'importGgb', actionKey: 'ggb-read',
+            action: () => window.ggbImport?.pickGgbFile(loadGmt) },
         ]),
       },
       {
-        label: t('board.exportGmt'), templateId: 'exportGmt', actionKey: 'export-gmt',
+        label: t('board.menuExport'), templateId: 'exportGmt', actionKey: 'export-gmt',
         action: () => optionDialog(t('board.exportGmt'), [
           { label: t('board.menuViewGmt'), templateId: 'gmtView', actionKey: 'gmt-view', action: () => codeDialog(t('board.gmtCodeTitle'), gmtText()) },
           { label: t('board.menuSaveGmt'), templateId: 'gmtSave', actionKey: 'gmt-save', action: saveGmtFile },

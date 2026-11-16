@@ -924,6 +924,7 @@ const infDict = {
     "gmt-issue": {title: "导出至 Issue", context: "在 GitHub 打开预填 gmt 的 Issue"},
     "gmt-paste": {title: "导入 gmt 代码", context: "粘贴 gmt 文本并载入图形"},
     "gmt-read": {title: "导入 gmt 文件", context: "选择本地 gmt 文件并载入图形"},
+    "ggb-read": {title: "导入 ggb 文件", context: "选择本地 GeoGebra 文件并转换为 gmt"},
     "general-bar": {title: "通用工具栏", context: ""},
     "point-bar": {title: "点工具栏", context: ""},
     "line-bar": {title: "直线工具栏", context: ""},

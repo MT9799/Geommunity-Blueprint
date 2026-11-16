@@ -640,6 +640,8 @@ fill="transparent" stroke-width="10" stroke-linejoin="round"/>
     <script src="./levels-data.js"></script>
     <!-- 入群题：关卡加载由文末内联脚本完成（gmt 与关卡信息都内联在此文件），不再用 level-loader.js 从 levels.json 拉取 -->
     <script src="./board-tools.js"></script>
+    <!-- ggb 导入：要在 board-tools.js 提供 parseGmt / boardGmt 之后 -->
+    <script src="./static/js/ggbImport.js"></script>
     <!-- 历史记录：数据层 + 面板（要排在 playPage.js / board-tools.js 之后） -->
     <script src="./static/js/recordStore.js"></script>
     <script src="./static/js/recordPanel.js"></script>

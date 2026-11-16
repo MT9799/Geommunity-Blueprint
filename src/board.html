@@ -754,6 +754,17 @@ fill="transparent" stroke-width="10"  stroke-linejoin="round"/>
 <polyline points="40 120, 40 170, 160 170, 160 120" fill="transparent" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
         </template>
+        <!-- 导入 ggb：五点圆锥曲线（椭圆轮廓 + 五个点），与 GeoGebra 的「五点定圆锥曲线」对应 -->
+        <template id="svg-importGgb">
+<svg class="svg-icon" viewBox="0 0 200 200">
+<ellipse cx="100" cy="100" rx="68" ry="44" fill="transparent" stroke-width="8"/>
+<circle cx="155" cy="126" r="12" fill="transparent" stroke-width="10"/>
+<circle cx="79" cy="142" r="12" fill="transparent" stroke-width="10"/>
+<circle cx="32" cy="100" r="12" fill="transparent" stroke-width="10"/>
+<circle cx="79" cy="58" r="12" fill="transparent" stroke-width="10"/>
+<circle cx="155" cy="74" r="12" fill="transparent" stroke-width="10"/>
+</svg>
+        </template>
         <template id="svg-gmtView">
 <svg class="svg-icon" viewBox="0 0 200 200">
 <path d="M 20 100 Q 100 30 180 100 Q 100 170 20 100 Z" fill="transparent" stroke-width="10" stroke-linejoin="round"/>
@@ -988,6 +999,8 @@ fill="transparent" stroke-width="10" stroke-linejoin="round"/>
     <script src="./static/js/geometryItem.js"></script>
     <script src="./static/js/index.js"></script>
     <script src="./board-tools.js"></script>
+    <!-- ggb 导入：要在 board-tools.js 提供 parseGmt / boardGmt 之后 -->
+    <script src="./static/js/ggbImport.js"></script>
     <!-- 移动工具选中图形后的上下文菜单（桌面右键 / 手机点击） -->
     <script src="./static/js/selectionMenu.js"></script>
     <!-- 历史记录：数据层 + 面板（要排在 index.js / board-tools.js 之后） -->

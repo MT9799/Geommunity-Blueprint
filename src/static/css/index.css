@@ -1238,6 +1238,18 @@ textarea {
     justify-content: flex-end;
 }
 
+/* 记录导入：几个选项竖着排、各占一行（「导入 gmt 代码 / 导入 gmt 文件 / 导入 ggb 文件」
+   横排会把最左边那个挤出屏幕，也会挤成折行） */
+.board-dialog-confirm .board-dialog-actions.vertical {
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+}
+
+.board-dialog-confirm .board-dialog-actions.vertical button {
+    width: 100%;
+}
+
 .board-dialog-actions .main-button {
     background-color: rgb(128, 128, 255);
 }

@@ -659,25 +659,31 @@
      * 内部样式的小弹层，给「导出 / 导入」这类有两条路的操作用
      * @param {string} title
      * @param {{label: string, action: Function}[]} items
+     * @param {{vertical?: boolean}} [options] vertical：按钮竖着排、各占一行（记录导入用）
      */
-    function chooseDialog(title, items) {
+    function chooseDialog(title, items, options = {}) {
         const mask = document.createElement('div');
         mask.className = 'board-dialog-mask';
-        mask.innerHTML = '<div class="board-dialog board-dialog-confirm"><strong></strong><div class="board-dialog-actions"></div></div>';
+        // 竖排时选项与「取消」分成两块：选项各占一行，取消跟制题器的选项弹层一样留在右下角
+        mask.innerHTML = options.vertical
+            ? '<div class="board-dialog board-dialog-confirm"><strong></strong><div class="board-dialog-actions vertical"></div><div class="board-dialog-actions"></div></div>'
+            : '<div class="board-dialog board-dialog-confirm"><strong></strong><div class="board-dialog-actions"></div></div>';
         mask.querySelector('strong').textContent = title;
-        const actions = mask.querySelector('.board-dialog-actions');
+        const groups = mask.querySelectorAll('.board-dialog-actions');
+        const list = groups[0];
+        const foot = options.vertical ? groups[1] : list;
         items.forEach(item => {
             const button = document.createElement('button');
             button.type = 'button';
             button.textContent = item.label;
             button.addEventListener('click', () => { dismissMask(mask); item.action(); });
-            actions.appendChild(button);
+            list.appendChild(button);
         });
         const cancelButton = document.createElement('button');
         cancelButton.type = 'button';
         cancelButton.textContent = t('common.cancel');
         cancelButton.addEventListener('click', () => dismissMask(mask));
-        actions.appendChild(cancelButton);
+        foot.appendChild(cancelButton);
         mask.addEventListener('click', event => { if (event.target === mask) dismissMask(mask); });
         document.body.appendChild(mask);
         return mask;
@@ -764,7 +770,11 @@
                     if (global.boardGmt && typeof global.boardGmt.pickFile === 'function') global.boardGmt.pickFile(text => importRecordText(text));
                 },
             },
-        ]);
+            {
+                label: t('board.menuImportGgbFile'),
+                action: () => global.ggbImport?.pickGgbFile(text => importRecordText(text)),
+            },
+        ], {vertical: true});
     }
 
     /**
