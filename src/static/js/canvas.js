@@ -35,6 +35,16 @@ const LINE_WIDTH_BASE = 3;
 function previewWidthOf(type) {
     return typeof defaultElementWidth === 'function' ? defaultElementWidth(type) : 0.75;
 }
+/**
+ * 绘制用宽度倍率 过程函数
+ * 游玩模式下已作出解的「所求显示」图形由 board-tools.js 加大一档（见 window.boardDisplayWidth）；
+ * 其余模式 / 拿不到该函数时照用对象自身宽度。只影响绘制，不改对象真实 width（不污染快照与记录）。
+ */
+function displayWidthOf(element) {
+    return typeof window.boardDisplayWidth === 'function'
+        ? window.boardDisplayWidth(element)
+        : (element.getWidth() || 1);
+}
 // 虚线的划段：一段实线 / 一段空白，按线宽走（与线宽一样除以 scale，屏幕上是固定长短）
 const DASH_ON_RATIO = 4;
 const DASH_OFF_RATIO = 3;
@@ -1639,7 +1649,7 @@ function drawPoint(element) {
     const color = element.getColor();
     const backgroundColor = autoBackgroundColor(color);
     // 点的大小：默认 1，可在样式面板中调整（外径基准见 POINT_RADIUS_BASE，白芯是它的一半）
-    const width = element.getWidth() || 1;
+    const width = displayWidthOf(element);
     const outRadius = POINT_RADIUS_BASE * width,
         inRadius = outRadius / 2;
 
@@ -1768,7 +1778,7 @@ function drawInfiniteLine(element) {
     const coordList = element.getCoordinate();
     if (!coordList) return;
     const color = element.getColor();
-    const width = element.getWidth() || 1;
+    const width = displayWidthOf(element);
 
     const [startX, startY] = coordList[0];
     const [endX, endY] = coordList[1];
@@ -1927,7 +1937,7 @@ function drawCircle(element) {
     const coordList = element.getCoordinate();
     if (!coordList) return;
     const color = element.getColor();
-    const width = element.getWidth() || 1;
+    const width = displayWidthOf(element);
 
     const [x1, y1] = coordList[0];
     const [x2, y2] = coordList[1];

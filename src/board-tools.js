@@ -71,7 +71,70 @@
     if (modeTitles[mode]) document.title = `${modeTitles[mode]} | Geommunity Blueprint`;
   }
   // 标记显示色：给定 / 带标签给定黑、可移动点蓝、所求类与探索显示金
-  const markColors = {initial: '#191919', named: '#191919', movepoints: '#0099ff', result: '#ffd700', resultShown: '#ffd700', explore: '#ffd700'};
+  // resultOther：游玩模式多解时，除最后一个解以外那些解的所求显示色（偏橙色的金）
+  const markColors = {initial: '#191919', named: '#191919', movepoints: '#0099ff', result: '#ffd700', resultShown: '#ffd700', resultOther: '#ffa500', explore: '#ffd700'};
+  /**
+   * 已作出解的「所求显示」对象 id 集合 过程函数
+   * 游玩页（level.html / 试玩）才有 satisfiedResultGroups；制题器 / 求解器没有这个全局，返回空集。
+   * 只在运行期读取，board-tools.js 虽在 playPage.js 之后加载，仍属同一全局词法作用域。
+   * @returns {Set<string>}
+   */
+  const satisfiedShownIds = () => {
+    const ids = new Set();
+    if (typeof satisfiedResultGroups === 'undefined' || !satisfiedResultGroups) return ids;
+    (satisfiedResultGroups || []).forEach(group => {
+      const list = group && group.shown && group.shown.length ? group.shown : ((group && group.judged) || []);
+      list.forEach(id => ids.add(id));
+    });
+    return ids;
+  };
+  /**
+   * 游玩模式下「所求显示」对象当前该显示的颜色 过程函数
+   * 作出 2 个以上解时，只有最后一个作出的解（satisfiedResultGroups 末项，组号最大）保持金色，
+   * 其余解的那些显示对象改成偏橙色的金，一眼分得清哪个是最新解出的那组。
+   * 单解 / 无解时返回 null，让调用方沿用原来的金色。
+   * @param {string} id
+   * @returns {string|null}
+   */
+  window.shownResultColorOf = id => {
+    if (typeof satisfiedResultGroups === 'undefined' || !satisfiedResultGroups || satisfiedResultGroups.length < 2) return null;
+    const groups = satisfiedResultGroups;
+    const last = groups[groups.length - 1];
+    const lastIds = new Set(last && last.shown && last.shown.length ? last.shown : ((last && last.judged) || []));
+    // 同一个对象若同时列在最后一组和其它组，按最后一组算（金色优先）
+    if (lastIds.has(id)) return markColors.result;
+    for (let index = 0; index < groups.length - 1; index++) {
+      const group = groups[index];
+      const list = group && group.shown && group.shown.length ? group.shown : ((group && group.judged) || []);
+      if (list.includes(id)) return markColors.resultOther;
+    }
+    return null;
+  };
+  /**
+   * 绘制宽度覆盖 过程函数（canvas.js 的 drawPoint / drawInfiniteLine / drawCircle 调用）
+   * 游玩模式下已作出解的「所求显示」图形：线 / 圆比自身档位**加大一档**，
+   * 点径只**加大半档**（点本来就更显眼，加一档会过大）。
+   * 这里只在绘制层换算，不改对象的 width —— width 会被 getDict 写进撤销快照和自动保存的记录，
+   * 把显示态的加粗写进去会污染玩家保存的解法。scale 换算仍由 canvas 层照常做。
+   * @param {Object} element 几何对象
+   * @returns {number} 绘制用宽度倍率
+   */
+  window.boardDisplayWidth = element => {
+    const base = element.getWidth() || 1;
+    if (!satisfiedShownIds().has(element.getId())) return base;
+    const values = typeof styleWidths !== 'undefined'
+      ? styleWidths.map(item => item.value) : [0.5, 0.75, 1, 1.25, 1.5];
+    const max = values[values.length - 1];
+    // 点径只加半档：档位间隔 0.25 的一半（0.75 → 0.875）
+    if (element.getType?.() === 'point') {
+      const half = values.length > 1 ? (values[1] - values[0]) / 2 : 0.125;
+      return Math.min(base + half, max);
+    }
+    // 线 / 圆加一档：按档位表顺延；宽度不在表里（自定义值）就按一档的间隔加
+    const index = values.findIndex(value => Math.abs(value - base) < 0.01);
+    if (index < 0) return Math.min(base + (values.length > 1 ? values[1] - values[0] : 0.25), max);
+    return values[Math.min(index + 1, values.length - 1)];
+  };
   // 标记的互斥关系：给定三项（给定 / 带标签给定 / 可移动点）互相排斥，一个对象只属于其中一个；
   // 所求判定 / 探索显示 与给定那三类互斥 —— 把「给定」标成「所求判定」会撤掉给定、反之亦然；
   // 但「所求显示」允许与「给定」共存（一个图形可以既是题面条件、又作为目标的显示对象），
@@ -477,7 +540,7 @@
       const pendingMoveColor = typeof givenFreePointColors !== 'undefined' && givenFreePointColors.has(id);
       let color;
       if (levelJudged) {
-        if (litShown && litShown.has(id)) color = markColors.result;
+        if (litShown && litShown.has(id)) color = window.shownResultColorOf(id) || markColors.result;
         else if (markSetOf('initial').has(id) || markSetOf('named').has(id)) color = markColors.initial;
         else if (markSetOf('movepoints').has(id)) color = markColors.movepoints;
         else if (levelJudged.has(id)) color = markColors.result;
@@ -6166,8 +6229,11 @@
       toast(t('board.markOutsideGrid'));
       return;
     }
-    // 可移动点只能是自由点（能拖得动的那种），交点 / 线上点 / 中点这些不算
-    if (marking === 'movepoints' && (item?.getType() !== 'point' || item.getBase().type !== 'none')) {
+    // 可移动点只能是「拖得动的点」：自由点（base.type === 'none'）或落在图形上的点
+    // （线上 / 圆上点，base.type === 'online'）—— 这两类在 modifyPointCoordinate 里都会真正移动，
+    // 线上点还会按当前基底反解参数；交点 / 中点 / 圆心这类构造点拖不动，标了也没用
+    if (marking === 'movepoints' && (item?.getType() !== 'point'
+      || !['none', 'online'].includes(item.getBase()?.type))) {
       toast(t('board.movepointOnlyFree'));
       return;
     }

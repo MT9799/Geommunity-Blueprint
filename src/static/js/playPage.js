@@ -2358,10 +2358,13 @@ function setResultGroupsVisible(groups, visible) {
             // （未作出的走 else 分支只藏非给定对象，颜色由 refreshElementListColors 按名单刷回黑）
             // 移动工具下给定自由点正显示临时蓝：不要直接把金色盖上去（会顶掉临时蓝、而还原缓存
             // 里还留着旧色），改成更新它退出移动工具时该还原的本色
+            // 多解：最后一个作出的解保持金色，其余解的所求显示改偏橙金（见 board-tools 的 shownResultColorOf）
+            const shownColor = (typeof window.shownResultColorOf === 'function'
+                ? window.shownResultColorOf(id) : null) || '#ffd700';
             if (typeof givenFreePointColors !== 'undefined' && givenFreePointColors.has(id)) {
-                givenFreePointColors.set(id, '#ffd700');
+                givenFreePointColors.set(id, shownColor);
             }else{
-                GeometryElement.prototype.modifyColor.call(element, '#ffd700');
+                GeometryElement.prototype.modifyColor.call(element, shownColor);
             }
             element.modifyVisible(true);
         }else if (!isGivenObject(id)) {

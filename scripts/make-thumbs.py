@@ -6,8 +6,9 @@
 - 题图改过名时（levels.json 的 diagram 已指向新文件），同一关卡目录里旧名字的 .webp 会被删掉；
 - 关卡包封面：扫描 data/packcovers，输出到 data/thumbs/packcovers/ 下同相对路径的 .webp；
 - 按最长边缩放到 360（小图同样会放大），质量 80。
-- 生成前先和已存在的缩略图按**感知哈希**比较（对「同图、不同 libwebp 版本重编码」鲁棒），哈希一致就**跳过**，
-  避免不同设备 / 版本重跑脚本时产生无意义的字节变动；`--no-compare` 可强制全部重编码。
+- 生成前先和已存在的缩略图比较：aHash 感知哈希（对「同图、不同 libwebp 版本重编码」鲁棒）一致，
+  **且**逐块平均像素差也不大（抓住 aHash 看不见的小面积改动，例如加几个角度文字），才跳过；
+  `no-compare` 可强制全部重编码。
 
 用法：
     python scripts/make-thumbs.py
@@ -25,7 +26,7 @@ import json
 import os
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageChops, ImageStat
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = PROJECT_ROOT / "data"
@@ -33,6 +34,9 @@ SOURCE_DIRS = ("packcovers",)
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp"}
 MAX_SIZE = 360
 WEBP_QUALITY = 80
+# 分块平均灰度差的跳过阈值：实测同图重编码该值 <3，无改动的现存图 <4，
+# 而改过字的图最低也有 19；取 10 留足余量，既不会因为重编码浮动误写、也不会漏掉局部改动
+BLOCK_TOL_DEFAULT = 10.0
 
 
 def load_levels() -> list[dict]:
@@ -90,15 +94,39 @@ def image_hash(img: Image.Image) -> int:
     return h
 
 
-def images_close(a: Image.Image, b: Image.Image, tol: int) -> bool:
-    """两张图是否为「同一张图」（按感知哈希的汉明距离判断，<= tol 即视为相同）。
+def max_block_diff(a: Image.Image, b: Image.Image, grid: int = 32) -> float:
+    """两张图切成 grid×grid 块后，单块平均灰度差的最大值。
 
-    都转成 RGB 再取哈希，统一 RGB / RGBA 的差异；某一边是调色板或灰度也兼容。
+    aHash 把整图压成 8×8 再二值化，局部小改动（例如加一处角度文字 / 两个小标签）
+    只占几个百分点像素，缩放 + 二值化后完全被抹平。
+    这里逐块取平均差再看最大值，专门抓这种「整体没变、局部变了」的情形。
+    """
+    diff = ImageChops.difference(a.convert("RGB"), b.convert("RGB")).convert("L")
+    bw, bh = max(1, a.width // grid), max(1, a.height // grid)
+    worst = 0.0
+    for row in range(grid):
+        for col in range(grid):
+            box = (col * bw, row * bh, min(a.width, (col + 1) * bw), min(a.height, (row + 1) * bh))
+            worst = max(worst, ImageStat.Stat(diff.crop(box)).mean[0])
+    return worst
+
+
+def images_close(
+    a: Image.Image, b: Image.Image, tol: int, block_tol: float = BLOCK_TOL_DEFAULT
+) -> bool:
+    """两张图是否为「同一张图」：aHash 汉明距离 <= tol，且分块最大平均差 <= block_tol。
+
+    两道判据缺一不可：aHash 保证对「同图、不同 libwebp 版本重编码」鲁棒，
+    分块差保证局部小改动不会被 aHash 抹平而误判为相同、跳过重编码。
+    都转成 RGB 再比较，统一 RGB / RGBA 的差异；调色板或灰度图也兼容。
     """
     if a.size != b.size:
         return False
-    ha, hb = image_hash(a.convert("RGB")), image_hash(b.convert("RGB"))
-    return bin(ha ^ hb).count("1") <= tol
+    ar, br = a.convert("RGB"), b.convert("RGB")
+    ha, hb = image_hash(ar), image_hash(br)
+    if bin(ha ^ hb).count("1") > tol:
+        return False
+    return max_block_diff(ar, br) <= block_tol
 
 
 def write_thumb(
@@ -107,12 +135,14 @@ def write_thumb(
     max_size: int,
     quality: int,
     compare_tol: int,
+    block_tol: float = BLOCK_TOL_DEFAULT,
     compare: bool = True,
 ) -> str:
     """把一张图缩成 WebP 写到 target。
 
-    compare=True 时，若新生成的图与已存在的 target 逐像素一致（容差 compare_tol），
-    就**不覆盖**旧文件——避免不同设备 / 不同 libwebp 版本重跑脚本时产生无意义的字节变动。
+    compare=True 时，若新生成的图与已存在的 target 感知哈希一致（容差 compare_tol）
+    且分块最大平均差不大（容差 block_tol），就**不覆盖**旧文件——避免不同设备 /
+    不同 libwebp 版本重跑脚本时产生无意义的字节变动，同时抓住局部小改动。
     返回 "skip" / "write"。
     """
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -129,7 +159,7 @@ def write_thumb(
             with Image.open(buf) as new_dec, Image.open(target) as old:
                 old.load()
                 new_dec.load()
-                if images_close(new_dec, old, compare_tol):
+                if images_close(new_dec, old, compare_tol, block_tol):
                     return "skip"
             target.write_bytes(buf.getvalue())  # 已编码好，直接落盘
             return "write"
@@ -175,6 +205,7 @@ def main() -> None:
     parser.add_argument("--max-size", type=int, default=MAX_SIZE, help="最长边像素（默认 360）")
     parser.add_argument("--quality", type=int, default=WEBP_QUALITY, help="WebP 质量（默认 80）")
     parser.add_argument("--compare-tol", type=int, default=2, help="感知哈希的汉明距离阈值（默认 2，0=严格一致才跳过；容忍不同 libwebp 版本有损重编码的浮动）")
+    parser.add_argument("--block-tol", type=float, default=BLOCK_TOL_DEFAULT, help="32×32 分块最大平均灰度差的跳过阈值（默认 10；抓 aHash 抹平的小面积改动，设很大可近似关掉这道判据）")
     parser.add_argument("--no-compare", action="store_true", help="关闭比较器，强制重编码覆盖所有缩略图")
     args = parser.parse_args()
 
@@ -198,7 +229,8 @@ def main() -> None:
             continue
         status = write_thumb(
             source, out_dir / Path(diagram).with_suffix(".webp"),
-            args.max_size, args.quality, args.compare_tol, compare,
+            args.max_size, args.quality, args.compare_tol,
+            block_tol=args.block_tol, compare=compare,
         )
         if status == "write":
             written += 1
@@ -210,7 +242,8 @@ def main() -> None:
             relative = source.relative_to(DATA_DIR)
             status = write_thumb(
                 source, out_dir / relative.with_suffix(".webp"),
-                args.max_size, args.quality, args.compare_tol, compare,
+                args.max_size, args.quality, args.compare_tol,
+                block_tol=args.block_tol, compare=compare,
             )
             if status == "write":
                 written += 1
