@@ -4202,7 +4202,7 @@
         "file": "levels/c-s-pzls-other/019.half-perp-chord/half-perp-chord.gmt",
         "title": "半垂弦",
         "subtitle": "构造与给定弦垂直的弦，且长度为前者的一半。",
-        "targetSteps": "4L / 11E",
+        "targetSteps": "4L / 9E",
         "diagram": "levels/c-s-pzls-other/019.half-perp-chord/half-perp-chord.jpg",
         "note": "",
         "keywords": [
@@ -4220,6 +4220,14 @@
             {
                 "star": "11E",
                 "file": "levels/c-s-pzls-other/019.half-perp-chord/11E.jpg"
+            },
+            {
+                "star": "9E ( < √13 r )",
+                "file": "levels/c-s-pzls-other/019.half-perp-chord/9e-sub_sqr13.png"
+            },
+            {
+                "star": "9E ( > √13 r )",
+                "file": "levels/c-s-pzls-other/019.half-perp-chord/9e-sup_sqr13.png"
             },
             {
                 "star": "2V",
@@ -4750,7 +4758,7 @@
         "file": "levels/c-s-pzls-other/037.2v-euline-retri/2v-euline-retri.gmt",
         "title": "两顶点与欧拉线",
         "subtitle": "已知三角形的两顶点及其欧拉线，作其第三个顶点。",
-        "targetSteps": "6L / 8E",
+        "targetSteps": "6L / 7E",
         "diagram": "levels/c-s-pzls-other/037.2v-euline-retri/2v-euline-retri.jpg",
         "note": "",
         "keywords": [
@@ -4767,8 +4775,16 @@
                 "file": "levels/c-s-pzls-other/037.2v-euline-retri/6L8E.jpg"
             },
             {
+                "star": "7E",
+                "file": "levels/c-s-pzls-other/037.2v-euline-retri/7e.png"
+            },
+            {
                 "star": "2V",
                 "file": "levels/c-s-pzls-other/037.2v-euline-retri/2V.jpg"
+            },
+            {
+                "star": "2V 8E",
+                "file": "levels/c-s-pzls-other/037.2v-euline-retri/2v8e.png"
             }
         ]
     },
@@ -4850,7 +4866,7 @@
         "file": "levels/c-s-pzls-other/040.3c-ctan-p/3c-ctan-p.gmt",
         "title": "三圆公切线共点",
         "subtitle": "以给定的圆心作三个圆，使其两两公切线共给定点。",
-        "targetSteps": "18L / 20E",
+        "targetSteps": "15L / 19E",
         "diagram": "levels/c-s-pzls-other/040.3c-ctan-p/3c-ctan-p.png",
         "note": "",
         "keywords": [
@@ -4861,6 +4877,10 @@
             "交点"
         ],
         "solutions": [
+            {
+                "star": "15L 19E",
+                "file": "levels/c-s-pzls-other/040.3c-ctan-p/15l19e.png"
+            },
             {
                 "star": "18L 20E",
                 "file": "levels/c-s-pzls-other/040.3c-ctan-p/18L20E.jpg"
@@ -5636,6 +5656,29 @@
             {
                 "star": "30E",
                 "file": "levels/c-s-pzls-other/066.a-conj-pts-onl/30E.png"
+            }
+        ]
+    },
+    {
+        "id": "abissect-retri",
+        "pack": "c-s-pzls-other",
+        "file": "levels/c-s-pzls-other/067.abissect-retri/abissect-retri.gmt",
+        "title": "角平分线截线长还原三角形",
+        "subtitle": "BD, CE为三角形ABC的角平分线，现给定边BC以及BE,CD的长度，构造三角形ABC.",
+        "targetSteps": "13E",
+        "diagram": "levels/c-s-pzls-other/067.abissect-retri/abissect-retri.png",
+        "note": "",
+        "keywords": [
+            "C-s-Pzls-Other",
+            "角平分线",
+            "三角形",
+            "还原三角形",
+            "圆"
+        ],
+        "solutions": [
+            {
+                "star": "13E",
+                "file": "levels/c-s-pzls-other/067.abissect-retri/13e.png"
             }
         ]
     },
@@ -12754,7 +12797,7 @@
         "file": "levels/weekly-tangent/wt31/weekly-tangent-31.gmt",
         "title": "Malfatti PXX",
         "subtitle": "Construct a C-C circle and a pair of outer tangents parallel to each other.",
-        "targetSteps": "30L / 54E",
+        "targetSteps": "21L / 27E",
         "diagram": "levels/weekly-tangent/wt31/Weekly Tangent 031.jpg",
         "note": "",
         "keywords": [
@@ -12767,6 +12810,14 @@
             "相切"
         ],
         "solutions": [
+            {
+                "file": "levels/weekly-tangent/wt31/21l.png",
+                "star": "21L"
+            },
+            {
+                "file": "levels/weekly-tangent/wt31/27e.png",
+                "star": "27E"
+            },
             {
                 "file": "levels/weekly-tangent/wt31/wt31-30l54e.png",
                 "star": "30L 54E"
