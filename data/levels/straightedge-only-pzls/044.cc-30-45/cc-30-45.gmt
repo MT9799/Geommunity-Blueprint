@@ -1,0 +1,22 @@
+# 30-45-105
+A=[-344.819345703,1.0053042149]
+B=[179.9494544631,-9.0477379339]
+s1=Line[A,B]
+c1=Circle[A,B]
+C=Intersect[s1,c1,-,B]
+c2=Circle[C,A]
+D=Intersect[c2,c1,0]
+s2=Line[B,D]
+s3=Perp[A,s1]
+E=Intersect[s3,s2,0]
+s4=ABisect[B,A,E]
+F=Intersect[s4,s2,0]
+c3=Circle3[A,F,B]
+G=CenterPoint[c3]
+
+initial=s4,s2,s1,c3
+named=A.B,B.C,F.A
+movepoints=
+hidden=
+result=G
+explore=G

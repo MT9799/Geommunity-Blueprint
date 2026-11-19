@@ -623,6 +623,18 @@ class MiddlePointConstructTool {
         if (element) {
             const coordList = element.getCoordinate();
             const [x, y] = coordList[0];
+            // 圆心位置已经有点了：这一笔作废 —— 不落重合点、不记步数与撤销历史。
+            // 圆心工具是直接 addObject 入画布的，不走 loadTool 的预检，所以在这里单独判；
+            // 置 duplicatedFlag 后照常发 storage 事件，由监听跳过历史（与线 / 圆重复判定同一条通道）
+            if (geometryManager.pointAtCoordinate(x, y)) {
+                geometryManager.duplicatedFlag = true;
+                window.dispatchEvent(new CustomEvent("storage", {
+                    detail: {
+                        type: 'center',
+                    },
+                }));
+                return;
+            }
             const center = geometryManager.createPoint(x, y);
             center.modifyBase("center", [element]);
             element.addSuperstructure(center);

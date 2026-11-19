@@ -197,6 +197,8 @@ class MoveTool {
             geometryManager.modifyPointCoordinate(choice.getId(), logicX, logicY);
             const after = choice.getCoordinate();
             if (before && after && Math.hypot(after[0] - before[0], after[1] - before[1]) > 1e-9) this.movedFlag = true;
+            // 拖动途中解可能失效 / 重新成立：实时更新所求显示（游玩页的钩子，其他画板没有则跳过）
+            if (typeof window.playPageMoveTick === 'function') window.playPageMoveTick();
             return;
         }
         // 多选（Ctrl+A 全选 / 按住 Ctrl 点加选）与拖图形走同一条路：所有选中的点、
@@ -223,6 +225,8 @@ class MoveTool {
         preX = x;
         preY = y;
         if (deltaX || deltaY) this.movedFlag = true;
+        // 平移图形 / 多选拖动同样可能让解失效或恢复：实时更新所求显示
+        if (typeof window.playPageMoveTick === 'function') window.playPageMoveTick();
     }
 
     /**

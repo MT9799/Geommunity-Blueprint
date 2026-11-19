@@ -344,10 +344,14 @@
    * @param {string} key 要标的这一类（initial / named / movepoints / result / resultShown / explore）
    */
   const markExclusive = (id, key) => {
+    // 这一笔会让对象退出「带标签给定」（改标别的类别）：它那份标签要一并收起，
+    // 否则 applyMarkToElement 会把标记显示态的 true 当成对象自身标签重新挂回去
+    const leavesNamed = key !== 'named' && markSetOf('named').has(id);
     if (givenMarkKeys.includes(key)) {
       // 给定：同类里只留这一个；撤掉与给定互斥的「所求判定」各解与「探索显示」，
       // 但**保留「所求显示」**（允许一个图形既是给定、又作为目标显示对象）
       givenMarkKeys.forEach(other => { if (other !== key) markSetOf(other).delete(id); });
+      if (leavesNamed) dropNamedLabel(id);
       resultMarkSets().forEach(item => { if (item.kind === 'judged') item.set.delete(id); });
       markSetOf('explore').delete(id);
       return;
@@ -355,6 +359,7 @@
     if (goalMarkKeys.includes(key)) {
       // 所求判定 / 探索显示：只撤掉给定那三类，不动所求显示、也不动彼此
       givenMarkKeys.forEach(other => markSetOf(other).delete(id));
+      if (leavesNamed) dropNamedLabel(id);
     }
     // shownMarkKeys（所求显示）：与任意类别都不互斥，不撤任何标记
   };
@@ -6065,13 +6070,46 @@
     delete item.modifyColor;
     item.modifyColor(style.color);
     item.modifyName(style.name || id);
-    item.modifyShowName(style.showName);
+    // 带标签给定带来的标签不随「恢复标记前样式」回来：这类对象的 showName 是载入时按 named
+    // 直接打开的（也在 name 名单里），不是对象自身的标签设置。name 名单里、但已经不在 named 的，
+    // 正是「取消了带标签给定就不该再显示标签」的情形（清除标记 / 取消后无其它标记都走这里）
+    const lists = typeof geometryElementLists !== 'undefined' ? geometryElementLists : null;
+    const namedLabelOnly = lists && lists.name && lists.name.has(id)
+      && !(lists.named && lists.named.has(id));
+    // 与 dropNamedLabel 一致：name 名单里那份也要删掉，否则试玩载入时按它又把标签打开
+    if (namedLabelOnly) lists.name.delete(id);
+    item.modifyShowName(namedLabelOnly ? false : style.showName);
     markedStyles.delete(id);
   };
   const releaseAllMarkStyles = () => [...markedStyles.keys()].forEach(id => {
     const item = geometryManager.get(id);
     if (item) releaseMarkStyle(item); else markedStyles.delete(id);
   });
+  /**
+   * 撤掉「带标签给定」后收起它带来的标签 过程函数
+   * named 的标签是**标记显示态**：载入关卡时 parseGmt 直接把 named 对象的 showName 置成 true，
+   * applyMarkStyle 记录「标记前标签状态」时也照抄了这个 true。所以对象一旦退出 named，
+   * 这份「标记前状态」就不再成立 —— 不重置的话 applyMarkToElement / releaseMarkStyle 会把这个
+   * true 当成对象自身标签恢复回去，看起来就是「已经不是带标签给定，标签却还挂着」。
+   * 只在对象退出 named 时调用，不动其它标记场景：用户手动开过标签又不在 named 里的对象不受影响。
+   * @param {string} id
+   */
+  const dropNamedLabel = id => {
+    // 只处理「载入关卡时按 named 直接打开标签」的对象（在 name 名单里）。
+    // 用户自己在样式面板开过标签、后来才标 named 的，markedStyles 记的就是那个 true，
+    // 取消 named 后应当保留 —— 不能一并抹掉。
+    const lists = typeof geometryElementLists !== 'undefined' ? geometryElementLists : null;
+    const fromNamedList = lists && lists.name && lists.name.has(id);
+    if (!fromNamedList) return;
+    // name 名单是「显示标签的对象」名单，试玩 / 重新载入时正是按它把标签重新打开
+    // （playPage 的反序列化是 name.has(id) || named.has(id)）。只把 showName 关掉的话，
+    // 制题器里看着已经没标签了，一点「试玩」标签又冒出来 —— 所以名单里那份也要删掉
+    lists.name.delete(id);
+    const sealed = markedStyles.get(id);
+    if (sealed) sealed.showName = false;
+    const item = geometryManager.get(id);
+    if (item) item.modifyShowName(false);
+  };
   /**
    * 清掉已经不在画布上的标记 过程函数
    * 制题器 / 求解器里删掉一个图形（连同它的子图形）时，标记表与「隐藏」集合里还挂着它的 id，
@@ -6247,6 +6285,9 @@
     let deferHistory = false;
     if (set.has(id)) {
       set.delete(id);
+      // 取消「带标签给定」：标签是标记带来的显示态，要一并收起
+      // （否则 applyMarkToElement / releaseMarkStyle 会用 markedStyles 里的 true 把标签挂回去）
+      if (marking === 'named') dropNamedLabel(id);
       // 同分类的其他集合还在标记就保持标记色，都不在就恢复对象自身的样式
       applyMarkToElement(id);
     }else{

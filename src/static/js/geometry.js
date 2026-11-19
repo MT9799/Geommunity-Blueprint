@@ -1157,8 +1157,16 @@ class GeometryElementManager {
         const baseType = element.getBase?.()?.type;
         if (['semicircle', 'arc', 'arc3'].includes(baseType)) return null;
         const type = element.getType();
-        if (type !== 'line' && type !== 'circle') return null;
+        if (type !== 'line' && type !== 'circle' && type !== 'point') return null;
         if (typeof element.updateCoordinate === 'function') element.updateCoordinate();
+        // 点：与画布上**同位置**的可见有效点算重复（中点 / 圆心 / 极点这类输出点是点时，
+        // loadTool 的预检靠这一条把「图形已经有了」的整笔作图作废）。
+        // 用精确坐标比较（与 pointEquative 同口径），吸附范围内有点不算重复。
+        if (type === 'point') {
+            const coord = element.getCoordinate?.();
+            if (!Array.isArray(coord) || !Number.isFinite(coord[0]) || !Number.isFinite(coord[1])) return null;
+            return this.pointAtCoordinate(coord[0], coord[1]);
+        }
         for (const other of Object.values(this.repository)) {
             if (!other || other === element) continue;
             if (other.getType() !== type) continue;
@@ -1173,6 +1181,26 @@ class GeometryElementManager {
             }else if (ToolsFunction.sameCircleElement(element, other)) {
                 return other;
             }
+        }
+        return null;
+    }
+
+    /**
+     * 画布上位于该坐标的可见有效点 过程函数
+     * 精确比较（与 pointEquative 的 1e-10 同口径）：只有真正重合才算，吸附范围内的近点不算。
+     * 隐藏点 / 内部点 / 失效点都不算 —— 它们不是「玩家已经作出的图形」。
+     * @param {number} x
+     * @param {number} y
+     * @returns {Object|null} 那个点对象
+     */
+    pointAtCoordinate(x, y) {
+        for (const item of Object.values(this.repository)) {
+            if (!item || item.getType() !== 'point') continue;
+            if (!item.getValid() || !item.getVisible()) continue;
+            if (item.getInternal?.()) continue;
+            const coord = item.getCoordinate?.();
+            if (!Array.isArray(coord) || !Number.isFinite(coord[0]) || !Number.isFinite(coord[1])) continue;
+            if (Math.abs(coord[0] - x) <= 1e-10 && Math.abs(coord[1] - y) <= 1e-10) return item;
         }
         return null;
     }

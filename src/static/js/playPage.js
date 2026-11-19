@@ -1423,8 +1423,10 @@ function designMode() {
     // 制题器里所有对象都要显示（含关卡预绘制的解法），这一步只写进带过去的这份数据里：
     // 不改动当前画布，否则跳转前会先在游玩界面闪一下解法
     elements.forEach(item => { item.visible = true; });
-    // 给定 = 关卡里初始显示的对象（initial 与带标签的 named），所求保证有集合，隐藏档清空
-    lists.initial = [...new Set([...(lists.initial || []), ...(lists.named || [])])];
+    // 给定 = 关卡里 initial 列出的对象。**不要把 named 并进 initial**：带标签给定有自己的一栏，
+    // 并进去会让同一个图形同时挂在「给定」和「带标签给定」两栏（打开设计模式后 A/B/F 两栏都在），
+    // 之后取消 / 改标也会看起来像「互斥失效」。named 的对象本来就靠自己的集合显示为黑色带标签。
+    lists.initial = [...new Set(lists.initial || [])];
     lists.result = [...(lists.result || [])];
     lists.hidden = [];
     sessionStorage.setItem('elements', JSON.stringify(elements));
@@ -2375,6 +2377,34 @@ function setResultGroupsVisible(groups, visible) {
     if (!visible) refreshElementListColors();
 }
 
+/**
+ * 按「当前已作出的解」同步所求显示的显隐 过程函数
+ * setResultGroupsVisible 只负责把传入的那批解显示出来，**不负责藏起上一刻还在、现在不满足的解**。
+ * 多解关卡里移动可移动点 / 改构造让另一组解成立时（例如 tripleradius 把 J 移到参数 2），
+ * 旧解的所求显示会一直亮在画布上，于是两组同时显示。这里按 satisfiedResultGroups 统一刷一遍：
+ * 属于已作出解的对象显示（并按多解规则染色），其余隐藏（给定对象例外，它一直可见）。
+ */
+function syncShownVisibility() {
+    const satisfied = new Set();
+    (satisfiedResultGroups || []).forEach(group => {
+        const list = group && group.shown && group.shown.length ? group.shown : ((group && group.judged) || []);
+        list.forEach(id => satisfied.add(id));
+    });
+    // 先藏掉不再属于任何已作出解的所求显示对象
+    resultGroupsOfPage().forEach(group => {
+        const list = group && group.shown && group.shown.length ? group.shown : ((group && group.judged) || []);
+        list.forEach(id => {
+            if (satisfied.has(id)) return;
+            // 给定对象一直可见，颜色交给 refreshElementListColors 按名单刷回黑
+            if (isGivenObject(id)) return;
+            const element = geometryManager.get(id);
+            if (element) element.modifyVisible(false);
+        });
+    });
+    // 再显示当前已作出的解（染色走 setResultGroupsVisible，多解时非最后解为偏橙金）
+    setResultGroupsVisible(satisfiedResultGroups || [], true);
+}
+
 // 通关界面自动收起的计时器
 let completeLayoutTimer = null;
 
@@ -2618,10 +2648,31 @@ function refreshSatisfiedGroups() {
     if (typeof exploreFlag !== 'undefined' && exploreFlag) return;
     resultVerifyFunction().then(groups => {
         satisfiedResultGroups = groups || [];
+        // 解可能从一组换成另一组（多解关卡移动可移动点后），显隐要跟着整体同步，
+        // 否则旧解的所求显示会残留（两组同时显示）
+        syncShownVisibility();
         if (typeof refreshElementListColors === 'function') refreshElementListColors();
         if (typeof drawContent === 'function') drawContent();
     });
 }
+
+/**
+ * 拖动过程中的实时判定 过程函数（MoveTool 每次移动后调用，见 editToolBag.js）
+ * 拖可移动点时解可能中途失效 / 重新成立；如果只在松手时判，所求显示要等到松手才变。
+ * 这里同步重算一次「已作出的解」，**只在解集合真的变化时**才刷新显隐 / 颜色 / 重绘：
+ * 不走 resultVerify，所以不会弹通关界面、不记进度、也不自动存记录。
+ */
+window.playPageMoveTick = () => {
+    if (typeof exploreFlag !== 'undefined' && exploreFlag) return;
+    const groups = resultGroupsOfPage().filter(group =>
+        group.judged.length && group.judged.every(id => isResultProduced(id)));
+    const signature = list => (list || []).map(group => (group.judged || []).join(',')).join('|');
+    if (signature(groups) === signature(satisfiedResultGroups)) return;
+    satisfiedResultGroups = groups;
+    if (typeof syncShownVisibility === 'function') syncShownVisibility();
+    if (typeof refreshElementListColors === 'function') refreshElementListColors();
+    if (typeof drawContent === 'function') drawContent();
+};
 
 window.addEventListener("success", success);
 /**
@@ -2633,8 +2684,9 @@ function success() {
     moves.style.color = '#ffd700';
     moves.style.setProperty('font-weight', 'bold');
 
-    // 显示已作出的 result 对应的图形（result 冒号后的内容），并标成金色
-    setResultGroupsVisible(satisfiedResultGroups, true);
+    // 显示已作出的 result 对应的图形（result 冒号后的内容），并标成金色；
+    // 用同步版：解从一组换成另一组时，旧解的所求显示要一起藏起来，不能两组并排亮着
+    syncShownVisibility();
 
     // 通关界面：完成 / L / E / V 勾
     showCompleteLayout();

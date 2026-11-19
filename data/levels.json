@@ -5672,7 +5672,8 @@
             "C-s-Pzls-Other",
             "角平分线",
             "三角形",
-            "还原三角形",
+            "复原三角形",
+            "比例",
             "圆"
         ],
         "solutions": [
@@ -8870,7 +8871,7 @@
         "file": "levels/straightedge-only-pzls/020.concentric-circles/concentric-circles.gmt",
         "title": "双同心圆找心",
         "subtitle": "给定两个无心的同心圆，找到圆心。",
-        "targetSteps": "18E",
+        "targetSteps": "16E",
         "diagram": "levels/straightedge-only-pzls/020.concentric-circles/concentric-circles.png",
         "note": "",
         "tools": "straightedge",
@@ -8881,6 +8882,10 @@
             "单尺"
         ],
         "solutions": [
+            {
+                "star": "16E",
+                "file": "levels/straightedge-only-pzls/020.concentric-circles/16E.png"
+            },
             {
                 "star": "18E",
                 "file": "levels/straightedge-only-pzls/020.concentric-circles/18E.jpeg"
@@ -8962,13 +8967,13 @@
         ]
     },
     {
-        "id": "circumcenter-isosceles150",
+        "id": "cc-isosc150",
         "pack": "straightedge-only-pzls",
-        "file": "levels/straightedge-only-pzls/024.circumcenter-isosceles150/circumcenter-isosceles150.gmt",
+        "file": "levels/straightedge-only-pzls/024.cc-isosc150/cc-isosc150.gmt",
         "title": "外心等腰150",
         "subtitle": "给定顶点为150°的等腰三角形（不含底边）及外接圆（无心），构造外心。",
-        "targetSteps": "15E",
-        "diagram": "levels/straightedge-only-pzls/024.circumcenter-isosceles150/circumcenter-isosceles150.png",
+        "targetSteps": "13E",
+        "diagram": "levels/straightedge-only-pzls/024.cc-isosc150/cc-isosc150.png",
         "note": "",
         "tools": "straightedge",
         "keywords": [
@@ -8977,17 +8982,22 @@
             "等腰三角形",
             "150度",
             "30度",
+            "15度",
             "单尺",
             "无心圆"
         ],
         "solutions": [
             {
-                "star": "15E",
-                "file": "levels/straightedge-only-pzls/024.circumcenter-isosceles150/circumcenter-isosceles150-15e.jpg"
+                "star": "13E",
+                "file": "levels/straightedge-only-pzls/024.cc-isosc150/13E.png"
             },
             {
                 "star": "15E",
-                "file": "levels/straightedge-only-pzls/024.circumcenter-isosceles150/circumcenter-isosceles150-15e-2.jpg"
+                "file": "levels/straightedge-only-pzls/024.cc-isosc150/cc-isosc150-15e.jpg"
+            },
+            {
+                "star": "15E",
+                "file": "levels/straightedge-only-pzls/024.cc-isosc150/cc-isosc150-15e-2.jpg"
             }
         ]
     },
@@ -9201,7 +9211,7 @@
         "file": "levels/straightedge-only-pzls/033.tri-cscr-3vonl/tri-cscr-3vonl.gmt",
         "title": "三线上外切三角形",
         "subtitle": "给定一无心圆和共点三直线，求作一外切三角形，各顶点分别在各线上。",
-        "targetSteps": "11E",
+        "targetSteps": "10E",
         "diagram": "levels/straightedge-only-pzls/033.tri-cscr-3vonl/tri-cscr-3vonl.png",
         "note": "",
         "tools": "straightedge",
@@ -9216,6 +9226,10 @@
         ],
         "solutions": [
             {
+                "star": "10E",
+                "file": "levels/straightedge-only-pzls/033.tri-cscr-3vonl/10E.png"
+            },
+            {
                 "star": "(18E) 2V",
                 "file": "levels/straightedge-only-pzls/033.tri-cscr-3vonl/18E.png"
             }
@@ -9227,7 +9241,7 @@
         "file": "levels/straightedge-only-pzls/034.tripleradius/TripleRadius.gmt",
         "title": "3单位长",
         "subtitle": "给定一带圆心的圆和一条不与圆相交的直线及其上一点，作线上另一点使其到给定点距离为三倍圆半径长。",
-        "targetSteps": "16E",
+        "targetSteps": "13E",
         "diagram": "levels/straightedge-only-pzls/034.tripleradius/TripleRadius.jpg",
         "note": "",
         "tools": "straightedge",
@@ -9241,6 +9255,10 @@
             "单尺"
         ],
         "solutions": [
+            {
+                "star": "13E",
+                "file": "levels/straightedge-only-pzls/034.tripleradius/13E.png"
+            },
             {
                 "star": "16E",
                 "file": "levels/straightedge-only-pzls/034.tripleradius/解法1视角1-16E.jpg"
@@ -9492,6 +9510,60 @@
             {
                 "star": "7E",
                 "file": "levels/straightedge-only-pzls/043.trisect-a-insemi/7E.png"
+            }
+        ]
+    },
+    {
+        "id": "cc-30-45",
+        "pack": "straightedge-only-pzls",
+        "file": "levels/straightedge-only-pzls/044.cc-30-45/cc-30-45.gmt",
+        "title": "30-45-105外心",
+        "subtitle": "给定三角形ABC三边所在直线及其外接圆（不含圆心），其中∠B=45°，∠C=30°，单尺作圆心。",
+        "targetSteps": "10E",
+        "diagram": "levels/straightedge-only-pzls/044.cc-30-45/cc-30-45.png",
+        "note": "",
+        "tools": "straightedge",
+        "keywords": [
+            "Straightedge-only-Pzls",
+            "外心",
+            "三角形",
+            "30度",
+            "45度",
+            "105度",
+            "单尺",
+            "无心圆"
+        ],
+        "solutions": [
+            {
+                "star": "10E",
+                "file": "levels/straightedge-only-pzls/044.cc-30-45/10E.png"
+            }
+        ]
+    },
+    {
+        "id": "cc-15-60",
+        "pack": "straightedge-only-pzls",
+        "file": "levels/straightedge-only-pzls/045.cc-15-60/cc-15-60.gmt",
+        "title": "15-60-105外心",
+        "subtitle": "给定三角形ABC三边所在直线及其外接圆（不含圆心），其中∠B=15°，∠C=60°，单尺作圆心。",
+        "targetSteps": "12E",
+        "diagram": "levels/straightedge-only-pzls/045.cc-15-60/cc-15-60.png",
+        "note": "",
+        "tools": "straightedge",
+        "keywords": [
+            "Straightedge-only-Pzls",
+            "外心",
+            "三角形",
+            "15度",
+            "60度",
+            "105度",
+            "单尺",
+            "无心圆"
+        ],
+        "solutions": [
+            {
+                "star": "12E",
+                "file": "levels/straightedge-only-pzls/045.cc-15-60/12E.png"
             }
         ]
     },
