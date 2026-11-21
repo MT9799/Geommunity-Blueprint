@@ -6069,6 +6069,28 @@
         ]
     },
     {
+        "id": "billiards-on-round-table-by-two-reflect-point",
+        "pack": "euc-addit",
+        "file": "levels/euc-addit/013.billiards-on-round-table-by-two-reflect-point/billiards-on-round-table-by-two-reflect-point.gmt",
+        "title": "两个反射点的圆桌台球",
+        "subtitle": "给定点AB和直线上一点P，构造直线上另一点Q，使得存在一个圆O过AB两点，直线PA, QA关于直线OA对称，直线PB, QB关于直线OB对称",
+        "targetSteps": "26L / 34E",
+        "diagram": "levels/euc-addit/013.billiards-on-round-table-by-two-reflect-point/billiards-on-round-table-by-two-reflect-point.png",
+        "note": "",
+        "keywords": [
+            "Euc-Addit",
+            "圆镜反射",
+            "轴对称",
+            "clipt"
+        ],
+        "solutions": [
+            {
+                "star": "26L 34E",
+                "file": "levels/euc-addit/013.billiards-on-round-table-by-two-reflect-point/26l34e.png"
+            }
+        ]
+    },
+    {
         "id": "024length",
         "pack": "from-baidu-tieba",
         "file": "levels/from-baidu-tieba/001.024length/024length.gmt",
