@@ -4869,7 +4869,8 @@
           `<label title="${t('board.solverEpsHint')}">${t('board.solverEps')}<input id="geb-solver-eps" type="number" min="0" step="any" placeholder="${t('board.solverEpsAuto')}"></label>` +
         '</div>' +
       '</details>' +
-      `<button id="geb-solver-run">${t('board.solverRun')}</button>`,
+      `<button id="geb-solver-run">${t('board.solverRun')}</button>` +
+        `<button id="geb-solver-resume" hidden>${t('board.solverResume')}</button>`,
       `<button id="geb-solver-clear">${t('board.solverClear')}</button>`,
       // 逐步查看解法：放在「清除解法」下面；没显示解时由 syncStepRow 收起
       `<div class="solver-step-row"><button id="geb-solver-prev">${t('board.solverPrevStep')}</button>` +
@@ -5112,6 +5113,15 @@
     // 无解的也算；见 refreshSearchProgress）。顺便记下时间上限与已找到的解数，鼠标停上去能看到
     let progressState = null;
     let progressTimer = null;
+    // 停止求解后的严格断点：搜索按「前缀任务」切分（见 startParallelSearch），停下时把
+    // 还没跑完的任务队列连同已完成数一起存下来；继续时只跑剩下的任务，已完成的子树绝不重跑。
+    // 启发式搜索不是任务驱动的，只能退化成「解表 + 时间预算」这一层的断点。
+    let searchPaused = false;
+    let pausedSearch = null;
+    let pausedCheckpoint = null;    // 保存的断点：{queue, totalTasks, doneTasks, nodes, settings, payload}
+    let activeParallelState = null; // 当前并行搜索的实时状态，stopSearch 从它取断点
+    let searchStartedAt = 0;
+    let searchElapsedMs = 0;   // 停下那一刻锁存的累计用时（暂停期间不计时）
 
     /** 大数字加千分位 过程函数 */
     const progressNumber = value => Number(value || 0).toLocaleString();
@@ -5203,6 +5213,14 @@
         return;
       }
       const state = progressState;
+      // 任务驱动的前缀搜索：分母是内核切出的任务总数，分子是已搜完的任务数。
+      // 定时器每 300ms 也会走到这里，不能再按节点数外推 —— 续跑时那会把条冲到 100%
+      if (state.byTasks) {
+        const ratio = state.tasksTotal > 0 ? Math.min(1, (state.tasksDone || 0) / state.tasksTotal) : 0;
+        state.ratio = Math.max(state.ratio || 0, ratio);
+        paintSearchProgress(state.ratio, progressTitle(state));
+        return;
+      }
       // 启发式没有「情况」可数：进度 = 已用时间 / 时间上限（随定时器持续推进）；
       // 没有时间上限时按节点数给一个渐近值，避免永远停在 0
       if (state.heuristic) {
@@ -5276,7 +5294,8 @@
       progressState = {
         target: options.target || 0,
         limitSeconds: options.limitSeconds || 0,
-        startedAt: performance.now(),
+        // 继续求解沿用整轮求解的起点 / 已走到哪儿的进度，条不会倒回去
+        startedAt: options.startedAt || performance.now(),
         // 启发式没有「情况总数」，进度改用「已用时间 / 时间上限」
         heuristic: !!options.heuristic,
         // 「情况」计数：nodes = 已搜节点数（分子）；tasksDone / completedNodes = 已搜完的情况数
@@ -5285,17 +5304,31 @@
         tasksDone: 0,
         completedNodes: 0,
         tasksTotal: 0,
-        // 条上已经显示到哪儿（只许往前走，见 refreshSearchProgress）
-        ratio: 0,
+        // 条上已经显示到哪儿（只许往前走，见 refreshSearchProgress）；继续求解时接着上次的走
+        ratio: options.ratio || 0,
       };
       refreshSearchProgress();
     };
 
-    /** 切换按钮的「开始求解 / 停止求解」状态 过程函数 */
-    const setSearching = searching => {
+    /**
+     * 切换按钮状态 过程函数
+     * 搜索中 = 「停止求解」；手动停下后 = 「继续求解」+「结束求解」；其余 = 「开始求解」
+     * @param {boolean} searching
+     * @param {{paused?: boolean}} [options] paused：这次是手动停止，要留下断点
+     */
+    const setSearching = (searching, options = {}) => {
+      // 正常收尾 / 出错 / 清空都把断点清掉，只有手动停止才留着供「继续求解」
+      if (!searching && !options.paused) {
+        searchPaused = false;
+        pausedSearch = null;
+      }
       const runButton = panel.querySelector('#geb-solver-run');
-      runButton.textContent = searching ? t('board.solverStop') : t('board.solverRun');
+      const resumeButton = panel.querySelector('#geb-solver-resume');
+      runButton.textContent = searching ? t('board.solverStop')
+        : searchPaused ? t('board.solverEnd') : t('board.solverRun');
       runButton.classList.toggle('running', searching);
+      runButton.classList.toggle('paused', !searching && searchPaused);
+      if (resumeButton) resumeButton.hidden = searching || !searchPaused;
       // 进度条只在搜索期间定时刷新（收尾时停在最后的位置，不重置 —— 一眼能看到搜到哪一步）
       if (searching) {
         if (!progressTimer) progressTimer = setInterval(refreshSearchProgress, 300);
@@ -5311,13 +5344,36 @@
       // 先把这次搜索判死：并行搜索的总时长计时器到点会写「超时（n 秒），还没有找到解法」，
       // 只 terminate worker 掐不掉它 —— 停下之后到点仍会冒出那句超时（单线程则可能收到迟到的结果）
       searchToken++;
+      // 逐步搜索的多轮循环靠它中断（此前只声明没自增，停了还会偷偷往下跑一轮）
+      searchStopToken++;
       if (activeSearchCancel) activeSearchCancel();
       activeSearchCancel = null;
       activePool.forEach(worker => worker.terminate());
       activePool = [];
       if (activeWorker && !activePool.includes(activeWorker)) activeWorker.terminate();
       activeWorker = null;
-      setSearching(false);
+      // 严格断点：把在飞的任务退回队首，未完成任务一个不丢；已完成数记下来，继续时接着算。
+      // frontier 还没切出任务时（totalTasks=0）没有断点可存，退化成只保留解表 / 时间预算
+      if (activeParallelState && activeParallelState.frontierDone && activeParallelState.totalTasks > 0) {
+        const st = activeParallelState;
+        st.queue.unshift(...st.inFlight.values());
+        pausedCheckpoint = {
+          queue: st.queue.slice(),
+          totalTasks: st.totalTasks,
+          doneTasks: st.doneTasks,
+          nodes: st.nodes,
+          settings: st.settings,
+          payload: st.payload,
+        };
+      } else {
+        pausedCheckpoint = null;
+      }
+      activeParallelState = null;
+      // 解表 / 去重账 / 进度都原样留着，切到「继续求解 + 结束求解」的暂停态
+      // 锁存已用时间：继续求解时把起点平移到现在，暂停期间这段不计进时间预算
+      searchElapsedMs = searchStartedAt ? performance.now() - searchStartedAt : 0;
+      searchPaused = true;
+      setSearching(false, {paused: true});
       return true;
     };
 
@@ -5540,6 +5596,23 @@
     };
 
     /**
+     * 断点续跑的收尾 过程函数
+     * 新 worker 只知道自己这一趟找到的解，而列表里是「暂停前 + 这一趟」累积的全部解，
+     * 所以这里不重画列表，只把 latest / 状态 / 进度条收好
+     */
+    const finishResumedSearch = (timedOut, seconds, timeLimitSeconds, solutions) => {
+      const found = liveResult.solutions.length;
+      if (!timedOut && found >= solutions) finishSearchProgress();
+      else markSearchProgressFinished();
+      latest = liveResult;
+      status.textContent = timedOut
+        ? t('board.solverTimeoutPartial', {seconds: timeLimitSeconds, found, requested: solutions})
+        : t('board.solverFound', {count: found, seconds});
+      // 不自动跳回第一个解：用户续跑前在看哪一个就继续看哪一个
+      syncStepRow();
+    };
+
+    /**
      * 组装给 worker 的请求体 过程函数（单线程与并行共用）
      * 默认值＝内核原本的默认，所以高级选项不动时行为与以前完全一致。
      * `request` 里也带着一份 limit / solutions / timeLimitSeconds（面板值），所以它必须放在
@@ -5580,23 +5653,45 @@
      * 那一刻就能收工 —— 不必再等在飞的前缀任务跑完（网格题里一个任务可能要好几百毫秒）。
      * @param {Object} settings {request, limit, toolType, timeLimitSeconds, solutions, advanced, threads}
      */
-    const startParallelSearch = settings => {
+    const startParallelSearch = (settings, resumeCheckpoint = null) => {
       // 本次搜索的编号：被 stopSearch 作废（编号变了）之后，这次的一切回调都不再收尾
       const token = ++searchToken;
-      const threads = Math.max(2, settings.threads | 0);
+      // threads=1 也走任务队列：只有任务级断点才能严格不重跑已完成的子树
+      const threads = Math.max(1, settings.threads | 0);
       const payload = workerPayload(settings, settings.request, settings.advanced);
       // 切分深度：线程越多就切深一层（深度 3 通常有几十上百个前缀，够分了）。
       // 但不能切到最后一层：search 在最后一步走的是「末段专用」分支、不再递归，
       // 那一层的节点不存在，按它切会一个任务都产不出来（worker 里也有同样的收紧）
-      const splitDepth = Math.min(threads > 2 ? 3 : 2, Math.max(1, settings.limit - 1));
+      // 切太深会让任务数爆炸（几千个前缀），frontier 那一趟本身就要跑好几秒，
+      // 用户在这期间按下停止时根本还没建立完整断点。默认单线程切 1 层（几十个任务），
+      // 粒度与切分耗时都合适；多线程再多切一层也只是分得更细
+      const splitDepth = Math.min(threads > 3 ? 2 : 1, Math.max(1, settings.limit - 1));
       const startedAt = performance.now();
       const deadline = startedAt + settings.timeLimitSeconds * 1000;
       // 解直接收在面板共用的那份 liveResult 里：去重、坐标换算、边搜边显示都由 takeStreamedSolution
       // 统一办，于是内核一找到解就能收下，不必等它所属的那个前缀任务跑完
-      const queue = [];
+      // 续跑：剩余任务队列直接从断点拿来，frontier 那一趟不必重切；已完成数也照搬
+      const queue = resumeCheckpoint ? resumeCheckpoint.queue.slice() : [];
+      const inFlight = new Map();   // worker -> 它正在跑的任务（停止时退回队首）
+      const parallelState = {
+        queue, inFlight,
+        totalTasks: resumeCheckpoint ? resumeCheckpoint.totalTasks : 0,
+        doneTasks: resumeCheckpoint ? resumeCheckpoint.doneTasks : 0,
+        nodes: resumeCheckpoint ? resumeCheckpoint.nodes : 0,
+        // 只有 frontier 切完整了，队列才覆盖整棵搜索树，这时的断点才是严格可续的
+        frontierDone: !!resumeCheckpoint,
+        settings, payload,
+      };
+      activeParallelState = parallelState;
+      // 续跑的进度本来就是任务制的：沿用断点里的分子 / 分母，条不会跳回 0 或窜到 100%
+      if (resumeCheckpoint && progressState) {
+        progressState.byTasks = true;
+        progressState.tasksTotal = resumeCheckpoint.totalTasks;
+        progressState.tasksDone = resumeCheckpoint.doneTasks;
+      }
       const state = new Map();
       const workers = [];
-      let frontierDone = false;
+      let frontierDone = !!resumeCheckpoint;
       let finished = false;
       let frontierWorker = null;
       let timer = null;
@@ -5622,6 +5717,9 @@
         if (finished || token !== searchToken) return;
         finished = true;
         teardown();
+        // 正常收尾（搜尽 / 收够 / 超时）：这次的断点作废
+        activeParallelState = null;
+        pausedCheckpoint = null;
         // 并行时各前缀出解的先后是乱的：按步数排一下，短的在前
         const found = liveResult.solutions;
         found.sort((one, two) => one.newElementCount - two.newElementCount);
@@ -5631,6 +5729,11 @@
         // 逐步搜索的中间轮：只把解攒进 liveResult，不往面板写结论（最后一轮由 runStepwiseSearch 统一收尾）
         if (settings.silent) {
           if (typeof settings.onDone === 'function') settings.onDone(!!timedOut);
+          return;
+        }
+        // 续跑收尾：列表里是「暂停前 + 这趟」累积的解，不能按新 worker 的结果重画
+        if (resumeCheckpoint) {
+          finishResumedSearch(!!timedOut, seconds, settings.timeLimitSeconds, settings.solutions);
           return;
         }
         showSearchResult({
@@ -5675,6 +5778,7 @@
           return;
         }
         state.set(worker, 'busy');
+        inFlight.set(worker, task);
         worker.postMessage({type: 'prefix', id: Date.now(), data: Object.assign({}, payload, {prefix: task})});
       };
 
@@ -5686,8 +5790,8 @@
         const worker = new Worker('./solver/search-worker.js');
         workers.push(worker);
         state.set(worker, 'idle');
-        // 一号 worker 兼做「切前缀任务」这一趟
-        if (index === 0) {
+        // 一号 worker 兼做「切前缀任务」这一趟；续跑时队列是断点带来的，不必重切
+        if (index === 0 && !resumeCheckpoint) {
           frontierWorker = worker;
           state.set(worker, 'frontier');
           worker.postMessage({
@@ -5710,15 +5814,29 @@
             return;
           }
           if (message.type === 'prefix-batch') {
-            queue.push(...(message.tasks || []));
+            const batch = message.tasks || [];
+            queue.push(...batch);
+            // 每批任务一到就把分母 / 分子账建起来：进度条不必等 frontier 全部切完才有反应
+            parallelState.totalTasks += batch.length;
+            if (progressState) {
+              progressState.byTasks = true;
+              progressState.tasksTotal = parallelState.totalTasks;
+            }
             dispatchIdle();
             return;
           }
           if (message.type === 'prefix-done') {
             frontierDone = true;
+            parallelState.frontierDone = true;
             rememberResultMeta(message);
-            // 进度条的分母：内核这一步拿到了「一共切了多少个情况」（边界层的情况总数）
-            if (progressState && message.count) progressState.tasksTotal = message.count;
+            // 分母 = 内核切出的任务总数；进度条改按「已完成任务 / 总任务」直接算
+            if (message.count) {
+              parallelState.totalTasks = message.count;
+              if (progressState) {
+                progressState.tasksTotal = message.count;
+                progressState.byTasks = true;
+              }
+            }
             state.set(worker, 'idle');
             dispatch(worker);
             maybeFinish();
@@ -5726,11 +5844,19 @@
           }
           if (message.type === 'prefix-result') {
             (message.solutions || []).forEach(solution => collect(solution, message));
-            // 进度条：这个情况搜完了 —— 它的节点数记进合计，分子也跟着涨
+            // 这个任务彻底搜完了：从在飞表移除，进度按「完成任务 / 总任务」直接算（不靠外推）
+            inFlight.delete(worker);
+            parallelState.doneTasks++;
+            parallelState.nodes += message.nodes || 0;
             if (progressState) {
-              progressState.tasksDone++;
+              progressState.tasksDone = parallelState.doneTasks;
               progressState.nodes += message.nodes || 0;
               progressState.completedNodes += message.nodes || 0;
+              if (parallelState.totalTasks > 0) {
+                const ratio = Math.min(1, parallelState.doneTasks / parallelState.totalTasks);
+                progressState.ratio = Math.max(progressState.ratio || 0, ratio);
+                paintSearchProgress(progressState.ratio, progressTitle(progressState));
+              }
             }
             state.set(worker, 'idle');
             dispatch(worker);
@@ -5738,13 +5864,17 @@
             return;
           }
           if (message.type === 'error') {
-            // 单个任务出错就让这个 worker 歇着，别把整次搜索带塌
+            // 单个任务出错就把任务退回队列，让这个 worker 歇着，别把整次搜索带塌
             console.error('solver worker error', message.error);
+            const failed = inFlight.get(worker);
+            if (failed) { queue.unshift(failed); inFlight.delete(worker); }
             state.set(worker, 'idle');
             maybeFinish();
           }
         };
         worker.onerror = () => {
+          const failed = inFlight.get(worker);
+          if (failed) { queue.unshift(failed); inFlight.delete(worker); }
           state.set(worker, 'idle');
           maybeFinish();
         };
@@ -5752,6 +5882,9 @@
 
       activeWorker = workers[0];
       activePool = workers;
+      // 续跑没有 frontier 消息来触发派活，这里必须主动把断点里的剩余任务分下去；
+      // 否则 worker 全在 idle：不占 CPU、没有 prefix-result，进度条就一直卡在断点位置
+      if (resumeCheckpoint) dispatchIdle();
       // 这个总时长计时器归本次搜索所有：停下时由 activeSearchCancel 一并掐掉（见 stopSearch），
       // 否则停止之后它到点照样会 finish(true)，弹一句「超时（n 秒），还没有找到解法」
       activeSearchCancel = () => {
@@ -5865,66 +5998,95 @@
       }, seconds, settings.timeLimitSeconds, settings.limit);
     };
 
-    panel.querySelector('#geb-solver-run').addEventListener('click', () => {
-      // 正在搜索时再点一下就是停止：搜索可能跑满时间上限，不必干等
-      if (stopSearch()) {
-        status.textContent = t('board.solverStopped');
-        return;
-      }
-      const request = buildSolverRequest();
+    /**
+     * 发起一次求解 过程函数
+     * @param {boolean} resume true = 从停止处继续：沿用上次请求、保留已找到的解、只花剩余时间
+     */
+    const launchSearch = resume => {
+      const saved = resume ? pausedSearch : null;
+      const request = saved ? saved.request : buildSolverRequest();
       // 高级选项（高级选项栏里的值）：容差留空就用 buildSolverRequest 按图幅自动算的那个
-      const advanced = advancedOptions();
-      if (advanced.eps) request.eps = advanced.eps;
-      // 把这次**实际生效**的自动容差写在输入框的提示里：省得以为内核按 1e-11 判定
-      // （实际是 1e-11 × 图幅，而且内核坐标系在网格模式下是「格」，不是画布 px）
-      else if (advancedFields.eps) advancedFields.eps.placeholder = `${t('board.gmtAuto')} ${request.eps.toExponential(2)}`;
+      const advanced = saved ? saved.advanced : advancedOptions();
+      if (!saved) {
+        if (advanced.eps) request.eps = advanced.eps;
+        // 把这次**实际生效**的自动容差写在输入框的提示里：省得以为内核按 1e-11 判定
+        // （实际是 1e-11 × 图幅，而且内核坐标系在网格模式下是「格」，不是画布 px）
+        else if (advancedFields.eps) advancedFields.eps.placeholder = `${t('board.gmtAuto')} ${request.eps.toExponential(2)}`;
+      }
       const goalCount = request.goalPoints.length / 2 + request.goalLines.length / 3 + request.goalCircles.length / 3;
       if (!goalCount) {
         status.textContent = t('board.solverNeedGoal');
         return;
       }
+      const limit = saved ? saved.limit : Math.max(1, Number(panel.querySelector('#geb-solver-limit').value) || 1);
+      const toolType = saved ? saved.toolType : Number(panel.querySelector('#geb-solver-tool').value);
+      const timeLimitSeconds = saved ? saved.timeLimitSeconds
+        : Math.max(1, Number(panel.querySelector('#geb-solver-time').value) || 30);
+      const solutions = saved ? saved.solutions
+        : Math.max(1, Number(panel.querySelector('#geb-solver-solutions').value) || 1);
+      // 整轮求解的起点在续跑时平移到「现在 - 已用时间」：暂停期间不计时，进度条也不倒退
+      if (!resume) {
+        searchStartedAt = performance.now();
+        searchElapsedMs = 0;
+      } else {
+        searchStartedAt = performance.now() - searchElapsedMs;
+      }
+      const remainingMs = timeLimitSeconds * 1000 - (performance.now() - searchStartedAt);
+      if (remainingMs <= 100) {
+        searchPaused = false;
+        pausedSearch = null;
+        pausedCheckpoint = null;
+        setSearching(false);
+        status.textContent = t('board.solverTimeoutNoSolution', {seconds: timeLimitSeconds});
+        return;
+      }
+      pausedSearch = {request, advanced, limit, toolType, timeLimitSeconds, solutions};
+      searchPaused = false;
+
       // 记下这次请求：解出来以后要用它的对象 id 组装「构造计划」
       solverLastRequest = request;
-      // 同时记下这一刻的图形状态：切换解法时把不是这个解法画出来的图形复位回来
-      solverCanvasSnapshot = typeof collectStorageSnapshot === 'function' ? collectStorageSnapshot() : null;
-      solverCanvasSignature = solverCanvasFingerprint();
-      const limit = Math.max(1, Number(panel.querySelector('#geb-solver-limit').value) || 1);
-      const toolType = Number(panel.querySelector('#geb-solver-tool').value);
-      const timeLimitSeconds = Math.max(1, Number(panel.querySelector('#geb-solver-time').value) || 30);
-      const solutions = Math.max(1, Number(panel.querySelector('#geb-solver-solutions').value) || 1);
-
-      replayToken++;
-      latest = null;
-      currentIndex = -1;
-      currentStep = 0;
-      stepInfo.textContent = '—';
-      solverSolutionOverlay = null;
-      // 画布优先画可动构造计划（见 canvas.js 的 drawSolverSolutionOverlay）：
-      // 只清静态覆盖层的话，上一轮的解法会一直挂着，直到新一轮出解才被换掉
-      solverSolutionPlan = null;
-      solverSuppressAutoPlay = false;   // 新一轮搜索：恢复「收尾自动点亮第一个解」
-      list.innerHTML = '';
-      syncStepRow();
-      // 边搜边看的那本账也清空：上一次搜索留下的解不能混进来
-      liveResult.solutions.length = 0;
-      streamedSignatures.clear();
+      // 只有全新求解才重采图形快照 / 清解表；断点续跑保留这些，已找到的解和正在看的解都不动
+      if (!resume) {
+        // 同时记下这一刻的图形状态：切换解法时把不是这个解法画出来的图形复位回来
+        solverCanvasSnapshot = typeof collectStorageSnapshot === 'function' ? collectStorageSnapshot() : null;
+        solverCanvasSignature = solverCanvasFingerprint();
+        replayToken++;
+        latest = null;
+        currentIndex = -1;
+        currentStep = 0;
+        stepInfo.textContent = '—';
+        solverSolutionOverlay = null;
+        // 画布优先画可动构造计划（见 canvas.js 的 drawSolverSolutionOverlay）：
+        // 只清静态覆盖层的话，上一轮的解法会一直挂着，直到新一轮出解才被换掉
+        solverSolutionPlan = null;
+        solverSuppressAutoPlay = false;   // 新一轮搜索：恢复「收尾自动点亮第一个解」
+        list.innerHTML = '';
+        syncStepRow();
+        // 边搜边看的那本账也清空：上一次搜索留下的解不能混进来
+        liveResult.solutions.length = 0;
+        streamedSignatures.clear();
+      }
       drawContent();
-      status.textContent = t('board.solverSearching');
+      status.textContent = resume ? t('board.solverResumed') : t('board.solverSearching');
 
-      // 启发式搜索是单线程的（见 solver/bs-heuristic.js），而并行那套前缀切分走的仍是 DFS ——
-      // 勾了它就按 1 个线程算，免得同时跑两套引擎
-      const settings = {request, limit, toolType, timeLimitSeconds, solutions, advanced,
-        threads: advanced.heuristic ? 1 : advanced.threads};
+      // 单段只用剩余时间（内核按它超时）；启发式是另一套引擎，下面的单 worker 路径专门留给它
+      const segmentSeconds = Math.max(0.05, remainingMs / 1000);
+      const settings = {request, limit, toolType, timeLimitSeconds: segmentSeconds, solutions, advanced,
+        threads: advanced.threads};
+      // 只有严格断点续跑才接旧进度；全新求解（包括「结束求解」后的重开）必须从 0 画起。
+      // 否则旧 ratio 被带进新状态，而条只增不减 —— 看起来就是「重新开始后进度条不动」
+      const previousRatio = (resume && pausedCheckpoint && progressState) ? progressState.ratio : 0;
       startSearchProgress({target: solutions, limitSeconds: timeLimitSeconds,
-        heuristic: advanced.heuristic === true});
+        heuristic: advanced.heuristic === true, startedAt: searchStartedAt, ratio: previousRatio});
       // 逐步搜索（高级选项）：1 步搜一遍、2 步搜一遍 …… 到设定步数（见 runStepwiseSearch）
-      if (advanced.stepwise) {
+      // 续跑不重走多轮：每一轮收尾都会重画解表，累积的解会被冲掉
+      if (advanced.stepwise && !resume) {
         runStepwiseSearch(settings);
         return;
       }
-      // 并行：多个 worker 按前缀分头搜（见 startParallelSearch）；线程数 1 时走原来的单 worker
-      if (settings.threads > 1) {
-        startParallelSearch(settings);
+      // 非启发式一律走前缀任务队列（threads=1 也走）：只有任务级断点才能严格不重跑已完成的子树
+      if (!advanced.heuristic) {
+        startParallelSearch(settings, resume ? pausedCheckpoint : null);
         return;
       }
 
@@ -5933,8 +6095,8 @@
       const token = ++searchToken;
       activeWorker = worker;
       setSearching(true);
-      const startedAt = performance.now();
-      const seconds = () => ((performance.now() - startedAt) / 1000).toFixed(2);
+      // 计时用整轮起点（跨暂停累计），面板上的「已用时间」才是这次求解真实花掉的
+      const seconds = () => ((performance.now() - searchStartedAt) / 1000).toFixed(2);
       worker.onmessage = event => {
         const message = event.data;
         // 内核一找到解就端上来（早于 result 的一条消息）：当场收下、当场显示，
@@ -5961,7 +6123,9 @@
           });
           return;
         }
-        showSearchResult(message.data, seconds(), timeLimitSeconds, limit);
+        // 续跑：列表由 takeStreamedSolution 一路累积，不能按新 worker 这一趟的结果重画
+        if (resume) finishResumedSearch(!!message.data.timedOut, seconds(), timeLimitSeconds, solutions);
+        else showSearchResult(message.data, seconds(), timeLimitSeconds, limit);
       };
       worker.onerror = () => {
         worker.terminate();
@@ -5985,8 +6149,31 @@
               seconds: timeLimitSeconds, found: liveResult.solutions.length, requested: solutions,
             })
           : t('board.solverTimeoutNoSolution', {seconds: timeLimitSeconds});
-      }, timeLimitSeconds * 1000 + 1500);
+      }, remainingMs + 1500);
       worker.postMessage({type: 'search', id: Date.now(), data: workerPayload(settings, request, advanced)});
+    };
+
+    panel.querySelector('#geb-solver-run').addEventListener('click', () => {
+      // 正在搜索时再点一下就是停止：搜索可能跑满时间上限，不必干等
+      if (stopSearch()) {
+        status.textContent = t('board.solverStopped');
+        return;
+      }
+      // 停在断点上再点就是「结束求解」：彻底结束这次求解，已找到的解留着看，下次开始才清
+      if (searchPaused) {
+        searchPaused = false;
+        pausedSearch = null;
+        pausedCheckpoint = null;
+        setSearching(false);
+        // 彻底收尾要把条清回 0，否则下一次开始会被旧 ratio 顶住
+        resetSearchProgress();
+        status.textContent = t('board.solverIdle');
+        return;
+      }
+      launchSearch(false);
+    });
+    panel.querySelector('#geb-solver-resume').addEventListener('click', () => {
+      if (searchPaused && pausedSearch) launchSearch(true);
     });
 
     // 上一步 / 下一步：手动逐步看解法（正在播放时按一下即打断播放）
@@ -6016,6 +6203,9 @@
     /** 彻底清空求解结果（几何被外部替换时用）：停掉搜索、清列表与覆盖层 过程函数 */
     const clearSolveAll = () => {
       stopSearch();
+      // stopSearch 会留下断点，但这里是几何被外部替换：整轮求解作废，按钮回「开始求解」
+      setSearching(false);
+      pausedCheckpoint = null;
       resetSearchProgress();
       replayToken++;
       latest = null;

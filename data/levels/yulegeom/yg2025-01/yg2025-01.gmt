@@ -1,0 +1,21 @@
+# Yule 2025 1
+A=[-143.9550744626,-181.681231908]
+B=[209.4794531835,-193.5947553118]
+c1=Circle[A,B]
+c2=Circle[B,A]
+C=Intersect[c2,c1,1]
+c3=Circle[C,B]
+D=Intersect[c3,c1,-,B]
+c4=Circle[D,C]
+E=Intersect[c4,c3,0]
+F=Intersect[c2,c1,0]
+s1=Line[E,F]
+s2=Line[A,B]
+G=Intersect[s2,s1,0]
+
+initial=c1,B
+named=
+movepoints=A
+hidden=
+result=G
+explore=G

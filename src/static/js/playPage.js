@@ -1082,6 +1082,9 @@ function menuChoice(action) {
             // 画到一半的工具状态也丢掉，否则之后作图会点击错位
             if (typeof resetToolState === 'function') resetToolState();
             loadGeometryElementsStorage();
+            // 和初次载入一致：重载的是整道题的图形（含预绘制的解图），这里只留给定图形
+            // 可见，否则清空后预绘制图形会重新冒出来（见 playStartDataLoad 的同名调用）
+            showInitialOnly();
             // 按原 #grid= 重新登记网格（藏辅助对象、上 #gridstyle= 样式、同步求解面板、补回网格名单）
             if (levelGrid && typeof window.boardGmt?.setGridFromGmt === 'function') window.boardGmt.setGridFromGmt(levelGrid);
             // 重载进来的图形带的是快照里的样式色，移动工具下那几个蓝点要重新染一次

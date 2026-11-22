@@ -1612,6 +1612,10 @@ body.mode-stepview #container_more [data-action="make-grid"] {
 .solver-panel #geb-radar-run { background-color: rgb(232, 245, 233); box-shadow: inset 0 0 0 2px #2e7d32; }
 .solver-panel #geb-solver-run.running,
 .solver-panel #geb-radar-run.running { background-color: rgb(251, 234, 230); box-shadow: inset 0 0 0 2px #d84b35; }
+/* 停止后停在断点上：原按钮变成「结束求解」（琥珀），旁边浮出「继续求解」（绿） */
+.solver-panel #geb-solver-run.paused { background-color: rgb(255, 245, 225); box-shadow: inset 0 0 0 2px #c77b1e; }
+.solver-panel #geb-solver-resume { background-color: rgb(232, 245, 233); box-shadow: inset 0 0 0 2px #2e7d32; }
+.solver-panel #geb-solver-resume[hidden] { display: none; }
 /* 求解结果列表：一行一个解，左边选解、右边看文字步骤（当前画出的那个用解法色标出来） */
 .solver-solution-list { display: grid; gap: 6px; }
 .solver-solution-list:empty { display: none; }

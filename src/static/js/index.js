@@ -828,7 +828,10 @@ function restoreStorage() {
         && typeof window.capturePointCoordinates === 'function'
         ? window.capturePointCoordinates() : null;
     const snapshot = storageManager.restore();
-    if (snapshot) loadStorageSnapshot(snapshot, keepPoints);
+    // 求解器里撤回的只是玩家作图，已找到的解表 / 搜索断点要原样留住；
+    // 显示解本身不进撤销历史（只改画布覆盖层），所以这里必须保留求解输出
+    const solverMode = new URLSearchParams(location.search).get('mode') === 'solver';
+    if (snapshot) loadStorageSnapshot(snapshot, keepPoints, solverMode ? {preserveSolver: true} : undefined);
     refreshStorageButton();
     afterHistoryMove();
     drawContent();
@@ -849,7 +852,8 @@ function redoStorage() {
         && typeof window.capturePointCoordinates === 'function'
         ? window.capturePointCoordinates() : null;
     const snapshot = storageManager.redo();
-    if (snapshot) loadStorageSnapshot(snapshot, keepPoints);
+    const solverMode = new URLSearchParams(location.search).get('mode') === 'solver';
+    if (snapshot) loadStorageSnapshot(snapshot, keepPoints, solverMode ? {preserveSolver: true} : undefined);
     refreshStorageButton();
     afterHistoryMove();
     drawContent();

@@ -6069,24 +6069,55 @@
         ]
     },
     {
-        "id": "billiards-on-round-table-by-two-reflect-point",
+        "id": "neo-castle-pilgrimage",
         "pack": "euc-addit",
-        "file": "levels/euc-addit/013.billiards-on-round-table-by-two-reflect-point/billiards-on-round-table-by-two-reflect-point.gmt",
-        "title": "两个反射点的圆桌台球",
-        "subtitle": "给定点AB和直线上一点P，构造直线上另一点Q，使得存在一个圆O过AB两点，直线PA, QA关于直线OA对称，直线PB, QB关于直线OB对称",
+        "file": "levels/euc-addit/013.neo-castle-pilgrimage/neo-castle-pilgrimage.gmt",
+        "title": "古堡朝圣新编",
+        "subtitle": "给定点A、B和直线及其上一点P，构造直线上另一点Q，使得存在一个圆O过A、B两点，满足直线PA、QA关于直线OA对称，且直线PB、QB关于直线OB对称。",
         "targetSteps": "26L / 34E",
-        "diagram": "levels/euc-addit/013.billiards-on-round-table-by-two-reflect-point/billiards-on-round-table-by-two-reflect-point.png",
+        "diagram": "levels/euc-addit/013.neo-castle-pilgrimage/neo-castle-pilgrimage.png",
         "note": "",
         "keywords": [
             "Euc-Addit",
+            "多解",
             "圆镜反射",
             "轴对称",
+            "圆桌台球",
+            "角平分线",
             "clipt"
         ],
         "solutions": [
             {
                 "star": "26L 34E",
-                "file": "levels/euc-addit/013.billiards-on-round-table-by-two-reflect-point/26l34e.png"
+                "file": "levels/euc-addit/013.neo-castle-pilgrimage/26l34e.png"
+            }
+        ]
+    },
+    {
+        "id": "f4t4-centroid",
+        "pack": "euc-addit",
+        "file": "levels/euc-addit/014.f4t4-centroid/f4t4-centroid.gmt",
+        "title": "重心知四求四",
+        "subtitle": "已知四点，作出另外四个点，使得这四点当中任意三个点的重心均为已知的四点之一。",
+        "targetSteps": "13L / 17E",
+        "diagram": "levels/euc-addit/014.f4t4-centroid/f4t4-centroid.jpg",
+        "note": "",
+        "keywords": [
+            "Euc-Addit",
+            "三角形",
+            "重心",
+            "质心",
+            "平行四边形",
+            "四点"
+        ],
+        "solutions": [
+            {
+                "star": "13L 17E",
+                "file": "levels/euc-addit/014.f4t4-centroid/13L17E.png"
+            },
+            {
+                "star": "18E",
+                "file": "levels/euc-addit/014.f4t4-centroid/18E.png"
             }
         ]
     },
@@ -13041,5 +13072,82 @@
                 "star": "7E"
             }
         ]
+    },
+    {
+        "id": "yg2025-01",
+        "pack": "yulegeom",
+        "file": "levels/yulegeom/yg2025-01/yg2025-01.gmt",
+        "title": "25.1 无心圆半径三等分点",
+        "subtitle": "给定不带圆心的圆及圆上一点，作以该点为端点的半径的三等分点。",
+        "targetSteps": "6E",
+        "diagram": "levels/yulegeom/yg2025-01/yg2025-01.png",
+        "note": "",
+        "keywords": [
+            "YuleGeom",
+            "圆",
+            "半径",
+            "无心圆",
+            "三等分点"
+
+        ],
+        "solutions": [
+            {
+                "file": "levels/yulegeom/yg2025-01/6E.png",
+                "star": "6E"
+            }
+        ]
+    },
+    {
+        "id": "yg2025-02",
+        "pack": "yulegeom",
+        "file": "levels/yulegeom/yg2025-02/yg2025-02.gmt",
+        "title": "25.2 角上相切双等圆",
+        "subtitle": "给定一角两边所在直线，角的两边上各有一点，作两个等大且相切的圆，使它们的圆心分别在角的两边上，且分别过同一边上的给定点。（只需作出外切的、圆心均在角的顶点和给定点之间的一组解即可）",
+        "targetSteps": "10E",
+        "diagram": "levels/yulegeom/yg2025-02/yg2025-02.png",
+        "note": "",
+        "keywords": [
+            "YuleGeom",
+            "圆",
+            "半径",
+            "等大圆",
+            "相切",
+            "位似",
+            "比例"
+
+        ],
+        "solutions": [
+            {
+                "file": "levels/yulegeom/yg2025-02/10E.png",
+                "star": "10E"
+            }
+        ]
+    },
+    {
+        "id": "yg2025-03",
+        "pack": "yulegeom",
+        "file": "levels/yulegeom/yg2025-03/yg2025-03.gmt",
+        "title": "25.3 两垂足与一角分线足",
+        "subtitle": "给定锐角三角形ABC的顶点A在边BC上的垂足H_a，顶点B在边AC上的垂足H_b，过A的角平分线与BC的交点T_a，复原三角形。",
+        "targetSteps": "10E",
+        "diagram": "levels/yulegeom/yg2025-03/yg2025-03.png",
+        "note": "",
+        "keywords": [
+            "YuleGeom",
+            "还原三角形",
+            "垂足",
+            "角平分线",
+            "clipt",
+            "导角",
+            "Wernick"
+
+        ],
+        "solutions": [
+            {
+                "file": "levels/yulegeom/yg2025-03/10E.png",
+                "star": "10E"
+            }
+        ]
     }
+
 ]
