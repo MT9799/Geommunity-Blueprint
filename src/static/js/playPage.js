@@ -804,6 +804,13 @@ function resetGivenPointPositions(targetManager = geometryManager, targetStorage
             if (!element || base.value === undefined) return;
             point.modifyBase('online', [element], base.value);
             if (typeof point.updateCoordinate === 'function') point.updateCoordinate();
+            // 只改基底 / 自身坐标不会通知上层建筑：依赖这个动点的子对象还停在拖走后的位置。
+            // 借管理器公开的「移动点」入口再走一次，它按当前坐标反解回同一个参数，
+            // 同时触发整条依赖链重算（与元素一览里改基底值后的处理同一口径）
+            const [x, y] = point.getCoordinate();
+            if (Number.isFinite(x) && Number.isFinite(y)) {
+                targetManager.modifyPointCoordinate(point.getId(), x, y);
+            }
         }else{
             targetManager.modifyPointCoordinate(point.getId(), initial.x, initial.y);
         }

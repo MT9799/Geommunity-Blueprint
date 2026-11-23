@@ -2918,7 +2918,7 @@
         "pack": "ewp",
         "file": "levels/ewp/ewp288/ewp288.gmt",
         "title": "EWP288",
-        "subtitle": "给定无心圆上3点ABC，构造圆上点P使得距离PA=PB+PC。",
+        "subtitle": "给定无心圆上3点ABC，构造圆上点P使得距离PA+PB=PC。（作出图示位置的所求点即可）",
         "targetSteps": "5L / 5E",
         "diagram": "levels/ewp/ewp288/ewp288.jpg",
         "note": "",
@@ -5664,8 +5664,8 @@
         "pack": "c-s-pzls-other",
         "file": "levels/c-s-pzls-other/067.abissect-retri/abissect-retri.gmt",
         "title": "角平分线截线长还原三角形",
-        "subtitle": "BD, CE为三角形ABC的角平分线，现给定边BC以及BE,CD的长度，构造三角形ABC.",
-        "targetSteps": "13E",
+        "subtitle": "BD、CE为三角形ABC的角平分线，现给定边BC以及BE、CD的长度，构造三角形ABC。",
+        "targetSteps": "13L / 13E",
         "diagram": "levels/c-s-pzls-other/067.abissect-retri/abissect-retri.png",
         "note": "",
         "keywords": [
@@ -5680,6 +5680,55 @@
             {
                 "star": "13E",
                 "file": "levels/c-s-pzls-other/067.abissect-retri/13e.png"
+            }
+        ]
+    },
+    {
+        "id": "3isosctri-equangle",
+        "pack": "c-s-pzls-other",
+        "file": "levels/c-s-pzls-other/068.3isosctri-equangle/3isosctri-equangle.gmt",
+        "title": "三角形边上的等角等腰",
+        "subtitle": "给定三角形ABC及其内部一点D满足DB=DC，求作两点E、F，使得EA=EB，FA=FC，满足∠BED=∠CFD，且∠ABE+∠ACF=∠DBC。",
+        "targetSteps": "13L / 31E",
+        "diagram": "levels/c-s-pzls-other/068.3isosctri-equangle/3isosctri-equangle.png",
+        "note": "",
+        "keywords": [
+            "C-s-Pzls-Other",
+            "中垂线",
+            "三角形",
+            "等腰三角形",
+            "外接圆",
+            "等角",
+            "角度和"
+        ],
+        "solutions": [
+            {
+                "star": "13E",
+                "file": "levels/c-s-pzls-other/068.3isosctri-equangle/31E.png"
+            }
+        ]
+    },
+    {
+        "id": "equ-tc-inc-inangle",
+        "pack": "c-s-pzls-other",
+        "file": "levels/c-s-pzls-other/069.equ-tc-inc-inangle/equ-tc-inc-inangle.gmt",
+        "title": "角内等大旁切圆与外切圆",
+        "subtitle": "给定一角及角内一与两边相切的圆，作该圆的一条切线，与角的两边分别交于两点，使得这两点与角顶点组成的三角形的外接圆和给定圆等大。",
+        "targetSteps": "14L / 22E",
+        "diagram": "levels/c-s-pzls-other/069.equ-tc-inc-inangle/equ-tc-inc-inangle.png",
+        "note": "",
+        "keywords": [
+            "C-s-Pzls-Other",
+            "内切圆",
+            "外接圆",
+            "旁切圆",
+            "公切线",
+            "等大圆"
+        ],
+        "solutions": [
+            {
+                "star": "14L 22E",
+                "file": "levels/c-s-pzls-other/069.equ-tc-inc-inangle/14L22E.png"
             }
         ]
     },
@@ -7711,6 +7760,42 @@
         ]
     },
     {
+        "id": "mfp231",
+        "pack": "mingjing-forum",
+        "file": "levels/mingjing-forum/mfp231/mfp231.gmt",
+        "title": "231 弓形定长弦切圆",
+        "subtitle": "作出已知弓形（为方便计步已给出整圆）的内切圆，使得两切点间距离等于给定线段长。",
+        "targetSteps": "11L / 23E",
+        "diagram": "levels/mingjing-forum/mfp231/mfp231.png",
+        "note": "",
+        "keywords": [
+            "Mingjing-Forum",
+            "内切圆",
+            "角平分线长",
+            "南极点",
+            "等长",
+            "弓形弦",
+            "计算",
+            "外接圆",
+            "多解",
+            "勾股定理"
+        ],
+        "solutions": [
+            {
+                "star": "11L",
+                "file": "levels/mingjing-forum/mfp231/11L.png"
+            },
+            {
+                "star": "23E",
+                "file": "levels/mingjing-forum/mfp231/23E.png"
+            },
+            {
+                "star": "2V",
+                "file": "levels/mingjing-forum/mfp231/2V.png"
+            }
+        ]
+    },
+    {
         "id": "mfp293",
         "pack": "mingjing-forum",
         "file": "levels/mingjing-forum/mfp293/insctri-squsum-min.gmt",
@@ -9617,6 +9702,32 @@
             {
                 "star": "12E",
                 "file": "levels/straightedge-only-pzls/045.cc-15-60/12E.png"
+            }
+        ]
+    },
+    {
+        "id": "perp-in-3angsqu",
+        "pack": "straightedge-only-pzls",
+        "file": "levels/straightedge-only-pzls/046.perp-in-3angsqu/perp-in-3angsqu.gmt",
+        "title": "缺角正方形中的垂线",
+        "subtitle": "在五边形ABCDE中，AB=AE，∠A=∠B=∠E=90°，BC=3，CD=5，DE=2，单尺在6步以内过A作CD的垂线，不能在五边形外取点。",
+        "targetSteps": "6E",
+        "diagram": "levels/straightedge-only-pzls/046.perp-in-3angsqu/perp-in-3angsqu.png",
+        "note": "",
+        "tools": "straightedge",
+        "keywords": [
+            "Straightedge-only-Pzls",
+            "五边形",
+            "垂直",
+            "范围限制",
+            "Sharygin 2025",
+            "单尺",
+            "切线"
+        ],
+        "solutions": [
+            {
+                "star": "6E",
+                "file": "levels/straightedge-only-pzls/046.perp-in-3angsqu/6E.png"
             }
         ]
     },
@@ -13146,6 +13257,63 @@
             {
                 "file": "levels/yulegeom/yg2025-03/10E.png",
                 "star": "10E"
+            }
+        ]
+    },
+    {
+        "id": "yg2025-04",
+        "pack": "yulegeom",
+        "file": "levels/yulegeom/yg2025-04/yg2025-04.gmt",
+        "title": "25.4 内接三角形线束共点",
+        "subtitle": "给定三角形ABC三边所在直线及外接圆，给定直线AD，与边BC交于点D，与外接圆交于点P。作三角形DEF，使得E在AC上，F在AB上，PE与外接圆交于Q，PF与外接圆交于R，满足QEDFR五点共圆。",
+        "targetSteps": "18E",
+        "diagram": "levels/yulegeom/yg2025-04/yg2025-04.png",
+        "note": "",
+        "keywords": [
+            "YuleGeom",
+            "还原三角形",
+            "垂足",
+            "角平分线",
+            "clipt",
+            "导角",
+            "Wernick"
+
+        ],
+        "solutions": [
+            {
+                "file": "levels/yulegeom/yg2025-04/8L.png",
+                "star": "8L"
+            },
+            {
+                "file": "levels/yulegeom/yg2025-04/18E.png",
+                "star": "18E"
+            }
+        ]
+    },
+    {
+        "id": "yg2025-05",
+        "pack": "yulegeom",
+        "file": "levels/yulegeom/yg2025-05/yg2025-05.gmt",
+        "title": "25.5 第14类密铺五边形",
+        "subtitle": "给定线段AB，作五边形ABCDE，满足2AE=2BC=CD=DE，∠A=90°，2∠B+∠C=360°，∠C+∠E=180°。",
+        "targetSteps": "20E",
+        "diagram": "levels/yulegeom/yg2025-05/yg2025-05.png",
+        "note": "",
+        "keywords": [
+            "YuleGeom",
+            "特殊五边形",
+            "定图",
+            "计算",
+            "相似",
+            "角度和",
+            "直角",
+            "线段相等"
+
+        ],
+        "solutions": [
+            {
+                "file": "levels/yulegeom/yg2025-05/20E.png",
+                "star": "20E"
             }
         ]
     }
