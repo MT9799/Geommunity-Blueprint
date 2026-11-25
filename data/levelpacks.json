@@ -64,6 +64,14 @@
         "source": ""
     },
     {
+        "id": "geom-contest-refresh",
+        "name": "群赛复健",
+        "description": "MT的群赛题训练集，用于提升群赛做题能力。",
+        "cover": "packcovers/geom-contest-refresh.png",
+        "icon": "",
+        "source": ""
+    },
+    {
         "id": "xeuclidea-puzzle",
         "name": "XEuclidea-Puzzle",
         "description": "特普的尺规作图标准题集。",

@@ -2,10 +2,11 @@
 
 本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)，条目按 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 组织。
 
-## [1.2.17] - 2026-11-24
+## [1.2.17] - 2026-11-25
 
 ### 新增
 
+- 新增关卡包 `群赛复健`。
 - 部分关卡包新增关卡。
 - `make-thumbs.py` 新增 CLI 进度条：终端里自动显示，逐条日志打在进度条上方不与它交错；`--progress` 可在非终端强制显示，`--no-progress` 随时关闭。
 

@@ -12295,6 +12295,105 @@
         ]
     },
     {
+        "id": "gcr1",
+        "pack": "geom-contest-refresh",
+        "file": "levels/geom-contest-refresh/gcr1/gcr1.gmt",
+        "title": "墙角的正方形",
+        "subtitle": "构造给定一个顶点的正方形，另外两个顶点各位于成直角的两条射线上。",
+        "targetSteps": "10L / 10E",
+        "diagram": "levels/geom-contest-refresh/gcr1/gcr1.png",
+        "note": "",
+        "keywords": [
+            "Geom-Contest-Refresh",
+            "正方形",
+            "内接"
+        ],
+        "solutions": [
+        ]
+    },
+    {
+        "id": "gcr2",
+        "pack": "geom-contest-refresh",
+        "file": "levels/geom-contest-refresh/gcr2/gcr2.gmt",
+        "title": "平行线上最小等腰三角形",
+        "subtitle": "给定三平行线a、b、c，b上一点A 在a上作一点B，c上作一点C，使得 AB=AC，且三角形ABC面积最小。",
+        "targetSteps": "6L / 10E",
+        "diagram": "levels/geom-contest-refresh/gcr2/gcr2.png",
+        "note": "",
+        "keywords": [
+            "Geom-Contest-Refresh",
+            "等腰三角形",
+            "平行线",
+            "面积",
+            "极小值"
+        ],
+        "solutions": [
+        ]
+    },
+    {
+        "id": "gcr3",
+        "pack": "geom-contest-refresh",
+        "file": "levels/geom-contest-refresh/gcr3/gcr3.gmt",
+        "title": "线上圆夹角60°",
+        "subtitle": "给定圆、线、线上一点，作一圆， 圆心在线上，过给定点，且与给定圆交点切线向外夹角为60°。",
+        "targetSteps": "5L / 10E",
+        "diagram": "levels/geom-contest-refresh/gcr3/gcr3.png",
+        "note": "",
+        "keywords": [
+            "Geom-Contest-Refresh",
+            "圆夹角",
+            "60度",
+            "圆过点",
+            "圆心在线上"
+        ],
+        "solutions": [
+        ]
+    },
+    {
+        "id": "gcr4",
+        "pack": "geom-contest-refresh",
+        "file": "levels/geom-contest-refresh/gcr4/gcr4.gmt",
+        "title": "过心线（1）",
+        "subtitle": "如图，作圆上一点D，满足 DF:EF:CD=1:2:3.",
+        "targetSteps": "10L / 12E",
+        "diagram": "levels/geom-contest-refresh/gcr4/gcr4.png",
+        "note": "",
+        "keywords": [
+            "Geom-Contest-Refresh",
+            "三点共线",
+            "比例",
+            "距离"
+        ],
+        "solutions": [
+            {
+                "file": "levels/geom-contest-refresh/gcr4/10l12e-outside.png",
+                "star": "10L 12E Outside"
+            },
+            {
+                "file": "levels/geom-contest-refresh/gcr4/6l10e-inside.png",
+                "star": "6L 10E Inside"
+            }
+        ]
+    },
+    {
+        "id": "gcr5",
+        "pack": "geom-contest-refresh",
+        "file": "levels/geom-contest-refresh/gcr5/gcr5.gmt",
+        "title": "过心线（2）",
+        "subtitle": "如图，作圆上一点E，使三角 形CDE周长最大.",
+        "targetSteps": "10L / 10E",
+        "diagram": "levels/geom-contest-refresh/gcr5/gcr5.png",
+        "note": "",
+        "keywords": [
+            "Geom-Contest-Refresh",
+            "三角形",
+            "周长",
+            "极大值"
+        ],
+        "solutions": [
+        ]
+    },
+    {
         "id": "wt1",
         "pack": "weekly-tangent",
         "file": "levels/weekly-tangent/wt1/weekly-tangent-1.gmt",
