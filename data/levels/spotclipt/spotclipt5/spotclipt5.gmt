@@ -1,0 +1,22 @@
+# sc5
+A=[339.9331792347,-630.8467243751]
+B=[-438.7849579767,68.9142021204]
+s1=Line[A,B]
+C=[387.0958388171,58.2164284689]
+s2=Line[B,C]
+D=[20.1887721526,-740.2402095748]
+E=[-282.5289625367,-514.9728689979]
+s3=ABisect[D,E,B]
+F=Intersect[s3,s1,0]
+s4=Line[F,D]
+G=Intersect[s3,s2,0]
+s5=Line[D,G]
+H=Intersect[s5,s1,0]
+I=Intersect[s4,s2,0]
+
+initial=s2,s1,B
+named=D.A,E.P
+movepoints=A,C
+hidden=
+result=s5,s4:s5,s4,I,F,H,G
+explore=s5,s4,I,F,H,G

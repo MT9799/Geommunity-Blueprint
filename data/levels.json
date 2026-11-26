@@ -5733,6 +5733,32 @@
         ]
     },
     {
+        "id": "iho-re2circ",
+        "pack": "c-s-pzls-other",
+        "file": "levels/c-s-pzls-other/070.iho-re2circ/iho-re2circ.gmt",
+        "title": "IHO作外接内切圆",
+        "subtitle": "给定三角形的内心、外心、垂心，作出该三角形的内切圆和外接圆。",
+        "targetSteps": "8L / 8E",
+        "diagram": "levels/c-s-pzls-other/070.iho-re2circ/iho-re2circ.png",
+        "note": "",
+        "keywords": [
+            "C-s-Pzls-Other",
+            "内切圆",
+            "外接圆",
+            "复原三角形",
+            "欧拉定理",
+            "比例",
+            "特殊点",
+            "三角形"
+        ],
+        "solutions": [
+            {
+                "star": "8L 8E",
+                "file": "levels/c-s-pzls-other/070.iho-re2circ/8L8E.png"
+            }
+        ]
+    },
+    {
         "id": "inc-circumc-re-trapezoid",
         "pack": "euc-addit",
         "file": "levels/euc-addit/001.inc-circumc-re-trapezoid/inc-circumc-re-trapezoid.gmt",
@@ -12684,6 +12710,35 @@
         ]
     },
     {
+        "id": "wt5",
+        "pack": "weekly-tangent",
+        "file": "levels/weekly-tangent/wt5/wt5.gmt",
+        "title": "切圆红爱心",
+        "subtitle": "计算题改编：作图上的图形（作出如图的解即可），其中线段BC已经给定。",
+        "targetSteps": "16L / 22E",
+        "diagram": "levels/weekly-tangent/wt5/wt5.jpg",
+        "note": "",
+        "keywords": [
+            "Weekly-Tangent",
+            "正方形",
+            "黄金比例",
+            "内切圆",
+            "相切",
+            "公切线",
+            "定图"
+        ],
+        "solutions": [
+            {
+                "file": "levels/weekly-tangent/wt5/16L.png",
+                "star": "16L"
+            },
+            {
+                "file": "levels/weekly-tangent/wt5/22E.png",
+                "star": "22E"
+            }
+        ]
+    },
+    {
         "id": "wt6",
         "pack": "weekly-tangent",
         "file": "levels/weekly-tangent/wt6/weekly-tangent-6.gmt",
@@ -13608,7 +13663,7 @@
         "id": "spotclipt1",
         "pack": "spotclipt",
         "file": "levels/spotclipt/spotclipt1/spotclipt1.gmt",
-        "title": "1 交角双心四边形",
+        "title": "#1 交角双心四边形",
         "subtitle": "给定角和角外一点，过该点作两条直线，使其与给定角围成的四边形有外接圆和内切圆。",
         "targetSteps": "8L / 14E",
         "diagram": "levels/spotclipt/spotclipt1/spotclipt1.png",
@@ -13638,7 +13693,7 @@
         "id": "spotclipt2",
         "pack": "spotclipt",
         "file": "levels/spotclipt/spotclipt2/spotclipt2.gmt",
-        "title": "2 交角内点双等腰",
+        "title": "#2 交角内点双等腰",
         "subtitle": "给定角、角外一点P和角内一点A，过P作两条直线，两直线与角的两边分别交于D、E和F、G，使得AD=AF，AE=AG。",
         "targetSteps": "18L / 42E",
         "diagram": "levels/spotclipt/spotclipt2/spotclipt2.png",
@@ -13656,11 +13711,76 @@
         ]
     },
     {
+        "id": "spotclipt3",
+        "pack": "spotclipt",
+        "file": "levels/spotclipt/spotclipt3/spotclipt3.gmt",
+        "title": "#3 交角内点双直角",
+        "subtitle": "给定角、角外一点P和角内一点A，过P作两条直线，两直线与角的两边分别交于D、E和F、G，使得AD⊥AF，AE⊥AG。",
+        "targetSteps": "19L / 34E",
+        "diagram": "levels/spotclipt/spotclipt3/spotclipt3.png",
+        "note": "",
+        "keywords": [
+            "SpotClipt",
+            "垂直",
+            "clipt"
+        ],
+        "solutions": [
+            {
+                "file": "levels/spotclipt/spotclipt3/19L34E.png",
+                "star": "18L"
+            }
+        ]
+    },
+    {
+        "id": "spotclipt4",
+        "pack": "spotclipt",
+        "file": "levels/spotclipt/spotclipt4/spotclipt4.gmt",
+        "title": "#4 四线共点三相等",
+        "subtitle": "给定直线和A、B、C、D四点，试作四条直线PA、PB、PC、PD，共点于一点P，分别与给定直线交于E、F、G、H四点，满足EF=FG=GH。",
+        "targetSteps": "19L / 19E",
+        "diagram": "levels/spotclipt/spotclipt4/spotclipt4.png",
+        "note": "",
+        "keywords": [
+            "SpotClipt",
+            "四线共点",
+            "线段相等",
+            "clipt"
+        ],
+        "solutions": [
+            {
+                "file": "levels/spotclipt/spotclipt4/19L19E.png",
+                "star": "19E"
+            }
+        ]
+    },
+    {
+        "id": "spotclipt5",
+        "pack": "spotclipt",
+        "file": "levels/spotclipt/spotclipt5/spotclipt5.gmt",
+        "title": "#5 交角共线平分角",
+        "subtitle": "给定一角、点A和点P，过点A作两条直线，两直线与角的两边分别交于B、D和C、E，使得P、B、E共线且平分∠CPD。",
+        "targetSteps": "3L / 6E",
+        "diagram": "levels/spotclipt/spotclipt5/spotclipt5.png",
+        "note": "",
+        "keywords": [
+            "SpotClipt",
+            "三点共线",
+            "角平分线",
+            "角度相等"
+        ],
+        "solutions": [
+            {
+                "file": "levels/spotclipt/spotclipt5/3L6E.png",
+                "star": "3L 6E"
+            }
+        ]
+    },
+    {
         "id": "tj25",
         "pack": "grids",
         "file": "levels/grids/tj25/tj25.gmt",
         "title": "2025天津中考",
-        "subtitle": "点P，A均在格点上，直线PA与ABC的外接圆相切于点A,AB=BC. 画出点M，N使得点M在射线BC上，点N在线段BA的延长线上，满足CM=2AN，且MN与射线BA垂直.",
+        "subtitle": "在每个小正方形的边长为1的网格中，点P、A均在格点上，直线PA与ABC的外接圆相切于点A，AB=BC。画出点M、N，使得点M在射线BC上，点N在线段BA的延长线上，满足CM=2AN，且MN与射线BA垂直。",
         "targetSteps": "5E",
         "diagram": "levels/grids/tj25/tj25.png",
         "note": "",
