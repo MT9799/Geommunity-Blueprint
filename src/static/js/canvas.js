@@ -1665,6 +1665,29 @@ function notationParallel(element, base, count) {
         sourceDir.x, sourceDir.y, count);
 }
 
+/**
+ * 线段适配：取父线在垂足处用于画直角符号的方向。
+ * 线段的两端正方向总有一端指向线段外（如在线段末端 B 处作垂线，
+ * 线的正方向 A→B 指着 B 的外侧），此时把方向翻到线段内侧，
+ * 免得直角记号落在没有线段的一侧；直线 / 射线仍按原正方向
+ */
+function notationParentDirectionAt(line, foot) {
+    const coord = line?.getCoordinate?.();
+    if (!coord) return null;
+    let dir = notationUnit(coord[0], coord[1]);
+    if (!dir) return null;
+    if (line.getDrawType?.() === 'lineSegment') {
+        const dx = coord[1][0] - coord[0][0];
+        const dy = coord[1][1] - coord[0][1];
+        const square = dx * dx + dy * dy;
+        if (square > 1e-20) {
+            const t = ((foot.x - coord[0][0]) * dx + (foot.y - coord[0][1]) * dy) / square;
+            if (t > 0.5) dir = {x: -dir.x, y: -dir.y};
+        }
+    }
+    return dir;
+}
+
 /** 垂线：垂足处、两线正方向象限标直角符号 过程函数 */
 function notationPerpendicular(element, base) {
     const [point, line] = notationFigure(base);
@@ -1676,7 +1699,7 @@ function notationPerpendicular(element, base) {
     const foot = notationFoot(target, source);
     if (!foot) return;
     notationRightAngle(foot.x, foot.y, notationUnit(self[0], self[1]),
-        notationUnit(source[0], source[1]), notationPx(15));
+        notationParentDirectionAt(line, foot), notationPx(15));
 }
 
 /** 中垂线：垂足直角符 + 两点 0.25/0.75 处 | 记号 + 两点间虚线 过程函数 */
