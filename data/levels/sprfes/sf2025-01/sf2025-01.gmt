@@ -1,7 +1,7 @@
 #LocusofParticals
-A=[-156.37104562998823,19.71175236229186]
-B=[86.00279263019242,20.153218222433967]
-C=[149.1701057200578,-78.62333083082893]
+A=[-156.37104563,19.7117523623]
+B=[86.0027926302,20.1532182224]
+C=[149.1701057201,-78.6233308308]
 c1=Circle[B,C]
 s1=Line[A,B]
 s2=Perp[B,s1]
@@ -16,17 +16,16 @@ s6=PBisect[A,F]
 G=Intersect[s5,s6,0]
 c3=Circle[G,A]
 S1=Segment[D,F]
+c4=Circle[E,A]
+#geom=c4:Arc[E,A,D]
+c5=Circle[G,F]
+#geom=c5:Arc[G,F,A]
 
 initial=A,B,c1
-
-#named=
-
-#hidden=
-
+named=
 movepoints=C
-
-result=s2,c2,c3:S1,c2,c3
-
-explore=S1,c2,c3
+hidden=
+result=s2,c2,c3:S1,c4,c5
+explore=S1,c4,c5
 
 rules=B.A>B.C

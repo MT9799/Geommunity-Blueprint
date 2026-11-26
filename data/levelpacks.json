@@ -104,6 +104,14 @@
         "source": ""
     },
     {
+        "id": "spotclipt",
+        "name": "SpotClipt",
+        "description": "春铃的“聚光灯”多重线束作图问题合集。",
+        "cover": "packcovers/spotclipt.jpg",
+        "icon": "",
+        "source": ""
+    },
+    {
         "id": "straightedge-only-pzls",
         "name": "纯单尺精选集",
         "description": "单尺作图-从入门到入土。",

@@ -200,7 +200,7 @@ function constructionCostOfElement(item) {
         return {e: 0, l: 0};
     }
     if (type === 'circle') {
-        if (baseType === 'threePointCircle') return {e: 7, l: 1};
+        if (baseType === 'threePointCircle') return {e: 7, l: 3};
         if (baseType === 'compass') return {e: 5, l: 1};
         if (baseType === 'twoPoints') return {e: 1, l: 1};
         return {e: 0, l: 0};
@@ -274,7 +274,8 @@ function refreshMovesCounterByTool(event) {
         movesL++;
     }else if (type === "threePointCircle") {
         movesE += 7;
-        movesL++;
+        // 三点圆按 3L 计：它相当于两条中垂线 + 一个圆（以前记 1L，与其它工具的 L 口径不一致）
+        movesL += 3;
     }else if (type === "delete") {
         // 删除图形：把这一笔当初记的步数与消耗退回来，计数器才会跟着更新
         // （退回量由 constructionRefundOfDelete 按下面的加权表反着算）

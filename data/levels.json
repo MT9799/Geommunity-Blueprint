@@ -13298,7 +13298,6 @@
             "半径",
             "无心圆",
             "三等分点"
-
         ],
         "solutions": [
             {
@@ -13324,7 +13323,6 @@
             "相切",
             "位似",
             "比例"
-
         ],
         "solutions": [
             {
@@ -13350,7 +13348,6 @@
             "clipt",
             "导角",
             "Wernick"
-
         ],
         "solutions": [
             {
@@ -13376,7 +13373,6 @@
             "clipt",
             "导角",
             "Wernick"
-
         ],
         "solutions": [
             {
@@ -13407,12 +13403,62 @@
             "角度和",
             "直角",
             "线段相等"
-
         ],
         "solutions": [
             {
                 "file": "levels/yulegeom/yg2025-05/20E.png",
                 "star": "20E"
+            }
+        ]
+    },
+    {
+        "id": "spotclipt1",
+        "pack": "spotclipt",
+        "file": "levels/spotclipt/spotclipt1/spotclipt1.gmt",
+        "title": "1 交角双心四边形",
+        "subtitle": "给定角和角外一点，过该点作两条直线，使其与给定角围成的四边形有外接圆和内切圆。",
+        "targetSteps": "8L / 14E",
+        "diagram": "levels/spotclipt/spotclipt1/spotclipt1.png",
+        "note": "",
+        "keywords": [
+            "SpotClipt",
+            "双心四边形",
+            "外接圆",
+            "内切圆",
+            "角",
+            "垂直",
+            "角平分线",
+            "切线"
+        ],
+        "solutions": [
+            {
+                "file": "levels/spotclipt/spotclipt1/8L.png",
+                "star": "8L"
+            },
+            {
+                "file": "levels/spotclipt/spotclipt1/14E.png",
+                "star": "14E"
+            }
+        ]
+    },
+    {
+        "id": "spotclipt2",
+        "pack": "spotclipt",
+        "file": "levels/spotclipt/spotclipt2/spotclipt2.gmt",
+        "title": "2 交角内点双等腰",
+        "subtitle": "给定角、角外一点P和角内一点A，过P作两条直线，两直线与角的两边分别交于D、E和F、G，使得AD=AF，AE=AG。",
+        "targetSteps": "18L / 42E",
+        "diagram": "levels/spotclipt/spotclipt2/spotclipt2.png",
+        "note": "",
+        "keywords": [
+            "SpotClipt",
+            "线段相等",
+            "clipt"
+        ],
+        "solutions": [
+            {
+                "file": "levels/spotclipt/spotclipt2/18L42E.png",
+                "star": "18L"
             }
         ]
     }

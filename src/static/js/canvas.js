@@ -654,6 +654,10 @@ function drawContent() {
     ct.translate(transform.x, transform.y);
     ct.scale(transform.scale, transform.scale);
 
+    // 高级工具标注层：浅灰、最细，先于图形绘制 —— 压在图形最底层，
+    // 连线 / 圆会自然盖住它，所以不必判断「有没有连线」，也不参与任何交互
+    drawToolNotationLayer();
+
     // 绘制图形
     drawShapes();
 
@@ -1514,6 +1518,376 @@ function ensureSourceHighlightAnimation(active) {
     }
 }
 
+/* ------------------------------------------------------------------
+ * 高级工具标注层
+ * 给平行线 / 垂线 / 中垂线 / 角平分线 / 圆规 / 中点 / 极点极线 / 定值角 / 复制角
+ * 画一层浅灰、最细的辅助记号（平行箭头、直角符号、角弧、| 记号、虚线）。
+ * 画在 drawShapes 之前 = 图形之下，连线 / 圆会自然把它盖住，
+ * 所以不必判断「有没有连线」；只是绘制，不参与命中测试，永远不可交互。
+ * 记号的半长 / 间距沿用线段多层记号（drawSegmentMark）的参数。
+ * ------------------------------------------------------------------ */
+const NOTATION_COLOR = 'rgb(210, 210, 210)';
+// 最细档：与样式面板「最细」一致（LINE_WIDTH_BASE × 0.5 = 1.5 屏幕像素）
+const NOTATION_WIDTH = 0.5;
+
+/** 标注层的屏幕像素 → 逻辑长度 过程函数 */
+function notationPx(px) {
+    return px / (transform.scale || 1);
+}
+
+/** 线段记号同款参数（半长 / 间距） 过程函数：本轮新记号统一用它 */
+function notationMarkParams() {
+    const thickness = Math.max(LINE_WIDTH_BASE * NOTATION_WIDTH, 1);
+    const half = Math.max(5, thickness * 2) / (transform.scale || 1);
+    return {half, gap: half * 1.2};
+}
+
+/** 单位向量 过程函数 */
+function notationUnit(from, to) {
+    const dx = (to[0] ?? to.x) - (from[0] ?? from.x);
+    const dy = (to[1] ?? to.y) - (from[1] ?? from.y);
+    const length = Math.hypot(dx, dy);
+    if (!(length > 1e-12)) return null;
+    return {x: dx / length, y: dy / length};
+}
+
+/** 点到直线（两点）的垂足 过程函数 */
+function notationFoot(point, lineCoord) {
+    const [x1, y1] = lineCoord[0];
+    const [x2, y2] = lineCoord[1];
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const square = dx * dx + dy * dy;
+    if (!(square > 1e-20)) return null;
+    const t = (((point[0] ?? point.x) - x1) * dx + ((point[1] ?? point.y) - y1) * dy) / square;
+    return {x: x1 + dx * t, y: y1 + dy * t};
+}
+
+/** 画一条直线段 过程函数 */
+function notationLine(x1, y1, x2, y2) {
+    ct.beginPath();
+    ct.moveTo(x1, y1);
+    ct.lineTo(x2, y2);
+    ct.stroke();
+}
+
+/** 画一条浅灰虚线 过程函数 */
+function notationDashed(x1, y1, x2, y2) {
+    ct.setLineDash([notationPx(4), notationPx(4)]);
+    notationLine(x1, y1, x2, y2);
+    ct.setLineDash([]);
+}
+
+/** 沿 (ux, uy) 方向在 (cx, cy) 画 count 个 | 记号 过程函数 */
+function notationTicks(cx, cy, ux, uy, count) {
+    if (!(count > 0)) return;
+    const {half, gap} = notationMarkParams();
+    const nx = -uy;
+    const ny = ux;
+    for (let i = 0; i < count; i++) {
+        const offset = (i - (count - 1) / 2) * gap;
+        const x = cx + ux * offset;
+        const y = cy + uy * offset;
+        notationLine(x - nx * half, y - ny * half, x + nx * half, y + ny * half);
+    }
+}
+
+/** 沿 (ux, uy) 方向在 (cx, cy) 画 count 个同向箭头 过程函数 */
+function notationArrows(cx, cy, ux, uy, count) {
+    if (!(count > 0)) return;
+    const {half, gap} = notationMarkParams();
+    const nx = -uy;
+    const ny = ux;
+    for (let i = 0; i < count; i++) {
+        const offset = (i - (count - 1) / 2) * gap;
+        const x = cx + ux * offset;
+        const y = cy + uy * offset;
+        ct.beginPath();
+        ct.moveTo(x - ux * half + nx * half, y - uy * half + ny * half);
+        ct.lineTo(x + ux * half, y + uy * half);
+        ct.lineTo(x - ux * half - nx * half, y - uy * half - ny * half);
+        ct.stroke();
+    }
+}
+
+/** 直角符号：沿两个正方向各走 size，连成 L 形 过程函数 */
+function notationRightAngle(x, y, dir1, dir2, size) {
+    if (!dir1 || !dir2) return;
+    const ax = x + dir1.x * size;
+    const ay = y + dir1.y * size;
+    const bx = x + dir2.x * size;
+    const by = y + dir2.y * size;
+    ct.beginPath();
+    ct.moveTo(ax, ay);
+    ct.lineTo(ax + dir2.x * size, ay + dir2.y * size);
+    ct.lineTo(bx, by);
+    ct.stroke();
+}
+
+/** 两方向之间的小角弧（取 |角| ≤ π 的那一侧） 过程函数 */
+function notationAngleArc(cx, cy, from, to, radius) {
+    if (!from || !to) return;
+    const a1 = Math.atan2(from.y, from.x);
+    const a2 = Math.atan2(to.y, to.x);
+    let delta = a2 - a1;
+    while (delta > Math.PI) delta -= Math.PI * 2;
+    while (delta < -Math.PI) delta += Math.PI * 2;
+    ct.beginPath();
+    ct.arc(cx, cy, radius, a1, a1 + delta, delta < 0);
+    ct.stroke();
+}
+
+/** 取对象定义元素（线 / 圆用 figure，点类用 bases，这里统一兜底） 过程函数 */
+function notationFigure(base) {
+    if (Array.isArray(base.figure) && base.figure.length) return base.figure;
+    if (Array.isArray(base.bases) && base.bases.length) return base.bases;
+    return [];
+}
+
+/** 平行线：两条线 0.5 处各标同向箭头，1-3 个循环 过程函数 */
+function notationParallel(element, base, count) {
+    const [, line] = notationFigure(base);
+    if (!line || typeof line.getCoordinate !== 'function') return;
+    const self = element.getCoordinate?.();
+    const source = line.getCoordinate?.();
+    if (!self || !source) return;
+    const selfDir = notationUnit(self[0], self[1]);
+    const sourceDir = notationUnit(source[0], source[1]);
+    if (!selfDir || !sourceDir) return;
+    // 被平行线的箭头与平行线取同向，视觉上成对
+    if (sourceDir.x * selfDir.x + sourceDir.y * selfDir.y < 0) {
+        sourceDir.x = -sourceDir.x;
+        sourceDir.y = -sourceDir.y;
+    }
+    notationArrows((self[0][0] + self[1][0]) / 2, (self[0][1] + self[1][1]) / 2,
+        selfDir.x, selfDir.y, count);
+    notationArrows((source[0][0] + source[1][0]) / 2, (source[0][1] + source[1][1]) / 2,
+        sourceDir.x, sourceDir.y, count);
+}
+
+/** 垂线：垂足处、两线正方向象限标直角符号 过程函数 */
+function notationPerpendicular(element, base) {
+    const [point, line] = notationFigure(base);
+    if (!point || !line || typeof line.getCoordinate !== 'function') return;
+    const target = point.getCoordinate?.();
+    const source = line.getCoordinate?.();
+    const self = element.getCoordinate?.();
+    if (!target || !source || !self) return;
+    const foot = notationFoot(target, source);
+    if (!foot) return;
+    notationRightAngle(foot.x, foot.y, notationUnit(self[0], self[1]),
+        notationUnit(source[0], source[1]), notationPx(15));
+}
+
+/** 中垂线：垂足直角符 + 两点 0.25/0.75 处 | 记号 + 两点间虚线 过程函数 */
+function notationPerpendicularBisector(element, base) {
+    const [point1, point2] = notationFigure(base);
+    if (!point1 || !point2) return;
+    const c1 = point1.getCoordinate?.();
+    const c2 = point2.getCoordinate?.();
+    const self = element.getCoordinate?.();
+    if (!c1 || !c2 || !self) return;
+    const along = notationUnit(c1, c2);
+    notationRightAngle((c1[0] + c2[0]) / 2, (c1[1] + c2[1]) / 2, along,
+        notationUnit(self[0], self[1]), notationPx(15));
+    if (along) {
+        for (const t of [0.25, 0.75]) {
+            notationTicks(c1[0] + (c2[0] - c1[0]) * t, c1[1] + (c2[1] - c1[1]) * t,
+                along.x, along.y, 1);
+        }
+    }
+    notationDashed(c1[0], c1[1], c2[0], c2[1]);
+}
+
+/** 角平分线：顶点两侧各标一个角弧（大小错开）+ 两边虚线 过程函数 */
+function notationAngleBisector(element, base) {
+    const [point1, vertex, point3] = notationFigure(base);
+    if (!point1 || !vertex || !point3) return;
+    const v = vertex.getCoordinate?.();
+    const a = point1.getCoordinate?.();
+    const c = point3.getCoordinate?.();
+    const self = element.getCoordinate?.();
+    if (!v || !a || !c || !self) return;
+    const ub = notationUnit(self[0], self[1]);
+    notationAngleArc(v[0], v[1], notationUnit(v, a), ub, notationPx(17));
+    notationAngleArc(v[0], v[1], ub, notationUnit(v, c), notationPx(20));
+    notationDashed(v[0], v[1], a[0], a[1]);
+    notationDashed(v[0], v[1], c[0], c[1]);
+}
+
+/** 圆规：AB 与「C 出发、与 AB 反向等长」的 CD 各标 | 记号 + 虚线 过程函数 */
+function notationCompass(base, count) {
+    const [point1, point2, center] = notationFigure(base);
+    if (!point1 || !point2 || !center) return;
+    const a = point1.getCoordinate?.();
+    const b = point2.getCoordinate?.();
+    const c = center.getCoordinate?.();
+    if (!a || !b || !c) return;
+    const ab = notationUnit(a, b);
+    if (ab) {
+        notationTicks((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, ab.x, ab.y, count);
+        notationDashed(a[0], a[1], b[0], b[1]);
+    }
+    // D = C - (B - A)：方向与 AB 相反、长度相等（只在计算中，不落成图形）
+    const d = [c[0] - (b[0] - a[0]), c[1] - (b[1] - a[1])];
+    const cd = notationUnit(c, d);
+    if (cd) {
+        notationTicks((c[0] + d[0]) / 2, (c[1] + d[1]) / 2, cd.x, cd.y, count);
+        notationDashed(c[0], c[1], d[0], d[1]);
+    }
+}
+
+/** 中点：两点 0.25/0.75 处 | 记号 + 两点间虚线（无直角符号） 过程函数 */
+function notationMiddlePoint(base) {
+    const [point1, point2] = notationFigure(base);
+    if (!point1 || !point2) return;
+    const c1 = point1.getCoordinate?.();
+    const c2 = point2.getCoordinate?.();
+    if (!c1 || !c2) return;
+    const along = notationUnit(c1, c2);
+    if (along) {
+        for (const t of [0.25, 0.75]) {
+            notationTicks(c1[0] + (c2[0] - c1[0]) * t, c1[1] + (c2[1] - c1[1]) * t,
+                along.x, along.y, 1);
+        }
+    }
+    notationDashed(c1[0], c1[1], c2[0], c2[1]);
+}
+
+/** 极点 / 极线：点与其在线上垂足之间画浅灰虚线 过程函数 */
+function notationPolar(element, base) {
+    let pointCoord = null;
+    let lineCoord = null;
+    if (base.type === 'polarLine') {
+        const [point] = notationFigure(base);
+        pointCoord = point?.getCoordinate?.();
+        lineCoord = element.getCoordinate?.();       // 本对象就是极线
+    } else {
+        const [line] = notationFigure(base);
+        pointCoord = element.getCoordinate?.();      // 本对象就是极点
+        lineCoord = line?.getCoordinate?.();
+    }
+    if (!pointCoord || !lineCoord) return;
+    const foot = notationFoot(pointCoord, lineCoord);
+    if (!foot) return;
+    notationDashed(pointCoord[0], pointCoord[1], foot.x, foot.y);
+}
+
+/** 定值角：顶点角弧 + 外侧写角度 过程函数 */
+function notationFixAngle(element, base) {
+    const [vertex, start] = notationFigure(base);
+    if (!vertex || !start) return;
+    const v = vertex.getCoordinate?.();
+    const s = start.getCoordinate?.();
+    if (!v || !s) return;
+    const angle = Number(base.value) || 0;
+    const a1 = Math.atan2(s[1] - v[1], s[0] - v[0]);
+    // y 轴向下：视觉上的逆时针 = atan2 角减少
+    const a2 = a1 - angle * Math.PI / 180;
+    ct.beginPath();
+    ct.arc(v[0], v[1], notationPx(18), a1, a2, true);
+    ct.stroke();
+    notationDashed(v[0], v[1], s[0], s[1]);
+    // 角度文字写在外侧（角平分线方向再远一点）
+    const mid = (a1 + a2) / 2;
+    const textRadius = notationPx(32);
+    ct.save();
+    ct.font = `${notationPx(13)}px sans-serif`;
+    ct.textAlign = 'center';
+    ct.textBaseline = 'middle';
+    ct.fillText(`${angle}°`, v[0] + Math.cos(mid) * textRadius, v[1] + Math.sin(mid) * textRadius);
+    ct.restore();
+}
+
+/** 复制角：两个角顶点各标角弧（1-3 层循环）+ 缺连线处虚线 过程函数 */
+function notationCopyAngle(element, base, count) {
+    const [a, b, c, d, e] = notationFigure(base);
+    if (!a || !b || !c || !d || !e) return;
+    const ca = a.getCoordinate?.();
+    const cb = b.getCoordinate?.();
+    const cc = c.getCoordinate?.();
+    const cd = d.getCoordinate?.();
+    const ce = e.getCoordinate?.();
+    const self = element.getCoordinate?.();
+    if (!ca || !cb || !cc || !cd || !ce || !self) return;
+    // 源角：顶点 b，两边 b→a、b→c
+    const srcA = notationUnit(cb, ca);
+    const srcC = notationUnit(cb, cc);
+    // 目标角：顶点 e，始边 e→d，另一边 = 本射线方向
+    const dstD = notationUnit(ce, cd);
+    const dstR = notationUnit(self[0], self[1]);
+    for (let i = 0; i < count; i++) {
+        const radius = notationPx(18) + i * notationPx(4);
+        notationAngleArc(cb[0], cb[1], srcA, srcC, radius);
+        notationAngleArc(ce[0], ce[1], dstD, dstR, radius);
+    }
+    // 角上的点与顶点之间没有连线时补虚线（置底，连线会盖住）
+    notationDashed(cb[0], cb[1], ca[0], ca[1]);
+    notationDashed(cb[0], cb[1], cc[0], cc[1]);
+    notationDashed(ce[0], ce[1], cd[0], cd[1]);
+}
+
+/** 高级工具标注层主入口 过程函数 */
+function drawToolNotationLayer() {
+    if (typeof geometryManager === 'undefined' || typeof geometryManager.getAllByOrder !== 'function') return;
+    // 游玩模式的题面对象（给定 / 带标签给定 / 可移动点 / 所求显示 / 探索显示）
+    // 都不是玩家作出的高级图形，不画标注
+    const onPlayPage = typeof isResultObjectOfPage === 'function';
+    const isDisplayLayer = id => onPlayPage && (isResultObjectOfPage(id)
+        || (typeof geometryElementLists !== 'undefined' && (
+            geometryElementLists.initial?.has(id)
+            || geometryElementLists.named?.has(id)
+            || geometryElementLists.movepoints?.has(id)
+            || geometryElementLists.explore?.has(id)
+        )));
+    const items = geometryManager.getAllByOrder().filter(item =>
+        item && item.getValid?.() && item.getVisible?.() && !item.getInternal?.()
+        && !isDisplayLayer(item.getId()));
+    if (!items.length) return;
+    ct.save();
+    ct.strokeStyle = NOTATION_COLOR;
+    ct.fillStyle = NOTATION_COLOR;
+    ct.lineWidth = (LINE_WIDTH_BASE * NOTATION_WIDTH) / (transform.scale || 1);
+    ct.lineCap = 'round';
+    ct.lineJoin = 'round';
+    ct.setLineDash([]);
+    // 同类记号的序号：1-3 循环（第 4 个又回到 1 个记号）
+    let parallelSeen = 0;
+    let compassSeen = 0;
+    let copyAngleSeen = 0;
+    for (const item of items) {
+        const base = item.getBase?.();
+        if (!base) continue;
+        // 父对象只要有一个被隐藏（预绘制隐藏或手动隐藏），整个记号都不画：
+        // 记号标的是「这些定义点/线之间的关系」，少一个父对象关系就不完整
+        const parents = notationFigure(base);
+        if (!parents.length || parents.some(parent => !parent || !parent.getVisible?.())) continue;
+        const type = item.getType?.();
+        if (type === 'line' && base.type === 'parallel') {
+            notationParallel(item, base, (parallelSeen++ % 3) + 1);
+        } else if (type === 'line' && base.type === 'perpendicular') {
+            notationPerpendicular(item, base);
+        } else if (type === 'line' && base.type === 'perpendicularBisector') {
+            notationPerpendicularBisector(item, base);
+        } else if (type === 'line' && base.type === 'threePointAngleBisector') {
+            notationAngleBisector(item, base);
+        } else if (type === 'circle' && base.type === 'compass') {
+            notationCompass(base, (compassSeen++ % 3) + 1);
+        } else if (type === 'point' && base.type === 'middlePoint') {
+            notationMiddlePoint(base);
+        } else if (type === 'line' && base.type === 'polarLine') {
+            notationPolar(item, base);
+        } else if (type === 'point' && base.type === 'polarPoint') {
+            notationPolar(item, base);
+        } else if (type === 'line' && base.type === 'fixAngle') {
+            notationFixAngle(item, base);
+        } else if (type === 'line' && base.type === 'copyAngle') {
+            notationCopyAngle(item, base, (copyAngleSeen++ % 3) + 1);
+        }
+    }
+    ct.restore();
+}
+
 function drawShapes() {
     const geometryElements = geometryManager.getAllByType(tool);
     const exceptPoints = geometryElements['exceptPoints'];
@@ -1627,16 +2001,24 @@ function drawLabel(element) {
     // 比例与 drawContent 用同一份（canvasRatio），否则标签会与图形错位
     ct.save();
     ct.setTransform(canvasRatio, 0, 0, canvasRatio, 0, 0);
-    ct.font = `20px serif`;
-    drawStrokedText(
-        ct, 
-        element.getName(), 
-        transform.x + x * transform.scale + (isPoint ? -20 : 14), 
-        transform.y + y * transform.scale + (isPoint ? -15 : 6), 
-        color, 
-        backgroundColor, 
-        3
-    );
+    const px = transform.x + x * transform.scale + (isPoint ? -20 : 14);
+    const py = transform.y + y * transform.scale + (isPoint ? -15 : 6);
+    const name = String(element.getName() || '');
+    // m^n / m_n：主体（可多字符）按 20px 画，上 / 下标按 14px 贴在主体右上角 / 右下角。
+    // 没有 ^ / _ 时整串照旧画；符号本身不写进画布
+    const scripted = name.match(/^(.+?)([\^_])(.+)$/);
+    if (!scripted) {
+        ct.font = '20px serif';
+        drawStrokedText(ct, name, px, py, color, backgroundColor, 3);
+    } else {
+        const [, base, mark, script] = scripted;
+        ct.font = '20px serif';
+        drawStrokedText(ct, base, px, py, color, backgroundColor, 3);
+        const baseWidth = ct.measureText(base).width;
+        ct.font = '14px serif';
+        drawStrokedText(ct, script, px + baseWidth + 1,
+            py + (mark === '^' ? -8 : 6), color, backgroundColor, 2);
+    }
     ct.restore();
 }
 
@@ -1745,7 +2127,8 @@ function drawSegmentMark(element, startX, startY, endX, endY, color, lineWidth) 
     // 屏幕厚度 = 线宽 × 缩放；记号大小与它成比例，但不小于 5 屏幕像素
     const thickness = Math.max(lineWidth * scale, 1);
     const half = Math.max(5, thickness * 2) / scale;
-    const gap = half * 2.4;
+    // 多层记号之间的间距：原来 2.4 个半长，2/3 层时显得过宽，收一半
+    const gap = half * 1.2;
     ct.save();
     ct.strokeStyle = color;
     ct.lineWidth = lineWidth;

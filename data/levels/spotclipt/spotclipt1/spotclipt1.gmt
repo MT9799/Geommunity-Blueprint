@@ -1,0 +1,22 @@
+# sc1
+A=[-269.2512729185,49.4131549551]
+B=[700.8600549752,37.3119741498]
+s1=Ray[A,B]
+C=[422.5328964527,-700.8600549752]
+s2=Ray[A,C]
+D=[-89.7504243062,-587.9157007922]
+s3=ABisect[B,A,C]
+s4=Perp[D,s3]
+E=Intersect[s4,s3,0]
+s5=Perp[E,s2]
+F=Intersect[s2,s5,0]
+c1=Circle[E,F]
+s6=Tangent[D,c1,0]
+s7=Tangent[D,c1,1]
+
+initial=s1,A,s2,D
+named=
+movepoints=B,C
+hidden=
+result=s6,s7
+explore=s6,s7

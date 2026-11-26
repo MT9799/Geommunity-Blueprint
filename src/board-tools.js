@@ -5338,6 +5338,24 @@
       }
     };
 
+    /**
+     * 保存当前并行搜索的严格断点 过程函数（手动暂停 / 超时暂停共用） 过程函数
+     * 在飞的任务退回队首，已完成的只留计数；frontier 没切完时队列不完备，不建立断点
+     */
+    const captureParallelCheckpoint = (st, frontierDone) => {
+      if (!st || !frontierDone || !(st.totalTasks > 0)) return null;
+      const queue = st.queue.slice();
+      queue.unshift(...st.inFlight.values());
+      return {
+        queue,
+        totalTasks: st.totalTasks,
+        doneTasks: st.doneTasks,
+        nodes: st.nodes,
+        settings: st.settings,
+        payload: st.payload,
+      };
+    };
+
     /** 停掉正在跑的搜索 过程函数（返回是否真的停掉了一个） */
     const stopSearch = () => {
       if (!activeWorker && !activePool.length) return false;
@@ -5354,20 +5372,8 @@
       activeWorker = null;
       // 严格断点：把在飞的任务退回队首，未完成任务一个不丢；已完成数记下来，继续时接着算。
       // frontier 还没切出任务时（totalTasks=0）没有断点可存，退化成只保留解表 / 时间预算
-      if (activeParallelState && activeParallelState.frontierDone && activeParallelState.totalTasks > 0) {
-        const st = activeParallelState;
-        st.queue.unshift(...st.inFlight.values());
-        pausedCheckpoint = {
-          queue: st.queue.slice(),
-          totalTasks: st.totalTasks,
-          doneTasks: st.doneTasks,
-          nodes: st.nodes,
-          settings: st.settings,
-          payload: st.payload,
-        };
-      } else {
-        pausedCheckpoint = null;
-      }
+      pausedCheckpoint = captureParallelCheckpoint(activeParallelState,
+        activeParallelState && activeParallelState.frontierDone);
       activeParallelState = null;
       // 解表 / 去重账 / 进度都原样留着，切到「继续求解 + 结束求解」的暂停态
       // 锁存已用时间：继续求解时把起点平移到现在，暂停期间这段不计进时间预算
@@ -5715,9 +5721,30 @@
       const finish = timedOut => {
         // 已经被 stopSearch 作废（编号变了）就什么都不做：停下的搜索不该再往面板上写结论
         if (finished || token !== searchToken) return;
+        // 到时间上限但还有任务没搜完：转成暂停态（和手动暂停一样能继续），不要直接结束。
+        // 否则时间上限设小了就白搜一半，只能从头再来；逐步搜索的中间轮交给它自己收尾
+        const unfinished = queue.length > 0 || inFlight.size > 0 || !frontierDone;
+        if (timedOut && unfinished && !settings.silent) {
+          pausedCheckpoint = captureParallelCheckpoint(activeParallelState, frontierDone);
+          // 继续求解时重新拿到一段完整预算（原来的上限只约束这一段）
+          searchElapsedMs = 0;
+          searchStartedAt = performance.now();
+          if (timer) { clearInterval(timer); timer = null; }
+          activeSearchCancel = null;
+          workers.forEach(worker => worker.terminate());
+          workers.length = 0;
+          activePool = [];
+          activeWorker = null;
+          finished = true;
+          activeParallelState = null;
+          searchPaused = true;
+          setSearching(false, {paused: true});
+          status.textContent = t('board.solverTimeLimitPaused', {seconds: settings.timeLimitSeconds});
+          return;
+        }
         finished = true;
         teardown();
-        // 正常收尾（搜尽 / 收够 / 超时）：这次的断点作废
+        // 正常收尾（搜尽 / 收够 / 超时且已搜完）：这次的断点作废
         activeParallelState = null;
         pausedCheckpoint = null;
         // 并行时各前缀出解的先后是乱的：按步数排一下，短的在前
@@ -6020,8 +6047,9 @@
       }
       const limit = saved ? saved.limit : Math.max(1, Number(panel.querySelector('#geb-solver-limit').value) || 1);
       const toolType = saved ? saved.toolType : Number(panel.querySelector('#geb-solver-tool').value);
-      const timeLimitSeconds = saved ? saved.timeLimitSeconds
-        : Math.max(1, Number(panel.querySelector('#geb-solver-time').value) || 30);
+      // 时间上限允许在暂停期间调整：续跑时读界面上的新值（其它参数仍沿用断点的，
+      // 否则时间设小了想调大再搜时改了也不生效）
+      const timeLimitSeconds = Math.max(1, Number(panel.querySelector('#geb-solver-time').value) || 30);
       const solutions = saved ? saved.solutions
         : Math.max(1, Number(panel.querySelector('#geb-solver-solutions').value) || 1);
       // 整轮求解的起点在续跑时平移到「现在 - 已用时间」：暂停期间不计时，进度条也不倒退
@@ -6389,18 +6417,18 @@
   };
   /**
    * 输入标签 过程函数
-   * 带标签给定：只允许留空（用对象 ID 当标签）或单个字母 / 数字
+   * 带标签给定：留空用对象 ID 当标签；否则字母数字可任意长度，
+   * 并可用 ^ / _ 接上标 / 下标（m^2、m_1、AB^12）
    * @param {Object} item
    */
   const promptMarkLabel = item => {
     if (!item) return;
     const id = item.getId();
-    // 只允许留空（用对象 ID 当标签）或单个字母 / 数字；
-    // 两个及以上的非字母数字字符（' 之类连着输两个）等非法输入直接把「确定」置灰，
-    // 不再让人点了没反应
+    // 标签可含撇号等任意字符：只排除会破坏 GMT 的 , . # 与空白。
+    // ^ / _ 仍是上 / 下标语法，必须夹在两个非空片段之间
     const isValidLabel = text => {
       const label = String(text || '').trim();
-      return label === '' || /^[A-Za-z0-9]$/.test(label);
+      return label === '' || /^[^,.#\s^_]+(?:[\_^][^,.#\s^_]+)?$/.test(label);
     };
     // 改名要并进「标记带标签给定」这一格历史（否则这次改名会落进**下一个动作**的快照里，
     // 撤回下一个动作时把改名一起撤掉 —— 见 markFromCanvas 里对 named 的延迟通知）。
@@ -6409,7 +6437,7 @@
     const ask = value => inputDialog(t('board.markNamed'), t('board.markLabelPrompt', {id: id}), value, raw => {
       const label = String(raw || '').trim();
       // 校验与「确定」按钮的置灰规则保持一致（非法输入根本进不到这里）
-      if (label && !/^[A-Za-z0-9]$/.test(label)) { ask(label); return; }
+      if (label && !isValidLabel(label)) { ask(label); return; }
       item.modifyName(label || id);
       drawContent();
       if (typeof loadGeometryElements === 'function') loadGeometryElements();
