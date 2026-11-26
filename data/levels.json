@@ -13654,6 +13654,32 @@
                 "star": "18L"
             }
         ]
+    },
+    {
+        "id": "tj25",
+        "pack": "grids",
+        "file": "levels/grids/tj25/tj25.gmt",
+        "title": "2025天津中考",
+        "subtitle": "点P，A均在格点上，直线PA与ABC的外接圆相切于点A,AB=BC. 画出点M，N使得点M在射线BC上，点N在线段BA的延长线上，满足CM=2AN，且MN与射线BA垂直.",
+        "targetSteps": "5E",
+        "diagram": "levels/grids/tj25/tj25.png",
+        "note": "",
+        "keywords": [
+            "中考",
+            "天津",
+            "网格",
+            "单尺"
+            "网格",
+            "垂直",
+            "切线",
+            "2025",
+        ],
+        "solutions": [
+            {
+                "file": "levels/grids/tj25/5E.png",
+                "star": "5E"
+            }
+        ]
     }
 
 ]
