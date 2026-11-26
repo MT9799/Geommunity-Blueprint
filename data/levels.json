@@ -12300,7 +12300,7 @@
         "file": "levels/geom-contest-refresh/gcr1/gcr1.gmt",
         "title": "墙角的正方形",
         "subtitle": "构造给定一个顶点的正方形，另外两个顶点各位于成直角的两条射线上。",
-        "targetSteps": "10L / 10E",
+        "targetSteps": "6L / 10E",
         "diagram": "levels/geom-contest-refresh/gcr1/gcr1.png",
         "note": "",
         "keywords": [
@@ -12309,6 +12309,10 @@
             "内接"
         ],
         "solutions": [
+            {
+                "file": "levels/geom-contest-refresh/gcr1/6l.png",
+                "star": "6L"
+            }
         ]
     },
     {
@@ -12317,7 +12321,7 @@
         "file": "levels/geom-contest-refresh/gcr2/gcr2.gmt",
         "title": "平行线上最小等腰三角形",
         "subtitle": "给定三平行线a、b、c，b上一点A 在a上作一点B，c上作一点C，使得 AB=AC，且三角形ABC面积最小。",
-        "targetSteps": "6L / 10E",
+        "targetSteps": "5L / 10E",
         "diagram": "levels/geom-contest-refresh/gcr2/gcr2.png",
         "note": "",
         "keywords": [
@@ -12328,6 +12332,10 @@
             "极小值"
         ],
         "solutions": [
+            {
+                "file": "levels/geom-contest-refresh/gcr2/5l.png",
+                "star": "5L"
+            }
         ]
     },
     {
@@ -12381,13 +12389,198 @@
         "file": "levels/geom-contest-refresh/gcr5/gcr5.gmt",
         "title": "过心线（2）",
         "subtitle": "如图，作圆上一点E，使三角 形CDE周长最大.",
-        "targetSteps": "10L / 10E",
+        "targetSteps": "3L / 3E",
         "diagram": "levels/geom-contest-refresh/gcr5/gcr5.png",
         "note": "",
         "keywords": [
             "Geom-Contest-Refresh",
             "三角形",
             "周长",
+            "极大值"
+        ],
+        "solutions": [
+            {
+                "file": "levels/geom-contest-refresh/gcr5/3e.png",
+                "star": "3E"
+            }
+        ]
+    },
+    {
+        "id": "gcr6",
+        "pack": "geom-contest-refresh",
+        "file": "levels/geom-contest-refresh/gcr6/gcr6.gmt",
+        "title": "角上截两等线",
+        "subtitle": "作一截线使其被三射线截的 两线段为两给定长。",
+        "targetSteps": "10L / 20E",
+        "diagram": "levels/geom-contest-refresh/gcr6/gcr6.png",
+        "note": "",
+        "keywords": [
+            "Geom-Contest-Refresh",
+            "角",
+            "截线",
+            "长度相等"
+        ],
+        "solutions": [
+        ]
+    },
+    {
+        "id": "gcr7",
+        "pack": "geom-contest-refresh",
+        "file": "levels/geom-contest-refresh/gcr7/gcr7.gmt",
+        "title": "凸透镜（1）",
+        "subtitle": "已知点A和点B经过理想凸透镜所成的像为A'、B'.请找出凸透镜的位置，以及作出其两个焦 点。注:理想凸透镜可以使水平光线完美聚焦于同一点.",
+        "targetSteps": "9L / 13E",
+        "diagram": "levels/geom-contest-refresh/gcr7/gcr7.png",
+        "note": "",
+        "keywords": [
+            "Geom-Contest-Refresh",
+            "物理",
+            "光"
+        ],
+        "solutions": [
+        ]
+    },
+    {
+        "id": "gcr8",
+        "pack": "geom-contest-refresh",
+        "file": "levels/geom-contest-refresh/gcr8/gcr8.gmt",
+        "title": "过心线（3）",
+        "subtitle": "给定圆点连心线，作一弦使以其为直径的圆与连心线相切.",
+        "targetSteps": "6L / 10E",
+        "diagram": "levels/geom-contest-refresh/gcr8/gcr8.png",
+        "note": "",
+        "keywords": [
+            "Geom-Contest-Refresh",
+            "相切",
+            "圆心在线上",
+            "直线过点",
+            "弦",
+            "割线",
+            "直径"
+        ],
+        "solutions": [
+        ]
+    },
+    {
+        "id": "gcr9",
+        "pack": "geom-contest-refresh",
+        "file": "levels/geom-contest-refresh/gcr9/gcr9.gmt",
+        "title": "过心线（4）",
+        "subtitle": "给定圆直径及两点，作圆上点使截弦平行于直径.",
+        "targetSteps": "15L / 15E",
+        "diagram": "levels/geom-contest-refresh/gcr9/gcr9.png",
+        "note": "",
+        "keywords": [
+            "Geom-Contest-Refresh",
+            "平行",
+            "直线过点",
+            "弦",
+            "直径"
+        ],
+        "solutions": [
+        ]
+    },
+    {
+        "id": "gcr10",
+        "pack": "geom-contest-refresh",
+        "file": "levels/geom-contest-refresh/gcr10/gcr10.gmt",
+        "title": "过心线（5）",
+        "subtitle": "试作C、D,使S△ABD=2S△ABC",
+        "targetSteps": "4L / 4E",
+        "diagram": "levels/geom-contest-refresh/gcr10/gcr10.png",
+        "note": "",
+        "keywords": [
+            "Geom-Contest-Refresh",
+            "面积",
+            "比例"
+        ],
+        "solutions": [
+        ]
+    },
+    {
+        "id": "gcr11",
+        "pack": "geom-contest-refresh",
+        "file": "levels/geom-contest-refresh/gcr11/gcr11.gmt",
+        "title": "三节棍（n）",
+        "subtitle": "给定一角，角内一点，如图作三等长线段.",
+        "targetSteps": "6L / 9E",
+        "diagram": "levels/geom-contest-refresh/gcr11/gcr11.png",
+        "note": "",
+        "keywords": [
+            "Geom-Contest-Refresh",
+            "线段相等",
+            "角"
+        ],
+        "solutions": [
+        ]
+    },
+    {
+        "id": "gcr12",
+        "pack": "geom-contest-refresh",
+        "file": "levels/geom-contest-refresh/gcr12/gcr12.gmt",
+        "title": "角平分线（1）",
+        "subtitle": "给定外接圆及其内接三角形各角平分线在外接圆上的足，还原这个三角形。",
+        "targetSteps": "9L / 11E",
+        "diagram": "levels/geom-contest-refresh/gcr12/gcr12.png",
+        "note": "",
+        "keywords": [
+            "Geom-Contest-Refresh",
+            "角平分线",
+            "无心圆",
+            "外接圆"
+        ],
+        "solutions": [
+        ]
+    },
+    {
+        "id": "gcr13",
+        "pack": "geom-contest-refresh",
+        "file": "levels/geom-contest-refresh/gcr13/gcr13.gmt",
+        "title": "角平分线（2）",
+        "subtitle": "给定角A（以外接圆形式) 对边a、角A角平分线长，还原三角形（作顶点A即可）.",
+        "targetSteps": "8L / 16E",
+        "diagram": "levels/geom-contest-refresh/gcr13/gcr13.png",
+        "note": "",
+        "keywords": [
+            "Geom-Contest-Refresh",
+            "角平分线",
+            "长度相等",
+            "外接圆"
+        ],
+        "solutions": [
+        ]
+    },
+    {
+        "id": "gcr14",
+        "pack": "geom-contest-refresh",
+        "file": "levels/geom-contest-refresh/gcr14/gcr14.gmt",
+        "title": "角平分线（3）",
+        "subtitle": "给定圆线，作一个三角形, 使其内心在连心线上，另两点在圆上且其角平分线皆与圆相切",
+        "targetSteps": "10L / 13E",
+        "diagram": "levels/geom-contest-refresh/gcr14/gcr14.png",
+        "note": "",
+        "keywords": [
+            "Geom-Contest-Refresh",
+            "角平分线",
+            "相切",
+            "顶点接圆"
+        ],
+        "solutions": [
+        ]
+    },
+    {
+        "id": "gcr15",
+        "pack": "geom-contest-refresh",
+        "file": "levels/geom-contest-refresh/gcr15/gcr15.gmt",
+        "title": "角平分线（4）",
+        "subtitle": "给定角及其内一点，在一边上找一点，使其与给定点、顶点的角平分线在另一边上截得的线段最长.",
+        "targetSteps": "5L / 6E",
+        "diagram": "levels/geom-contest-refresh/gcr15/gcr15.png",
+        "note": "",
+        "keywords": [
+            "Geom-Contest-Refresh",
+            "角平分线",
+            "截距",
             "极大值"
         ],
         "solutions": [

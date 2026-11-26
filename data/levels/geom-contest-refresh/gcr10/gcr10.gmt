@@ -1,0 +1,25 @@
+# Geommunity Blueprint custom level
+A=[-14.0612562593,-187.1697853384]
+B=[125.4314737367,-21.8870312785]
+c1=Circle[A,B]
+C=[80.9344715565,-189.8731410689]
+s1=Line[C,A]
+D=Intersect[c1,s1,0]
+E=Intersect[c1,s1,1]
+c2=Circle[A,C]
+F=Intersect[s1,c2,-,C]
+c3=Circle[F,C]
+G=Intersect[c3,c1,1]
+s2=Line[G,C]
+H=Intersect[s2,c1,-,G]
+I=Intersect[c3,c1,0]
+s3=Line[I,C]
+J=Intersect[s3,c1,-,I]
+
+initial=D,E,A,C,c1
+named=
+movepoints=B
+hidden=
+result=G,H:G,H
+result=I,J:I,J
+explore=G,H
