@@ -118,5 +118,13 @@
         "cover": "packcovers/straightedge-only-pzls.jpg",
         "icon": "",
         "source": "ref/Extra/Straightedge-only-Pzls"
+    },
+    {
+        "id": "grids",
+        "name": "网格精选集",
+        "description": "网格作图题集。",
+        "cover": "packcovers/grids.jpg",
+        "icon": "",
+        "source": ""
     }
 ]
