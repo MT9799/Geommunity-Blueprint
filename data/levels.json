@@ -5086,7 +5086,7 @@
         "file": "levels/c-s-pzls-other/048.pcc-ct-on-c/pcc-ct-on-c.gmt",
         "title": "Ander's PCC",
         "subtitle": "给定共线两圆心及一点，求作圆心在圆上的圆，过给定点且与另一个圆相切。",
-        "targetSteps": "45L / 69E",
+        "targetSteps": "6L / 8E",
         "diagram": "levels/c-s-pzls-other/048.pcc-ct-on-c/pcc-ct-on-c.png",
         "note": "",
         "keywords": [
@@ -5100,6 +5100,14 @@
             "clipt"
         ],
         "solutions": [
+            {
+                "star": "6L",
+                "file": "levels/c-s-pzls-other/048.pcc-ct-on-c/6L.png"
+            },
+            {
+                "star": "8E",
+                "file": "levels/c-s-pzls-other/048.pcc-ct-on-c/8E.png"
+            },
             {
                 "star": "45L 69E",
                 "file": "levels/c-s-pzls-other/048.pcc-ct-on-c/45l69e.png"
@@ -6149,7 +6157,7 @@
         "file": "levels/euc-addit/013.neo-castle-pilgrimage/neo-castle-pilgrimage.gmt",
         "title": "古堡朝圣新编",
         "subtitle": "给定点A、B和直线及其上一点P，构造直线上另一点Q，使得存在一个圆O过A、B两点，满足直线PA、QA关于直线OA对称，且直线PB、QB关于直线OB对称。",
-        "targetSteps": "26L / 34E",
+        "targetSteps": "8L / 11E",
         "diagram": "levels/euc-addit/013.neo-castle-pilgrimage/neo-castle-pilgrimage.png",
         "note": "",
         "keywords": [
@@ -6162,6 +6170,14 @@
             "clipt"
         ],
         "solutions": [
+            {
+                "star": "8L",
+                "file": "levels/euc-addit/013.neo-castle-pilgrimage/8L.png"
+            },
+            {
+                "star": "11E",
+                "file": "levels/euc-addit/013.neo-castle-pilgrimage/11E.png"
+            },
             {
                 "star": "26L 34E",
                 "file": "levels/euc-addit/013.neo-castle-pilgrimage/26l34e.png"
@@ -7338,7 +7354,7 @@
         "file": "levels/mingjing-forum/mfp13/mfp13.gmt",
         "title": "13 共线圆定长",
         "subtitle": "给定两圆ab及圆心连线，点C为圆与直线的交点，还有一条线段；构造过点的直线割两圆，使得与圆a交异于点C的交点D，与圆b交点E，DE与线段长度相等。",
-        "targetSteps": "30L / 54E",
+        "targetSteps": "8L / 13E",
         "diagram": "levels/mingjing-forum/mfp13/mfp13.png",
         "note": "",
         "keywords": [
@@ -7352,6 +7368,14 @@
             "双圆"
         ],
         "solutions": [
+            {
+                "star": "8L",
+                "file": "levels/mingjing-forum/mfp13/8L.png"
+            },
+            {
+                "star": "13E",
+                "file": "levels/mingjing-forum/mfp13/13E.png"
+            },
             {
                 "star": "30L 54E",
                 "file": "levels/mingjing-forum/mfp13/mfp13-30l54e.png"
@@ -11868,7 +11892,7 @@
         "file": "levels/geomcontest/gc2025-7/gc2025-7.gmt",
         "title": "25.7 圆内接三高三角形",
         "subtitle": "已知一圆，圆上有三点A、B、C, 求作一内接△DEF，使其三条高的所在直线分别为DA、EB、FC。",
-        "targetSteps": "9E",
+        "targetSteps": "4L / 9E",
         "diagram": "levels/geomcontest/gc2025-7/gc2025-7.png",
         "note": "",
         "keywords": [
@@ -11881,6 +11905,10 @@
         ],
         "solutions": [
             {
+                "star": "4L",
+                "file": "levels/geomcontest/gc2025-7/4L.png"
+            },
+            {
                 "star": "9E",
                 "file": "levels/geomcontest/gc2025-7/gc25-7-9E.PNG"
             }
@@ -11892,7 +11920,7 @@
         "file": "levels/geomcontest/gc2025-8-1/gc2025-8-1.gmt",
         "title": "25.8.1 同心圆内PCC",
         "subtitle": "已知一对同心圆及它们之间的一点，求作一过给定点的圆，使其与两同心圆均相切。",
-        "targetSteps": "8E",
+        "targetSteps": "5L / 8E",
         "diagram": "levels/geomcontest/gc2025-8-1/gc2025-8-1.png",
         "note": "",
         "keywords": [
@@ -11907,6 +11935,10 @@
         ],
         "solutions": [
             {
+                "star": "5L",
+                "file": "levels/geomcontest/gc2025-8-1/5L.png"
+            },
+            {
                 "star": "8E",
                 "file": "levels/geomcontest/gc2025-8-1/gc25-8-1-8E.PNG"
             }
@@ -11918,7 +11950,7 @@
         "file": "levels/geomcontest/gc2025-8-2/gc2025-8-2.gmt",
         "title": "25.8.2 同心圆60°极大三角形",
         "subtitle": "已知一对同心圆和一点A， 分别作两圆上各一点B、C，使得∠BAC=60°且△ABC的面积最大。",
-        "targetSteps": "9E",
+        "targetSteps": "7L / 9E",
         "diagram": "levels/geomcontest/gc2025-8-2/gc2025-8-2.png",
         "note": "",
         "keywords": [
@@ -11932,6 +11964,10 @@
             "面积"
         ],
         "solutions": [
+            {
+                "star": "7L",
+                "file": "levels/geomcontest/gc2025-8-2/7L.png"
+            },
             {
                 "star": "9E",
                 "file": "levels/geomcontest/gc2025-8-2/gc25-8-2-9E.PNG"
@@ -12178,7 +12214,7 @@
         "file": "levels/geomcontest/gc2026-7/gc2026-7.gmt",
         "title": "26.7 角平分线平行",
         "subtitle": "给定一圆O及其内接△ABC，求作一内接△DEF，记其内心为I，满足DI∥BC，EI∥AC，FI∥AB。",
-        "targetSteps": "9E",
+        "targetSteps": "7L / 8E",
         "diagram": "levels/geomcontest/gc2026-7/gc2026-7.png",
         "note": "",
         "keywords": [
@@ -12191,6 +12227,14 @@
         ],
         "solutions": [
             {
+                "star": "7L",
+                "file": "levels/geomcontest/gc2026-7/7L.png"
+            },
+            {
+                "star": "8E",
+                "file": "levels/geomcontest/gc2026-7/8E.png"
+            },
+            {
                 "star": "9E",
                 "file": "levels/geomcontest/gc2026-7/gc2026-7-9E.png"
             }
@@ -12202,7 +12246,7 @@
         "file": "levels/geomcontest/gc2026-8/gc2026-8.gmt",
         "title": "26.8 内接极大面积矩形",
         "subtitle": "已知圆O内有一点M，过点M作一条直线，交圆于E、F两点，且M为EF的中点。在圆上另有一条弦PQ平行于直线EF，分别过P、Q向直线EF作垂线，垂足为S、R。当矩形PQRS的面积取得最大值时，作出弦PQ。",
-        "targetSteps": "7E",
+        "targetSteps": "4L / 7E",
         "diagram": "levels/geomcontest/gc2026-8/gc2026-8.png",
         "note": "",
         "keywords": [
@@ -12217,6 +12261,10 @@
         ],
         "solutions": [
             {
+                "star": "4L",
+                "file": "levels/geomcontest/gc2026-8/4L.png"
+            },
+            {
                 "star": "7E",
                 "file": "levels/geomcontest/gc2026-8/gc2026-8-7E.png"
             }
@@ -12228,7 +12276,7 @@
         "file": "levels/geomcontest/gc2026-9/gc2026-9.gmt",
         "title": "26.9 角和关系点",
         "subtitle": "给定△ABC及其外接圆O，在△ABC内作一点D，满足∠BAD+∠BCD=∠CAD+∠CBD=45°。",
-        "targetSteps": "7E",
+        "targetSteps": "5L / 7E",
         "diagram": "levels/geomcontest/gc2026-9/gc2026-9.png",
         "note": "",
         "keywords": [
@@ -12242,6 +12290,10 @@
         ],
         "solutions": [
             {
+                "star": "5L",
+                "file": "levels/geomcontest/gc2026-9/5L.png"
+            },
+            {
                 "star": "7E",
                 "file": "levels/geomcontest/gc2026-9/gc2026-9-7E.png"
             }
@@ -12253,7 +12305,7 @@
         "file": "levels/geomcontest/gc2026-10/gc2026-10.gmt",
         "title": "26.10 内接调和三角形",
         "subtitle": "给定△ABC的各边所在直线以及在△ABC外的两点D、E。作△ABC的一个内接△POR，其中P在AB上，Q在AC上，R在BC上，且满足D、P、R三点共线，E、Q、R三点共线，以及CP、BQ、AR三线共点。",
-        "targetSteps": "7E",
+        "targetSteps": "7L / 7E",
         "diagram": "levels/geomcontest/gc2026-10/gc2026-10.png",
         "note": "",
         "keywords": [
@@ -12266,7 +12318,7 @@
         ],
         "solutions": [
             {
-                "star": "7E",
+                "star": "7L 7E",
                 "file": "levels/geomcontest/gc2026-10/gc2026-10-7E.png"
             }
         ]
@@ -12277,7 +12329,7 @@
         "file": "levels/geomcontest/gc2026-11-1/gc2026-11-1.gmt",
         "title": "26.11.1 合引力方向",
         "subtitle": "今日，歌者将巡查一个双星系统，他需要建立一个局部引力场模型来辅助导航，如图所示。假设两天体质量相 同，分别位于点A和点B处。当他的飞船位于点P时，试作出其所受到的引力合力方向所在的直线。（注：引力大小F∝1/d²）",
-        "targetSteps": "8E",
+        "targetSteps": "6L / 8E",
         "diagram": "levels/geomcontest/gc2026-11-1/gc2026-11-1.png",
         "note": "",
         "keywords": [
@@ -12290,6 +12342,10 @@
         ],
         "solutions": [
             {
+                "star": "6L",
+                "file": "levels/geomcontest/gc2026-11-1/6L.png"
+            },
+            {
                 "star": "8E",
                 "file": "levels/geomcontest/gc2026-11-1/gc2026-11-1-8E.png"
             }
@@ -12301,7 +12357,7 @@
         "file": "levels/geomcontest/gc2026-11-2/gc2026-11-2.gmt",
         "title": "26.11.2 变轨巡航",
         "subtitle": "次日例行巡逻，歌者的飞船在以O为圆心的圆轨道上运行，如图所示。他接到指令，需要清理位于点A和点B的两处太空垃圾。他必须自行选择变轨位置，在保持原有运行方向的前提下，切入一条椭圆轨道，使其恰好经过这两个垃圾点。现在，他需要找到圆O上的那个变轨位置T。",
-        "targetSteps": "8E",
+        "targetSteps": "6L / 8E",
         "diagram": "levels/geomcontest/gc2026-11-2/gc2026-11-2.png",
         "note": "",
         "keywords": [
@@ -12314,6 +12370,10 @@
             "共焦点"
         ],
         "solutions": [
+            {
+                "star": "6L",
+                "file": "levels/geomcontest/gc2026-11-2/6L.png"
+            },
             {
                 "star": "8E",
                 "file": "levels/geomcontest/gc2026-11-2/gc2026-11-2-8E.png"
@@ -12437,7 +12497,7 @@
         "file": "levels/geom-contest-refresh/gcr6/gcr6.gmt",
         "title": "角上截两等线",
         "subtitle": "作一截线使其被三射线截的 两线段为两给定长。",
-        "targetSteps": "10L / 20E",
+        "targetSteps": "6L / 18E",
         "diagram": "levels/geom-contest-refresh/gcr6/gcr6.png",
         "note": "",
         "keywords": [
@@ -12447,6 +12507,14 @@
             "长度相等"
         ],
         "solutions": [
+            {
+                "star": "6L",
+                "file": "levels/geom-contest-refresh/gcr6/6L.png"
+            },
+            {
+                "star": "18E",
+                "file": "levels/geom-contest-refresh/gcr6/18E.png"
+            }
         ]
     },
     {
@@ -12455,7 +12523,7 @@
         "file": "levels/geom-contest-refresh/gcr7/gcr7.gmt",
         "title": "凸透镜（1）",
         "subtitle": "已知点A和点B经过理想凸透镜所成的像为A'、B'.请找出凸透镜的位置，以及作出其两个焦 点。注:理想凸透镜可以使水平光线完美聚焦于同一点.",
-        "targetSteps": "9L / 13E",
+        "targetSteps": "9L / 11E",
         "diagram": "levels/geom-contest-refresh/gcr7/gcr7.png",
         "note": "",
         "keywords": [
@@ -12464,6 +12532,14 @@
             "光"
         ],
         "solutions": [
+            {
+                "star": "9L",
+                "file": "levels/geom-contest-refresh/gcr7/9L.png"
+            },
+            {
+                "star": "11E",
+                "file": "levels/geom-contest-refresh/gcr7/11E.png"
+            }
         ]
     },
     {
@@ -12472,7 +12548,7 @@
         "file": "levels/geom-contest-refresh/gcr8/gcr8.gmt",
         "title": "过心线（3）",
         "subtitle": "给定圆点连心线，作一弦使以其为直径的圆与连心线相切.",
-        "targetSteps": "6L / 10E",
+        "targetSteps": "5L / 7E",
         "diagram": "levels/geom-contest-refresh/gcr8/gcr8.png",
         "note": "",
         "keywords": [
@@ -12485,6 +12561,14 @@
             "直径"
         ],
         "solutions": [
+            {
+                "star": "5L",
+                "file": "levels/geom-contest-refresh/gcr8/5L.png"
+            },
+            {
+                "star": "7E",
+                "file": "levels/geom-contest-refresh/gcr8/7E.png"
+            }
         ]
     },
     {
@@ -12493,7 +12577,7 @@
         "file": "levels/geom-contest-refresh/gcr9/gcr9.gmt",
         "title": "过心线（4）",
         "subtitle": "给定圆直径及两点，作圆上点使截弦平行于直径.",
-        "targetSteps": "15L / 15E",
+        "targetSteps": "7L / 10E",
         "diagram": "levels/geom-contest-refresh/gcr9/gcr9.png",
         "note": "",
         "keywords": [
@@ -12504,6 +12588,14 @@
             "直径"
         ],
         "solutions": [
+            {
+                "star": "7L",
+                "file": "levels/geom-contest-refresh/gcr9/7L.png"
+            },
+            {
+                "star": "10E",
+                "file": "levels/geom-contest-refresh/gcr9/10E.png"
+            }
         ]
     },
     {
@@ -12521,6 +12613,10 @@
             "比例"
         ],
         "solutions": [
+            {
+                "star": "4L 4E",
+                "file": "levels/geom-contest-refresh/gcr10/4L4E.png"
+            }
         ]
     },
     {
@@ -12529,7 +12625,7 @@
         "file": "levels/geom-contest-refresh/gcr11/gcr11.gmt",
         "title": "三节棍（n）",
         "subtitle": "给定一角，角内一点，如图作三等长线段.",
-        "targetSteps": "6L / 9E",
+        "targetSteps": "6L / 8E",
         "diagram": "levels/geom-contest-refresh/gcr11/gcr11.png",
         "note": "",
         "keywords": [
@@ -12538,6 +12634,10 @@
             "角"
         ],
         "solutions": [
+            {
+                "star": "8E",
+                "file": "levels/geom-contest-refresh/gcr11/8E.png"
+            }
         ]
     },
     {
@@ -12546,7 +12646,7 @@
         "file": "levels/geom-contest-refresh/gcr12/gcr12.gmt",
         "title": "角平分线（1）",
         "subtitle": "给定外接圆及其内接三角形各角平分线在外接圆上的足，还原这个三角形。",
-        "targetSteps": "9L / 11E",
+        "targetSteps": "6L / 8E",
         "diagram": "levels/geom-contest-refresh/gcr12/gcr12.png",
         "note": "",
         "keywords": [
@@ -12556,6 +12656,14 @@
             "外接圆"
         ],
         "solutions": [
+            {
+                "star": "6L",
+                "file": "levels/geom-contest-refresh/gcr12/6L.png"
+            },
+            {
+                "star": "8E",
+                "file": "levels/geom-contest-refresh/gcr12/8E.png"
+            }
         ]
     },
     {
@@ -12564,7 +12672,7 @@
         "file": "levels/geom-contest-refresh/gcr13/gcr13.gmt",
         "title": "角平分线（2）",
         "subtitle": "给定角A（以外接圆形式) 对边a、角A角平分线长，还原三角形（作顶点A即可）.",
-        "targetSteps": "8L / 16E",
+        "targetSteps": "6L / 12E",
         "diagram": "levels/geom-contest-refresh/gcr13/gcr13.png",
         "note": "",
         "keywords": [
@@ -12574,6 +12682,14 @@
             "外接圆"
         ],
         "solutions": [
+            {
+                "star": "6L",
+                "file": "levels/geom-contest-refresh/gcr13/6L.png"
+            },
+            {
+                "star": "12E",
+                "file": "levels/geom-contest-refresh/gcr13/12E.png"
+            }
         ]
     },
     {
@@ -12582,7 +12698,7 @@
         "file": "levels/geom-contest-refresh/gcr14/gcr14.gmt",
         "title": "角平分线（3）",
         "subtitle": "给定圆线，作一个三角形, 使其内心在连心线上，另两点在圆上且其角平分线皆与圆相切",
-        "targetSteps": "10L / 13E",
+        "targetSteps": "7L / 9E",
         "diagram": "levels/geom-contest-refresh/gcr14/gcr14.png",
         "note": "",
         "keywords": [
@@ -12592,6 +12708,14 @@
             "顶点接圆"
         ],
         "solutions": [
+            {
+                "star": "7L",
+                "file": "levels/geom-contest-refresh/gcr14/7L.png"
+            },
+            {
+                "star": "9E",
+                "file": "levels/geom-contest-refresh/gcr14/9E.png"
+            }
         ]
     },
     {
@@ -12600,7 +12724,7 @@
         "file": "levels/geom-contest-refresh/gcr15/gcr15.gmt",
         "title": "角平分线（4）",
         "subtitle": "给定角及其内一点，在一边上找一点，使其与给定点、顶点的角平分线在另一边上截得的线段最长.",
-        "targetSteps": "5L / 6E",
+        "targetSteps": "4L / 6E",
         "diagram": "levels/geom-contest-refresh/gcr15/gcr15.png",
         "note": "",
         "keywords": [
@@ -12610,6 +12734,14 @@
             "极大值"
         ],
         "solutions": [
+            {
+                "star": "4L",
+                "file": "levels/geom-contest-refresh/gcr15/4L.png"
+            },
+            {
+                "star": "6E",
+                "file": "levels/geom-contest-refresh/gcr15/6E.png"
+            }
         ]
     },
     {
@@ -13848,7 +13980,7 @@
         "file": "levels/spotclipt/spotclipt1/spotclipt1.gmt",
         "title": "#1 交角双心四边形",
         "subtitle": "给定角和角外一点，过该点作两条直线，使其与给定角围成的四边形有外接圆和内切圆。",
-        "targetSteps": "8L / 14E",
+        "targetSteps": "6L / 9E",
         "diagram": "levels/spotclipt/spotclipt1/spotclipt1.png",
         "note": "",
         "keywords": [
@@ -13862,6 +13994,10 @@
             "切线"
         ],
         "solutions": [
+            {
+                "file": "levels/spotclipt/spotclipt1/6L9E.png",
+                "star": "6L 9E"
+            },
             {
                 "file": "levels/spotclipt/spotclipt1/8L.png",
                 "star": "8L"
@@ -13878,7 +14014,7 @@
         "file": "levels/spotclipt/spotclipt2/spotclipt2.gmt",
         "title": "#2 交角内点双等腰",
         "subtitle": "给定角、角外一点P和角内一点A，过P作两条直线，两直线与角的两边分别交于D、E和F、G，使得AD=AF，AE=AG。",
-        "targetSteps": "18L / 42E",
+        "targetSteps": "8L / 11E",
         "diagram": "levels/spotclipt/spotclipt2/spotclipt2.png",
         "note": "",
         "keywords": [
@@ -13887,6 +14023,14 @@
             "clipt"
         ],
         "solutions": [
+            {
+                "file": "levels/spotclipt/spotclipt2/8L.png",
+                "star": "8L"
+            },
+            {
+                "file": "levels/spotclipt/spotclipt2/11E.png",
+                "star": "11E"
+            },
             {
                 "file": "levels/spotclipt/spotclipt2/18L42E.png",
                 "star": "18L"
@@ -13899,7 +14043,7 @@
         "file": "levels/spotclipt/spotclipt3/spotclipt3.gmt",
         "title": "#3 交角内点双直角",
         "subtitle": "给定角、角外一点P和角内一点A，过P作两条直线，两直线与角的两边分别交于D、E和F、G，使得AD⊥AF，AE⊥AG。",
-        "targetSteps": "19L / 34E",
+        "targetSteps": "9L / 16E",
         "diagram": "levels/spotclipt/spotclipt3/spotclipt3.png",
         "note": "",
         "keywords": [
@@ -13908,6 +14052,14 @@
             "clipt"
         ],
         "solutions": [
+            {
+                "file": "levels/spotclipt/spotclipt3/9L.png",
+                "star": "9L"
+            },
+            {
+                "file": "levels/spotclipt/spotclipt3/16E.png",
+                "star": "16E"
+            },
             {
                 "file": "levels/spotclipt/spotclipt3/19L34E.png",
                 "star": "18L"
@@ -13920,7 +14072,7 @@
         "file": "levels/spotclipt/spotclipt4/spotclipt4.gmt",
         "title": "#4 四线共点三相等",
         "subtitle": "给定直线和A、B、C、D四点，试作四条直线PA、PB、PC、PD，共点于一点P，分别与给定直线交于E、F、G、H四点，满足EF=FG=GH。",
-        "targetSteps": "19L / 19E",
+        "targetSteps": "11L / 14E",
         "diagram": "levels/spotclipt/spotclipt4/spotclipt4.png",
         "note": "",
         "keywords": [
@@ -13930,6 +14082,14 @@
             "clipt"
         ],
         "solutions": [
+            {
+                "file": "levels/spotclipt/spotclipt4/11L.png",
+                "star": "11L"
+            },
+            {
+                "file": "levels/spotclipt/spotclipt4/14E.png",
+                "star": "14E"
+            },
             {
                 "file": "levels/spotclipt/spotclipt4/19L19E.png",
                 "star": "19E"
