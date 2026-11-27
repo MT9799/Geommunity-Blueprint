@@ -12613,6 +12613,189 @@
         ]
     },
     {
+        "id": "gcr16",
+        "pack": "geom-contest-refresh",
+        "file": "levels/geom-contest-refresh/gcr16/gcr16.gmt",
+        "title": "角平分线（5）",
+        "subtitle": "给定圆及内两点P、Q， 过一给定点P作弦，交圆于两点A、B, 使与另一给定点Q所成的三角形QAB在角Q上的角平分线过P.",
+        "targetSteps": "10L / 15E",
+        "diagram": "levels/geom-contest-refresh/gcr16/gcr16.png",
+        "note": "",
+        "keywords": [
+            "Geom-Contest-Refresh",
+            "角平分线",
+            "弦",
+            "直线过点"
+        ],
+        "solutions": [
+        ]
+    },
+    {
+        "id": "gcr17",
+        "pack": "geom-contest-refresh",
+        "file": "levels/geom-contest-refresh/gcr17/gcr17.gmt",
+        "title": "三截棍",
+        "subtitle": "给定外切两圆，作一直线，使其被两圆截成的三线段长度相等.",
+        "targetSteps": "7L / 9E",
+        "diagram": "levels/geom-contest-refresh/gcr17/gcr17.png",
+        "note": "",
+        "keywords": [
+            "Geom-Contest-Refresh",
+            "割线",
+            "相切",
+            "长度相等"
+        ],
+        "solutions": [
+        ]
+    },
+    {
+        "id": "gcr18",
+        "pack": "geom-contest-refresh",
+        "file": "levels/geom-contest-refresh/gcr18/gcr18.gmt",
+        "title": "截弦1：2",
+        "subtitle": "给定两圆，过其交点作一直线，使被两圆截得的两弦长度比为1:2。",
+        "targetSteps": "4L / 4E",
+        "diagram": "levels/geom-contest-refresh/gcr18/gcr18.png",
+        "note": "",
+        "keywords": [
+            "Geom-Contest-Refresh",
+            "直线过点",
+            "弦",
+            "比例"
+        ],
+        "solutions": [
+        ]
+    },
+    {
+        "id": "gcr19",
+        "pack": "geom-contest-refresh",
+        "file": "levels/geom-contest-refresh/gcr19/gcr19.gmt",
+        "title": "趁热打铁（1）",
+        "subtitle": "如图，在每个小正方形的边长为1的网格中，点A,F均在格点上，点E在水平网格线上，过点A,E,F作圆，经过圆与水平网格线的交点作切线，分别与AE,AF的延长线相交于点B,C，△AEF中，点M在边AE上，点N在边EF上.请用无刻度的直尺，画出点M,N，使 AM=2FN,MN⊥AB.",
+        "targetSteps": "6E",
+        "diagram": "levels/geom-contest-refresh/gcr19/gcr19.png",
+        "note": "",
+        "tools": "grid",
+        "keywords": [
+            "Geom-Contest-Refresh",
+            "网格",
+            "垂直",
+            "比例"
+        ],
+        "solutions": [
+        ]
+    },
+    {
+        "id": "gcr20",
+        "pack": "geom-contest-refresh",
+        "file": "levels/geom-contest-refresh/gcr20/gcr20.gmt",
+        "title": "趁热打铁（2）",
+        "subtitle": "如图，在每个小正方形的边长为1的网格中，△ABC的顶点A,C 均落在格点上，点B在网格线上，以AB为直径的半圆的圆心为O，在线段AB上有一点P，满足 AP=AC.点M在AP延长线上，点N 在AC延长线上.请用无刻度的直尺，画出点M,N，使CN=2PM, MN⊥AB.",
+        "targetSteps": "15E",
+        "diagram": "levels/geom-contest-refresh/gcr20/gcr20.png",
+        "note": "",
+        "tools": "grid",
+        "keywords": [
+            "Geom-Contest-Refresh",
+            "网格",
+            "垂直",
+            "比例"
+        ],
+        "solutions": [
+        ]
+    },
+    {
+        "id": "gcr21",
+        "pack": "geom-contest-refresh",
+        "file": "levels/geom-contest-refresh/gcr21/gcr21.gmt",
+        "title": "趁热打铁（3）",
+        "subtitle": "如图，给定∠BAC，线段BC (未画出）上一点P，在线段AB 上作一点M，线段AC上作一点N, 使得MN⊥AB，且BM/CN=BP/CP",
+        "targetSteps": "12L / 12E",
+        "diagram": "levels/geom-contest-refresh/gcr21/gcr21.png",
+        "note": "",
+        "keywords": [
+            "Geom-Contest-Refresh",
+            "垂直",
+            "比例"
+        ],
+        "solutions": [
+        ]
+    },
+    {
+        "id": "gcr22",
+        "pack": "geom-contest-refresh",
+        "file": "levels/geom-contest-refresh/gcr22/gcr22.gmt",
+        "title": "迷你圆",
+        "subtitle": "如图，给定一圆、圆内两点。 过其中一点作弦，使其与另一点形成的三角形的外接圆最小。",
+        "targetSteps": "7L / 9E",
+        "diagram": "levels/geom-contest-refresh/gcr22/gcr22.png",
+        "note": "",
+        "keywords": [
+            "Geom-Contest-Refresh",
+            "弦",
+            "三点圆",
+            "半径",
+            "极小值"
+        ],
+        "solutions": [
+        ]
+    },
+    {
+        "id": "gcr23",
+        "pack": "geom-contest-refresh",
+        "file": "levels/geom-contest-refresh/gcr23/gcr23.gmt",
+        "title": "对角相似",
+        "subtitle": "如图，给定三角形及其某边上一点，在另两边上各找一点，使与给定点形成的三角形与原三角形对应相似（对角相等)",
+        "targetSteps": "11L / 23E",
+        "diagram": "levels/geom-contest-refresh/gcr23/gcr23.png",
+        "note": "",
+        "keywords": [
+            "Geom-Contest-Refresh",
+            "内接",
+            "相似"
+        ],
+        "solutions": [
+        ]
+    },
+    {
+        "id": "gcr24",
+        "pack": "geom-contest-refresh",
+        "file": "levels/geom-contest-refresh/gcr24/gcr24.gmt",
+        "title": "切切交圆",
+        "subtitle": "如图，给定两直线、它们的交点A、其中一条直线上的点B、C，作一个与直线BC相切于A的圆，使得如图所示连接后，CE也是该圆的切线",
+        "targetSteps": "5L / 9E",
+        "diagram": "levels/geom-contest-refresh/gcr24/gcr24.png",
+        "note": "",
+        "keywords": [
+            "Geom-Contest-Refresh",
+            "相切",
+            "切线",
+            "交点",
+            "三点共线"
+        ],
+        "solutions": [
+        ]
+    },
+    {
+        "id": "gcr25",
+        "pack": "geom-contest-refresh",
+        "file": "levels/geom-contest-refresh/gcr25/gcr25.gmt",
+        "title": "等腰角圆",
+        "subtitle": "如图，给定一角及一边上一点，在另一边上作一个过给定点的圆，使其能如图截出一个等腰三角形。",
+        "targetSteps": "6L / 8E",
+        "diagram": "levels/geom-contest-refresh/gcr25/gcr25.png",
+        "note": "",
+        "keywords": [
+            "Geom-Contest-Refresh",
+            "等腰三角形",
+            "圆过点",
+            "交点",
+            "圆心在线上"
+        ],
+        "solutions": [
+        ]
+    },
+    {
         "id": "wt1",
         "pack": "weekly-tangent",
         "file": "levels/weekly-tangent/wt1/weekly-tangent-1.gmt",
