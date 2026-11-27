@@ -14143,6 +14143,38 @@
                 "star": "5E"
             }
         ]
+    },
+    {
+        "id": "tj26",
+        "pack": "grids",
+        "file": "levels/grids/tj26/tj26.gmt",
+        "title": "2026天津中考",
+        "subtitle": "在每个小正方形的边长为1的网格中，点A，B均在格点上，点C在网格线上，以AC为直径的半圆经过点B。画出点M，N，使得点M在线段BC上，点N在线段AM上，满足∠BNM=∠CNM=∠ACB。",
+        "targetSteps": "3E",
+        "diagram": "levels/grids/tj26/tj26.jpg",
+        "note": "",
+        "tools": "grid",
+        "keywords": [
+            "中考",
+            "天津",
+            "网格",
+            "单尺",
+            "角度相等",
+            "平行",
+            "半圆",
+            "定图",
+            "2026"
+        ],
+        "solutions": [
+            {
+                "file": "levels/grids/tj26/3E.png",
+                "star": "3E"
+            },
+            {
+                "file": "levels/grids/tj26/5E.png",
+                "star": "5E"
+            }
+        ]
     }
 
 ]
