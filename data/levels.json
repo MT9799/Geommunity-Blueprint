@@ -5174,7 +5174,7 @@
         "file": "levels/c-s-pzls-other/051.giha/giha.gmt",
         "title": "Wernick 119",
         "subtitle": "给定重心G、内心I、顶点A的垂足Ha，还原三角形ABC。",
-        "targetSteps": "28E",
+        "targetSteps": "13L / 18E",
         "diagram": "levels/c-s-pzls-other/051.giha/giha.png",
         "note": "",
         "keywords": [
@@ -5185,6 +5185,18 @@
             "三角形"
         ],
         "solutions": [
+            {
+                "star": "13L",
+                "file": "levels/c-s-pzls-other/051.giha/13l.png"
+            },
+            {
+                "star": "18E",
+                "file": "levels/c-s-pzls-other/051.giha/18e.png"
+            },
+            {
+                "star": "18E 2",
+                "file": "levels/c-s-pzls-other/051.giha/18e-2.png"
+            },
             {
                 "star": "28E",
                 "file": "levels/c-s-pzls-other/051.giha/28e.jpg"
@@ -5697,7 +5709,7 @@
         "file": "levels/c-s-pzls-other/068.3isosctri-equangle/3isosctri-equangle.gmt",
         "title": "三角形边上的等角等腰",
         "subtitle": "给定三角形ABC及其内部一点D满足DB=DC，求作两点E、F，使得EA=EB，FA=FC，满足∠BED=∠CFD，且∠ABE+∠ACF=∠DBC。",
-        "targetSteps": "13L / 31E",
+        "targetSteps": "13L / 17E",
         "diagram": "levels/c-s-pzls-other/068.3isosctri-equangle/3isosctri-equangle.png",
         "note": "",
         "keywords": [
@@ -5711,8 +5723,12 @@
         ],
         "solutions": [
             {
-                "star": "13E",
+                "star": "13L",
                 "file": "levels/c-s-pzls-other/068.3isosctri-equangle/31E.png"
+            },
+            {
+                "star": "17E",
+                "file": "levels/c-s-pzls-other/068.3isosctri-equangle/17e.png"
             }
         ]
     },
@@ -5722,7 +5738,7 @@
         "file": "levels/c-s-pzls-other/069.equ-tc-inc-inangle/equ-tc-inc-inangle.gmt",
         "title": "角内等大旁切圆与外切圆",
         "subtitle": "给定一角及角内一与两边相切的圆，作该圆的一条切线，与角的两边分别交于两点，使得这两点与角顶点组成的三角形的外接圆和给定圆等大。",
-        "targetSteps": "14L / 22E",
+        "targetSteps": "4L / 4E",
         "diagram": "levels/c-s-pzls-other/069.equ-tc-inc-inangle/equ-tc-inc-inangle.png",
         "note": "",
         "keywords": [
@@ -5737,6 +5753,10 @@
             {
                 "star": "14L 22E",
                 "file": "levels/c-s-pzls-other/069.equ-tc-inc-inangle/14L22E.png"
+            },
+            {
+                "star": "4E",
+                "file": "levels/c-s-pzls-other/069.equ-tc-inc-inangle/4e.png"
             }
         ]
     },
@@ -7637,7 +7657,7 @@
         "file": "levels/mingjing-forum/mfp59/mfp59.gmt",
         "title": "59 双直角折线上的定长",
         "subtitle": "如图，CO⊥CD，BD⊥CD，BD=CD，过B求作一直线，使得EF等于已知定长。",
-        "targetSteps": "6L / 16E",
+        "targetSteps": "6L / 11E",
         "diagram": "levels/mingjing-forum/mfp59/mfp59.jpg",
         "note": "",
         "keywords": [
@@ -7652,6 +7672,10 @@
             {
                 "star": "6L 16E",
                 "file": "levels/mingjing-forum/mfp59/6L16E.jpg"
+            },
+            {
+                "star": "6L 11E",
+                "file": "levels/mingjing-forum/mfp59/11e.png"
             },
             {
                 "star": "2V",
