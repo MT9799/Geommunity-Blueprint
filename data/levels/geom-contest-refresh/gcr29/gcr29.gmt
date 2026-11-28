@@ -1,0 +1,23 @@
+# Geommunity Blueprint custom level
+A=[-187.6856577722,77.424442683]
+B=[166.4664064468,84.9454304533]
+s1=Ray[A,B]
+C=[176.6727586708,-183.7910647292]
+s2=Ray[A,C]
+D=[-38.6961811522,-158.8352037052]
+s3=Line[A,D]
+s4=Perp[D,s3]
+s5=ABisect[C,A,B]
+E=Intersect[s5,s4,0]
+s6=Perp[E,s2]
+F=Intersect[s2,s6,0]
+c1=Circle[E,F]
+s9=Tangent[D,c1,1]
+s7=Tangent[D,c1,0]
+
+initial=s1,s2,D,A
+named=
+movepoints=B,C
+hidden=
+result=s9,s7
+explore=s9,s7
