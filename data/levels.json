@@ -13067,7 +13067,7 @@
         "file": "levels/geom-contest-refresh/gcr31/gcr31.gmt",
         "title": "任意等边三角形",
         "subtitle": "给定直角三角形ABC，其中 ∠B=90°，∠C=60°，且有一过 B、C两点的圆与边AC交于点D, 请仅用单尺在图中任作一个正三角形。",
-        "targetSteps": "9E",
+        "targetSteps": "10E",
         "diagram": "levels/geom-contest-refresh/gcr31/gcr31.png",
         "note": "",
         "tools": "straightedge",
